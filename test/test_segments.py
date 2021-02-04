@@ -52,7 +52,7 @@ def test_track_segments():
             print(f"segment: {rng}\tsegment length: {len(rng)}\tfiltered: {len(rng)-sum(mask)}\tstart time: {track['time'][rng][0]}\t\tend time: {track['time'][rng][-1]}")
 
     # or, more concisely without filtering (for datasets that fit in memory)
-    tracks_segmented = { track['mmsi'] : dict(**track, seg=list(segment(track, maxdelta, minsize))) for track in trackgen(testrows) }
+    tracks_segmented = { track['mmsi'] : dict(**track, rng=list(segment(track, maxdelta, minsize))) for track in trackgen(testrows) }
     
     breakpoint()
 
