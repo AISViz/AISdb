@@ -5,3 +5,5 @@ Requirements:
   NumPy
   Shapely
 
+
+To test track segmentation, some sample data is provided along with some test code in test/test_segments.py
