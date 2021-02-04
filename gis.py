@@ -4,7 +4,7 @@ import numpy as np
 from datetime import timedelta
 from shapely.geometry import Polygon
 
-from .track_gen import trackgen, segment, filtermask, writecsv
+from track_gen import trackgen, segment, filtermask, writecsv
 
 
 def haversine(x1, y1, x2, y2):

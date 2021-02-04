@@ -1,11 +1,13 @@
 import os
 import sys
 import pickle
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 
-from ..track_gen import *
+sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+from track_gen import *
+from gis import compute_knots
 
 
 assert sys.version_info.major >= 3, 'python >= 3.8 required'
@@ -15,7 +17,9 @@ assert sys.version_info.major > 3 or sys.version_info.minor >= 8, 'python >= 3.8
 def test_track_segments():
     # load test dataset
     # note that rows are sorted by mmsi and time, as output by the database
-    with open('test/testdata/longtrack.pickle', 'rb') as f: testrows = pickle.load(f)
+    #"src/test/testdata/longtrack.pickle"
+    with open(f'{os.path.abspath(__file__+"/../testdata/longtrack.pickle")}', 'rb') as f: 
+            testrows = pickle.load(f)
 
     # TODO: update track segment function to allow a variable number of columns
     # currently requires rows to have columns: mmsi time lon lat cog sog vessel_name vessel_type
@@ -56,4 +60,6 @@ def test_track_segments():
     
     breakpoint()
 
+
+test_track_segments()
 
