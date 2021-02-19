@@ -1,5 +1,7 @@
 from collections import UserDict
 
+from shapely.geometry import Polygon
+
 from . import *
 
 class qrygen(UserDict):
@@ -14,6 +16,7 @@ class qrygen(UserDict):
             if sum(map(isinstance, (self['x'],self['y'],), [(list, np.ndarray, tuple) for _ in range(2)])) == 2: 
                 assert sum(map(isinstance, (self['x'],self['y'],), [(list, np.ndarray, tuple) for _ in range(2)])) == 2, 'x,y are not 2D'
                 assert len(self['x']) == len(self['y']), 'coordinate arrays are not equivalent length'
+                assert Polygon(zip(self.data['x'],self.data['y'])).is_valid, 'invalid polygon'
                 self.data['poly'] = arr2polytxt(x=self.data['x'], y=self.data['y'])
             else:
                 #assert sum(map(isinstance, (self['x'],self['y'],), [(float, int) for _ in range(2)])) == 2, 'x,y are not 1D'
@@ -40,6 +43,9 @@ class qrygen(UserDict):
     def poly_msg18join5(self, callback=in_poly):
         assert sum(map(isinstance, (self['x'],self['y'],), [(list, np.ndarray, tuple) for _ in range(2)])) == 2, 'x,y are not 2D'
         return '\nUNION'.join(map(partial(msg18join5, callback=callback, kwargs=self), self['months'])) + '\nORDER BY mmsi, time'
+
+    def crawler(self, callback, qryfcn=msg123union18join5):
+        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY mmsi, time'
 
     def csvpath(self,subfolder,folder=f'{os.path.dirname(__file__)}{os.path.sep}scripts{os.path.sep}'):
         return f'{folder}{subfolder}{os.path.sep if subfolder[-1] != os.path.sep else ""}ais_{self.data["start"].strftime("%Y%m%d")}-{self.data["end"].strftime("%Y%m%d")}{"_"+str(self["radius"] // 1000)+"km" if "radius" in self.data.keys() else ""}.csv'
