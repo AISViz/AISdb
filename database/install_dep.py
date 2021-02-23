@@ -6,18 +6,38 @@ import requests
 import subprocess
 import shutil
 
-subprocess.run(f'''{sys.executable} -m pip install numpy shapely pyais requests''', shell=True)
+
+req = requests.get('https://www.python.org/ftp/python/3.9.2/Python-3.9.2.tgz', stream=True)
+with open(tar := f'database{sep}libs{sep}Python-3.9.2.tgz', 'wb') as f:
+    list(map(lambda chunk: f.write(chunk), req.iter_content(chunk_size=1024)))
+
+tarfile.open(tar).extractall(f'database{sep}libs{sep}')
+os.chdir(f'database{sep}libs{sep}Python-3.9.2')
+
+subprocess.run('./configure --'.split())
+
 
 """
+#  compile openssl from source https://wiki.openssl.org/index.php/Compilation_and_Installation
+      ./config -Werror -Wl,-rpath=/usr/local/ssl/lib --static -static --prefix=/opt/openssl --openssldir=/usr/local/ssl no-ssl2 no-ssl3 shared no-idea no-asm no-hw no-engine no-err no-weak-ssl-ciphers no-asan # --strict-warnings 
+      make update
+      make 
+      sudo make install
+
+subprocess.run(f'''{sys.executable} -m pip install numpy shapely pyais requests''', shell=True)
+
+
 python configured with following compile flags
 
 #./configure --enable-loadable-sqlite-extensions --enable-profiling --enable-optimizations --enable-ipv6 --enable-shared --with-lto --with-address-sanitizer --with-memory-sanitizer
-
-./configure --enable-loadable-sqlite-extensions --enable-optimizations --disable-ipv6
+#./configure --enable-loadable-sqlite-extensions --enable-optimizations --disable-ipv6
+./configure --with-openssl=/opt/openssl --enable-optimizations --with-lto --disable-ipv6 --enable-loadable-sqlite-extensions
 """
 
 
 if not os.path.isdir(f'database{sep}libs'): os.mkdir(f'database{sep}libs')
+
+
 
 req = requests.get('http://www.gaia-gis.it/gaia-sins/libspatialite-5.0.1.tar.gz', stream=True)
 with open(tar := f'database{sep}libs{sep}libspatialite.tar.tgz', 'wb') as f:
@@ -41,5 +61,8 @@ conn.enable_load_extension(True)
 
 assert conn.execute('SELECT load_extension("mod_spatialite.so")')
 assert cur.fetchall() == []
+
+
+
 
 

@@ -1,3 +1,6 @@
 *__pycache__*
 *.swp
 database/libs/*
+*.db
+*.csv
+tmp/*
