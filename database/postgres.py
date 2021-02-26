@@ -16,21 +16,19 @@ if gethostname() == 'BIGDATA1':
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 else:
 
-    if not os.path.isdir('aislib'): 
-        os.mkdir('aislib')
-        import requests
-        import tarfile
-        req = requests.get('http://www.gaia-gis.it/gaia-sins/libspatialite-5.0.0.tar.gz')
-        with open(tarpath:='aislib/libspatialite-5.0.0.tar.gz', 'wb') as f: f.write(req.content)
-        tar = tarfile.open(tarpath, 'r:gz')
-        tar.extractall('aislib/')
-        os.remove(tarpath)
-        os.chdir('aislib/libspatialite-5.0.0/')
-        os.system(f'./configure --prefix={os.path.abspath("..")}')
-        os.system('make')
-        os.system('make install-strip')
-        os.chdir('../..')
+    """
+    dbpath = '/run/media/matt/Seagate Backup Plus Drive/python/ais.db'
+    newdb = not os.path.isfile(dbpath)
+    conn = sqlite3.connect(dbpath)
+    cur = conn.cursor()
+    conn.enable_load_extension(True)
+    cur.execute('SELECT load_extension("mod_spatialite.so")')
+    if newdb:
+        cur.execute('SELECT InitSpatialMetaData(1)')
+    """
+    pass
 
+"""
     import sys
     sys.path.append(os.path.abspath('aislib/lib'))
 
@@ -43,15 +41,7 @@ else:
     conn.execute('SELECT sqlite3_enable_load_extension(1)')
     conn.execute('SELECT load_extension("spatialite")')
 
-    print('todo: init db')
-    conn = 'NOT INITIALIZED'
-    cur = 'NOT INITIALIZED'
-
-
-
-
-
-
+"""
 
 '''
 import shapefile as shp

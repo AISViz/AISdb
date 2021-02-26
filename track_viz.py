@@ -6,7 +6,7 @@ from qgis.core import *
 from qgis.gui import QgsLayerTreeMapCanvasBridge, QgsMapCanvas #, QgsMapCanvasItem, QgsRubberBand
 from qgis.PyQt.QtGui import QColor, QGuiApplication
 
-from track_geom import *
+#from track_geom import *
 
 
 # https://docs.qgis.org/3.16/en/docs/pyqgis_developer_cookbook/intro.html

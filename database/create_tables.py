@@ -10,9 +10,43 @@ conn.enable_load_extension(True)
 cur.execute('SELECT load_extension("mod_spatialite.so")')
 if newdb: 
     cur.execute('SELECT InitSpatialMetaData(1)')
+    cur.execute(''' CREATE TABLE coarsetype_ref (
+            coarse_type integer,
+            coarse_type_txt character varying(75)
+        ); ''')
+    cur.executemany (''' INSERT INTO coarsetype_ref (coarse_type, coarse_type_txt) VALUES (?,?) ''', (
+        (20,	'Wing in ground craft'),
+        (30,	'Fishing'),
+        (31,	'Towing'),
+        (32,	'Towing - length >200m or breadth >25m'),
+        (33,	'Engaged in dredging or underwater operations'),
+        (34,	'Engaged in diving operations'),
+        (35,	'Engaged in military operations'),
+        (36,	'Sailing'),
+        (37,	'Pleasure craft'),
+        (38,	'Reserved for future use'),
+        (39,	'Reserved for future use'),
+        (40,	'High speed craft'),
+        (50,	'Pilot vessel'),
+        (51,	'Search and rescue vessels'),
+        (52,	'Tugs'),
+        (53,	'Port tenders'),
+        (54,	'Vessels with anti-pollution facilities or equipment'),
+        (55,	'Law enforcement vessels'),
+        (56,	'Spare for assignments to local vessels'),
+        (57,	'Spare for assignments to local vessels'),
+        (58,	'Medical transports (1949 Geneva convention)'),
+        (59,	'Ships and aircraft of States not parties to an armed conflict'),
+        (60,	'Passenger ships'),
+        (70,	'Cargo ships'),
+        (80,	'Tankers'),
+        (90,	'Other types of ship'),
+        (100,	'Unknown'),
+        )
+    )
 
 
-def create_table_msg123(month):
+def create_table_msg123(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_1_2_3 (
                 unq_id_prefix character varying(11),
@@ -49,10 +83,10 @@ def create_table_msg123(month):
     cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_1_2_3', 'ais_geom', 4326, 'POINT', 'XY') ''')
     cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_1_2_3', 'ais_geom') ''')
     #cur.execute(f''' CREATE UNIQUE INDEX idx_msg123_mmsi_time ON 'ais_s_{month}_msg_1_2_3' (mmsi, time) ''')  # redundant?
-    cur.execute(f''' CREATE UNIQUE INDEX idx_msg123_mmsi_time_lat_lon ON 'ais_s_{month}_msg_1_2_3' (mmsi, time, longitude, latitude)''')
+    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time_lat_lon ON 'ais_s_{month}_msg_1_2_3' (mmsi, time, longitude, latitude)''')
 
 
-def create_table_msg5(month):
+def create_table_msg5(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_5 (
                 unq_id_prefix character varying(11),
@@ -95,10 +129,10 @@ def create_table_msg5(month):
                 spare2 character varying(4)
             );
         ''')
-    cur.execute(f''' CREATE UNIQUE INDEX idx_msg5_mmsi_time ON 'ais_s_{month}_msg_5' (mmsi, time)''')
+    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg5_mmsi_time ON 'ais_s_{month}_msg_5' (mmsi, time)''')
 
 
-def create_table_msg18(month):
+def create_table_msg18(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_18 (
                 unq_id_prefix character varying(11),
@@ -140,10 +174,10 @@ def create_table_msg18(month):
     cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_18', 'ais_geom', 4326, 'POINT', 'XY') ''')
     cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_18', 'ais_geom') ''')
     #cur.execute(f''' CREATE UNIQUE INDEX idx_msg18_mmsi_time ON 'ais_s_{month}_msg_18' (mmsi, time) ''')
-    cur.execute(f''' CREATE UNIQUE INDEX idx_msg18_mmsi_time_lat_lon ON 'ais_s_{month}_msg_18' (mmsi, time, longitude, latitude)''')
+    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time_lat_lon ON 'ais_s_{month}_msg_18' (mmsi, time, longitude, latitude)''')
 
 
-def create_table_msg24(month):
+def create_table_msg24(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_24 (
                 unq_id_prefix character varying(11),
@@ -177,11 +211,11 @@ def create_table_msg24(month):
                 spare character varying(4)
             );
         ''')
-    cur.execute(f''' CREATE UNIQUE INDEX idx_msg24_mmsi_time ON 'ais_s_{month}_msg_24' (mmsi, time)''')
+    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg24_mmsi_time ON 'ais_s_{month}_msg_24' (mmsi, time)''')
     #cur.execute(f''' CREATE INDEX idx_msg24_imo_time ON 'ais_s_{month}_msg_24' (imo, time)''')
 
 
-def create_table_msg27(month):
+def create_table_msg27(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_27 (
                 unq_id_prefix character varying(11),
@@ -213,10 +247,10 @@ def create_table_msg27(month):
         ''')
     cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_27', 'ais_geom', 4326, 'POINT', 'XY') ''')
     cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_27', 'ais_geom') ''')
-    cur.execute(f''' CREATE UNIQUE INDEX idx_msg27_mmsi_time_lat_lon ON 'ais_s_{month}_msg_27' (mmsi, time, longitude, latitude)''')
+    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg27_mmsi_time_lat_lon ON 'ais_s_{month}_msg_27' (mmsi, time, longitude, latitude)''')
 
 
-def create_table_msg_other(month):
+def create_table_msg_other(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_other (
                 unq_id_prefix character varying(11),
@@ -228,7 +262,7 @@ def create_table_msg_other(month):
                 ais_msg_eecsv text
             );
         ''')
-    cur.execute(f''' CREATE INDEX idx_msg_other_mmsi_time ON 'ais_s_{month}_msg_other' (mmsi, timestamp) ''')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg_other_mmsi_time ON 'ais_s_{month}_msg_other' (mmsi, datetime) ''')
 
 
 '''
