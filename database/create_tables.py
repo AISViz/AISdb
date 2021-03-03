@@ -10,6 +10,7 @@ conn.enable_load_extension(True)
 cur.execute('SELECT load_extension("mod_spatialite.so")')
 if newdb: 
     cur.execute('SELECT InitSpatialMetaData(1)')
+
     cur.execute(''' CREATE TABLE coarsetype_ref (
             coarse_type integer,
             coarse_type_txt character varying(75)
@@ -180,35 +181,37 @@ def create_table_msg18(cur, month):
 def create_table_msg24(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_24 (
-                unq_id_prefix character varying(11),
-                lineno integer,
-                errorflag boolean,
+                --unq_id_prefix character varying(11),
+                --lineno integer,
+                --errorflag boolean,
                 mmsi integer,
                 message_id smallint,
                 repeat_indicator "char",
                 "time" timestamp without time zone,
-                millisecond smallint,
-                region smallint,
-                country smallint,
-                base_station integer,
-                online_data character varying(6),
-                group_code character varying(4),
+                --millisecond smallint,
+                --region smallint,
+                --country smallint,
+                --base_station integer,
+                --online_data character varying(6),
+                --group_code character varying(4),
                 sequence_id smallint,
-                channel character varying(3),
-                data_length character varying(20),
+                --channel character varying(3),
+                --data_length character varying(20),
                 vessel_name character varying(20),
                 call_sign character varying(7),
-                imo integer,
+                --imo integer,
                 ship_type smallint,
                 dim_bow smallint,
                 dim_stern smallint,
                 dim_port smallint,
                 dim_star smallint,
-                fixing_device smallint,
+                --fixing_device smallint,
                 part_number boolean,
                 vendor_id character varying(8),
                 mother_ship_mmsi integer,
-                spare character varying(4)
+                --spare character varying(4), 
+                model smallint, 
+                serial integer
             );
         ''')
     cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg24_mmsi_time ON 'ais_s_{month}_msg_24' (mmsi, time)''')

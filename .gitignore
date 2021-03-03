@@ -2,5 +2,6 @@
 *.swp
 database/libs/*
 *.db
+*.db-journal
 *.csv
 tmp/*
