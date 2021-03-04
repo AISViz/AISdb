@@ -1,25 +1,22 @@
-from pyais import FileReaderStream
+import os
 from datetime import datetime, timedelta
 import re
+import sqlite3
 
-from database import *
+from pyais import FileReaderStream
+import numpy as np
 
-
-
-# convert 6-bit encoded AIS messages to numpy array format
-
-
-dbpath = '/run/media/matt/Seagate Backup Plus Drive/python/ais.db'
-newdb = not os.path.isfile(dbpath)
-conn = sqlite3.connect(dbpath, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
-cur = conn.cursor()
-conn.enable_load_extension(True)
-cur.execute('SELECT load_extension("mod_spatialite.so")')
-if newdb:
-    cur.execute('SELECT InitSpatialMetaData(1)')
+from database.create_tables import *
 
 
 datestr = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}')
+
+
+def is_valid_date(year, month, day, hour=0, minute=0, second=0):
+    day_count_for_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    if year%4==0 and (year%100 != 0 or year%400==0): day_count_for_month[2] = 29
+    return (1 <= month <= 12 and 1 <= day <= day_count_for_month[month] 
+            and 0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 59)
 
 
 def decode_csv(fpath, conn, mstr=None):
@@ -27,8 +24,9 @@ def decode_csv(fpath, conn, mstr=None):
 
     mstr = fpath.rsplit('_',1)[1].rsplit('-',1)[0].replace('-','')
     assert int(mstr) >= 201101
-    filedate = datestr.search(fpath)
-    filedate
+    regexdate = datestr.search(fpath)
+    filedate = datetime(*map(int, [(dstr := fpath[regexdate.start():regexdate.end()].replace('-', ''))[0:4], dstr[4:6], dstr[6:8]]))
+    maxdelta = timedelta(hours=36)
     
 
     cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_s_{mstr}_msg_1_2_3" ')
@@ -43,20 +41,19 @@ def decode_csv(fpath, conn, mstr=None):
     rows = np.array([msg.decode().content for msg in FileReaderStream(fpath) if msg.decode() is not None], dtype=object)
 
     rowtypes = [row['type'] for row in rows]
-    assert 11 not in rowtypes, 'UTC date responses not being parsed'
+    '''
+    2018-01-28 only 1000 msg123 ???
+    fpath = sorted(csvfiles)[24]
+    fpath
     { m : rowtypes.count(m) for m in np.unique(rowtypes) }
+    m4 = np.array([r['type'] == 4 for r in rows])
     mtest = np.array([r['type'] == 8 or r['type'] == 24 for r in rows])
-    mtest = np.array([r['type'] == 21 for r in rows])
     rows[mtest]
+    '''
 
     if len(rows) == 0:
         print('no data! skipping...')
         return
-
-    # construct timestamps - assumes chronological ordering
-    # entropy loss: up to 1 minute for 1 in ~25k messages, assuming ~150k messages per file
-    # can be minimized further by passing most recent base station report from previous file,
-    # but would require parsing files in chronological order
 
     stamp = datetime(1,1,1)
     rowiter = iter(rows)
@@ -68,24 +65,33 @@ def decode_csv(fpath, conn, mstr=None):
 
     stamps = []
     for row in rows:
-        if validyear := ('year' in row.keys() and 2000 <= row['year'] < datetime.now().year): 
-            year = row['year']
-        if validmonth := (validyear and 'month' in row.keys() and 1 <= row['month'] <= 12): 
-            month = row['month']
-        if validday := (validmonth and 'day' in row.keys() and 1 <= row['day'] <= 31): 
-            day = row['day']
-        if validhour := (validday and 'hour' in row.keys() and 0 <= row['hour'] <= 23): 
-            hour = row['hour']
-        if validmin := (validhour and 'minute' in row.keys() and 0 <= row['minute'] <= 59):
-            minute = row['minute']
-        if 'second' in row.keys() and 0 <= row['second'] <= 59:
+        if 1 <= row['type'] <= 3 and row['second'] < 60:
             second = row['second']
+        elif (row['type'] == 4 
+                and is_valid_date(*(datecols := (row['year'], row['month'], row['day'], row['hour'], row['minute'], row['second'])))
+                and filedate - datetime(*datecols) < maxdelta):
+            year, month, day = row['year'], row['month'], row['day']
+            hour, minute, second = row['hour'], row['minute'], row['second']
+        elif (row['type'] == 5 
+                and is_valid_date(*(datecols := (year, row['month'], row['day'], row['hour'], row['minute']))) 
+                and filedate - datetime(*datecols) < maxdelta):
+            month, day, hour, minute = row['month'], row['day'], row['hour'], row['minute']
+        elif (row['type'] == 11 
+                and is_valid_date(*(datecols := (row['year'], row['month'], row['day'], row['hour'], row['minute'], row['second'])))
+                and filedate - datetime(*datecols) < maxdelta):
+            year, month, day = row['year'], row['month'], row['day']
+            hour, minute, second = row['hour'], row['minute'], row['second']
+        elif (row['type'] == 18 
+                and row['second'] < 60):
+            second = row['second']
+        elif row['type'] == 24: 
+            pass
         stamps.append(datetime(year, month, day, hour, minute, second))
-        print(stamps[-1])
+
     stamps = np.array(stamps, dtype=object).astype(datetime)
 
     # insert messages 1,2,3
-    m123 = np.array([0 < r['type'] < 4 for r in rows])
+    m123 = np.array([0 < r['type'] < 4 and not (r['lat'] == r['lon'] == 0 ) for r in rows])
     tup123 = ((
                 r['type'], r['repeat'], int(r['mmsi']), r['status'].value, r['turn'], 
                 r['speed'], r['accuracy'], r['lon'], r['lat'], r['course'], r['heading'], 
@@ -101,14 +107,8 @@ def decode_csv(fpath, conn, mstr=None):
                     'maneuver, raim_flag, communication_state, time, ais_geom) '
                     '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,GeomFromText(?, 4326))''', tup123)
 
-    '''
-    cur.execute('select * from ais_s_201810_msg_1_2_3 limit 100')
-    res = cur.fetchall()
-    '''
-
     # insert message 5
     m5 = np.array([r['type'] == 5 for r in rows])
-    #np.unique([r.keys() for r in rows[m5]])
     tup5 = ((
         r['type'], r['repeat'], r['mmsi'], r['ais_version'] , r['imo'], r['callsign'], 
         r['shipname'], r['shiptype'], r['to_bow'], r['to_stern'], r['to_port'], 
@@ -123,13 +123,12 @@ def decode_csv(fpath, conn, mstr=None):
                     'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', tup5)
 
     # insert message 18, 19
-    m18 = np.array([r['type'] == 18 or r['type'] == 19 for r in rows])
+    m18 = np.array([r['type'] == 18 and not (r['lat'] == r['lon'] == 0 ) for r in rows])
     tup18 = ((
                 r['type'], r['repeat'], r['mmsi'], r['speed'] , r['accuracy'], r['lon'], 
-                r['lat'], r['course'], r['heading'], r['second'], r['regional'], r['cs'], 
+                r['lat'], r['course'], r['heading'], r['second'], r['regional'], r['cs'] if 'cs' in r.keys() else False, 
                 r['display'], r['dsc'], r['band'], r['msg22'], r['assigned'], r['raim'], 
                 r['radio'],
-                #) for r in rows[m18]])
                 datetime(t.year, t.month, t.day, t.hour, r['second'] if r['second'] < 60 else 0),
                 f'''POINT (({r['lon']}, {r['lat']}))''', 
             ) for r,t in zip(rows[m18], stamps[m18])
@@ -157,6 +156,8 @@ def decode_csv(fpath, conn, mstr=None):
                     'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', tup24)
 
     conn.commit()
+    m19 = np.array([r['type'] == 19 for r in rows])
+    if sum(m19) > 0: print(f'skipped message 19: {sum(m19)}')
 
 
 
@@ -174,17 +175,20 @@ if __name__ == '__main__':
 
 
     t1 = datetime.now()
-    #for fpath in sorted(csvfiles)[194:210]: 
-    for fpath in sorted(csvfiles)[17:]: 
+    for fpath in sorted(csvfiles)[28:]: 
         print(fpath)
         decode_csv(fpath, conn)
+        regexdate = datestr.search(fpath)
+        mstr = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
+        _ = cur.execute(f'Select count(*) from ais_s_{mstr}_msg_1_2_3')
+        print(f'{mstr} msg123: {cur.fetchall()[0][0]}')
+        _ = cur.execute(f'Select count(*) from ais_s_{mstr}_msg_5')
+        print(f'{mstr} msg5: {cur.fetchall()[0][0]}')
     t2 = datetime.now()
     print(t2 - t1)
-    # about 2 hours to load 1 year of data
-    # resulting db ~3GB
+    # about 2.5 hours to load 1 year of data
+    # resulting db ~3.8GB
 
-    cur.execute('Select * from ais_s_201810_msg_1_2_3 limit 1')
-    cur.fetchall()
 
 
 """
