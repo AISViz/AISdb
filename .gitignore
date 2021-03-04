@@ -5,3 +5,4 @@ database/libs/*
 *.db-journal
 *.csv
 tmp/*
+aislib/*
