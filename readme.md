@@ -12,3 +12,7 @@ To test track segmentation, some sample data is provided along with some test co
 
 
 ![ais tracks - one month in the canadian atlantic](https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/output/scriptoutput.png)
+
+
+Acknowledgement:
+  * Database schema has been adapted from the postgres data model developed by Casey Hilliard
