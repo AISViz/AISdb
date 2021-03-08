@@ -10,4 +10,4 @@ Requirements:
 To test track segmentation, some sample data is provided along with some test code in test/test_segments.py
 
 
-![ais tracks - one month in the canadian atlantic](https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/tree/master/output/scriptoutput.png)
+![ais tracks - one month in the canadian atlantic](https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/output/scriptoutput.png)
