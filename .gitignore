@@ -6,3 +6,5 @@ database/libs/*
 *.csv
 tmp/*
 aislib/*
+output/*
+!output/scriptoutput.png

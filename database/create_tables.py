@@ -1,3 +1,6 @@
+from database import dbconn
+
+dbtype = dbconn().dbtype
 
 def create_table_msg123(cur, month):
     cur.execute(f'''
@@ -33,10 +36,15 @@ def create_table_msg123(cur, month):
                 spare character varying(4)
             );
         ''')
-    cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_1_2_3', 'ais_geom', 4326, 'POINT', 'XY') ''')
-    cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_1_2_3', 'ais_geom') ''')
-    #cur.execute(f''' CREATE UNIQUE INDEX idx_msg123_mmsi_time ON 'ais_s_{month}_msg_1_2_3' (mmsi, time) ''')  # redundant?
-    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time_lat_lon ON 'ais_s_{month}_msg_1_2_3' (mmsi, time, longitude, latitude)''')
+    if dbtype == 'sqlite3':
+        cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_1_2_3', 'ais_geom', 4326, 'POINT', 'XY') ''')
+        cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_1_2_3', 'ais_geom') ''')
+        #cur.execute(f''' CREATE UNIQUE INDEX idx_msg123_mmsi_time ON 'ais_s_{month}_msg_1_2_3' (mmsi, time) ''')  # redundant?
+        cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time_lat_lon ON 'ais_s_{month}_msg_1_2_3' (mmsi, time, longitude, latitude)''')
+    elif dbtype == 'postgres':
+        print('indexes not implemented yet for postgres')
+        pass
+    else: assert False
 
 
 def create_table_msg5(cur, month):
@@ -82,7 +90,12 @@ def create_table_msg5(cur, month):
                 spare2 character varying(4)
             );
         ''')
-    cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi_time ON 'ais_s_{month}_msg_5' (mmsi, time)''')
+    if dbtype == 'sqlite3':
+        cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi_time ON 'ais_s_{month}_msg_5' (mmsi, time)''')
+    elif dbtype == 'postgres':
+        print('indexes not implemented yet for postgres')
+        pass
+    else: assert False
 
 
 def create_table_msg18(cur, month):
@@ -124,10 +137,15 @@ def create_table_msg18(cur, month):
                 spare2 character varying(4)
             )
         ''')
-    cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_18', 'ais_geom', 4326, 'POINT', 'XY') ''')
-    cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_18', 'ais_geom') ''')
-    #cur.execute(f''' CREATE UNIQUE INDEX idx_msg18_mmsi_time ON 'ais_s_{month}_msg_18' (mmsi, time) ''')
-    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time_lat_lon ON 'ais_s_{month}_msg_18' (mmsi, time, longitude, latitude)''')
+    if dbtype == 'sqlite3':
+        cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_18', 'ais_geom', 4326, 'POINT', 'XY') ''')
+        cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_18', 'ais_geom') ''')
+        #cur.execute(f''' CREATE UNIQUE INDEX idx_msg18_mmsi_time ON 'ais_s_{month}_msg_18' (mmsi, time) ''')
+        cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time_lat_lon ON 'ais_s_{month}_msg_18' (mmsi, time, longitude, latitude)''')
+    elif dbtype == 'postgres':
+        print('indexes not implemented yet for postgres')
+        pass
+    else: assert False
 
 
 def create_table_msg24(cur, month):
@@ -166,8 +184,13 @@ def create_table_msg24(cur, month):
                 serial integer
             );
         ''')
-    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg24_mmsi_time ON 'ais_s_{month}_msg_24' (mmsi, time)''')
-    #cur.execute(f''' CREATE INDEX idx_msg24_imo_time ON 'ais_s_{month}_msg_24' (imo, time)''')
+    if dbtype == 'sqlite3':
+        cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg24_mmsi_time ON 'ais_s_{month}_msg_24' (mmsi, time)''')
+        #cur.execute(f''' CREATE INDEX idx_msg24_imo_time ON 'ais_s_{month}_msg_24' (imo, time)''')
+    elif dbtype == 'postgres':
+        print('indexes not implemented yet for postgres')
+        pass
+    else: assert False
 
 
 def create_table_msg27(cur, month):
@@ -217,9 +240,10 @@ def create_table_msg_other(cur, month):
                 ais_msg_eecsv text
             );
         ''')
-    cur.execute(f''' CREATE INDEX idx_{month}_msg_other_mmsi_time ON 'ais_s_{month}_msg_other' (mmsi, datetime) ''')
+    if dbtype == 'sqlite3':
+        cur.execute(f''' CREATE INDEX idx_{month}_msg_other_mmsi_time ON 'ais_s_{month}_msg_other' (mmsi, datetime) ''')
+    elif dbtype == 'postgres':
+        print('indexes not implemented yet for postgres')
+        pass
+    else: assert False
 
-
-'''
-create_table_msg24('202101')
-'''
