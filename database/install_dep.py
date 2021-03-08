@@ -14,7 +14,7 @@ with open(tar := f'database{sep}libs{sep}Python-3.9.2.tgz', 'wb') as f:
 tarfile.open(tar).extractall(f'database{sep}libs{sep}')
 os.chdir(f'database{sep}libs{sep}Python-3.9.2')
 
-subprocess.run('./configure --'.split())
+subprocess.run('./configure --enable-optimizations --with-lto --disable-ipv6 --enable-loadable-sqlite-extensions'.split())
 
 
 """
@@ -35,6 +35,7 @@ python configured with following compile flags
 """
 # V1
 
+'''
 if not os.path.isdir('aislib'): 
     os.mkdir('aislib')
     import requests
@@ -49,6 +50,7 @@ if not os.path.isdir('aislib'):
     os.system('make')
     os.system('make install-strip')
     os.chdir('../..')
+'''
 
 
 # V2 alternate 
