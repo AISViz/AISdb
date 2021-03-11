@@ -40,7 +40,7 @@ class qrygen(UserDict):
 if __name__ == '__main__':
     # example usage
 
-    cur = dbconn(dbpath=':memory:').cur
+    cur = database.dbconn(dbpath=':memory:').cur
     database.create_table_msg123(cur, '202101')
     database.create_table_msg18(cur, '202101')
     database.create_table_msg5(cur, '202101')
@@ -48,11 +48,13 @@ if __name__ == '__main__':
     # insert some data into the database using database.decoder or by inserting manually
     # then, 
 
+    # these args will be passed to the query function and callback lambda to generate SQL code
+    # for example, when using callback in_radius, xy must be a point, and a radius must be supplied in meters
     qry = qrygen(
             xy=[-180, -90, -180, 90, 180, 90, 180, -90,],   # xy coordinate pairs
             # can also be specified as seperate arrays, e.g.
-            # x = [-180, -180, 180, 180]
-            # y = [-90, 90, 90, -90]
+            # x=[-180, -180, 180, 180],
+            # y=[-90, 90, 90, -90],
             start=datetime(2021,1,1),                       # start of query range 
             end=datetime(2021,2,1),                         # end of query range
         )
