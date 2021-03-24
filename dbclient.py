@@ -1,6 +1,6 @@
 import os
 from multiprocessing import Pool#, set_start_method
-#import time
+import time
 from functools import partial
 from datetime import datetime, timedelta
 
@@ -9,7 +9,7 @@ from shapely.geometry import Point, LineString, Polygon
 #from shapely.prepared import prep
 
 from database import dt2monthstr
-from track_gen import trackgen
+from track_gen import trackgen, segment, filtermask, writecsv
 
 #from numba import vectorize
 #os.environ['NUMBAPRO_LIBDEVICE'] = "/usr/local/cuda-10.0/nvvm/libdevice"
@@ -25,7 +25,7 @@ def _geofence_proc(track, zones, csvfile=None):
     print(track['mmsi'])
     chunksize=5000
     for rng in segment(track, maxdelta=timedelta(hours=2), minsize=3):
-        mask = filtermask(track, rng)
+        mask = filtermask(track, rng, filters)
         if (n := sum(mask)) == 0: continue
         for c in range(0, (n // chunksize) + 1, chunksize):
             nc = c + chunksize
