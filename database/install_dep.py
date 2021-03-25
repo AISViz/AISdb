@@ -32,7 +32,7 @@ subprocess.run('sudo -E apt-get install libproj-dev')
 
 subprocess.run('./configure --disable-rttopo'.split())
 subprocess.run('make')
-subprocess.run('sudo -E make install'.split())
+subprocess.run('sudo -E make install-strip'.split())
 
 import sqlite3
 conn = sqlite3.connect(':memory:')
@@ -41,5 +41,6 @@ conn.enable_load_extension(True)
 
 assert conn.execute('SELECT load_extension("mod_spatialite.so")')
 assert cur.fetchall() == []
+conn.execute('SELECT InitSpatialMetaData(1);') 
 
 
