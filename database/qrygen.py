@@ -33,8 +33,8 @@ class qrygen(UserDict):
     def crawl(self, callback, qryfcn=msg123union18join5):
         return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + suffix
 
-    def csvpath(self,subfolder,folder=f'{os.path.dirname(__file__)}{os.path.sep}scripts{os.path.sep}'):
-        return f'{folder}{subfolder}{os.path.sep if subfolder[-1] != os.path.sep else ""}ais_{self.data["start"].strftime("%Y%m%d")}-{self.data["end"].strftime("%Y%m%d")}{"_"+str(self["radius"] // 1000)+"km" if "radius" in self.data.keys() else ""}.csv'
+    def csvpath(self,subfolder,folder=os.path.abspath(f'..{os.path.sep}scripts{os.path.sep}')):
+        return f'{folder}{os.path.sep}{subfolder}{os.path.sep if subfolder[-1] != os.path.sep else ""}ais_{self.data["start"].strftime("%Y%m%d")}-{self.data["end"].strftime("%Y%m%d")}{"_"+str(self["radius"] // 1000)+"km" if "radius" in self.data.keys() else ""}.csv'
 
 
 if __name__ == '__main__':
