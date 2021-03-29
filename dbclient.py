@@ -18,7 +18,7 @@ from track_gen import trackgen, segment, filtermask, writecsv
 #@vectorize(['None(dict)'], target='cuda')
 
 
-def _geofence_proc(track, zones, csvfile=None):
+def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type', ], keepcols=['time', 'lon', 'lat', 'cog', 'sog']):
     ''' parallel process function for segmenting and geofencing tracks
         appends columns for bathymetry, shore dist, and hull surface area
     '''
@@ -37,14 +37,16 @@ def _geofence_proc(track, zones, csvfile=None):
                     for p in map(Point, zip(track['lon'][rng][mask][c:nc], track['lat'][rng][mask][c:nc])) )
             writecsv(
                     np.vstack((
-                        np.array([track['mmsi'] for _ in range(n)])[c:nc],
-                        np.array([track['name'] for _ in range(n)])[c:nc],
-                        np.array([track['type'] for _ in range(n)])[c:nc],
-                        track['time'][rng][mask][c:nc],
-                        track['lon'][rng][mask][c:nc],
-                        track['lat'][rng][mask][c:nc],
-                        track['cog'][rng][mask][c:nc],
-                        track['sog'][rng][mask][c:nc],
+                        #np.array([track['mmsi'] for _ in range(n)])[c:nc],
+                        #np.array([track['name'] for _ in range(n)])[c:nc],
+                        #np.array([track['type'] for _ in range(n)])[c:nc],
+                        #track['time'][rng][mask][c:nc],
+                        #track['lon'][rng][mask][c:nc],
+                        #track['lat'][rng][mask][c:nc],
+                        #track['cog'][rng][mask][c:nc],
+                        #track['sog'][rng][mask][c:nc],
+                        *(np.array([track[col] for _ in range(n)])[c:nc] for col in staticcols),
+                        *(track[col][rng][mask][c:nc] for col in keepcols),
                         np.append(compute_knots(track, rng), [0])[mask][c:nc],
                         list(zoneID),
                         np.array([zones['domain'] for _ in range(n)])[c:nc],
@@ -238,6 +240,5 @@ test = explode_month(csvfile=csvfile, **next(getrows(qryfcn,rows_months,months_s
 explode(qryfcn, qryrows, cols, csvfile='output/test.csv')
 
 
-test = list(getrows(qryfcn,rows_months,months_str, cols))
+test = list(getrows(qryfcn,row_months,months_str, cols))
 '''
-
