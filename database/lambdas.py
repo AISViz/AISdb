@@ -22,3 +22,8 @@ arr2polytxt = lambda x,y,**_: f'POLYGON(({zipcoords(x,y)}))'
 boxpoly = lambda x,y: ([min(x), min(x), max(x), max(x), min(x)], [min(y), max(y), max(y), min(y), min(y)])
 
 merge = lambda *arr: np.concatenate(np.array(*arr).T)
+
+valid_mmsi = lambda alias='m123',**_: f'{alias}.mmsi >= 201000000 AND {alias}.mmsi < 776000000'
+
+in_poly_validmmsi = lambda **kwargs: f'{valid_mmsi(**kwargs)} AND {in_poly(**kwargs)}' 
+
