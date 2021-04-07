@@ -1,5 +1,49 @@
 import os
 
+
+def create_table_coarsetype(cur):
+    ''' static tables are created during db instantiation 
+        included here instead of create_tables.py to prevent circular import error
+    ''' 
+
+    cur.execute(''' CREATE TABLE IF NOT EXISTS coarsetype_ref (
+            coarse_type integer,
+            coarse_type_txt character varying(75)
+        ); ''')
+
+    cur.execute(''' CREATE UNIQUE INDEX idx_coarsetype ON 'coarsetype_ref' (coarse_type)''')
+
+    cur.executemany (''' INSERT OR IGNORE INTO coarsetype_ref (coarse_type, coarse_type_txt) VALUES (?,?) ''', (
+        (20,	'Wing in ground craft'),
+        (30,	'Fishing'),
+        (31,	'Towing'),
+        (32,	'Towing - length >200m or breadth >25m'),
+        (33,	'Engaged in dredging or underwater operations'),
+        (34,	'Engaged in diving operations'),
+        (35,	'Engaged in military operations'),
+        (36,	'Sailing'),
+        (37,	'Pleasure craft'),
+        (38,	'Reserved for future use'),
+        (39,	'Reserved for future use'),
+        (40,	'High speed craft'),
+        (50,	'Pilot vessel'),
+        (51,	'Search and rescue vessels'),
+        (52,	'Tugs'),
+        (53,	'Port tenders'),
+        (54,	'Vessels with anti-pollution facilities or equipment'),
+        (55,	'Law enforcement vessels'),
+        (56,	'Spare for assignments to local vessels'),
+        (57,	'Spare for assignments to local vessels'),
+        (58,	'Medical transports (1949 Geneva convention)'),
+        (59,	'Ships and aircraft of States not parties to an armed conflict'),
+        (60,	'Passenger ships'),
+        (70,	'Cargo ships'),
+        (80,	'Tankers'),
+        (90,	'Other types of ship'),
+        (100,	'Unknown'),
+        )
+    )
+
 class dbconn():
     def __init__(self, dbpath=None, postgres=False):
         if postgres or os.environ.get('POSTGRESDB'):
@@ -17,6 +61,7 @@ class dbconn():
                 in_bbox     = lambda south, north, west, east,**_:    f'ais_geom && ST_MakeEnvelope({west},{south},{east},{north})',
             )
             self.dbtype = 'postgres'
+            create_table_coarsetype(self.cur)
 
         else:
             import sqlite3
@@ -36,75 +81,6 @@ class dbconn():
                 self.cur.execute('SELECT load_extension("mod_spatialite.so")')
                 if newdb:
                     self.cur.execute('SELECT InitSpatialMetaData(1)')
-                    self.cur.execute(''' CREATE TABLE coarsetype_ref (
-                            coarse_type integer,
-                            coarse_type_txt character varying(75)
-                        ); ''')
-                    self.cur.executemany (''' INSERT INTO coarsetype_ref (coarse_type, coarse_type_txt) VALUES (?,?) ''', (
-                        (20,	'Wing in ground craft'),
-                        (30,	'Fishing'),
-                        (31,	'Towing'),
-                        (32,	'Towing - length >200m or breadth >25m'),
-                        (33,	'Engaged in dredging or underwater operations'),
-                        (34,	'Engaged in diving operations'),
-                        (35,	'Engaged in military operations'),
-                        (36,	'Sailing'),
-                        (37,	'Pleasure craft'),
-                        (38,	'Reserved for future use'),
-                        (39,	'Reserved for future use'),
-                        (40,	'High speed craft'),
-                        (50,	'Pilot vessel'),
-                        (51,	'Search and rescue vessels'),
-                        (52,	'Tugs'),
-                        (53,	'Port tenders'),
-                        (54,	'Vessels with anti-pollution facilities or equipment'),
-                        (55,	'Law enforcement vessels'),
-                        (56,	'Spare for assignments to local vessels'),
-                        (57,	'Spare for assignments to local vessels'),
-                        (58,	'Medical transports (1949 Geneva convention)'),
-                        (59,	'Ships and aircraft of States not parties to an armed conflict'),
-                        (60,	'Passenger ships'),
-                        (70,	'Cargo ships'),
-                        (80,	'Tankers'),
-                        (90,	'Other types of ship'),
-                        (100,	'Unknown'),
-                        )
-                    )
+                    create_table_coarsetype(self.cur)
 
-
-'''
-import shapefile as shp
-def writeshp(rows, pathname='/data/smith6/ais/scripts/output.shp'):
-    with shp.Writer(pathname, shapeType=shp.POLYLINE) as w:
-        """
-        del w; w = shp.Writer(pathname, shapeType=shp.POLYLINE)
-        """
-        fields = ('mmsi','time','longitude','latitude','sog','cog')
-        ftypes = ('N','D','F','F','F','F')
-        length = (10, None, 25, 25, 20, 20)
-        _ = list(map(w.field, fields, ftypes, length))
-        for r in rows: w.record(**dict(zip(fields,r)))
-        w.close()
-'''
-
-
-"""
-def check_coverage_poly(kwargs):
-    poly = arr2polytxt(**kwargs)
-    months = dt2monthstr(**kwargs)
-    qry = count_poly(months[0], poly)
-    cur.execute(qry)
-    res = cur.fetchall()
-    print(f'poly:\t{poly}\t\tcount:\t{res}')
-"""
-
-
-
-"""
-
-cur.scroll(0, mode='absolute')
-
-#conn.commit()
-
-"""
 
