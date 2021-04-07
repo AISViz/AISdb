@@ -27,3 +27,6 @@ valid_mmsi = lambda alias='m123',**_: f'{alias}.mmsi >= 201000000 AND {alias}.mm
 
 in_poly_validmmsi = lambda **kwargs: f'{valid_mmsi(**kwargs)} AND {in_poly(**kwargs)}' 
 
+in_timerange = lambda alias='m123', **kwargs: f'''{alias}.time BETWEEN date('{start.strftime('%Y-%m-%d')}') AND date('{end.strftime('%Y-%m-%d')}')'''
+
+in_mmsi_time = lambda **kwargs: f'{in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'
