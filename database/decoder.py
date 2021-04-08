@@ -21,6 +21,9 @@ def is_valid_date(year, month, day, hour=0, minute=0, second=0):
 
 
 def decode_csv(fpath, conn, mstr=None):
+    if not 'ITU123' in fpath and not 'ITU5' in fpath and not 'ITU18' in fpath and not 'ITU24' in fpath: 
+        print(f'skipped {fpath}')
+        return
     cur = conn.cursor()
 
     with open(fpath, 'r') as f:
@@ -121,14 +124,12 @@ def decode_csv(fpath, conn, mstr=None):
                         'model, serial, call_sign, dim_bow, dim_stern, dim_port, dim_star, mother_ship_mmsi) '
                         'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', tup24)
 
-    else:
-        print(f'skipped {fpath}')
-
     conn.commit()
     #m19 = np.array([r['id'] == 19 for r in rows])
     #if sum(m19) > 0: print(f'skipped message 19: {sum(m19)}')
     #m27 = np.array([r['id'] == 27 for r in rows])
     #if sum(m27) > 0: print(f'skipped message 27: {sum(m27)}')
+    return
 
 
 
