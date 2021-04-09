@@ -2,40 +2,12 @@ import os
 import pickle
 
 import numpy as np
-from selenium import webdriver
-from selenium.common.exceptions import StaleElementReferenceException, SessionNotCreatedException
-from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support.expected_conditions import presence_of_element_located
-from selenium.webdriver.common.by import By
 
 from index.index import index
-from webdata import install_dep
+from webdata.scraper import init_webdriver
 
 
-# configs
-headless = True
-(opt := Options()).headless = headless
-opt.set_preference('permissions.default.image', 2)  # dont load images for faster loading
-opt.set_preference('extensions.contentblocker.enabled', True)
-opt.set_preference('media.autoplay.default', 1)
-opt.set_preference('media.autoplay.allow-muted', False)
-opt.set_preference('media.autoplay.block-event.enabled', True)
-opt.set_preference('media.autoplay.block-webaudio', True)
-opt.set_preference('services.sync.prefs.sync.media.autoplay.default', False)
-opt.set_preference('ui.context_menus.after_mouseup', False)
-opt.set_preference('privacy.sanitize.sanitizeOnShutdown', True)
-driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
-
-
-# init webdriver
-if os.path.isfile(path := '/usr/lib/firefox/firefox') or (path := shutil.which('firefox')):  
-    driver = webdriver.Firefox(firefox_binary=FirefoxBinary(path), executable_path=os.path.join(os.path.dirname(__file__), driverpath), options=opt)
-else: 
-    driver = webdriver.Firefox(executable_path=os.path.join(os.path.dirname(__file__), driverpath), options=opt)
-driver.set_window_size(9999,9999) if headless else driver.maximize_window()
-
+driver = init_webdriver()
 
 def tonnage_callback(*, mmsi, imo, **_):
     driver.get(f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}/imo:{imo}')
