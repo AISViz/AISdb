@@ -12,6 +12,10 @@ Optional for web data:
   * selenium
   * firefox
 
+Scripts included for installing:
+  * spatialite
+  * geckodriver
+
 
 To test track segmentation, some sample data is provided along with some test code in test/test_segments.py
 

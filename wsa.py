@@ -11,7 +11,7 @@ def dwt(mmsi):
     return 100000.0
 
 
-def wsa(msg5row):
+def wsa(ship_type, mmsi, imo, **_):
     ''' regression of Denny-Mumford WSA formula '''
 
     if msg5row['ship_type'] < 30:           # wing in ground craft
@@ -33,7 +33,7 @@ def wsa(msg5row):
 
     # TODO: complete the rest of the coefficient and exponent values as described in table 2
 
-    return coef * pow(base=dwt(msg5row['mmsi']), exp=exp)
+    return coef * pow(base=get_tonnage_mmsi_imo(mmsi=mmsi, imo=imo), exp=exp)
 
 
 
