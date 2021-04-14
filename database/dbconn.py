@@ -45,10 +45,11 @@ def create_table_coarsetype(cur):
     )
 
 class dbconn():
-    def __init__(self, dbpath=None, postgres=False):
+    def __init__(self, dbpath=None, postgres=False, prefix='ais_'):
         if postgres or os.environ.get('POSTGRESDB'):
             import psycopg2 
             import psycopg2.extras
+            self.prefix = 'ais_s_'
             if __name__ == '__main__':
                 psycopg2.extensions.set_wait_callback(psycopg2.extras.wait_select)  # enable interrupt
             conn = psycopg2.connect(dbname='ee_ais', user=os.environ.get('PGUSER'), port=os.environ.get('PGPORT'), password=os.environ.get('PGPASS'), host='localhost')
@@ -65,6 +66,7 @@ class dbconn():
 
         else:
             import sqlite3
+            self.prefix = prefix
             self.lambdas = dict(
                 in_poly = lambda poly,alias='m123',**_: f'Contains(\n    GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
                 in_radius = lambda *,x,y,radius,**_: f'Within(Geography(m123.ais_geom), Geography(MakePoint({x}, {y})), {radius})', 
@@ -83,4 +85,4 @@ class dbconn():
                     self.cur.execute('SELECT InitSpatialMetaData(1)')
                     create_table_coarsetype(self.cur)
 
-
+#prefix = dbconn().prefix

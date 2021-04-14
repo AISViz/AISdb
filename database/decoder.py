@@ -37,7 +37,7 @@ def decode_csv(fpath, conn, mstr=None):
     #aivdm, count, fragment, seqid, channel, payload, fill = [msg['Iec message'].split('|')[0].split(',') for msg in msgs]
     #list(map(chr, [char if char-48 <= 40 else char-8 for char in map(ord, fill)]))
 
-    stamps = np.array([datetime.strptime(msg['Date time stamp'], '%Y-%m-%d %H:%M:%S UTC') for msg in msgs], dtype=datetime)
+    stamps = np.array([datetime.strptime(msg['Date time stamp'], r'%Y-%m-%d %H:%M:%S UTC') for msg in msgs], dtype=datetime)
     np.array([msg['Date time stamp'] for msg in msgs]) != ''
     mstr = str(f'{stamps[0].year:04d}{stamps[0].month:02d}')
 
@@ -59,7 +59,7 @@ def decode_csv(fpath, conn, mstr=None):
                     r['id'], r['repeat_indicator'], int(r['mmsi']), r['nav_status'], r['rot'], 
                     r['sog'], r['position_accuracy'], r['x'], r['y'], r['cog'], r['true_heading'], 
                     t.second, r['special_manoeuvre'], r['raim'], r['sync_state'], 
-                    datetime(t.year, t.month, t.day, t.hour, t.second if t.second < 60 else 0),
+                    datetime(t.year, t.month, t.day, t.hour, t.second),
                     f'''POINT (({r['x']}, {r['y']}))''', 
                 ) for r,t in zip(rows[m123], stamps[m123])
             )
@@ -96,7 +96,7 @@ def decode_csv(fpath, conn, mstr=None):
                     r['y'], r['cog'], r['true_heading'], r['timestamp'], None, r['commstate_flag'], 
                     r['display_flag'], r['dsc_flag'], r['band_flag'], r['m22_flag'], r['mode_flag'], r['raim'], 
                     r['commstate_cs_fill'] if 'commstate_cs_fill' in r.keys() else None,
-                    datetime(t.year, t.month, t.day, t.hour, r['timestamp'] if r['timestamp'] < 60 else 0),
+                    datetime(t.year, t.month, t.day, t.hour, t.second),
                     f'''POINT (({r['x']}, {r['y']}))''', 
                 ) for r,t in zip(rows[m18], stamps[m18])
             )
