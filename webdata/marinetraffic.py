@@ -11,7 +11,7 @@ def tonnage_callback(*, mmsi, imo, **_):
     loaded = lambda drv: 'asset_type' in drv.current_url or '404' == drv.title[0:3] or drv.find_elements_by_id('vesselDetails_voyageInfoSection')
 
     driver.get(f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}/imo:{imo}')
-    WebDriverWait(driver, 5).until(loaded)
+    WebDriverWait(driver, 10).until(loaded)
 
     if 'asset_type' in driver.current_url:
         for elem in driver.find_elements_by_partial_link_text(""):
@@ -19,8 +19,9 @@ def tonnage_callback(*, mmsi, imo, **_):
             elif 'vessel:' in url: 
                 print(f'multiple entries found for {mmsi=} {imo=} ! fetching {url}')
                 driver.get(url)
-                WebDriverWait(driver, 5).until(loaded)
+                WebDriverWait(driver, 10).until(loaded)
                 break
+
     elif driver.title[0:3] == '404':
         print(f'404 error! {mmsi=} {imo=}')
         return 0
