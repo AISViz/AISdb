@@ -5,34 +5,43 @@ Cameron S. Moser, Timothy P. Wier, Matthew R. First, Jonathan F. Grant, Scott C.
 '''
 
 
-def dwt(mmsi):
-    ''' returns dead weight tonnage for a given vessel MMSI '''
-    # TODO: scrape DWT data from web or other external database
-    return 100000.0
-
-
-def wsa(ship_type, mmsi, imo, **_):
+def wsa(mmsi, imo, ship_type, **_):
     ''' regression of Denny-Mumford WSA formula '''
 
-    if msg5row['ship_type'] < 30:           # wing in ground craft
+    if ship_type < 30:              # wing in ground craft
         assert False 
 
-    elif msg5row['ship_type'] == 30:        # fishing
+    elif ship_type == 30:           # fishing
         coef = 15.58
         exp = 0.602
 
-    elif msg5row['ship_type'] == 31:        # towing
-        pass
+    elif 52 <= ship_type <= 53:     # tugs and port tenders
+        coef = 19.36
+        exp = 0.553
 
-    elif msg5row['ship_type'] == 32:        # large towing
-        pass
+    elif 60 <= ship_type < 70:      # passenger
+        coef = 14.64
+        exp = 0.671
+    
+    elif 70 <= ship_type < 80:      # cargo
+        # NOTE: no distinction for container ships or bulk carriers
+        # general cargo ship regression is used for these categories
+        coef = 14.24
+        exp = 0.596
 
-    elif 80 <= msg5row['ship_type'] < 90:   # tankers
+    elif ship_type == 84:           # tankers (LNG / LPG)
+        coef = 5.41
+        exp = 0.699
+
+    elif 80 <= ship_type < 90:      # tankers (general)
         coef = 9.56
         exp = 0.63
-
-    # TODO: complete the rest of the coefficient and exponent values as described in table 2
-
+        
+    else:
+        # SAR, law enforcement, towing, dredging, diving, military, sailing, pleasure craft, etc
+        coef = 26.2
+        exp = 0.551
+    
     return coef * pow(base=get_tonnage_mmsi_imo(mmsi=mmsi, imo=imo), exp=exp)
 
 

@@ -10,3 +10,4 @@ output/*
 !output/scriptoutput.png
 webdata/webdriver*
 *.cookie
+*.log
