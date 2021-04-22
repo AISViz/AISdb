@@ -28,7 +28,7 @@ def interp_time(tracks, start, stop, step=timedelta(minutes=10), maxdelta=timede
             cur.scroll(0, mode='absolute')
             rows = cur.fetchall()
     '''
-    timestamp  = np.arange(start, stop, step).astype(datetime)
+    timestamp  = np.arange(start, stop+step, step).astype(datetime)
     intervals  = np.array(list(map(int, map(datetime.timestamp, timestamp))))
     interpfcn  = lambda track, segments, intervals=intervals: {
             **{ k   :  track[k] for k in ('mmsi','name','type') },
@@ -43,12 +43,11 @@ def interp_time(tracks, start, stop, step=timedelta(minutes=10), maxdelta=timede
                             period=None,
                         ) for n in ['lon','lat','cog','sog']
                     } for rng in segments ],
-            'rng'   :   [ range( 
-                            np.nonzero(timestamp >= track['time'][rng][ 0])[0][0],
-                            np.nonzero(timestamp <= track['time'][rng][-1])[0][-1],
-                        # numpy returns nans when coordinates have a very small difference, so this is needed
-                        ) if (np.max(track['lon'][rng]) - np.min(track['lon'][rng]) > 0.0001
-                           or np.max(track['lat'][rng]) - np.min(track['lat'][rng]) > 0.0001) else range(0,0)
+            'rng'   :   [ 
+                    range( 
+                            np.nonzero(timestamp >= track['time'][rng][ 0])[0][0], 
+                            np.nonzero(timestamp <= track['time'][rng][-1])[0][-1]
+                        ) 
                     for rng in segments ], 
         }
     for track in tracks: yield interpfcn(track, list(segment(track, maxdelta, minsize)))
