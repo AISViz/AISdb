@@ -1,46 +1,71 @@
+#if 'driver' in vars(): 
+#    vars()['driver'].close()
+#if 'driver' in globals():
+#    globals()['driver'].close()
+
 import os
-import time
 
-from webdata.scraper import *
 from hashindex.index import index
+from webdata.scraper import *
+
+### TODO: check if driver is already defined in main. if so, exit
 
 
-driver = init_webdriver()
+class scrape_tonnage():
 
-def tonnage_callback(*, mmsi, imo, **_):
-    loaded = lambda drv: 'asset_type' in drv.current_url or '404' == drv.title[0:3] or drv.find_elements_by_id('vesselDetails_voyageInfoSection')
+    def __enter__(self):
+        self.driver = init_webdriver()
+        return self
 
-    driver.get(f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}/imo:{imo}')
-    WebDriverWait(driver, 10).until(loaded)
+    def __exit__(self, exc_type, exc_value, tb):
+        self.driver.close()
+        self.driver.quit()
 
-    if 'asset_type' in driver.current_url:
-        for elem in driver.find_elements_by_partial_link_text(""):
-            if (url := elem.get_attribute('href')) == None: continue
-            elif 'vessel:' in url: 
-                print(f'multiple entries found for {mmsi=} {imo=} ! fetching {url}')
-                driver.get(url)
-                WebDriverWait(driver, 10).until(loaded)
-                break
+    def tonnage_callback(self, mmsi, imo=0, **_):
+        loaded = lambda drv: 'asset_type' in drv.current_url or '404' == drv.title[0:3] or drv.find_elements_by_id('vesselDetails_voyageInfoSection')
 
-    elif driver.title[0:3] == '404':
-        print(f'404 error! {mmsi=} {imo=}')
-        return 0
+        if imo == 0:
+            self.driver.get(f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}')
+        else:
+            self.driver.get(f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}/imo:{imo}')
 
-    exists = driver.find_elements_by_id('vesselDetails_vesselInfoSection')
-    if exists: 
-        elem = exists[0].find_element_by_id('summerDwt')
-        #elem.location_once_scrolled_into_view
-        return elem.text.split(' ')[2]
-    else: 
-        return 0
+        WebDriverWait(self.driver, 15).until(loaded)
+
+        if 'asset_type' in self.driver.current_url:
+            for elem in self.driver.find_elements_by_partial_link_text(""):
+                if (url := elem.get_attribute('href')) == None: continue
+                elif 'vessel:' in url: 
+                    print(f'multiple entries found for {mmsi=} {imo=} ! fetching {url}')
+                    self.driver.get(url)
+                    WebDriverWait(self.driver, 15).until(loaded)
+                    break
+
+        elif self.driver.title[0:3] == '404':
+            print(f'404 error! {mmsi=} {imo=}')
+            return 0
+
+        exists = self.driver.find_elements_by_id('vesselDetails_vesselInfoSection')
+        if exists: 
+            elem = exists[0].find_element_by_id('summerDwt')
+            #elem.location_once_scrolled_into_view
+            return elem.text.split(' ')[2]
+        else: 
+            return 0
 
 
-def get_tonnage_mmsi_imo(mmsi, imo, storagedir=os.getcwd(), filename='tonnage.db'):
-    with index(bins=False, store=True, storagedir=storagedir, filename=filename) as web:
-        tonnage = web(callback=tonnage_callback, mmsi=mmsi, imo=imo, seed='marinetraffic.com')[0]
-    if tonnage == '-': return 0
-    return int(tonnage)
+    def get_tonnage_mmsi_imo(self, mmsi, imo, storagedir=os.getcwd(), filename='tonnage.db'):
+        if not 201000000 <= mmsi < 776000000: return 0
+        if not 1000000 <= imo < 9999999: imo = 0
 
+        with index(bins=False, store=True, storagedir=storagedir, filename=filename) as web:
+            tonnage = web(callback=self.tonnage_callback, mmsi=mmsi, imo=imo, seed='dwt marinetraffic.com')[0]
+
+        if tonnage == '-': return 0
+
+        return int(tonnage)
+
+    def exit(self):
+        self.driver.close()
 
 '''
 import pickle

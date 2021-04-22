@@ -1,17 +1,14 @@
 import os
-import sys
-import subprocess
-#subprocess.run(f'{sys.executable} -m pip install numpy requests selenium'.split())
-import requests
-import tarfile
-import zipfile
-import stat
 
 
 '''
 __file__ = 'webdata/install_dep.py'
 '''
 if not os.path.isfile(os.path.join(os.path.dirname(__file__), 'webdriver')) and not os.path.isfile(os.path.join(os.path.dirname(__file__), 'webdriver.exe')):
+    import requests
+    import tarfile
+    import zipfile
+    import stat
     print('downloading webdrivers...')
 
     if   os.name == 'posix':  url = 'https://github.com/mozilla/geckodriver/releases/download/v0.29.0/geckodriver-v0.29.0-linux64.tar.gz'
@@ -36,6 +33,8 @@ if not os.path.isfile(os.path.join(os.path.dirname(__file__), 'webdriver')) and 
     #with open(savefile, 'w') as f: f.write('')
     print('drivers installed!')
 
+
+
 os.environ['PATH'] = f'{os.path.dirname(__file__)}:{os.environ.get("PATH")}'
 
 
@@ -48,23 +47,23 @@ from selenium.webdriver.support.expected_conditions import presence_of_element_l
 from selenium.webdriver.common.by import By
 
 
-# configs
-headless = True
-(opt := Options()).headless = headless
-opt.set_preference('permissions.default.image', 2)
-opt.set_preference('extensions.contentblocker.enabled', True)
-opt.set_preference('media.autoplay.default', 2)
-opt.set_preference('media.autoplay.allow-muted', False)
-opt.set_preference('media.autoplay.block-event.enabled', True)
-opt.set_preference('media.autoplay.block-webaudio', True)
-opt.set_preference('services.sync.prefs.sync.media.autoplay.default', False)
-opt.set_preference('ui.context_menus.after_mouseup', False)
-opt.set_preference('privacy.sanitize.sanitizeOnShutdown', True)
-driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
-
-
 
 def init_webdriver():
+    # configs
+    headless = True
+    (opt := Options()).headless = headless
+    opt.set_preference('permissions.default.image', 2)
+    opt.set_preference('extensions.contentblocker.enabled', True)
+    opt.set_preference('media.autoplay.default', 2)
+    opt.set_preference('media.autoplay.allow-muted', False)
+    opt.set_preference('media.autoplay.block-event.enabled', True)
+    opt.set_preference('media.autoplay.block-webaudio', True)
+    opt.set_preference('services.sync.prefs.sync.media.autoplay.default', False)
+    opt.set_preference('ui.context_menus.after_mouseup', False)
+    opt.set_preference('privacy.sanitize.sanitizeOnShutdown', True)
+    opt.set_preference('dom.disable_beforeunload', True)
+    driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
+
     if os.path.isfile(path := '/usr/lib/firefox/firefox') or (path := shutil.which('firefox')):  
         driver = webdriver.Firefox(firefox_binary=FirefoxBinary(path), executable_path=os.path.join(os.path.dirname(__file__), driverpath), options=opt)
     else: 
