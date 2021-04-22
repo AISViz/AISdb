@@ -4,7 +4,7 @@ from hashlib import sha256
 
 #from qgis.core import QgsApplication, QgsProject, QgsRasterLayer, QgsPrintLayout, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMapSettings, QgsPointXY, QgsGeometry, QgsWkbTypes, QgsTask, QgsVectorLayer, QgsField, QgsFeature, QgsMapRendererCustomPainterJob, QgsSymbol, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsLineSymbol
 from qgis.core import *
-from qgis.PyQt.QtCore import Qt, QSize, QVariant
+from qgis.PyQt.QtCore import Qt, QSize, QVariant, QTimer
 from qgis.gui import QgsMapCanvas, QgsMapToolPan, QgsMapToolZoom, QgsRubberBand, QgsMapCanvasItem, QgsVertexMarker, QgsMapToolEmitPoint, QgsStatusBar, QgsMapCanvasItem
 from qgis.PyQt.QtGui import QColor, QGuiApplication, QImage, QPainter, QPainterPath
 from qgis.PyQt.QtWidgets import QMainWindow, QWidget, QLabel, QFrame, QStatusBar, QVBoxLayout, QApplication, QAction
@@ -78,7 +78,7 @@ class renderLineFeature(QgsTask):
         #r = QgsRubberBand(self.canvas, True)
         try:
             pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*self.geom.boundary.coords.xy)]
-            self.vector = QgsGeometry.fromPolygonXY([pts])
+            self.qgeom = QgsGeometry.fromPolygonXY([pts])
         except Exception as e:
             self.exception = e
             return False
@@ -98,7 +98,7 @@ class renderLineFeature(QgsTask):
             #r.setSecondaryStrokeColor(QColor(*color))
             feat.setOpacity(self.opacity or 0.3)
             feat.setWidth(2)
-            feat.setToGeometry(self.vector, None)
+            feat.setToGeometry(self.qgeom, None)
         else:
             raise self.exception
         return 
@@ -108,6 +108,7 @@ class renderLineFeature(QgsTask):
 
 class TrackViz(QMainWindow):
     assert os.path.isfile('/usr/bin/qgis'), 'couldnt find qgis in path'
+    
 
     def __init__(self):
         # initialize qt app
@@ -135,7 +136,10 @@ class TrackViz(QMainWindow):
         self.canvas.enableAntiAliasing(True)
         self.setCentralWidget(self.canvas)
         self.toolbar = self.addToolBar("Canvas actions")
-        #self.bridge = QgsLayerTreeMapCanvasBridge(QgsProject.instance().layerTreeRoot(), self.canvas)
+        '''
+        from qgis.gui import QgsLayerTreeMapCanvasBridge
+        self.bridge = QgsLayerTreeMapCanvasBridge(QgsProject.instance().layerTreeRoot(), self.canvas)
+        '''
 
         # printlayout
         self.layout = QgsPrintLayout(self.project)
@@ -155,7 +159,10 @@ class TrackViz(QMainWindow):
         #self.settings.setFlag(QgsMapSettings.DrawLabeling, False)
 
         # keeping track of rendered items
-        self.features = []
+        #self.features = []
+        self.features_point = []
+        self.features_line = []
+        self.features_poly = []
 
         # start the interface
         #thread = threading.Thread(target=self.init_ui)
@@ -269,118 +276,39 @@ class TrackViz(QMainWindow):
                   Polygon(zip(np.abs(adjust((p := next(decomp)).boundary.coords.xy[0])), p.boundary.coords.xy[1])) ]
         return splits
 
-    def layer_from_feature_old(self, geomwkt, ident, color=None, opacity=None, nosplit=False):
-        if nosplit == False and (meridian := LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)).crosses(shapely.wkt.loads(geomwkt)):
-            print(f'splitting {ident}')
-            splits = self.split_feature_over_meridian(meridian, geomwkt)
-            return [self.layer_from_feature(splits[0].wkt, ident+'A', color, opacity, nosplit=True)[0],
-                    #self.layer_from_feature(splits[1].wkt.replace('-', ' '), ident+'B', color, opacity, nosplit=True)[0]]
-                    self.layer_from_feature(splits[1].wkt, ident+'B', color, opacity, nosplit=True)[0]]
+
+    def add_feature_point(self, geom, ident, color=None, opacity=None):
         if color is None: color = (colorhash(ident),)
-        geomtype = geomwkt.split('(', 1)[0].rstrip().upper()
-        if opacity is None: opacity = 0.5 if geomtype in ('POLYGON','LINEARRING') else 1
-        vl = QgsVectorLayer(geomtype, str(ident), 'memory')
-        pr = vl.dataProvider()
-        seg = QgsFeature()
-        seg.setGeometry(QgsGeometry.fromWkt(geomwkt))
-        '''
-        seg.setGeometry(q)
-        '''
-        pr.addFeatures([seg])
-        vl.updateExtents()
-        symbol = QgsSymbol.defaultSymbol(vl.geometryType())
-        symbol.setColor(QColor(*color if isinstance(color, tuple) else color))
-        symbol.setOpacity(opacity)
-        vl.renderer().setSymbol(symbol)
-        return [vl]
-
-    def layertest(self, qgeoms, identifiers, color=None, opacity=None, nosplit=False):
-    #def layertest(self, qgeom, ident, color=None, opacity=None, nosplit=False):
-        '''
-        from qgis.core import QgsFeatureRenderer, 
-        from qgis.core import QgsRendererCategory
-        self=viz
-        ident = identifiers[0]
-        qgeoms = [ft.asGeometry() for ft in self.features]
-        qgeom = qgeoms[0]
-        '''
-        #styles = QgsHeatmapRenderer()
-
-        #styles= QgsCategorizedSymbolRenderer()
-        unique, idx = np.unique(identifiers, return_index=True)
-
-        categories = []
-        for ident, qgeom in zip(unique, np.array(qgeoms)[idx]):
-            #sym = QgsSymbol.defaultSymbol(int(qgeom.wkbType()))
-            sym = QgsLineSymbol.createSimple({'identifier': str(ident)})
-            sym.setColor(QColor(colorhash(ident)))
-            sym.setOpacity(1)
-            cat = QgsRendererCategory(str(ident), symbol=sym.clone(), label='identifier', render=True)
-            #styles.addCategory(cat)
-            categories.append(cat)
-        styles = QgsCategorizedSymbolRenderer(attrName='identifier', categories=categories)
+        assert geom.type.upper() == 'MULTIPOINT'
+        r = customQgsMultiPoint(self.canvas)
+        pts = [self.xform.transform(QgsPointXY(xy.x, xy.y)) for xy in geom]
+        qgeom = QgsGeometry.fromMultiPointXY(pts)
+        r.setColor(QColor(*color))
+        r.setOpacity(opacity or 1)
+        r.setToGeometry(qgeom, None)
+        #return r
+        self.features_point.append((ident, r))
+        return
 
 
-        '''
-        print(styles.dump()[0:1000])
-        '''
-
-        #if color is None: color = colorhash(ident)
-        #if opacity is None: opacity = 0.5 if geomtype in ('Polygon','LineString') else 1
-
-
-        #meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
-        geomtype = QgsWkbTypes.displayString(int(qgeoms[0].wkbType()))
-        vl = QgsVectorLayer(geomtype+'?crs=epsg:3857', f'tmp_lyr', 'memory')
-        #vl.setCrs(self.project.crs())
-        pr = vl.dataProvider()
-        pr.addAttributes([
-                QgsField('identifier', QVariant.String), 
-            ])
-        vl.updateFields()
-        features = []
-        for qgeom,ident in zip(qgeoms[1:], identifiers[1:]):
-            #if color is None: color = (colorhash(ident),)
-            ft = QgsFeature()
-            ft.setGeometry(qgeom)
-            ft.setFields(pr.fields())
-            ft.setAttribute(0, str(ident))
-            features.append(ft)
-            #pr.addFeatures([ft])
-        pr.addFeatures(features)
-        vl.updateExtents()
-        vl.setRenderer(styles)
-        #vl.triggerRepaint()
-
-        '''
-        vl.extent()
-        tft = vl.getFeature(1)
-
-        symbol = QgsSymbol.defaultSymbol(vl.geometryType())
-        symbol.setColor(QColor(*color if isinstance(color, tuple) else color))
-        symbol.setOpacity(opacity)
-        vl.renderer().setSymbol(symbol)
-        '''
-        return vl
-
-
-    def linefeature(self, geom, ident, color=None, opacity=None, nosplit=False):
+    def add_feature_polyline(self, geom, ident, color=None, opacity=None, nosplit=False):
         #task = renderLineFeature(self.canvas, self.xform, geom, ident, color, opacity, nosplit)
         #self.qgs.taskManager().addTask(task)
         meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
         if nosplit == False and meridian.crosses(geom):
             print(f'splitting {ident}')
             splits = self.split_feature_over_meridian(meridian, geom)
-            return [self.linefeature(splits[0], ident+'A', color, opacity, nosplit=True),
-                    #self.layer_from_feature(splits[1].wkt.replace('-', ' '), ident+'B', color, opacity, nosplit=True)[0]]
-                    self.linefeature(splits[1], ident+'B', color, opacity, nosplit=True)]
+            self.add_feature_polyline(splits[0], ident+'A', color, opacity, nosplit=True)
+            #self.layer_from_feature(splits[1].wkt.replace('-', ' '), ident+'B', color, opacity, nosplit=True)[0]
+            self.add_feature_polyline(splits[1], ident+'B', color, opacity, nosplit=True)
+            return
 
         if color is None: color = (colorhash(ident),)
         r = QgsRubberBand(self.canvas, True)
 
         if geom.type.upper() in ('POLYGON', 'LINEARRING'): 
             pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.boundary.coords.xy)]
-            vector = QgsGeometry.fromPolygonXY([pts])
+            qgeom = QgsGeometry.fromPolygonXY([pts])
             r.setFillColor(QColor(*color))
             r.setStrokeColor(QColor(0,0,0))
             #r.setSecondaryStrokeColor(QColor(*color))
@@ -395,102 +323,218 @@ class TrackViz(QMainWindow):
 
         elif geom.type.upper() == 'LINESTRING':
             pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.coords.xy)]
-            vector = QgsGeometry.fromPolylineXY(pts)
+            qgeom = QgsGeometry.fromPolylineXY(pts)
             r.setColor(QColor(*color))
             r.setOpacity(opacity or 1)
 
         else: assert False, f'{geom.type} is not a linear feature!'
 
-        r.setToGeometry(vector, None)
+        r.setToGeometry(qgeom, None)
         #self.canvas.update()
         #r.show()
         #r.updateCanvas()
-        self.features.append(r)
-        #return r if nosplit else [r]
+        if geom.type.upper() in ('POLYGON', 'LINEARRING'): 
+            self.features_poly.append((ident, r))
+        elif geom.type.upper() == 'LINESTRING':
+            self.features_line.append((ident, r))
+
         return 
 
-    '''
-    self.canvas.scene().removeItem(r)
-    '''
 
-    def pointfeature(self, geom, ident, color=None, opacity=None):
-        if color is None: color = (colorhash(ident),)
-        assert geom.type.upper() == 'MULTIPOINT'
-        r = customQgsMultiPoint(self.canvas)
-        pts = [self.xform.transform(QgsPointXY(xy.x, xy.y)) for xy in geom]
-        vector = QgsGeometry.fromMultiPointXY(pts)
-        r.setColor(QColor(*color))
-        r.setOpacity(opacity or 1)
-        r.setToGeometry(vector, None)
-        #return r
-        self.features.append(r)
-        return
+    def clear_points(self):
+        while len(self.features_point) > 0: self.canvas.scene().removeItem(self.features_point.pop()[1])
 
 
-    def update_features(self, layers): 
-        self.project.addMapLayers(layers)
-        #QGuiApplication.processEvents()
-        #self.qgs.processEvents()
-        self.canvas.setLayers([self.basemap_lyr] + layers)
+    def clear_lines(self):
+        while len(self.features_line) > 0: self.canvas.scene().removeItem(self.features_line.pop()[1])
 
 
-    def render_bg(self, identifiers, fname='test.png', w=1920, h=1080): 
+    def clear_polygons(self):
+        while len(self.features_poly) > 0: self.canvas.scene().removeItem(self.features_poly.pop()[1])
+
+
+    def clearfeatures(self):
+        self.clear_points()
+        self.clear_lines()
+        self.clear_polygons()
+
+
+    def vectorize(self, qgeoms, identifiers, color=None, opacity=None, nosplit=False):
+        '''
+        self=viz
+        ident = identifiers[0]
+        qgeoms = [ft[1].asGeometry() for ft in self.features_line]
+        qgeoms = [ft[1].asGeometry() for ft in self.features_point]
+        identifiers = [1 for x in qgeoms]
+        '''
+
+        geomtype = QgsWkbTypes.displayString(qgeoms[0].wkbType())
+        if geomtype == 'LineString':
+            symboltype = QgsLineSymbol
+            if not opacity: opacity = 1
+        elif geomtype == 'MultiPoint':
+            symboltype = QgsMarkerSymbol
+            if not opacity: opacity = 1
+        elif geomtype in ('LinearRing', 'Polygon', 'MultiPolygon'):
+            symboltype = QgsFillSymbol
+            if not opacity: opacity = 0.33
+        else:
+            assert False, f'unknown type {geomtype}'
+
+        unique, idx = np.unique(identifiers, return_index=True)
+
+        categories = []
+        #styles = QgsCategorizedSymbolRenderer()
+        for ident, qgeom in zip(unique, np.array(qgeoms)[idx]):
+            #sym = QgsSymbol.defaultSymbol(int(qgeom.wkbType()))
+            sym = symboltype.createSimple({'identifier': ident})
+            sym.setColor(QColor(color or colorhash(ident)))
+            sym.setOpacity(opacity)
+            cat = QgsRendererCategory(str(ident), symbol=sym.clone(), label='identifier', render=True)
+            #styles.addCategory(cat)
+            categories.append(cat)
+        styles = QgsCategorizedSymbolRenderer(attrName='identifier', categories=categories)
+
+
+        '''
+        QgsStyle().defaultStyle().colorRampNames()
+
+        
+        styles = QgsHeatmapRenderer()
+        styles.setColorRamp(QgsStyle().defaultStyle().colorRamp('Spectral'))
+
+        print(styles.dump()[0:1000])
+        '''
+
+        #if color is None: color = colorhash(ident)
+        #if opacity is None: opacity = 0.5 if geomtype in ('Polygon','LineString') else 1
+
+
+        #meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
+        geomtype = QgsWkbTypes.displayString(int(qgeoms[0].wkbType()))
+        vl = QgsVectorLayer(geomtype+'?crs=epsg:3857', f'tmp_lyr', 'memory')
+        #vl.setCrs(self.project.crs())
+        pr = vl.dataProvider()
+        pr.addAttributes([
+                QgsField('identifier', QVariant.Int), 
+            ])
+        vl.updateFields()
+        features = []
+        for qgeom,ident in zip(qgeoms[1:], identifiers[1:]):
+            ft = QgsFeature()
+            ft.setGeometry(qgeom)
+            ft.setFields(pr.fields())
+            ft.setAttribute(0, ident)
+            features.append(ft)
+            #pr.addFeatures([ft])
+        pr.addFeatures(features)
+        vl.updateExtents()
+        vl.setRenderer(styles)
+        vl.triggerRepaint()
+        vl.setAutoRefreshEnabled(True)
+
+        '''
+        vl.extent()
+        tft = vl.getFeature(1)
+
+        symbol = QgsSymbol.defaultSymbol(vl.geometryType())
+        symbol.setColor(QColor(*color if isinstance(color, tuple) else color))
+        symbol.setOpacity(opacity)
+        vl.renderer().setSymbol(symbol)
+        '''
+        return vl
+
+
+    def render_vectors(self, fname='test.png', w=1920, h=1080): 
         # https://gis.stackexchange.com/questions/245840/wait-for-canvas-to-finish-rendering-before-saving-image
         '''
         w=1920
         h=1080
         fname='test.png'
+        self= viz
         '''
         #self.canvas.setLayers([self.basemap_lyr])
         #self.project.instance().removeMapLayers([lyr.id() for lyr in layers])
 
-        #layers = [self.layertest(ft.asGeometry(), ident) for ft,ident in zip(self.features, identifiers)]
-        vl = layertest(self, [ft.asGeometry() for ft in self.features], np.array(trackfeatures)[:,1])
-
+        self.vl1 = None
+        self.vl2 = None
+        self.vl3 = None
+        if len(self.features_point) > 0:
+            self.vl1 = self.vectorize([ft[1].asGeometry() for ft in self.features_point], [ft[0] for ft in self.features_point])
+        if len(self.features_line) > 0:
+            self.vl2 = self.vectorize([ft[1].asGeometry() for ft in self.features_line],  [ft[0] for ft in self.features_line])
+        if len(self.features_poly) > 0:
+            self.vl3 = self.vectorize([ft[1].asGeometry() for ft in self.features_poly],  [ft[0] for ft in self.features_poly])
+    
+        #self.clearfeatures()
         #self.settings.setLayers(self.settings.layers() + [vl])
-        self.project.addMapLayers([vl])
-        self.canvas.setLayers([vl, self.basemap_lyr])
-        self.canvas.setExtent(vl.extent())
+        #self.project.addMapLayers([vl2])
+        '''
+
+        self.canvas.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
+        #self.canvas.setExtent(vl.extent())
         #self.project.write(f'output{os.path.sep}state.qgz')
-        #self.canvas.update()
+        self.canvas.update()
+        self.canvas.refresh()
+        #QGuiApplication.processEvents()
+        #self.qgs.processEvents()
         self.canvas.saveAsImage(f'output{os.path.sep}{fname}')
+        '''
+        #settings = QgsMapSettings()
+        self.canvas.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
+        self.settings.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
+        #self.settings.setLayers([self.vl1, self.basemap_lyr])
+        self.canvas.update()
+        self.canvas.refresh()
+        self.settings.setOutputSize(QSize(w, h))
+        self.settings.setExtent(self.canvas.extent())
+        #QgsMapLayerRegistry.instance()
+        #self.settings.setOutputSize(QSize(w,h))
+
+        render = QgsMapRendererParallelJob(self.settings)
+        def finished():
+            img = render.renderedImage()
+            img.save(f'output{os.path.sep}{fname}', 'png')
+        render.finished.connect(finished)
+        render.start()
+        render.waitForFinished()
 
         '''
-        image = QImage(QSize(w,h), QImage.Format_RGB32)
-        painter = QPainter(image)
-        self.settings.setLayers([vl, self.basemap_lyr])
-        job = QgsMapRendererCustomPainterJob(self.settings, painter)
-        job = QgsMapRendererParallelJob(self.settings, painter)
-        job.renderSynchronously()
+        #image = QImage(QSize(w,h), QImage.Format_RGB32)
+        #painter = QPainter(image)
+        #self.settings.setLayers([vl, self.basemap_lyr])
+        #self.canvas.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
+        #self.settings.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
+        settings = QgsMapSettings()
+        settings.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
+        #job = QgsMapRendererCustomPainterJob(self.settings, painter)
+        #job.renderSynchronously()
+        render = QgsMapRendererParallelJob(settings)
+
+        render.start()
+        render.waitForFinished()
+        img = render.renderedImage()
+        img.save(f'output{os.path.sep}{fname}', 'png')
+        
+
         painter.end()
         image.save(f'output{os.path.sep}{fname}')
         '''
 
 
-    def save(self, fname='map.png'):
-        self.canvas.saveAsImage(os.path.join('output', fname))
-
-
-    #def clearfeatures(self, layerids):
-        #self.project.instance().removeMapLayers(layerids)
-        #self.canvas.refresh()
-
-
-    def clearfeatures(self):
-        #self.project.removeMapLayers([lyr.id() for lyr in self.settings.layers()])
-        #self.canvas.refresh()
-        while len(self.features) > 0: self.canvas.scene().removeItem(self.features.pop())
-
-
-    def exit(self):
-        self.clearfeatures()
-        #self.project.write('scripts/ecoregion_test/testplot.qgz')
-        self.project.removeMapLayers([lyr.id() for lyr in self.settings.layers()])
-        self.canvas.close()
-        self.qgs.closeAllWindows()
-        #self.app.deleteLater()
-        self.qgs.exitQgis()
-        self.close()
+    def export_vlayer_as_shp(self, vl, fpath=f'output{os.path.sep}test.shp'):
+        save_opt = QgsVectorFileWriter.SaveVectorOptions()
+        save_opt.driverName = 'ESRI Shapefile'
+        save_opt.fileEncoding = 'UTF-8'
+        transform_context = self.project.instance().transformContext()
+        result = QgsVectorFileWriter.writeAsVectorFormatV2(
+                vl, 
+                fpath,
+                self.project.instance().transformContext(),
+                save_opt
+            )
+        assert not result[0], f'{result}'
+        return True
 
 
     def export_qgis(self, projpath):
@@ -503,4 +547,42 @@ class TrackViz(QMainWindow):
         self.project.read(projpath)
         #self.layout = self.project.instance().layoutManager().layoutByName('scripted_layout')
         #self.layout.addItem(QgsLayoutItemMap(self.layout))
+
+
+    def exit(self):
+        self.clearfeatures()
+        #self.project.write('scripts/ecoregion_test/testplot.qgz')
+        self.project.removeMapLayers([lyr.id() for lyr in self.settings.layers()])
+        self.canvas.close()
+        self.qgs.closeAllWindows()
+        #self.app.deleteLater()
+        self.qgs.exitQgis()
+        self.close()
+
+'''
+    def layer_from_feature_old(self, geomwkt, ident, color=None, opacity=None, nosplit=False):
+        if nosplit == False and (meridian := LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)).crosses(shapely.wkt.loads(geomwkt)):
+            print(f'splitting {ident}')
+            splits = self.split_feature_over_meridian(meridian, geomwkt)
+            return [self.layer_from_feature(splits[0].wkt, ident+'A', color, opacity, nosplit=True)[0],
+                    #self.layer_from_feature(splits[1].wkt.replace('-', ' '), ident+'B', color, opacity, nosplit=True)[0]]
+                    self.layer_from_feature(splits[1].wkt, ident+'B', color, opacity, nosplit=True)[0]]
+        if color is None: color = (colorhash(ident),)
+        geomtype = geomwkt.split('(', 1)[0].rstrip().upper()
+        if opacity is None: opacity = 0.5 if geomtype in ('POLYGON','LINEARRING') else 1
+        vl = QgsVectorLayer(geomtype, str(ident), 'memory')
+        pr = vl.dataProvider()
+        seg = QgsFeature()
+        seg.setGeometry(QgsGeometry.fromWkt(geomwkt))
+        """
+        seg.setGeometry(q)
+        """ 
+        pr.addFeatures([seg])
+        vl.updateExtents()
+        symbol = QgsSymbol.defaultSymbol(vl.geometryType())
+        symbol.setColor(QColor(*color if isinstance(color, tuple) else color))
+        symbol.setOpacity(opacity)
+        vl.renderer().setSymbol(symbol)
+        return [vl]
+'''
 
