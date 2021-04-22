@@ -59,7 +59,8 @@ def decode_csv(fpath, conn, mstr=None):
                     r['id'], r['repeat_indicator'], int(r['mmsi']), r['nav_status'], r['rot'], 
                     r['sog'], r['position_accuracy'], r['x'], r['y'], r['cog'], r['true_heading'], 
                     t.second, r['special_manoeuvre'], r['raim'], r['sync_state'], 
-                    datetime(t.year, t.month, t.day, t.hour, t.second),
+                    #datetime(t.year, t.month, t.day, t.hour, t.minute, t.second),
+                    t,
                     f'''POINT (({r['x']}, {r['y']}))''', 
                 ) for r,t in zip(rows[m123], stamps[m123])
             )
@@ -96,7 +97,8 @@ def decode_csv(fpath, conn, mstr=None):
                     r['y'], r['cog'], r['true_heading'], r['timestamp'], None, r['commstate_flag'], 
                     r['display_flag'], r['dsc_flag'], r['band_flag'], r['m22_flag'], r['mode_flag'], r['raim'], 
                     r['commstate_cs_fill'] if 'commstate_cs_fill' in r.keys() else None,
-                    datetime(t.year, t.month, t.day, t.hour, t.second),
+                    #datetime(t.year, t.month, t.day, t.hour, t.minute, t.second),
+                    t, 
                     f'''POINT (({r['x']}, {r['y']}))''', 
                 ) for r,t in zip(rows[m18], stamps[m18])
             )
