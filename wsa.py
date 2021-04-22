@@ -3,13 +3,14 @@ Quantifying the extent of niche areas in the global fleet of commercial ships: t
 
 Cameron S. Moser, Timothy P. Wier, Matthew R. First, Jonathan F. Grant, Scott C. Riley, Stephanie H. Robbins-Wamsley, Mario N. Tamburri, Gregory M. Ruiz, A. Whitman Miller, Lisa A. Drake
 '''
+#from webdata.marinetraffic import get_tonnage_mmsi_imo
 
 
-def wsa(mmsi, imo, ship_type, **_):
+def wsa(dwt, ship_type, **_):
     ''' regression of Denny-Mumford WSA formula '''
 
     if ship_type < 30:              # wing in ground craft
-        assert False 
+        return 0
 
     elif ship_type == 30:           # fishing
         coef = 15.58
@@ -42,7 +43,7 @@ def wsa(mmsi, imo, ship_type, **_):
         coef = 26.2
         exp = 0.551
     
-    return coef * pow(base=get_tonnage_mmsi_imo(mmsi=mmsi, imo=imo), exp=exp)
+    return coef * pow(base=dwt, exp=exp)
 
 
 
