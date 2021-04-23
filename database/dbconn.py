@@ -62,7 +62,7 @@ class dbconn():
                 in_bbox     = lambda south, north, west, east,**_:    f'ais_geom && ST_MakeEnvelope({west},{south},{east},{north})',
             )
             self.dbtype = 'postgres'
-            create_table_coarsetype(self.cur)
+            #create_table_coarsetype(self.cur)
 
         else:
             import sqlite3

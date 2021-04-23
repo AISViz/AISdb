@@ -8,7 +8,8 @@ import numpy as np
 from shapely.geometry import Point, LineString, Polygon
 #from shapely.prepared import prep
 
-from database import dt2monthstr
+from gis import compute_knots
+from database import dt2monthstr, dbconn
 from track_gen import trackgen, segment, filtermask, writecsv
 
 #from numba import vectorize
@@ -17,6 +18,8 @@ from track_gen import trackgen, segment, filtermask, writecsv
 #@vectorize
 #@vectorize(['None(dict)'], target='cuda')
 
+aisdb = dbconn()
+conn = aisdb.conn
 
 def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type', ], keepcols=['time', 'lon', 'lat', 'cog', 'sog']):
     ''' parallel process function for segmenting and geofencing tracks
@@ -143,7 +146,7 @@ def explode_month(kwargs, csvfile, keepraw=True):
                 )).T
             ))
         for rng in segment(track, timedelta(days=7), minsize=1):
-            mask2 = filtermask(track, rng)
+            mask2 = filtermask(track, rng, filters=[lambda track, rng: compute_knots(track, rng) < 50])
             n2 = sum(mask2)
             out = np.vstack((out, 
                     np.vstack((
@@ -165,21 +168,22 @@ def explode_month(kwargs, csvfile, keepraw=True):
     writecsv(out, csvfile + f'.filtered.{mstr}', mode='a',)
     
 
-def explode(qryfcn, qryrows, cols, csvfile='output/test.csv'):
+def explode(qryfcn, qryrows, cols, dateformat='%m/%d/%Y', csvfile='output/test.csv'):
     '''
         crawl database for rows with matching mmsi + time range
 
         cols = {'mmsi':3, 'start':-2, 'end':-1, 'sort_output':1, 'keepcols':[0,1,2]}
-        dateformat = '%m/%d/%Y'
+ 
+        
     '''
     print('building index...')
 
     # sort by mmsi, time
     qrows = qryrows[qryrows[:,cols['mmsi']].argsort()]
-    dt = np.array(list(map(lambda t: datetime.strptime(t, '%m/%d/%Y'), qrows[:,cols['start']])))
+    dt = np.array(list(map(lambda t: datetime.strptime(t, dateformat), qrows[:,cols['start']])))
     qrows = qrows[dt.argsort(kind='mergesort')]
-    dt = np.array(list(map(lambda t: datetime.strptime(t, '%m/%d/%Y'), qrows[:,cols['start']])))
-    dt2 = np.array(list(map(lambda t: datetime.strptime(t, '%m/%d/%Y'), qrows[:,cols['end']])))
+    dt = np.array(list(map(lambda t: datetime.strptime(t, dateformat), qrows[:,cols['start']])))
+    dt2 = np.array(list(map(lambda t: datetime.strptime(t, dateformat), qrows[:,cols['end']])))
 
     # filter timestamps outside data range
     exists = np.logical_or( 
@@ -203,7 +207,8 @@ def explode(qryfcn, qryrows, cols, csvfile='output/test.csv'):
     qrows[:,cols['end']] = dt2
 
     # aggregate by month
-    months_str = dt2monthstr(dt2[0], dt[-1])
+    #months_str = dt2monthstr(dt2[0], dt[-1])
+    months_str = dt2monthstr(dt[0], dt2[-1])
     months = np.array([datetime.strptime(m, '%Y%m') for m in months_str])
     months = np.append(months, months[-1] + timedelta(days=31))
     rows_months = [ qrows[((dt > m1) & (dt < m2)) | ((dt2 > m1) & (dt2 < m2))] for m1, m2 in zip(months[:-1], months[1:]) ]
@@ -219,13 +224,13 @@ def explode(qryfcn, qryrows, cols, csvfile='output/test.csv'):
         p.join()
 
     '''
-    for kwargs in getrows(qryfcn,rows_months[-1:],months_str[-1:], cols):
+    for kwargs in getrows(qryfcn,rows_months, months_str, cols):
         explode_month(kwargs, csvfile)
     '''
 
     #os.system(f"sort -t ',' -k {cols['sort_output']} -o raw_{csvfile} {csvfile}.raw.*")
-    os.system(f"sort -t ',' -k {cols['sort_output']} -o output/sorted/raw.csv {csvfile}.raw.*")
-    os.system(f"sort -t ',' -k {cols['sort_output']} -o output/sorted/filtered.csv {csvfile}.filtered.*")
+    os.system(f"sort -t ',' -k {cols['sort_output']} --output=output/raw.csv {csvfile}.raw.*")
+    os.system(f"sort -t ',' -k {cols['sort_output']} --output=output/filtered.csv {csvfile}.filtered.*")
     #os.system(f'rm {csvfile}.raw*')
     #os.system(f'rm {csvfile}.filtered*')
 
