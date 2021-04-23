@@ -7,6 +7,15 @@ Requirements:
   * pyais
   * qgis
 
+Optional for web data:
+  * requests
+  * selenium
+  * firefox
+
+Scripts included for installing:
+  * spatialite
+  * geckodriver
+
 
 To test track segmentation, some sample data is provided along with some test code in test/test_segments.py
 
@@ -16,3 +25,4 @@ To test track segmentation, some sample data is provided along with some test co
 
 Acknowledgement:
   * Database schema has been adapted from the postgres data model developed by Casey Hilliard
+

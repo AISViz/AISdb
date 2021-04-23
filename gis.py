@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 from datetime import timedelta
+from shapely.ops import unary_union
 from shapely.geometry import Polygon
 
 from track_gen import trackgen, segment, filtermask, writecsv
@@ -23,18 +24,16 @@ def compute_knots(track, rng):#, mask=[True for _ in rng]):
     return meters / seconds * 1.9438445
 
 
-def zones_from_txts(txts, domain):
-    '''
-    dirpath, dirnames, filenames = np.array(list(os.walk('scripts/dfo_project/EastCoast_EEZ_Zones_12_8')), dtype=object).T
+def zones_from_txts(dirpath='../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', domain='east'):
+    dirpath, dirnames, filenames = np.array(list(os.walk(dirpath)), dtype=object).T
     txts = list(map(lambda txt: f'{dirpath[0]}/{txt}', sorted(filter(lambda f: f[-3:] == 'txt', filenames[-1]))))
-    '''
     merge = lambda *arr: np.concatenate(np.array(*arr).T)
     zones = {'domain': domain, 'geoms': {}}
     for txt in txts:
         with open(txt, 'r') as f: pts = f.read()
-        xy = list(map(float, pts.replace('\n',',').split(',')[:-1]))
+        xy = list(map(float, pts.replace('\n\n', '').replace('\n',',').split(',')[:-1]))
         zones['geoms'][txt.rsplit(os.path.sep,1)[1].split('.')[0]] = Polygon(zip(xy[::2], xy[1::2]))
-    zones['hull'] = shapely.ops.unary_union(zones['geoms'].values()).convex_hull
+    zones['hull'] = unary_union(zones['geoms'].values()).convex_hull
     zones['hull_xy'] = merge(zones['hull'].boundary.coords.xy)
     return zones
 

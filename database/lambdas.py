@@ -22,3 +22,14 @@ arr2polytxt = lambda x,y,**_: f'POLYGON(({zipcoords(x,y)}))'
 boxpoly = lambda x,y: ([min(x), min(x), max(x), max(x), min(x)], [min(y), max(y), max(y), min(y), min(y)])
 
 merge = lambda *arr: np.concatenate(np.array(*arr).T)
+
+valid_mmsi = lambda alias='m123',**_: f'{alias}.mmsi >= 201000000 AND {alias}.mmsi < 776000000'
+
+in_poly_validmmsi = lambda **kwargs: f'{valid_mmsi(**kwargs)} AND {in_poly(**kwargs)}' 
+
+in_timerange = lambda **kwargs: f'''{kwargs['alias']}.time BETWEEN date('{kwargs['start'].strftime('%Y-%m-%d')}') AND date('{kwargs['end'].strftime('%Y-%m-%d')}')'''
+
+in_mmsi_time = lambda **kwargs: f'{in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'
+
+#in_poly_time_mmsi = lambda **kwargs: f'{in_poly(**kwargs)} AND {in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'
+in_time_poly_mmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_poly(**kwargs)} AND {valid_mmsi(**kwargs)}'
