@@ -18,8 +18,8 @@ from track_gen import trackgen, segment, filtermask, writecsv
 #@vectorize
 #@vectorize(['None(dict)'], target='cuda')
 
-aisdb = dbconn()
-conn = aisdb.conn
+#aisdb = dbconn()
+#conn = aisdb.conn
 
 def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type', ], keepcols=['time', 'lon', 'lat', 'cog', 'sog']):
     ''' parallel process function for segmenting and geofencing tracks
@@ -40,15 +40,8 @@ def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type
                     for p in map(Point, zip(track['lon'][rng][mask][c:nc], track['lat'][rng][mask][c:nc])) )
             writecsv(
                     np.vstack((
-                        #np.array([track['mmsi'] for _ in range(n)])[c:nc],
-                        #np.array([track['name'] for _ in range(n)])[c:nc],
-                        #np.array([track['type'] for _ in range(n)])[c:nc],
-                        #track['time'][rng][mask][c:nc],
-                        #track['lon'][rng][mask][c:nc],
-                        #track['lat'][rng][mask][c:nc],
-                        #track['cog'][rng][mask][c:nc],
-                        #track['sog'][rng][mask][c:nc],
-                        *(np.array([track[col] for _ in range(n)])[c:nc] for col in staticcols),
+                        #*(np.array([track[col] for _ in range(n)])[c:nc] for col in staticcols),
+                        *(np.full(shape=n, fill_value=track[col])[c:nc] for col in staticcols),
                         *(track[col][rng][mask][c:nc] for col in keepcols),
                         np.append(compute_knots(track, rng), [0])[mask][c:nc],
                         list(zoneID),
@@ -102,7 +95,7 @@ if __name__ == '__main__':
 """
 
 
-def getrows(qryfcn, rows_months, months_str, cols):
+def getrows(conn, qryfcn, rows_months, months_str, cols):
     '''
     qrows_month, mstr = rows_months[0], months_str[0]
     '''
@@ -168,7 +161,7 @@ def explode_month(kwargs, csvfile, keepraw=True):
     writecsv(out, csvfile + f'.filtered.{mstr}', mode='a',)
     
 
-def explode(qryfcn, qryrows, cols, dateformat='%m/%d/%Y', csvfile='output/test.csv'):
+def explode(conn, qryfcn, qryrows, cols, dateformat='%m/%d/%Y', csvfile='output/test.csv'):
     '''
         crawl database for rows with matching mmsi + time range
 
@@ -219,7 +212,7 @@ def explode(qryfcn, qryrows, cols, dateformat='%m/%d/%Y', csvfile='output/test.c
     '''
 
     with Pool(processes=3) as p:
-        p.imap_unordered(partial(explode_month, csvfile=csvfile), getrows(qryfcn,rows_months,months_str, cols))
+        p.imap_unordered(partial(explode_month, csvfile=csvfile), getrows(conn, qryfcn,rows_months,months_str, cols))
         p.close()
         p.join()
 
