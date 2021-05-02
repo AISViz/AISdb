@@ -307,7 +307,10 @@ class TrackViz(QMainWindow):
         r = QgsRubberBand(self.canvas, True)
 
         if geom.type.upper() in ('POLYGON', 'LINEARRING'): 
-            pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.boundary.coords.xy)]
+            if geom.type == 'LinearRing':
+                pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.coords.xy)]
+            elif geom.type == 'Polygon':
+                pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.boundary.coords.xy)]
             qgeom = QgsGeometry.fromPolygonXY([pts])
             r.setFillColor(QColor(*color))
             r.setStrokeColor(QColor(0,0,0))
