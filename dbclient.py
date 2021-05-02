@@ -1,3 +1,4 @@
+import logging
 import os
 from multiprocessing import Pool#, set_start_method
 import time
@@ -104,9 +105,10 @@ if __name__ == '__main__':
 
 def getrows(qryfcn, rows_months, months_str, cols):
     '''
-    qrows_month, mstr = rows_months[0], months_str[0]
+    qrows_month, mstr = rows_months[-1], months_str[-1]
     '''
-    callback = lambda alias, ummsi, **_: f'''{alias}.mmsi in ('{"', '".join(ummsi)}')'''
+    #callback = lambda alias, ummsi, **_: f'''{alias}.mmsi in ('{"', '".join(map(str, ummsi))}')'''
+    callback = lambda alias, ummsi, **_: f'''{alias}.mmsi in ({", ".join(map(str, ummsi))})'''
     for qrows_month, mstr in zip(rows_months, months_str):
         print(f'querying {mstr}...')
         ummsi = np.unique(qrows_month[:,cols['mmsi']])
@@ -114,10 +116,14 @@ def getrows(qryfcn, rows_months, months_str, cols):
         cur = conn.cursor()
         cur.execute(qry)
         res = np.array(cur.fetchall())
+        #logging.debug(f'{np.unique(res[:,0])}')
         yield dict(res=res, qrows_month=qrows_month, cols=cols, mstr=mstr)
 
 
 def explode_month(kwargs, csvfile, keepraw=True):
+    '''
+    kwargs = list(getrows(qryfcn,rows_months, months_str, cols))[-1]
+    '''
     qrows_month, res, mstr, cols = kwargs['qrows_month'], kwargs['res'], kwargs['mstr'], kwargs['cols']
     print(f'exploding rowdata from {mstr}...')
     tracks = { t['mmsi'] : t for t in trackgen(res) }
@@ -164,6 +170,9 @@ def explode_month(kwargs, csvfile, keepraw=True):
                 ))
                     
     assert len(out) > 0
+
+    print(f'mmsis found: {len(np.unique(raw[:,3]))} / {len(np.unique(qrows_month[:,3]))}')
+
     if keepraw: writecsv(raw, csvfile + f'.raw.{mstr}', mode='a',)
     writecsv(out, csvfile + f'.filtered.{mstr}', mode='a',)
     
@@ -218,6 +227,7 @@ def explode(qryfcn, qryrows, cols, dateformat='%m/%d/%Y', csvfile='output/test.c
     explode_month(kwargs, csvfile)
     '''
 
+    '''
     with Pool(processes=3) as p:
         p.imap_unordered(partial(explode_month, csvfile=csvfile), getrows(qryfcn,rows_months,months_str, cols))
         p.close()
@@ -226,7 +236,6 @@ def explode(qryfcn, qryrows, cols, dateformat='%m/%d/%Y', csvfile='output/test.c
     '''
     for kwargs in getrows(qryfcn,rows_months, months_str, cols):
         explode_month(kwargs, csvfile)
-    '''
 
     #os.system(f"sort -t ',' -k {cols['sort_output']} -o raw_{csvfile} {csvfile}.raw.*")
     os.system(f"sort -t ',' -k {cols['sort_output']} --output=output/raw.csv {csvfile}.raw.*")
