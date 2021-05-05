@@ -132,6 +132,51 @@ SELECT m18.mmsi, m18.time, m18.longitude, m18.latitude, m18.cog, m18.sog, m5.ves
   GROUP BY m18.mmsi, m18.time, m18.longitude, m18.latitude, m18.cog, m18.sog, m5.vessel_name, ref.coarse_type_txt
   ''')
 
+
+rtree_msg123union18join5 = lambda month, callback, kwargs, bounds=dict(xmin=-180, ymin=-90, xmax=180, ymax=90): (f'''
+SELECT m123.mmsi, m123.time, m123.longitude, m123.latitude, m123.cog, m123.sog, m5.vessel_name, ref.coarse_type_txt
+  FROM {prefix}{month}_msg_1_2_3 AS m123
+  LEFT JOIN (
+    SELECT DISTINCT x.mmsi, x.vessel_name, x.ship_type
+      FROM {prefix}{month}_msg_5 AS x
+      GROUP BY x.mmsi, x.ship_type, x.vessel_name
+      HAVING COUNT(*) > 1
+  ) AS m5 
+  ON m123.mmsi = m5.mmsi
+  LEFT JOIN coarsetype_ref AS ref ON (m5.ship_type = ref.coarse_type)
+  WHERE m123.id IN ( 
+    SELECT id 
+    FROM {prefix}{month}_msg_1_2_3
+    WHERE longitude >= {kwargs['xmin']}
+      AND longitude <= {kwargs['xmax']}
+      AND latitude >= {kwargs['ymin']}
+      AND latitude <= {kwargs['ymax']}
+    )
+  AND {callback(month=month, alias='m123', **kwargs)}
+UNION
+SELECT m18.mmsi, m18.time, m18.longitude, m18.latitude, m18.cog, m18.sog, m5.vessel_name, ref.coarse_type_txt
+  FROM {prefix}{month}_msg_18 AS m18
+  LEFT JOIN (
+    SELECT DISTINCT x.mmsi, x.vessel_name, x.ship_type
+      FROM {prefix}{month}_msg_5 AS x
+      GROUP BY x.mmsi, x.ship_type, x.vessel_name
+      HAVING COUNT(*) > 1
+  ) AS m5 
+  ON m18.mmsi = m5.mmsi
+  LEFT JOIN coarsetype_ref AS ref ON (m5.ship_type = ref.coarse_type)
+  WHERE m18.id IN (
+    SELECT id 
+    FROM {prefix}{month}_msg_18
+    WHERE longitude >= {kwargs['xmin']}
+      AND longitude <= {kwargs['xmax']}
+      AND latitude >= {kwargs['ymin']}
+      AND latitude <= {kwargs['ymax']}
+  )
+  AND {callback(month=month, alias='m18', **kwargs)}
+  GROUP BY m18.mmsi, m18.time, m18.longitude, m18.latitude, m18.cog, m18.sog, m5.vessel_name, ref.coarse_type_txt
+  ''')
+
+
 imotest = lambda month, callback, kwargs: (f'''
 SELECT m123.mmsi, m5.imo, m123.time, m123.longitude, m123.latitude, m123.cog, m123.sog, m5.vessel_name, ref.coarse_type_txt
   FROM {prefix}{month}_msg_1_2_3 AS m123

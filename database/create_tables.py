@@ -9,6 +9,7 @@ dbtype = aisdb.dbtype
 def create_table_msg123(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_1_2_3 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 unq_id_prefix character varying(11),
                 lineno integer,
                 errorflag boolean,
@@ -43,11 +44,13 @@ def create_table_msg123(cur, month):
     if dbtype == 'sqlite3':
         cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_1_2_3', 'ais_geom', 4326, 'POINT', 'XY') ''')
         cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_1_2_3', 'ais_geom') ''')
-        #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time_lat_lon ON 'ais_s_{month}_msg_1_2_3' (mmsi, time, longitude, latitude)''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg123_mmsi ON 'ais_s_{month}_msg_1_2_3' (mmsi)''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg123_time ON 'ais_s_{month}_msg_1_2_3' (time)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg123_lon ON 'ais_s_{month}_msg_1_2_3' (latitude)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg123_lat ON 'ais_s_{month}_msg_1_2_3' (longitude)''')
+        #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time_lat_lon ON 'ais_s_{month}_msg_1_2_3' (mmsi, time, longitude, latitude)''')
         #cur.execute(f''' CREATE INDEX idx_{month}_msg123_lonlat ON 'ais_s_{month}_msg_1_2_3' (longitude, latitude)''')
-        cur.execute(f''' CREATE UNIQUE INDEX idx_msg123_mmsi_time ON 'ais_s_{month}_msg_1_2_3' (mmsi, time) ''')  # redundant?
+        #cur.execute(f''' CREATE UNIQUE INDEX idx_msg123_mmsi_time ON 'ais_s_{month}_msg_1_2_3' (mmsi, time) ''')
     elif dbtype == 'postgres':
         print('indexes not implemented yet for postgres')
         pass
@@ -57,6 +60,7 @@ def create_table_msg123(cur, month):
 def create_table_msg5(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_5 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 unq_id_prefix character varying(11),
                 lineno integer,
                 errorflag boolean,
@@ -111,6 +115,7 @@ def create_table_msg5(cur, month):
 def create_table_msg18(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_18 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 unq_id_prefix character varying(11),
                 lineno integer,
                 errorflag boolean,
@@ -150,10 +155,12 @@ def create_table_msg18(cur, month):
     if dbtype == 'sqlite3':
         cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_18', 'ais_geom', 4326, 'POINT', 'XY') ''')
         cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_18', 'ais_geom') ''')
-        #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time_lat_lon ON 'ais_s_{month}_msg_18' (mmsi, time, longitude, latitude)''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg18_mmsi ON 'ais_s_{month}_msg_18' (mmsi)''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg18_time ON 'ais_s_{month}_msg_18' (time)''')
-        cur.execute(f''' CREATE UNIQUE INDEX idx_msg18_mmsi_time ON 'ais_s_{month}_msg_18' (mmsi, time) ''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg18_lon ON 'ais_s_{month}_msg_18' (longitude)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg18_lat ON 'ais_s_{month}_msg_18' (latitude)''')
+        #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time_lat_lon ON 'ais_s_{month}_msg_18' (mmsi, time, longitude, latitude)''')
+        #cur.execute(f''' CREATE UNIQUE INDEX idx_msg18_mmsi_time ON 'ais_s_{month}_msg_18' (mmsi, time) ''')
     elif dbtype == 'postgres':
         print('indexes not implemented yet for postgres')
         pass
@@ -163,6 +170,7 @@ def create_table_msg18(cur, month):
 def create_table_msg24(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_24 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 --unq_id_prefix character varying(11),
                 --lineno integer,
                 --errorflag boolean,
@@ -210,6 +218,7 @@ def create_table_msg24(cur, month):
 def create_table_msg27(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_27 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 unq_id_prefix character varying(11),
                 lineno integer,
                 errorflag boolean,
@@ -247,6 +256,7 @@ def create_table_msg27(cur, month):
 def create_table_msg_other(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_other (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 unq_id_prefix character varying(11),
                 lineno integer,
                 parseerror character varying(1),
