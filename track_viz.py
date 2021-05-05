@@ -15,6 +15,7 @@ import shapely.wkt
 from shapely.geometry import LineString, Polygon
 
 #from track_geom import *
+from gis import haversine
 
 
 # https://docs.qgis.org/3.16/en/docs/pyqgis_developer_cookbook/intro.html
@@ -248,7 +249,12 @@ class TrackViz(QMainWindow):
             self.canvas.setMapTool(self.toolcoord)
         else:
             self.canvas.unsetMapTool(self.toolcoord)
-            self.statusBar().clearMessage()
+            #self.statusBar().clearMessage()
+            ext = self.canvas.extent()
+            xfr = self.toolcoord.xform.transform
+            xy = xfr(ext.center())
+            scale = haversine(*xfr(ext.xMinimum(), ext.yMinimum()), *xfr(ext.xMaximum(), ext.yMaximum())) / 1000
+            self.toolcoord.statbar.showMessage(f'center: lat {xy[1]:.6f}  lon {xy[0]:.6f}    scale: {int(scale - (scale % 1))}km')
 
     
     def clear_coord(self):
@@ -423,7 +429,7 @@ class TrackViz(QMainWindow):
             ])
         vl.updateFields()
         features = []
-        for qgeom,ident in zip(qgeoms[1:], identifiers[1:]):
+        for qgeom,ident in zip(qgeoms, identifiers):
             ft = QgsFeature()
             ft.setGeometry(qgeom)
             ft.setFields(pr.fields())
