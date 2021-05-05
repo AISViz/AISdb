@@ -8,6 +8,7 @@ def trackgen(rows: np.ndarray) -> dict:
     '''
         each row contains columns from database: 
             mmsi time lon lat cog sog name type
+        rows must be sorted by first by mmsi, then time
 
         TODO: update code to work with a variable number of columns
 

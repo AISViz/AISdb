@@ -28,6 +28,9 @@ def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type
     '''
     print(track['mmsi'])
     chunksize=5000
+    filters = [
+            lambda track, rng: compute_knots(track, rng) < 50,
+        ]
     for rng in segment(track, maxdelta=timedelta(hours=2), minsize=3):
         mask = filtermask(track, rng, filters)
         if (n := sum(mask)) == 0: continue
@@ -41,8 +44,8 @@ def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type
                     for p in map(Point, zip(track['lon'][rng][mask][c:nc], track['lat'][rng][mask][c:nc])) )
             writecsv(
                     np.vstack((
-                        #*(np.array([track[col] for _ in range(n)])[c:nc] for col in staticcols),
-                        *(np.full(shape=n, fill_value=track[col])[c:nc] for col in staticcols),
+                        *(np.array([track[col] for _ in range(n)])[c:nc] for col in staticcols),
+                        #*(np.full(shape=n, fill_value=track[col])[c:nc] for col in staticcols),
                         *(track[col][rng][mask][c:nc] for col in keepcols),
                         np.append(compute_knots(track, rng), [0])[mask][c:nc],
                         list(zoneID),
@@ -55,7 +58,7 @@ def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type
                     csvfile + f'.{track["mmsi"]}', 
                     mode='a'
                 )
-    return
+    return True
 
 
 def geofence(rows, zones, csvfile):
@@ -67,10 +70,22 @@ def geofence(rows, zones, csvfile):
     """
     t1 = datetime.now()
     with open(csvfile, 'w') as f: f.write('mmsi,vessel_name,vessel_type,time,lon,lat,heading_reported,sog_reported,sog_computed,zone_ID,domain_ID,#bathymetry,shore_dist,hull_surface\n')
-    with Pool(processes=min(os.cpu_count(), 32)) as p: 
+
+    print('parallelizing...')
+
+    with Pool(processes=min(32, os.cpu_count()-2)) as p: 
         p.imap_unordered(partial(_geofence_proc, zones=zones, csvfile=csvfile), trackgen(rows), chunksize=1)
         p.close()
         p.join()
+
+    '''
+
+    for track in trackgen(rows):
+        _geofence_proc(track=track, zones=zones, filters=filters, csvfile=csvfile)
+        break
+
+    '''
+
     t2 = datetime.now()
     print(f'processed in {(t2-t1).seconds}s')
     assert os.name == 'posix', 'todo: os-agnostic concatenation'
