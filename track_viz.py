@@ -1,12 +1,18 @@
+'''
+https://docs.qgis.org/3.16/en/docs/pyqgis_developer_cookbook/intro.html
+https://www.opengis.ch/2018/06/22/threads-in-pyqgis3/
+https://gis.stackexchange.com/questions/245840/wait-for-canvas-to-finish-rendering-before-saving-image
+'''
+
 import os
-import sys
+#import sys
 from hashlib import sha256
 
 #from qgis.core import QgsApplication, QgsProject, QgsRasterLayer, QgsPrintLayout, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMapSettings, QgsPointXY, QgsGeometry, QgsWkbTypes, QgsTask, QgsVectorLayer, QgsField, QgsFeature, QgsMapRendererCustomPainterJob, QgsSymbol, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsLineSymbol
 from qgis.core import *
 from qgis.PyQt.QtCore import Qt, QSize, QVariant, QTimer
 from qgis.gui import QgsMapCanvas, QgsMapToolPan, QgsMapToolZoom, QgsRubberBand, QgsMapCanvasItem, QgsVertexMarker, QgsMapToolEmitPoint, QgsStatusBar, QgsMapCanvasItem
-from qgis.PyQt.QtGui import QColor, QGuiApplication, QImage, QPainter, QPainterPath
+from qgis.PyQt.QtGui import QColor, QGuiApplication, QImage, QPainter, QPainterPath, QCursor
 from qgis.PyQt.QtWidgets import QMainWindow, QWidget, QLabel, QFrame, QStatusBar, QVBoxLayout, QApplication, QAction
 
 import numpy as np
@@ -14,23 +20,16 @@ import shapely.ops
 import shapely.wkt
 from shapely.geometry import LineString, Polygon
 
-#from track_geom import *
 from gis import haversine
 
 
-# https://docs.qgis.org/3.16/en/docs/pyqgis_developer_cookbook/intro.html
-
-
 colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
-ring2qwkt = lambda ring: f'POLYGON({ring.wkt.split(" ", 1)[1]})'
+#ring2qwkt = lambda ring: f'POLYGON({ring.wkt.split(" ", 1)[1]})'
 #hexatriad = lambda hexa: (hexa, f'{hexa[0]}{hexa[-2:]}{hexa[1:-2]}', f'{hexa[0]}{hexa[3:]}{hexa[1:3]}',)
 
 
 class toolCoord(QgsMapToolEmitPoint):
-    ''' custom map interface tool for retrieving coordinates at the cursor position
-        reference: https://github.com/NationalSecurityAgency/qgis-latlontools-plugin/blob/master/copyLatLonTool.py
-    '''
-
+    ''' custom map interface tool for retrieving coordinates at the cursor position '''
     def __init__(self, canvas, statbar, project):
         self.canvas = canvas
         super().__init__(self.canvas)
@@ -54,57 +53,27 @@ class toolCoord(QgsMapToolEmitPoint):
         self.markers.append(m)
 
 
+class toolScaleCoord(toolCoord):
+
+    def canvasMoveEvent(self, event):
+        ext = self.canvas.extent()
+        xfr = self.xform.transform
+        xy = xfr(ext.center())
+        scale = haversine(*xfr(ext.xMinimum(), ext.yMinimum()), *xfr(ext.xMaximum(), ext.yMaximum())) / 1000
+        self.statbar.showMessage(f'center: lat {xy[1]:.6f}  lon {xy[0]:.6f}    scale: {int(scale - (scale % 1))}km')
+
+    def canvasReleaseEvent(self, event):
+        ext = self.canvas.extent()
+        xfr = self.xform.transform
+        xy = xfr(ext.center())
+        scale = haversine(*xfr(ext.xMinimum(), ext.yMinimum()), *xfr(ext.xMaximum(), ext.yMaximum())) / 1000
+        self.statbar.showMessage(f'center: lat {xy[1]:.6f}  lon {xy[0]:.6f}    scale: {int(scale - (scale % 1))}km')
+
+
 class customQgsMultiPoint(QgsRubberBand):
     def __init__(self, canvas):
         super().__init__(canvas, QgsWkbTypes.PointGeometry)
 
-'''
-https://www.opengis.ch/2018/06/22/threads-in-pyqgis3/
-class renderLineFeature(QgsTask):
-    def __init__(self, canvas, xform, geom, ident, color=None, opacity=None, nosplit=False):
-        super().__init__(str(ident), QgsTask.CanCancel)
-        if color is None: color = (colorhash(ident),)
-        #self.context = context
-        self.canvas = canvas
-        self.xform = xform
-        self.geom = geom
-        self.ident = ident
-        self.color = color
-        self.opacity = opacity
-        self.nosplit = nosplit
-        #self.feat = None
-        self.exception = None
-
-    def run(self):
-        #r = QgsRubberBand(self.canvas, True)
-        try:
-            pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*self.geom.boundary.coords.xy)]
-            self.qgeom = QgsGeometry.fromPolygonXY([pts])
-        except Exception as e:
-            self.exception = e
-            return False
-
-        return True
-
-    def finished(self, result):
-        if result:
-            feat = QgsRubberBand(self.canvas, True)
-            #self.canvas.update()
-            #r.show()
-            #r.updateCanvas()
-            #self.features.append(self.feat)
-            #return r if nosplit else [r]
-            feat.setFillColor(QColor(*self.color))
-            feat.setStrokeColor(QColor(0,0,0))
-            #r.setSecondaryStrokeColor(QColor(*color))
-            feat.setOpacity(self.opacity or 0.3)
-            feat.setWidth(2)
-            feat.setToGeometry(self.qgeom, None)
-        else:
-            raise self.exception
-        return 
-
-'''
 
 
 class TrackViz(QMainWindow):
@@ -201,6 +170,7 @@ class TrackViz(QMainWindow):
         # coord status
         self.statusBar().showMessage('')
         self.toolcoord = toolCoord(self.canvas, self.statusBar(), self.project)
+        self.toolscalecoord = toolScaleCoord(self.canvas, self.statusBar(), self.project)
         self.actionCoord = QAction('locate coordinates', self)
         self.actionCoord.setCheckable(True)
         self.actionCoord.triggered.connect(self.get_coord)
@@ -208,6 +178,8 @@ class TrackViz(QMainWindow):
         self.actionClearCoord = QAction('clear markers', self)
         self.actionClearCoord.triggered.connect(self.clear_coord)
         self.toolbar.addAction(self.actionClearCoord)
+        self.canvas.setMapTool(self.toolscalecoord)
+        self.centralWidget().setCursor(QCursor())
 
         # load basemap layer 
         url = 'crs=EPSG:3857&format&tilePixelRatio=2&type=xyz&url=http://ecn.t3.tiles.virtualearth.net/tiles/a%7Bq%7D.jpeg?g%3D1&zmax=18&zmin=0'
@@ -246,16 +218,12 @@ class TrackViz(QMainWindow):
 
     def get_coord(self):
         if self.actionCoord.isChecked():
+            self.canvas.unsetMapTool(self.toolscalecoord)
             self.canvas.setMapTool(self.toolcoord)
         else:
             self.canvas.unsetMapTool(self.toolcoord)
-            #self.statusBar().clearMessage()
-            ext = self.canvas.extent()
-            xfr = self.toolcoord.xform.transform
-            xy = xfr(ext.center())
-            scale = haversine(*xfr(ext.xMinimum(), ext.yMinimum()), *xfr(ext.xMaximum(), ext.yMaximum())) / 1000
-            self.toolcoord.statbar.showMessage(f'center: lat {xy[1]:.6f}  lon {xy[0]:.6f}    scale: {int(scale - (scale % 1))}km')
-
+            self.canvas.setMapTool(self.toolscalecoord)
+            self.centralWidget().setCursor(QCursor())
     
     def clear_coord(self):
         for m in self.toolcoord.markers: self.canvas.scene().removeItem(m)
@@ -455,7 +423,6 @@ class TrackViz(QMainWindow):
 
 
     def render_vectors(self, fname='test.png', w=1920, h=1080): 
-        # https://gis.stackexchange.com/questions/245840/wait-for-canvas-to-finish-rendering-before-saving-image
         '''
         w=1920
         h=1080

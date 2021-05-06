@@ -3,9 +3,9 @@ Tools and utilities for processing AIS data
 Requirements:
   * Python 3.8 (may require compile option --enable-loadable-sqlite-extensions)
   * NumPy
-  * Shapely
-  * pyais
   * qgis
+  * libais
+  * Shapely
 
 Optional for web data:
   * requests
@@ -13,7 +13,6 @@ Optional for web data:
   * firefox
 
 Scripts included for installing:
-  * spatialite
   * geckodriver
 
 

@@ -9,9 +9,6 @@ from database.lambdas import *
 from database.qryfcn import *
 from database.dbconn import dbconn
 
-if dbconn().dbtype == 'postgres': suffix = '\nORDER BY mmsi, time'
-else: suffix = ''
-
 
 class qrygen(UserDict):
     '''
@@ -31,7 +28,7 @@ class qrygen(UserDict):
                 assert 'radius' in self.keys(), 'undefined radius'
 
     def crawl(self, callback, qryfcn=msg123union18join5):
-        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + suffix
+        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months']))
 
     def csvpath(self,subfolder,folder=os.path.abspath(f'..{os.path.sep}scripts{os.path.sep}')):
         return f'{folder}{os.path.sep}{subfolder}{os.path.sep if subfolder[-1] != os.path.sep else ""}ais_{self.data["start"].strftime("%Y%m%d")}-{self.data["end"].strftime("%Y%m%d")}{"_"+str(self["radius"] // 1000)+"km" if "radius" in self.data.keys() else ""}.csv'

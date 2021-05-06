@@ -48,7 +48,7 @@ def decode_csv(fpath, conn, mstr=None):
         create_table_msg18(cur, mstr)
         create_table_msg24(cur, mstr)
         create_table_msg27(cur, mstr)
-        #create_table_msg_other(cur, mstr)
+        create_table_msg_other(cur, mstr)
 
 
     # insert messages 1,2,3
@@ -56,21 +56,19 @@ def decode_csv(fpath, conn, mstr=None):
         rows = np.array([decode(payload.split(',')[5], 0) for payload in payloads])
         m123 = np.array([0 < r['id'] < 4 for r in rows])
         tup123 = ((
-                    int(r['mmsi']), r['nav_status'], r['rot'], 
-                    r['sog'], r['x'], r['y'], r['cog'], r['true_heading'], 
-                    t.second, 
+                    r['id'], r['repeat_indicator'], int(r['mmsi']), r['nav_status'], r['rot'], 
+                    r['sog'], r['position_accuracy'], r['x'], r['y'], r['cog'], r['true_heading'], 
+                    t.second, r['special_manoeuvre'], r['raim'], r['sync_state'], 
                     #datetime(t.year, t.month, t.day, t.hour, t.minute, t.second),
                     t,
-                    #f'''POINT (({r['x']}, {r['y']}))''', 
+                    f'''POINT (({r['x']}, {r['y']}))''', 
                 ) for r,t in zip(rows[m123], stamps[m123])
             )
         cur.executemany(f'INSERT OR IGNORE INTO ais_s_{mstr}_msg_1_2_3 '
-                        '(mmsi, navigational_status, rot, '
-                        'sog, longitude, latitude, cog, heading, utc_second, '
-                        'time )'
-                        #'ais_geom '
-                        #'''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,GeomFromText(?, 4326))''', tup123)
-                        '''VALUES (?,?,?,?,?,?,?,?,?,?)''', tup123)
+                        '(message_id, repeat_indicator, mmsi, navigational_status, rot, '
+                        'sog, accuracy, longitude, latitude, cog, heading, utc_second, '
+                        'maneuver, raim_flag, communication_state, time, ais_geom) '
+                        '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,GeomFromText(?, 4326))''', tup123)
 
     # insert message 5
     elif 'ITU5' in fpath:
@@ -95,19 +93,21 @@ def decode_csv(fpath, conn, mstr=None):
         rows = np.array([decode(payload.split(',')[5], 0) for payload in payloads])
         m18 = np.array([r['id'] == 18 for r in rows])
         tup18 = ((
-                    r['mmsi'], r['sog'] , r['x'], 
-                    r['y'], r['cog'], r['true_heading'], r['timestamp'], 
+                    r['id'], r['repeat_indicator'], r['mmsi'], r['sog'] , r['position_accuracy'], r['x'], 
+                    r['y'], r['cog'], r['true_heading'], r['timestamp'], None, r['commstate_flag'], 
+                    r['display_flag'], r['dsc_flag'], r['band_flag'], r['m22_flag'], r['mode_flag'], r['raim'], 
+                    r['commstate_cs_fill'] if 'commstate_cs_fill' in r.keys() else None,
                     #datetime(t.year, t.month, t.day, t.hour, t.minute, t.second),
                     t, 
-                    #f'''POINT (({r['x']}, {r['y']}))''', 
+                    f'''POINT (({r['x']}, {r['y']}))''', 
                 ) for r,t in zip(rows[m18], stamps[m18])
             )
 
         cur.executemany(f'INSERT OR IGNORE INTO ais_s_{mstr}_msg_18 '
-                        '(mmsi, sog, longitude, '
-                        'latitude, cog, heading, utc_second, '
-                        'time) '
-                        'VALUES (?,?,?,?,?,?,?,?)', tup18)
+                        '(message_id, repeat_indicator, mmsi, sog, accuracy, longitude, '
+                        'latitude, cog, heading, utc_second, region, communication_flag, '
+                        'display, dsc, band, msg22, mode, raim_flag, communication_state, time, ais_geom) '
+                        'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,GeomFromText(?, 4326))', tup18)
 
     # insert message 24
     elif 'ITU24' in fpath:

@@ -9,42 +9,41 @@ dbtype = aisdb.dbtype
 def create_table_msg123(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_1_2_3 (
-                --id INTEGER PRIMARY KEY AUTOINCREMENT,
-                --unq_id_prefix character varying(11),
-                --lineno integer,
-                --errorflag boolean,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                unq_id_prefix character varying(11),
+                lineno integer,
+                errorflag boolean,
                 mmsi integer,
-                --message_id smallint,
-                --repeat_indicator "char",
+                message_id smallint,
+                repeat_indicator "char",
                 "time" timestamp without time zone,
                 millisecond smallint,
                 region smallint,
                 country smallint,
-                --base_station integer,
-                --online_data character varying(6),
-                --group_code character varying(4),
-                --sequence_id smallint,
-                --channel character varying(3),
-                --data_length character varying(20),
+                base_station integer,
+                online_data character varying(6),
+                group_code character varying(4),
+                sequence_id smallint,
+                channel character varying(3),
+                data_length character varying(20),
                 navigational_status smallint,
                 rot double precision,
                 sog real,
-                --accuracy boolean,
+                accuracy boolean,
                 longitude double precision,
                 latitude double precision,
                 cog real,
                 heading real,
                 maneuver "char",
-                --raim_flag boolean,
-                --communication_state integer,
+                raim_flag boolean,
+                communication_state integer,
                 utc_second smallint,
-                --spare character varying(4)
-                PRIMARY KEY (mmsi, time, longitude, latitude)
-            ) WITHOUT ROWID;
+                spare character varying(4)
+            );
         ''')
     if dbtype == 'sqlite3':
-        #cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_1_2_3', 'ais_geom', 4326, 'POINT', 'XY') ''')
-        #cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_1_2_3', 'ais_geom') ''')
+        cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_1_2_3', 'ais_geom', 4326, 'POINT', 'XY') ''')
+        cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_1_2_3', 'ais_geom') ''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg123_mmsi ON 'ais_s_{month}_msg_1_2_3' (mmsi)''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg123_time ON 'ais_s_{month}_msg_1_2_3' (time)''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg123_lon ON 'ais_s_{month}_msg_1_2_3' (latitude)''')
@@ -116,23 +115,23 @@ def create_table_msg5(cur, month):
 def create_table_msg18(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_18 (
-                --id INTEGER PRIMARY KEY AUTOINCREMENT,
-                --unq_id_prefix character varying(11),
-                --lineno integer,
-                --errorflag boolean,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                unq_id_prefix character varying(11),
+                lineno integer,
+                errorflag boolean,
                 mmsi integer,
-                --message_id smallint,
-                --repeat_indicator "char",
+                message_id smallint,
+                repeat_indicator "char",
                 "time" timestamp without time zone,
                 millisecond smallint,
                 region smallint,
                 country smallint,
-                --base_station integer,
-                --online_data character varying(6),
-                --group_code character varying(4),
-                --sequence_id smallint,
-                --channel character varying(3),
-                --data_length character varying(20),
+                base_station integer,
+                online_data character varying(6),
+                group_code character varying(4),
+                sequence_id smallint,
+                channel character varying(3),
+                data_length character varying(20),
                 sog real,
                 accuracy boolean,
                 longitude double precision,
@@ -140,23 +139,22 @@ def create_table_msg18(cur, month):
                 cog real,
                 heading real,
                 utc_second smallint,
-                --unit_flag boolean,
-                --display boolean,
-                --dsc boolean,
-                --band boolean,
-                --msg22 boolean,
-                --mode smallint,
-                --raim_flag boolean,
-                --communication_flag boolean,
-                --communication_state integer,
-                --spare character varying(4),
-                --spare2 character varying(4)
-                PRIMARY KEY (mmsi, time, longitude, latitude)
-            ) WITHOUT ROWID
+                unit_flag boolean,
+                display boolean,
+                dsc boolean,
+                band boolean,
+                msg22 boolean,
+                mode smallint,
+                raim_flag boolean,
+                communication_flag boolean,
+                communication_state integer,
+                spare character varying(4),
+                spare2 character varying(4)
+            )
         ''')
     if dbtype == 'sqlite3':
-        #cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_18', 'ais_geom', 4326, 'POINT', 'XY') ''')
-        #cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_18', 'ais_geom') ''')
+        cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_18', 'ais_geom', 4326, 'POINT', 'XY') ''')
+        cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_18', 'ais_geom') ''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg18_mmsi ON 'ais_s_{month}_msg_18' (mmsi)''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg18_time ON 'ais_s_{month}_msg_18' (time)''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg18_lon ON 'ais_s_{month}_msg_18' (longitude)''')
@@ -220,41 +218,60 @@ def create_table_msg24(cur, month):
 def create_table_msg27(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_27 (
-                --id INTEGER PRIMARY KEY AUTOINCREMENT,
-                --unq_id_prefix character varying(11),
-                --lineno integer,
-                --errorflag boolean,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                unq_id_prefix character varying(11),
+                lineno integer,
+                errorflag boolean,
                 mmsi integer,
-                --message_id smallint,
-                --repeat_indicator "char",
+                message_id smallint,
+                repeat_indicator "char",
                 "time" timestamp without time zone,
                 millisecond smallint,
                 region smallint,
                 country smallint,
-                --base_station integer,
-                --online_data character varying(6),
-                --group_code character varying(4),
-                --sequence_id smallint,
-                --channel character varying(3),
-                --data_length character varying(20),
+                base_station integer,
+                online_data character varying(6),
+                group_code character varying(4),
+                sequence_id smallint,
+                channel character varying(3),
+                data_length character varying(20),
                 navigational_status smallint,
                 sog real,
                 accuracy boolean,
                 longitude double precision,
                 latitude double precision,
-                cog real
-                --raim_flag boolean,
-                --gnss_status boolean,
-                --spare character varying(4)
+                cog real,
+                raim_flag boolean,
+                gnss_status boolean,
+                spare character varying(4)
             );
         ''')
-    #cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_27', 'ais_geom', 4326, 'POINT', 'XY') ''')
-    #cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_27', 'ais_geom') ''')
+    cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_27', 'ais_geom', 4326, 'POINT', 'XY') ''')
+    cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_27', 'ais_geom') ''')
     #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg27_mmsi_time_lat_lon ON 'ais_s_{month}_msg_27' (mmsi, time, longitude, latitude)''')
-    cur.execute(f''' CREATE INDEX idx_{month}_msg27_mmsi ON 'ais_s_{month}_msg_27' (mmsi) ''')
-    cur.execute(f''' CREATE INDEX idx_{month}_msg27_time ON 'ais_s_{month}_msg_27' (time) ''')
-    cur.execute(f''' CREATE INDEX idx_{month}_msg27_lon ON 'ais_s_{month}_msg_27' (longitude) ''')
-    cur.execute(f''' CREATE INDEX idx_{month}_msg27_lat ON 'ais_s_{month}_msg_27' (latitude)  ''')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg27_mmsi ON 'ais_s_{month}_msg_27' (mmsi)''')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg27_time ON 'ais_s_{month}_msg_27' (time)''')
+
+
+def create_table_msg_other(cur, month):
+    cur.execute(f'''
+            CREATE TABLE ais_s_{month}_msg_other (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                unq_id_prefix character varying(11),
+                lineno integer,
+                parseerror character varying(1),
+                mmsi integer,
+                datetime timestamp without time zone,
+                message_id smallint,
+                ais_msg_eecsv text
+            );
+        ''')
+    if dbtype == 'sqlite3':
+        cur.execute(f''' CREATE INDEX idx_{month}_msg_other_mmsi_time ON 'ais_s_{month}_msg_other' (mmsi, datetime) ''')
+    elif dbtype == 'postgres':
+        print('indexes not implemented yet for postgres')
+        pass
+    else: assert False
 
 
 def dropindex(cur, month):

@@ -80,11 +80,11 @@ class dbconn():
                 newdb = not os.path.isfile(dbpath)
                 self.conn = sqlite3.connect(dbpath, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
                 self.cur = self.conn.cursor()
-                self.conn.enable_load_extension(True)
-                self.cur.execute('SELECT load_extension("mod_spatialite.so")')
-                if newdb:
-                    self.cur.execute('SELECT InitSpatialMetaDataFull(1)')
-                    create_table_coarsetype(self.cur)
+                #self.conn.enable_load_extension(True)
+                #self.cur.execute('SELECT load_extension("mod_spatialite.so")')
+                #if newdb:
+                #    self.cur.execute('SELECT InitSpatialMetaDataFull(1)')
+                #    create_table_coarsetype(self.cur)
                 self.conn.commit()
                 self.cur.execute('PRAGMA page_size=8192')
                 self.cur.execute('PRAGMA journal_mode=WAL')
