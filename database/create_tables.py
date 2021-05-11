@@ -6,6 +6,70 @@ dbtype = aisdb.dbtype
 
 
 
+def sqlite_create_table_msg123(cur, month):
+    cur.execute(f'''
+            CREATE VIRTUAL TABLE rtree_{month}_msg_1_2_3 USING rtree(
+                id, 
+                --mmsi integer NOT NULL,
+                mmsi0, mmsi1,
+                --"time" timestamp without time zone NOT NULL,
+                t0, t1,
+                --longitude double precision,
+                x0, x1,
+                --latitude double precision,
+                y0, y1,
+                --+millisecond smallint,
+                +region smallint,
+                +country smallint,
+                +navigational_status smallint,
+                +rot double precision,
+                +sog real,
+                +cog real,
+                +heading real,
+                +maneuver "char",
+                +utc_second smallint 
+            );
+        ''')
+
+def sqlite_create_table_msg18(cur, month):
+    cur.execute(f'''
+            CREATE VIRTUAL TABLE rtree_{month}_msg_18 USING rtree(
+                id, 
+                --mmsi integer NOT NULL,
+                mmsi0, mmsi1,
+                --"time" timestamp without time zone NOT NULL,
+                t0, t1,
+                --longitude double precision,
+                x0, x1,
+                --latitude double precision,
+                y0, y1,
+                --+millisecond smallint,
+                +region smallint,
+                +country smallint,
+                +navigational_status smallint,
+                --+rot double precision,
+                +sog real,
+                +cog real,
+                +heading real,
+                --+maneuver "char",
+                +utc_second smallint 
+            );
+        ''')
+
+
+def sqlite_create_table_polygons(cur):
+    cur.execute(f'''
+            CREATE VIRTUAL TABLE rtree_polygons USING rtree(
+                id, 
+                minX, maxX, 
+                minY, maxY, 
+                +objname TEXT, 
+                +objtype TEXT,
+                +boundary BLOB
+        );
+    ''')
+
+
 def create_table_msg123(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_1_2_3 (
@@ -13,10 +77,10 @@ def create_table_msg123(cur, month):
                 --unq_id_prefix character varying(11),
                 --lineno integer,
                 --errorflag boolean,
-                mmsi integer,
+                mmsi integer NOT NULL,
                 --message_id smallint,
                 --repeat_indicator "char",
-                "time" timestamp without time zone,
+                "time" timestamp without time zone NOT NULL,
                 millisecond smallint,
                 region smallint,
                 country smallint,
@@ -37,31 +101,53 @@ def create_table_msg123(cur, month):
                 maneuver "char",
                 --raim_flag boolean,
                 --communication_state integer,
-                utc_second smallint,
+                utc_second smallint 
+                --,
                 --spare character varying(4)
-                PRIMARY KEY (mmsi, time, longitude, latitude)
-            ) WITHOUT ROWID;
+                --PRIMARY KEY (mmsi, time, longitude, latitude)
+                --PRIMARY KEY (mmsi, time)
+            )
+            --) WITHOUT ROWID;
         ''')
     if dbtype == 'sqlite3':
         #cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_1_2_3', 'ais_geom', 4326, 'POINT', 'XY') ''')
         #cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_1_2_3', 'ais_geom') ''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg123_mmsi ON 'ais_s_{month}_msg_1_2_3' (mmsi)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg123_time ON 'ais_s_{month}_msg_1_2_3' (time)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg123_lon ON 'ais_s_{month}_msg_1_2_3' (latitude)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg123_lat ON 'ais_s_{month}_msg_1_2_3' (longitude)''')
+
+        #cur.execute(f''' CREATE INDEX idx_{month}_msg123_mmsi ON 'ais_s_{month}_msg_1_2_3' (mmsi)''')
+        #cur.execute(f''' CREATE INDEX idx_{month}_msg123_time ON 'ais_s_{month}_msg_1_2_3' (time)''')
+        #cur.execute(f''' CREATE INDEX idx_{month}_msg123_lon ON 'ais_s_{month}_msg_1_2_3' (latitude)''')
+        #cur.execute(f''' CREATE INDEX idx_{month}_msg123_lat ON 'ais_s_{month}_msg_1_2_3' (longitude)''')
+
         #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time_lat_lon ON 'ais_s_{month}_msg_1_2_3' (mmsi, time, longitude, latitude)''')
         #cur.execute(f''' CREATE INDEX idx_{month}_msg123_lonlat ON 'ais_s_{month}_msg_1_2_3' (longitude, latitude)''')
         #cur.execute(f''' CREATE UNIQUE INDEX idx_msg123_mmsi_time ON 'ais_s_{month}_msg_1_2_3' (mmsi, time) ''')
+        pass
     elif dbtype == 'postgres':
         print('indexes not implemented yet for postgres')
         pass
     else: assert False
 
 
+def build_idx_msg123(cur, month):
+    dt = datetime.now()
+    cur.execute(f''' CREATE INDEX idx_{month}_msg123_mmsi_time ON 'ais_s_{month}_msg_1_2_3' (mmsi, time) ''')
+    print('added primary key')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg123_mmsi ON 'ais_s_{month}_msg_1_2_3' (mmsi) ''')
+    print('indexed mmsi')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg123_time ON 'ais_s_{month}_msg_1_2_3' (time) ''')
+    print('indexed time')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg123_lon ON 'ais_s_{month}_msg_1_2_3' (longitude) ''')
+    print('indexed lon')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg123_lat ON 'ais_s_{month}_msg_1_2_3' (latitude) ''')
+    print('indexed lat')
+    #cur.execute(f''' VACUUM ''')
+    print(f'elapsed: {(datetime.now() - dt).seconds}s')
+
+
 def create_table_msg5(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_5 (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                --id INTEGER PRIMARY KEY AUTOINCREMENT,
                 unq_id_prefix character varying(11),
                 lineno integer,
                 errorflag boolean,
@@ -120,10 +206,10 @@ def create_table_msg18(cur, month):
                 --unq_id_prefix character varying(11),
                 --lineno integer,
                 --errorflag boolean,
-                mmsi integer,
+                mmsi integer NOT NULL,
                 --message_id smallint,
                 --repeat_indicator "char",
-                "time" timestamp without time zone,
+                "time" timestamp without time zone NOT NULL,
                 millisecond smallint,
                 region smallint,
                 country smallint,
@@ -139,7 +225,8 @@ def create_table_msg18(cur, month):
                 latitude double precision,
                 cog real,
                 heading real,
-                utc_second smallint,
+                utc_second smallint
+                --,
                 --unit_flag boolean,
                 --display boolean,
                 --dsc boolean,
@@ -151,28 +238,63 @@ def create_table_msg18(cur, month):
                 --communication_state integer,
                 --spare character varying(4),
                 --spare2 character varying(4)
-                PRIMARY KEY (mmsi, time, longitude, latitude)
-            ) WITHOUT ROWID
+                --PRIMARY KEY (mmsi, time, longitude, latitude)
+                --PRIMARY KEY (mmsi, time)
+            )
+            --) WITHOUT ROWID
         ''')
     if dbtype == 'sqlite3':
         #cur.execute(f''' SELECT AddGeometryColumn('ais_s_{month}_msg_18', 'ais_geom', 4326, 'POINT', 'XY') ''')
         #cur.execute(f''' SELECT CreateSpatialIndex('ais_s_{month}_msg_18', 'ais_geom') ''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg18_mmsi ON 'ais_s_{month}_msg_18' (mmsi)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg18_time ON 'ais_s_{month}_msg_18' (time)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg18_lon ON 'ais_s_{month}_msg_18' (longitude)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg18_lat ON 'ais_s_{month}_msg_18' (latitude)''')
+
+        """
+        from datetime import datetime
+        datetime.now()
+        #cur.execute(f''' ALTER TABLE 'ais_s_{month}_msg_18' ADD CONSTRAINT idx_{month}_msg_18_mmsi_time PRIMARY KEY CLUSTERED (mmsi, time) ''')
+        #print('added primary key')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg18_mmsi ON 'ais_s_{month}_msg_18' (mmsi) ''')
+        print('indexed mmsi')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg18_time ON 'ais_s_{month}_msg_18' (time) ''')
+        print('indexed time')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg18_lon ON 'ais_s_{month}_msg_18' (longitude) ''')
+        print('indexed lon')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg18_lat ON 'ais_s_{month}_msg_18' (latitude) ''')
+        print('indexed lat')
+        cur.execute(f''' VACUUM 'ais_s_{month}_msg_18 '''')
+        datetime.now()
+        cur.execute(f''' VACUUM ''')
+        datetime.now()
+        """
+
         #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time_lat_lon ON 'ais_s_{month}_msg_18' (mmsi, time, longitude, latitude)''')
         #cur.execute(f''' CREATE UNIQUE INDEX idx_msg18_mmsi_time ON 'ais_s_{month}_msg_18' (mmsi, time) ''')
+        pass
     elif dbtype == 'postgres':
         print('indexes not implemented yet for postgres')
         pass
     else: assert False
 
 
+
+def build_idx_msg18(cur, month):
+    dt = datetime.now()
+    cur.execute(f''' CREATE INDEX idx_{month}_msg18_mmsi_time ON 'ais_s_{month}_msg_18' (mmsi, time) ''')
+    print('added primary key')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg18_mmsi ON 'ais_s_{month}_msg_18' (mmsi) ''')
+    print('indexed mmsi')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg18_time ON 'ais_s_{month}_msg_18' (time) ''')
+    print('indexed time')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg18_lon ON 'ais_s_{month}_msg_18' (longitude) ''')
+    print('indexed lon')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg18_lat ON 'ais_s_{month}_msg_18' (latitude) ''')
+    print('indexed lat')
+    #cur.execute(f''' VACUUM ''')
+    print(f'elapsed: {(datetime.now() - dt).seconds}s')
+
 def create_table_msg24(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_s_{month}_msg_24 (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                --id INTEGER PRIMARY KEY AUTOINCREMENT,
                 --unq_id_prefix character varying(11),
                 --lineno integer,
                 --errorflag boolean,

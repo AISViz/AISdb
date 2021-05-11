@@ -82,11 +82,14 @@ class dbconn():
                 self.cur = self.conn.cursor()
                 #self.conn.enable_load_extension(True)
                 #self.cur.execute('SELECT load_extension("mod_spatialite.so")')
-                #if newdb:
+                if newdb:
+                    create_table_coarsetype(self.cur)
                 #    self.cur.execute('SELECT InitSpatialMetaDataFull(1)')
-                #    create_table_coarsetype(self.cur)
                 self.conn.commit()
-                self.cur.execute('PRAGMA page_size=8192')
+                #self.cur.execute('PRAGMA page_size=8192')
+                #self.cur.execute('PRAGMA temp_store=2')
+                #self.cur.execute('PRAGMA cache_size=10000')
+                #self.cur.execute('PRAGMA synchronous=0')
                 self.cur.execute('PRAGMA journal_mode=WAL')
                 assert (j := self.cur.fetchall()) == [('wal',)], f'journal mode: {j}'
 

@@ -19,9 +19,21 @@ def is_valid_date(year, month, day, hour=0, minute=0, second=0):
     return (1 <= month <= 12 and 1 <= day <= day_count_for_month[month] 
             and 0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 59)
 
+def dt_2_epoch(dt_arr, t0=datetime(2000,1,1,0,0,0)):
+    delta = lambda dt: (dt - t0).total_seconds()
+    if isinstance(dt_arr, (list, np.ndarray)): return list(map(int, map(delta, dt_arr)))
+    elif isinstance(dt_arr, (datetime)): return int(delta(dt_arr))
+    else: raise ValueError('input must be datetime or array of datetimes')
+
+def epoch_2_dt(ep_arr, t0=datetime(2000,1,1,0,0,0), unit='seconds'):
+    delta = lambda ep, unit: t0 + timedelta(**{f'{unit}' : ep})
+    if isinstance(ep_arr, (list, np.ndarray)): return list(map(partial(delta, unit=unit), ep_arr))
+    elif isinstance(ep_arr, (float, int)): return delta(ep_arr, unit=unit)
+    else: raise ValueError('input must be integer or array of integers')
+
 
 def decode_csv(fpath, conn, mstr=None):
-    if not 'ITU123' in fpath and not 'ITU5' in fpath and not 'ITU18' in fpath and not 'ITU24' in fpath: 
+    if not 'ITU123' in fpath and not 'ITU5' in fpath and not 'ITU18' in fpath and not 'ITU24' in fpath:
         print(f'skipped {fpath}')
         return
     cur = conn.cursor()
@@ -38,14 +50,17 @@ def decode_csv(fpath, conn, mstr=None):
     #list(map(chr, [char if char-48 <= 40 else char-8 for char in map(ord, fill)]))
 
     stamps = np.array([datetime.strptime(msg['Date time stamp'], r'%Y-%m-%d %H:%M:%S UTC') for msg in msgs], dtype=datetime)
+    epochs = np.array(dt_2_epoch(stamps))
     np.array([msg['Date time stamp'] for msg in msgs]) != ''
     mstr = str(f'{stamps[0].year:04d}{stamps[0].month:02d}')
 
-    cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_s_{mstr}_msg_1_2_3" ')
+    cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_1_2_3" ')
     if not cur.fetchall():
-        create_table_msg123(cur, mstr)
+        #create_table_msg123(cur, mstr)
+        sqlite_create_table_msg123(cur, mstr)
         create_table_msg5(cur, mstr)
-        create_table_msg18(cur, mstr)
+        #create_table_msg18(cur, mstr)
+        sqlite_create_table_msg18(cur, mstr)
         create_table_msg24(cur, mstr)
         create_table_msg27(cur, mstr)
         #create_table_msg_other(cur, mstr)
@@ -55,6 +70,7 @@ def decode_csv(fpath, conn, mstr=None):
     if 'ITU123' in fpath:
         rows = np.array([decode(payload.split(',')[5], 0) for payload in payloads])
         m123 = np.array([0 < r['id'] < 4 for r in rows])
+        """
         tup123 = ((
                     int(r['mmsi']), r['nav_status'], r['rot'], 
                     r['sog'], r['x'], r['y'], r['cog'], r['true_heading'], 
@@ -62,15 +78,28 @@ def decode_csv(fpath, conn, mstr=None):
                     #datetime(t.year, t.month, t.day, t.hour, t.minute, t.second),
                     t,
                     #f'''POINT (({r['x']}, {r['y']}))''', 
-                ) for r,t in zip(rows[m123], stamps[m123])
+                ) for r,t in zip(rows[m123], epochs[m123])
             )
         cur.executemany(f'INSERT OR IGNORE INTO ais_s_{mstr}_msg_1_2_3 '
                         '(mmsi, navigational_status, rot, '
                         'sog, longitude, latitude, cog, heading, utc_second, '
-                        'time )'
+                        'time) '
                         #'ais_geom '
                         #'''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,GeomFromText(?, 4326))''', tup123)
                         '''VALUES (?,?,?,?,?,?,?,?,?,?)''', tup123)
+        """
+
+        tup123 = ((
+            float(r['mmsi']), float(r['mmsi']), t, t, r['x'], r['x'], r['y'], r['y'], 
+            r['nav_status'], r['rot'], r['sog'], r['cog'], r['true_heading'], 
+            r['special_manoeuvre'], r['timestamp']
+            )   for r,t in zip(rows[m123], epochs[m123].astype(float))
+        )
+        cur.executemany(f'INSERT OR IGNORE INTO rtree_{mstr}_msg_1_2_3 '
+                        '(mmsi0, mmsi1, t0, t1, x0, x1, y0, y1, '
+                        'navigational_status, rot, sog, cog, '
+                        'heading, maneuver, utc_second) '
+                        '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', tup123)
 
     # insert message 5
     elif 'ITU5' in fpath:
@@ -94,6 +123,7 @@ def decode_csv(fpath, conn, mstr=None):
     elif 'ITU18' in fpath:
         rows = np.array([decode(payload.split(',')[5], 0) for payload in payloads])
         m18 = np.array([r['id'] == 18 for r in rows])
+        """ 
         tup18 = ((
                     r['mmsi'], r['sog'] , r['x'], 
                     r['y'], r['cog'], r['true_heading'], r['timestamp'], 
@@ -108,6 +138,18 @@ def decode_csv(fpath, conn, mstr=None):
                         'latitude, cog, heading, utc_second, '
                         'time) '
                         'VALUES (?,?,?,?,?,?,?,?)', tup18)
+        """
+        tup18 = ((
+            float(r['mmsi']), float(r['mmsi']), t, t, r['x'], r['x'], r['y'], r['y'], 
+            r['nav_status'] if 'nav_status' in r.keys() else None, 
+            r['sog'], r['cog'], r['true_heading'], r['timestamp'],
+            )   for r,t in zip(rows[m18], epochs[m18].astype(float))
+        )
+        cur.executemany(f'INSERT OR IGNORE INTO rtree_{mstr}_msg_18'
+                        '(mmsi0, mmsi1, t0, t1, x0, x1, y0, y1, '
+                        'navigational_status, sog, cog, '
+                        'heading, utc_second) '
+                        '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)''', tup18)
 
     # insert message 24
     elif 'ITU24' in fpath:

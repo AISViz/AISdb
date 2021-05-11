@@ -20,7 +20,8 @@ def compute_knots(track, rng):#, mask=[True for _ in rng]):
     diff fcn: np.abs(((track['sog'][rng][mask][:-1] + track['sog'][rng][end][1:]) / 2) - knots)
     """
     meters = np.array(list(map(haversine, track['lon'][rng][:-1], track['lat'][rng][:-1], track['lon'][rng][1:], track['lat'][rng][1:])))
-    seconds = np.array(list(map(timedelta.total_seconds, (track['time'][rng][1:] - track['time'][rng][:-1]))))
+    #seconds = np.array(list(map(timedelta.total_seconds, (track['time'][rng][1:] - track['time'][rng][:-1]))))
+    seconds = np.array(list((track['time'][rng][1:] - track['time'][rng][:-1])))
     return meters / seconds * 1.9438445
 
 

@@ -28,15 +28,18 @@ def interp_time(tracks, start, stop, step=timedelta(minutes=10), maxdelta=timede
             cur.scroll(0, mode='absolute')
             rows = cur.fetchall()
     '''
-    timestamp  = np.arange(start, stop+step, step).astype(datetime)
-    intervals  = np.array(list(map(int, map(datetime.timestamp, timestamp))))
+    #timestamp  = np.arange(start, stop+step, step).astype(datetime)
+    timestamp  = np.arange(dt_2_epoch(start), dt_2_epoch(stop+step), step.total_seconds())
+    #intervals  = np.array(list(map(int, map(datetime.timestamp, timestamp))))
+    intervals  = np.array(list(map(int, timestamp)))
     interpfcn  = lambda track, segments, intervals=intervals: {
             **{ k   :  track[k] for k in ('mmsi','name','type') },
             'time'  :   timestamp,
             'seg'   :   [ { n :   
                     np.interp(
                             x=intervals,
-                            xp=list(map(datetime.timestamp, track['time'][rng])),
+                            #xp=list(map(datetime.timestamp, track['time'][rng])),
+                            xp=track['time'][rng],
                             fp=track[n][rng],
                             left=np.nan,
                             right=np.nan,
