@@ -24,9 +24,8 @@ SELECT m18.mmsi, m18.time, m18.longitude, m18.latitude, m18.cog, m18.sog, m5.ves
   ) AS m5 ON m18.mmsi = m5.mmsi
   LEFT JOIN coarsetype_ref AS ref ON (m5.ship_type = ref.coarse_type)
   WHERE {callback(month=month, alias='m18', **kwargs)}
---  GROUP BY m18.mmsi, m18.time, m18.longitude, m18.latitude, m18.cog, m18.sog, m5.vessel_name, ref.coarse_type_txt
-ORDER BY 1, 2
-  ''')
+  --GROUP BY m18.mmsi, m18.time, m18.longitude, m18.latitude, m18.cog, m18.sog, m5.vessel_name, ref.coarse_type_txt
+--ORDER BY 1, 2 ''')
 
 
 rtree_nogeom = lambda month, callback, kwargs, bounds=dict(xmin=-180, ymin=-90, xmax=180, ymax=90): (f'''

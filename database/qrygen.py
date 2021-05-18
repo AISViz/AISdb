@@ -28,7 +28,8 @@ class qrygen(UserDict):
                 assert 'radius' in self.keys(), 'undefined radius'
 
     def crawl(self, callback, qryfcn=msg123union18join5):
-        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months']))
+        #if os.environ['POSTGRESDB']: suffix = 
+        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\n ORDER BY 1,2'
 
     def csvpath(self,subfolder,folder=os.path.abspath(f'..{os.path.sep}scripts{os.path.sep}')):
         return f'{folder}{os.path.sep}{subfolder}{os.path.sep if subfolder[-1] != os.path.sep else ""}ais_{self.data["start"].strftime("%Y%m%d")}-{self.data["end"].strftime("%Y%m%d")}{"_"+str(self["radius"] // 1000)+"km" if "radius" in self.data.keys() else ""}.csv'
