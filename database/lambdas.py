@@ -34,6 +34,8 @@ in_time_mmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {valid_mmsi(**kwa
 #in_poly_time_mmsi = lambda **kwargs: f'{in_poly(**kwargs)} AND {in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'
 in_time_poly_mmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_poly(**kwargs)} AND {valid_mmsi(**kwargs)}'
 
+in_time_poly = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_poly(**kwargs)}'
+
 from database.decoder import dt_2_epoch
 
 
