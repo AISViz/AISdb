@@ -61,7 +61,7 @@ SELECT CAST(m18.mmsi0 AS INT), m18.t0, m18.x0, m18.y0, m18.cog, m18.sog, m5.vess
   ON CAST(m18.mmsi0 AS INT) = m5.mmsi
   LEFT JOIN coarsetype_ref AS ref ON (m5.ship_type = ref.coarse_type)
   WHERE {callback(month=month, alias='m18', **kwargs)}
-ORDER BY 1, 2
+--ORDER BY 1, 2
   ''')
 
 
