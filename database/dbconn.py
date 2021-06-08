@@ -45,11 +45,10 @@ def create_table_coarsetype(cur):
     )
 
 class dbconn():
-    def __init__(self, dbpath=None, postgres=False, prefix='ais_'):
+    def __init__(self, dbpath=None, postgres=False):
         if postgres or os.environ.get('POSTGRESDB'):
             import psycopg2 
             import psycopg2.extras
-            self.prefix = 'ais_s_'
             if __name__ == '__main__':
                 psycopg2.extensions.set_wait_callback(psycopg2.extras.wait_select)  # enable interrupt
             conn = psycopg2.connect(dbname='ee_ais', user=os.environ.get('PGUSER'), port=os.environ.get('PGPORT'), password=os.environ.get('PGPASS'), host='localhost')
@@ -66,7 +65,6 @@ class dbconn():
 
         else:
             import sqlite3
-            self.prefix = prefix
             self.lambdas = dict(
                 #in_poly = lambda poly,alias='m123',**_: f'Contains(\n    GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
                 in_poly = lambda poly,alias='m123',**_: f'ST_Contains(\n    ST_GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
@@ -93,4 +91,3 @@ class dbconn():
                 self.cur.execute('PRAGMA journal_mode=WAL')
                 assert (j := self.cur.fetchall()) == [('wal',)], f'journal mode: {j}'
 
-#prefix = dbconn().prefix
