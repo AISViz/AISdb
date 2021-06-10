@@ -45,7 +45,7 @@ def create_table_coarsetype(cur):
     )
 
 class dbconn():
-    def __init__(self, dbpath=None, postgres=False):
+    def __init__(self, dbpath=None, postgres=False, timeout=5):
         if postgres or os.environ.get('POSTGRESDB'):
             import psycopg2 
             import psycopg2.extras
@@ -76,7 +76,7 @@ class dbconn():
 
             if dbpath is not None:
                 newdb = not os.path.isfile(dbpath)
-                self.conn = sqlite3.connect(dbpath, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+                self.conn = sqlite3.connect(dbpath, timeout=timeout, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
                 self.cur = self.conn.cursor()
                 #self.conn.enable_load_extension(True)
                 #self.cur.execute('SELECT load_extension("mod_spatialite.so")')

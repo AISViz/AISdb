@@ -1,6 +1,7 @@
 import os
 from collections import UserDict
 from functools import partial
+from datetime import datetime
 
 from shapely.geometry import Polygon
 
@@ -64,7 +65,11 @@ class qrygen(UserDict):
             self['x'] = self['xy'][::2]; self['y'] = self['xy'][1::2]
 
         if sum(map(lambda t: t in kwargs.keys(), ('start', 'end',))) == 2: 
-            self.data.update({'months':dt2monthstr(**kwargs)})
+            if isinstance(kwargs['start'], datetime):
+                self.data.update({'months':dt2monthstr(**kwargs)})
+            elif isinstance(kwargs['start'], (float, int)):
+                self.data.update({'months':epoch2monthstr(**kwargs)})
+
 
         if 'x' in self.data.keys() and 'y' in self.data.keys():
 

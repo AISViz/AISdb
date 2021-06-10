@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from database.dbconn import dbconn
+from database import epoch_2_dt
 
 for key, val in dbconn().lambdas.items(): setattr(__main__, key, val)
 
@@ -14,6 +15,7 @@ in_bbox = __main__.in_bbox
 
 
 dt2monthstr = lambda start, end, **_: np.unique([t.strftime('%Y%m') for t in np.arange(start, end, timedelta(days=1)).astype(datetime) ]).astype(str)
+epoch2monthstr = lambda start, end, **_: dt2monthstr(epoch_2_dt(start), epoch_2_dt(end))
 
 zipcoords   = lambda x,y,**_: ', '.join(map(lambda xi,yi: f'{xi} {yi}', x,y))
 
@@ -57,4 +59,5 @@ rtree_in_bbox = lambda alias, **kwargs:(f'''
     {alias}.y1 <= {kwargs['ymax']} ''')
 
 rtree_in_time_bbox_mmsi = lambda **kwargs: f''' {rtree_in_timerange(**kwargs)} AND {rtree_in_bbox(**kwargs)} AND {rtree_valid_mmsi(**kwargs)} '''
+rtree_in_bbox_time_mmsi = lambda **kwargs: f''' {rtree_in_bbox(**kwargs)} AND {rtree_in_timerange(**kwargs)} AND {rtree_valid_mmsi(**kwargs)} '''
 

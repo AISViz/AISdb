@@ -37,7 +37,7 @@ ORDER BY 1, 2
   ''')
 
 
-rtree_minified = lambda month, callback, kwargs, bounds=dict(xmin=-180, ymin=-90, xmax=180, ymax=90): (f'''
+rtree_minified = lambda month, callback, kwargs: (f'''
 SELECT CAST(m123.mmsi0 AS INT), m123.t0, m123.x0, m123.y0, m123.cog, m123.sog, m5.vessel_name, ref.coarse_type_txt
   FROM rtree_{month}_msg_1_2_3 AS m123
   LEFT JOIN (

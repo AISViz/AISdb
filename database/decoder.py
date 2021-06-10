@@ -1,8 +1,11 @@
 import os
-from datetime import datetime, timedelta
 import re
+from datetime import datetime, timedelta
 from packaging import version
 import logging
+from multiprocessing import Pool, Lock
+from functools import partial
+
 
 import numpy as np
 import pyais
@@ -11,9 +14,8 @@ assert version.parse(pyais.__version__) >= version.parse('1.6.1')
 
 from database.create_tables import *
 
-
-
-datestr = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}')
+global lock
+lock = None
 
 
 from multiprocessing import Pool, Lock
@@ -32,6 +34,9 @@ def binarysearch(arr, search):
         else:
             low = mid +1
     return mid
+
+
+dt = lambda t: dict(year=t.year, month=t.month, day=t.day, hour=t.hour, minute=t.minute, second=t.second)
 
 
 def is_valid_date(year, month, day, hour=0, minute=0, second=0, **_):
@@ -62,6 +67,7 @@ def epoch_2_dt(ep_arr, t0=datetime(2000,1,1,0,0,0), unit='seconds'):
     elif isinstance(ep_arr, (float, int)): return delta(ep_arr, unit=unit)
     else: raise ValueError('input must be integer or array of integers')
 
+    
 
 def insert_msg123(cur, mstr, msg123):
     cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_1_2_3" ')
@@ -69,7 +75,7 @@ def insert_msg123(cur, mstr, msg123):
         sqlite_create_table_msg123(cur, mstr)
     
     rows, stamps = msg123.T
-    epochs = dt_2_epoch(stamps)
+    epochs = dt_2_epoch(stamps).astype(float)
     tup123 = ((
         float(r['mmsi']), float(r['mmsi']), e, e, r['lon'], r['lon'], r['lat'], r['lat'], 
         r['status'].value, r['turn'], r['speed'], r['course'], r['heading'], 
@@ -90,7 +96,7 @@ def insert_msg5(cur, mstr, msg5):
         create_table_msg5(cur, mstr)
 
     rows, stamps = msg5.T
-    epochs = dt_2_epoch(stamps)
+    epochs = dt_2_epoch(stamps).astype(float)
     tup5 = ((
                 r['type'], r['repeat'], int(r['mmsi']), r['ais_version'], r['imo'], r['callsign'], 
                 r['shipname'].rstrip(), r['shiptype'], r['to_bow'], r['to_stern'], r['to_port'], 
@@ -113,9 +119,9 @@ def insert_msg18(cur, mstr, msg18):
         sqlite_create_table_msg18(cur, mstr)
 
     rows, stamps = msg18.T
-    epochs = dt_2_epoch(stamps)
+    epochs = dt_2_epoch(stamps).astype(float)
     tup18 = ((
-        float(r['mmsi']), float(r['mmsi']), e, e, r['lon'], r['lon'], r['lat'], r['lat'], 
+        int(r['mmsi']), int(r['mmsi']), e, e, r['lon'], r['lon'], r['lat'], r['lat'], 
         r['radio'], #if 'nav_status' in r.keys() else None,
         r['speed'], r['course'], r['heading'], r['second'],
         )   for r,e in zip(rows, epochs)
@@ -134,7 +140,7 @@ def insert_msg24(cur, mstr, msg24):
         create_table_msg24(cur, mstr)
 
     rows, stamps = msg24.T
-    epochs = dt_2_epoch(stamps)
+    epochs = dt_2_epoch(stamps).astype(float)
     tup24 = ((
             r['type'], r['repeat'], int(r['mmsi']), r['partno'], 
             r['shipname']           if r['partno'] == 0 else None,
@@ -158,7 +164,8 @@ def insert_msg24(cur, mstr, msg24):
     return
 
 
-def decode_chunk(conn, msgs, regexdate, fpathdate, mstr):
+    '''
+def decode_chunk(conn, msgs, stamps):
     # convert 2-digit year values to 4-digit
     for msg in msgs:
         if 'year' in msg.keys() and msg['year'] + 2000 == fpathdate.year: 
@@ -193,102 +200,101 @@ def decode_chunk(conn, msgs, regexdate, fpathdate, mstr):
 
 
     # filter messages according to type, get time of nearest base station report, 
-    batch = {f'msg{i}' : np.ndarray(shape=(0,2)) for i in (1, 2, 3, 5, 11, 18, 19, 24, 27)}
-    for msg, idx in zip(msgs, np.array(range(len(msgs)))):
-        # filter irrelevant messages
-        nearest = msgs[msg4idx[binarysearch(msg4idx, idx)]]
-        if not 'type' in msg.keys() or msg['type'] not in (1, 2, 3, 5, 11, 18, 19, 24, 27): 
-            continue
-        elif msg['type'] in (5, 24,): 
-            basetime = datetime(nearest['year'], nearest['month'], nearest['day'], nearest['hour'], nearest['minute'], nearest['second'])
-        elif ('second' in msg.keys() and msg['second'] >= 60 
-             or ('lon' in msg.keys() and not -180 <= msg['lon'] <= 180)
-             or ('lat' in msg.keys() and not -90 <= msg['lat'] <= 90)
-                ):
-            logging.debug(f'discarded msg: {msg}')
-            continue
-        else:
-            basetime = datetime(nearest['year'], nearest['month'], nearest['day'], nearest['hour'], nearest['minute'], msg['second'])
-        batch[f'msg{msg["type"]}'] = np.vstack((batch[f'msg{msg["type"]}'], [msg, basetime]))
+    #batch = {f'msg{i}' : np.ndarray(shape=(0,2)) for i in (1, 2, 3, 5, 11, 18, 19, 24, 27)}
+    batch = {f'msg{i}' : [] for i in (1, 2, 3, 5, 11, 18, 19, 24, 27)}
+    for msg, stamp in zip(msgs, stamps):
+        #batch[f'msg{msg["type"]}'] = np.vstack((batch[f'msg{msg["type"]}'], [msg, basetime]))
+        batch[f'msg{msg["type"]}'].append([msg, basetime])
 
-    #batch['msg5'].shape
-    cur = conn.cursor()
-    msg123 = np.vstack((batch['msg1'], batch['msg2'], batch['msg3']))
-    insert_msg123(cur, mstr, msg123)
-    insert_msg5(cur, mstr, batch['msg5'])
-    insert_msg18(cur, mstr, batch['msg18'])
-    insert_msg24(cur, mstr, batch['msg24'])
+    '''
+
+
+def batch_insert(dbpath, batch, mstr):
+
+    #if lock is not None: lock.acquire()
+    aisdb = dbconn(dbpath=dbpath, timeout=30)
+    conn, cur = aisdb.conn, aisdb.cur
+    if batch['msg1']  != []: insert_msg123(cur, mstr, np.array(batch['msg1']))
+    if batch['msg2']  != []: insert_msg123(cur, mstr, np.array(batch['msg2']))
+    if batch['msg3']  != []: insert_msg123(cur, mstr, np.array(batch['msg3']))
+    if batch['msg5']  != []: insert_msg5(  cur, mstr, np.array(batch['msg5']))
+    if batch['msg18'] != []: insert_msg18( cur, mstr, np.array(batch['msg18']))
+    if batch['msg24'] != []: insert_msg24( cur, mstr, np.array(batch['msg24']))
     conn.commit()
+    conn.close()
+    #if lock is not None: lock.release()
 
 
-def decode_raw_pyais(fpath, conn, tmpdir='output'):
+def decode_raw_pyais(fpath, dbpath):
     logging.info(fpath)
 
-    regexdate = datestr.search(fpath)
-    fpathdate = datetime(*list(map(int, fpath[regexdate.start():regexdate.end()].split('-'))))
-    mstr      = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
+    splitmsg    = lambda rawmsg: rawmsg.split('\\')
+    parsetime   = lambda comment: datetime.fromtimestamp(int(comment.split('c:')[1].split(',')[0].split('*')[0]))
 
-    # load msgs from file
-    '''
-    msgs = []
-    for rawmsg in FileReaderStream(fpath):
-        msg = rawmsg.decode().content
-        msgs.append(msg)
-    msgs = np.array(msgs)
-    '''
-    assert os.path.isdir(tmpdir)
+    datestr     = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}')
+    regexdate   = datestr.search(fpath)
+    mstr        = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
+    t0          = datetime.now()
 
-    # copy raw data to tmpfile with extra data removed
-    tmpfile = f'{os.path.abspath(tmpdir)}{os.path.sep}{os.getpid()}.nm4' 
-    with open(fpath, 'rb') as f, open(tmpfile, 'wb') as o:
-        splitmsg = lambda rawmsg: rawmsg.split(b'\\')[-1].rstrip(b'\r\n') + b'\n'
-        rawmsgs = np.array(f.readlines())
-        o.writelines(map(splitmsg, rawmsgs))
+    n       = 0
+    skipped = 0
+    failed  = 0
+    batch = {f'msg{i}' : [] for i in (1, 2, 3, 5, 11, 18, 19, 24, 27)}
+    with open(fpath, 'r') as f:
+        for rawmsg in f:
+            line = splitmsg(rawmsg)
 
-    # stream NMEA messages from tmpfile and decode them in chunks of 100k per transaction
-    n = 0
-    N = len(rawmsgs) 
-    msgs = []
-    for msg in FileReaderStream(tmpfile):
-        msgs.append(msg.decode().content)
-        if len(msgs) > 100000:
+            # check if receiver recorded timestamp. if not, skip the message
+            if len(line) > 1:
+                stamp, payload = line[1], line[2]
+            else:
+                skipped +=1
+                continue
+
+            # attempt to decode the message
             try:
-                decode_chunk(conn, np.array(msgs), regexdate, fpathdate, mstr)
+                msg = pyais.decode_msg(payload)
             except Exception as e:
-                errlog = f'{os.path.abspath(tmpdir)}{os.path.sep}error.log'
-                print(f'error, dumping input to {errlog}\n\n{e}\n')
-                with open(errlog, 'w') as f:
-                    f.writelines([str(msg) for msg in msgs])
-                if input('continue? [Y/n]')[0].lower() == 'n': break
-            n += len(msgs)
-            print(f'\r{n / N * 100:.2f}%', end='')
-            msgs = []
-    print()
+                failed += 1
+                continue
 
-    os.remove(tmpfile)
+            # discard unused message types, check that data looks OK
+            if not 'type' in msg.keys() or msg['type'] not in (1, 2, 3, 5, 11, 18, 19, 24, 27): 
+                if not 'type' in msg.keys(): print(msg)
+                continue
+            elif (  ('lon' in msg.keys() and not -180 <= msg['lon'] <= 180)
+                 or ('lat' in msg.keys() and not -90 <= msg['lat'] <= 90)
+                    ):
+                skipped += 1
+                logging.debug(f'discarded msg: {msg}')
+                continue
+            elif 'radio' in msg.keys() and msg['radio'] > 9223372036854775807:
+                skipped += 1
+                logging.debug(f'discarded msg: {msg}')
+                continue
 
-    '''
-    # decode messages or print an error
-    failed = 0
-    msgs = np.array([])
-    #msgs = []
-    curtime = fpathdate
-    #rawmsg = rawmsgs[5]
-    for rawmsg in rawmsgs:
-        msg = rawmsg.split(b'\\')[-1].rstrip(b'\r\n')
-        try:
-            msgdecode = pyais.decode_msg(msg)
-        except Exception as e:
-            #print(f'{e}')
-            #logging.debug(f'{e}')
-            failed += 1
-            continue
-        msgs = np.append(msgs, [msgdecode])
-        #msgs.append(msgdecode)
-        if len(msgs) > 100000:
-            msgs = np.array([])
-    #msgs = np.array(msgs)
-    logging.info(f'could not decode {failed} messages')
-    '''
+            # if all ok, log the message and timestamp
+            n += 1
+            batch[f'msg{msg["type"]}'].append([msg, parsetime(stamp)])
+
+            #if len(msgs) >= 100000:
+            if n % 200000 == 0: 
+                print(f'\r{fpath.split(os.path.sep)[-1]}\tprocessing message {n}', end='')
+                batch_insert(dbpath, batch, mstr)
+                batch = {f'msg{i}' : [] for i in (1, 2, 3, 5, 11, 18, 19, 24, 27)}
+
+        batch_insert(dbpath, batch, mstr)
+        print(f'\r{fpath.split(os.path.sep)[-1]}\tprocessed {n} messages in {(datetime.now() - t0).total_seconds():.0f}s.\tskipped: {skipped}\tfailed: {failed}')
+
+
+'''
+def parallel_decode(fpaths, dbpath):
+
+    lock = Lock()
+    proc = partial(decode_raw_pyais, dbpath=dbpath)
+
+    with Pool(processes=3) as p:
+        p.map(proc, fpaths)
+'''
 
 
