@@ -38,3 +38,21 @@ def zones_from_txts(dirpath='../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', d
     zones['hull_xy'] = merge(zones['hull'].boundary.coords.xy)
     return zones
 
+
+def dms2dd(d, m, s, ax):
+    ''' convert degrees, minutes, seconds to decimal degrees '''
+    dd = float(d) + float(m)/60 + float(s)/(60*60);
+    if (ax == 'W' or ax == 'S') and dd > 0: dd *= -1
+    return dd
+
+
+def strdms2dd(strdms):
+    '''  convert string representation of degrees, minutes, seconds to decimal deg '''
+    d, m, s, ax = [v for v in strdms.split(' ') if v != '']
+    return dms2dd(
+            float(d.rstrip('°')),
+            float(m.rstrip("'")),
+            float(s.rstrip('"')),
+            ax.upper()
+        )
+    
