@@ -5,58 +5,6 @@ dbtype = aisdb.dbtype
 #cur = aisdb.conn.cursor()
 
 
-
-def sqlite_create_table_msg123(cur, month):
-    cur.execute(f'''
-            CREATE VIRTUAL TABLE rtree_{month}_msg_1_2_3 USING rtree(
-                id, 
-                --mmsi integer NOT NULL,
-                mmsi0, mmsi1,
-                --"time" timestamp without time zone NOT NULL,
-                t0, t1,
-                --longitude double precision,
-                x0, x1,
-                --latitude double precision,
-                y0, y1,
-                --+millisecond smallint,
-                +region smallint,
-                +country smallint,
-                +navigational_status smallint,
-                +rot double precision,
-                +sog real,
-                +cog real,
-                +heading real,
-                +maneuver "char",
-                +utc_second smallint 
-            );
-        ''')
-
-def sqlite_create_table_msg18(cur, month):
-    cur.execute(f'''
-            CREATE VIRTUAL TABLE rtree_{month}_msg_18 USING rtree(
-                id, 
-                --mmsi integer NOT NULL,
-                mmsi0, mmsi1,
-                --"time" timestamp without time zone NOT NULL,
-                t0, t1,
-                --longitude double precision,
-                x0, x1,
-                --latitude double precision,
-                y0, y1,
-                --+millisecond smallint,
-                +region smallint,
-                +country smallint,
-                +navigational_status smallint,
-                --+rot double precision,
-                +sog real,
-                +cog real,
-                +heading real,
-                --+maneuver "char",
-                +utc_second smallint 
-            );
-        ''')
-
-
 def sqlite_create_table_polygons(cur):
     cur.execute(f'''
             CREATE VIRTUAL TABLE rtree_polygons USING rtree(
@@ -71,6 +19,7 @@ def sqlite_create_table_polygons(cur):
 
 
 def create_table_msg123(cur, month):
+    ''' postgres schema '''
     cur.execute(f'''
             CREATE TABLE ais_{month}_msg_1_2_3 (
                 --id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,59 +93,76 @@ def build_idx_msg123(cur, month):
     print(f'elapsed: {(datetime.now() - dt).seconds}s')
 
 
-def create_table_msg5(cur, month):
+def sqlite_create_table_msg123(cur, month):
+    ''' sqlite schema using rtree virtual table as an index '''
     cur.execute(f'''
-            CREATE TABLE ais_{month}_msg_5 (
-                --id INTEGER PRIMARY KEY AUTOINCREMENT,
-                unq_id_prefix character varying(11),
-                lineno integer,
-                errorflag boolean,
-                mmsi integer,
-                message_id smallint,
-                repeat_indicator "char",
-                "time" timestamp without time zone,
-                millisecond smallint,
-                region smallint,
-                country smallint,
-                base_station integer,
-                online_data character varying(6),
-                group_code character varying(4),
-                sequence_id smallint,
-                channel character varying(3),
-                data_length character varying(20),
-                vessel_name character varying(20),
-                call_sign character varying(7),
-                imo integer,
-                ship_type smallint,
-                dim_bow smallint,
-                dim_stern smallint,
-                dim_port smallint,
-                dim_star smallint,
-                draught smallint,
-                destination character varying(20),
-                ais_version "char",
-                fixing_device smallint,
-                trans_control smallint,
-                eta_month smallint,
-                eta_day smallint,
-                eta_hour smallint,
-                eta_minute smallint,
-                sequence smallint,
-                dte boolean,
-                mode smallint,
-                spare character varying(4),
-                spare2 character varying(4)
+            CREATE VIRTUAL TABLE rtree_{month}_msg_1_2_3 USING rtree(
+                id, 
+                --mmsi integer NOT NULL,
+                mmsi0, mmsi1,
+                --"time" timestamp without time zone NOT NULL,
+                t0, t1,
+                --longitude double precision,
+                x0, x1,
+                --latitude double precision,
+                y0, y1,
+                --+millisecond smallint,
+                +region smallint,
+                +country smallint,
+                +navigational_status smallint,
+                +rot double precision,
+                +sog real,
+                +cog real,
+                +heading real,
+                +maneuver "char",
+                +utc_second smallint 
             );
         ''')
-    if dbtype == 'sqlite3':
-        #cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi_time ON 'ais_{month}_msg_5' (mmsi, time)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi ON 'ais_{month}_msg_5' (mmsi)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg5_imo  ON 'ais_{month}_msg_5' (imo)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg5_time ON 'ais_{month}_msg_5' (time)''')
-    elif dbtype == 'postgres':
-        print('indexes not implemented yet for postgres')
-        pass
-    else: assert False
+    cur.execute(f'''
+            CREATE TABLE ais_{month}_msg_1_2_3 (
+                id INTEGER PRIMARY KEY,
+                mmsi integer NOT NULL,
+                --"time" timestamp without time zone NOT NULL,
+                time INTEGER,
+                --millisecond INTEGER,
+                region smallint,
+                country smallint,
+                --base_station integer,
+                navigational_status smallint,
+                rot double precision,
+                sog real,
+                longitude double precision,
+                latitude double precision,
+                cog real,
+                heading real,
+                maneuver "char",
+                utc_second smallint
+            ) WITHOUT ROWID;
+
+                --PRIMARY KEY (mmsi, time)
+                --PRIMARY KEY (mmsi, time, longitude, latitude)
+            --)
+        ''')
+
+    #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time ON 'ais_{month}_msg_1_2_3' (mmsi, time) ''')
+
+    cur.execute(f''' 
+            CREATE TRIGGER idx_rtree_{month}_msg_123 
+            AFTER INSERT ON ais_{month}_msg_1_2_3 
+            BEGIN
+                INSERT INTO rtree_{month}_msg_1_2_3( 
+                    id, mmsi0, mmsi1, t0, t1, x0, x1, y0, y1, 
+                    navigational_status, rot, sog, cog, 
+                    heading, maneuver, utc_second,
+                    region, country
+                ) 
+                VALUES (
+                    id, mmsi , mmsi, time, time, longitude, longitude, latitude, latitude,
+                    navigational_status, rot, sog, cog, heading, maneuver, utc_second,
+                    region, country
+                )
+            ; END
+        ''')
 
 
 def create_table_msg18(cur, month):
@@ -275,7 +241,6 @@ def create_table_msg18(cur, month):
     else: assert False
 
 
-
 def build_idx_msg18(cur, month):
     dt = datetime.now()
     cur.execute(f''' CREATE INDEX idx_{month}_msg18_mmsi_time ON 'ais_{month}_msg_18' (mmsi, time) ''')
@@ -290,6 +255,134 @@ def build_idx_msg18(cur, month):
     print('indexed lat')
     #cur.execute(f''' VACUUM ''')
     print(f'elapsed: {(datetime.now() - dt).seconds}s')
+
+
+def sqlite_create_table_msg18(cur, month):
+    cur.execute(f'''
+            CREATE VIRTUAL TABLE rtree_{month}_msg_18 USING rtree(
+                id, 
+                --mmsi integer NOT NULL,
+                mmsi0, mmsi1,
+                --"time" timestamp without time zone NOT NULL,
+                t0, t1,
+                --longitude double precision,
+                x0, x1,
+                --latitude double precision,
+                y0, y1,
+                --+millisecond smallint,
+                +region smallint,
+                +country smallint,
+                +navigational_status smallint,
+                --+rot double precision,
+                +sog real,
+                +cog real,
+                +heading real,
+                --+maneuver "char",
+                +utc_second smallint 
+            );
+        ''')
+
+    cur.execute(f'''
+            CREATE TABLE ais_{month}_msg_18 (
+                id INTEGER PRIMARY KEY,
+                mmsi integer NOT NULL,
+                --"time" timestamp without time zone NOT NULL,
+                time INTEGER,
+                millisecond smallint,
+                region smallint,
+                country smallint,
+                --base_station integer,
+                sog real,
+                accuracy boolean,
+                longitude double precision,
+                latitude double precision,
+                cog real,
+                heading real,
+                utc_second smallint
+            ) WITHOUT ROWID
+
+                --PRIMARY KEY (mmsi, time)
+                --communication_state integer,
+                --PRIMARY KEY (mmsi, time, longitude, latitude)
+            --)
+        ''')
+
+    #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time ON 'ais_{month}_msg_18' (mmsi, time) ''')
+
+    cur.execute(f''' 
+            CREATE TRIGGER idx_rtree_{month}_msg_18
+            AFTER INSERT ON ais_{month}_msg_18
+            BEGIN
+                INSERT INTO rtree_{month}_msg_18( 
+                    id, mmsi0, mmsi1, t0, t1, x0, x1, y0, y1, 
+                    navigational_status, rot, sog, cog, 
+                    heading, maneuver, utc_second,
+                    region, country
+                ) 
+                VALUES (
+                    id, mmsi, mmsi, time, time, longitude, longitude, latitude, latitude,
+                    navigational_status, rot, sog, cog, heading, maneuver, utc_second,
+                    region, country
+                )
+            ; END
+        ''')
+
+
+def create_table_msg5(cur, month):
+    cur.execute(f'''
+            CREATE TABLE ais_{month}_msg_5 (
+                --id INTEGER PRIMARY KEY AUTOINCREMENT,
+                unq_id_prefix character varying(11),
+                lineno integer,
+                errorflag boolean,
+                mmsi integer,
+                message_id smallint,
+                repeat_indicator "char",
+                "time" timestamp without time zone,
+                millisecond smallint,
+                region smallint,
+                country smallint,
+                base_station integer,
+                online_data character varying(6),
+                group_code character varying(4),
+                sequence_id smallint,
+                channel character varying(3),
+                data_length character varying(20),
+                vessel_name character varying(20),
+                call_sign character varying(7),
+                imo integer,
+                ship_type smallint,
+                dim_bow smallint,
+                dim_stern smallint,
+                dim_port smallint,
+                dim_star smallint,
+                draught smallint,
+                destination character varying(20),
+                ais_version "char",
+                fixing_device smallint,
+                trans_control smallint,
+                eta_month smallint,
+                eta_day smallint,
+                eta_hour smallint,
+                eta_minute smallint,
+                sequence smallint,
+                dte boolean,
+                mode smallint,
+                spare character varying(4),
+                spare2 character varying(4)
+            );
+        ''')
+    if dbtype == 'sqlite3':
+        #cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi_time ON 'ais_{month}_msg_5' (mmsi, time)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi ON 'ais_{month}_msg_5' (mmsi)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg5_imo  ON 'ais_{month}_msg_5' (imo)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg5_time ON 'ais_{month}_msg_5' (time)''')
+    elif dbtype == 'postgres':
+        print('indexes not implemented yet for postgres')
+        pass
+    else: assert False
+
+
 
 def create_table_msg24(cur, month):
     cur.execute(f'''

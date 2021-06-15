@@ -3,7 +3,7 @@ import re
 from datetime import datetime, timedelta
 from packaging import version
 import logging
-from multiprocessing import Pool, Lock
+#from multiprocessing import Pool, Lock
 from functools import partial
 
 
@@ -13,13 +13,8 @@ from pyais import FileReaderStream
 assert version.parse(pyais.__version__) >= version.parse('1.6.1')
 
 from database.create_tables import *
+from hashindex.index import index
 
-global lock
-lock = None
-
-
-from multiprocessing import Pool, Lock
-#global dblock = Lock()
 
 
 def binarysearch(arr, search):
@@ -164,7 +159,103 @@ def insert_msg24(cur, mstr, msg24):
     return
 
 
-    '''
+def batch_insert(dbpath, batch, mstr):
+
+    aisdb = dbconn(dbpath=dbpath, timeout=30)
+    conn, cur = aisdb.conn, aisdb.cur
+    if [] != batch['msg1']  : insert_msg123(cur, mstr, np.array(batch['msg1']))
+    if [] != batch['msg2']  : insert_msg123(cur, mstr, np.array(batch['msg2']))
+    if [] != batch['msg3']  : insert_msg123(cur, mstr, np.array(batch['msg3']))
+    if [] != batch['msg5']  : insert_msg5(  cur, mstr, np.array(batch['msg5']))
+    if [] != batch['msg18'] : insert_msg18( cur, mstr, np.array(batch['msg18']))
+    if [] != batch['msg24'] : insert_msg24( cur, mstr, np.array(batch['msg24']))
+    conn.commit()
+    conn.close()
+
+
+def decode_raw_pyais(fpath, dbpath):
+
+    # if the file was already parsed, skip it
+    path, dbfile = dbpath.rsplit(os.path.sep, 1)
+    with index(storagedir=path, filename=dbfile, bins=False, store=False) as parsed:
+        if parsed.serialized(kwargs=dict(fpath=fpath)):
+            return
+
+    splitmsg    = lambda rawmsg: rawmsg.split('\\')
+    parsetime   = lambda comment: datetime.fromtimestamp(int(comment.split('c:')[1].split(',')[0].split('*')[0]))
+
+    regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(fpath)
+    mstr        = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
+
+    n           = 0
+    skipped     = 0
+    failed      = 0
+    t0          = datetime.now()
+    batch       = {f'msg{i}' : [] for i in (1, 2, 3, 4, 5, 11, 18, 19, 24, 27)}
+    print(f'{fpath.split(os.path.sep)[-1]}\tprocessing message {n}', end='')
+
+
+
+    with open(fpath, 'r') as f:
+        for rawmsg in f:
+            line = splitmsg(rawmsg)
+
+            # check if receiver recorded timestamp. if not, skip the message
+            if len(line) > 1 and 'c:' in line[1]:
+                stamp, payload = line[1], line[2]
+            else:
+                skipped +=1
+                continue
+
+            # attempt to decode the message
+            try:
+                msg = pyais.decode_msg(payload)
+            except Exception as e:
+                failed += 1
+                continue
+
+            # discard unused message types, check that data looks OK
+            if not 'type' in msg.keys() or msg['type'] not in (1, 2, 3, 4, 5, 11, 18, 19, 24, 27): 
+                if not 'type' in msg.keys(): print(msg)
+                continue
+            elif (  ('lon' in msg.keys() and not -180 <= msg['lon'] <= 180)
+                 or ('lat' in msg.keys() and not -90 <= msg['lat'] <= 90)
+                    ):
+                skipped += 1
+                logging.debug(f'discarded msg: {msg}')
+                continue
+            elif 'radio' in msg.keys() and msg['radio'] > 9223372036854775807:
+                skipped += 1
+                logging.debug(f'discarded msg: {msg}')
+                continue
+
+            # if all ok, log the message and timestamp
+            n += 1
+            #logging.debug(f'{stamp}  ->  ')
+            #logging.debug(f'{parsetime(stamp)}')
+            batch[f'msg{msg["type"]}'].append([msg, parsetime(stamp)])
+
+            # every once in a while insert into DB and print a status message
+            if n % 100000 == 0: 
+                print(f'\r{fpath.split(os.path.sep)[-1]}\tprocessing message {n}', end='')
+                batch_insert(dbpath=dbpath, batch=batch, mstr=mstr)
+                batch = {f'msg{i}' : [] for i in (1, 2, 3, 4, 5, 11, 18, 19, 24, 27)}
+
+        batch_insert(dbpath, batch, mstr)
+
+    print(f'\r{fpath.split(os.path.sep)[-1]}\tprocessed {n} messages in {(datetime.now() - t0).total_seconds():.0f}s.\tskipped: {skipped}\tfailed: {failed}')
+
+    # store a checksum of the filename
+    with index(storagedir=path, filename=dbfile, bins=False, store=False) as parsed:
+        parsed.insert_hash(kwargs=dict(fpath=fpath))
+
+
+
+
+'''
+# old code for decoding with inferred timestamps instead of using receiver report
+# may be useful for data that arrives without a receiver timestmap
+
 def decode_chunk(conn, msgs, stamps):
     # convert 2-digit year values to 4-digit
     for msg in msgs:
@@ -206,95 +297,5 @@ def decode_chunk(conn, msgs, stamps):
         #batch[f'msg{msg["type"]}'] = np.vstack((batch[f'msg{msg["type"]}'], [msg, basetime]))
         batch[f'msg{msg["type"]}'].append([msg, basetime])
 
-    '''
-
-
-def batch_insert(dbpath, batch, mstr):
-
-    #if lock is not None: lock.acquire()
-    aisdb = dbconn(dbpath=dbpath, timeout=30)
-    conn, cur = aisdb.conn, aisdb.cur
-    if batch['msg1']  != []: insert_msg123(cur, mstr, np.array(batch['msg1']))
-    if batch['msg2']  != []: insert_msg123(cur, mstr, np.array(batch['msg2']))
-    if batch['msg3']  != []: insert_msg123(cur, mstr, np.array(batch['msg3']))
-    if batch['msg5']  != []: insert_msg5(  cur, mstr, np.array(batch['msg5']))
-    if batch['msg18'] != []: insert_msg18( cur, mstr, np.array(batch['msg18']))
-    if batch['msg24'] != []: insert_msg24( cur, mstr, np.array(batch['msg24']))
-    conn.commit()
-    conn.close()
-    #if lock is not None: lock.release()
-
-
-def decode_raw_pyais(fpath, dbpath):
-    logging.info(fpath)
-
-    splitmsg    = lambda rawmsg: rawmsg.split('\\')
-    parsetime   = lambda comment: datetime.fromtimestamp(int(comment.split('c:')[1].split(',')[0].split('*')[0]))
-
-    datestr     = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}')
-    regexdate   = datestr.search(fpath)
-    mstr        = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
-    t0          = datetime.now()
-
-    n       = 0
-    skipped = 0
-    failed  = 0
-    batch = {f'msg{i}' : [] for i in (1, 2, 3, 5, 11, 18, 19, 24, 27)}
-    with open(fpath, 'r') as f:
-        for rawmsg in f:
-            line = splitmsg(rawmsg)
-
-            # check if receiver recorded timestamp. if not, skip the message
-            if len(line) > 1:
-                stamp, payload = line[1], line[2]
-            else:
-                skipped +=1
-                continue
-
-            # attempt to decode the message
-            try:
-                msg = pyais.decode_msg(payload)
-            except Exception as e:
-                failed += 1
-                continue
-
-            # discard unused message types, check that data looks OK
-            if not 'type' in msg.keys() or msg['type'] not in (1, 2, 3, 5, 11, 18, 19, 24, 27): 
-                if not 'type' in msg.keys(): print(msg)
-                continue
-            elif (  ('lon' in msg.keys() and not -180 <= msg['lon'] <= 180)
-                 or ('lat' in msg.keys() and not -90 <= msg['lat'] <= 90)
-                    ):
-                skipped += 1
-                logging.debug(f'discarded msg: {msg}')
-                continue
-            elif 'radio' in msg.keys() and msg['radio'] > 9223372036854775807:
-                skipped += 1
-                logging.debug(f'discarded msg: {msg}')
-                continue
-
-            # if all ok, log the message and timestamp
-            n += 1
-            batch[f'msg{msg["type"]}'].append([msg, parsetime(stamp)])
-
-            #if len(msgs) >= 100000:
-            if n % 200000 == 0: 
-                print(f'\r{fpath.split(os.path.sep)[-1]}\tprocessing message {n}', end='')
-                batch_insert(dbpath, batch, mstr)
-                batch = {f'msg{i}' : [] for i in (1, 2, 3, 5, 11, 18, 19, 24, 27)}
-
-        batch_insert(dbpath, batch, mstr)
-        print(f'\r{fpath.split(os.path.sep)[-1]}\tprocessed {n} messages in {(datetime.now() - t0).total_seconds():.0f}s.\tskipped: {skipped}\tfailed: {failed}')
-
-
 '''
-def parallel_decode(fpaths, dbpath):
-
-    lock = Lock()
-    proc = partial(decode_raw_pyais, dbpath=dbpath)
-
-    with Pool(processes=3) as p:
-        p.map(proc, fpaths)
-'''
-
 
