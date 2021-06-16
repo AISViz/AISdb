@@ -13,7 +13,7 @@ from pyais import FileReaderStream
 assert version.parse(pyais.__version__) >= version.parse('1.6.1')
 
 from database.create_tables import *
-from hashindex.index import index
+from index import index
 
 
 

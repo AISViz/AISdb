@@ -1,3 +1,0 @@
-[submodule "index"]
-	path = hashindex
-	url = git@github.com:matt24smith/index.git
