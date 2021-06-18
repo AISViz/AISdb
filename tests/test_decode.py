@@ -6,18 +6,10 @@ import os
 from database import *
 
 #dbpath = '/run/media/matt/My Passport/ais_august.db'
-dbpath = 'output/ais_2018-03-28.db'
-fpath = '/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018/CCG_AIS_Log_2018-03-28.csv'
+#dbpath = 'output/test_decode.db'
+dbpath = '/run/media/matt/My Passport/test_decode.db'
+fpath = '/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018/CCG_AIS_Log_2018-06-01.csv'
 #fpath = '/run/media/matt/My Passport/raw_test/exactEarth_historical_data_2021-04-01.nm4'
-
-'''
-fpaths = [
-    '/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018/CCG_AIS_Log_2018-01-20.csv',
-    '/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018/CCG_AIS_Log_2018-01-21.csv',
-    '/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018/CCG_AIS_Log_2018-01-22.csv',
-    '/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018/CCG_AIS_Log_2018-01-23.csv',
-    ]
-'''
 
 os.remove(dbpath)
 decode_raw_pyais(fpath, dbpath)
@@ -28,7 +20,8 @@ decode_raw_pyais(fpath, dbpath)
 aisdb = dbconn(dbpath=dbpath)
 conn, cur = aisdb.conn, aisdb.cur
 
-cur.execute('select * from rtree_201808_msg_1_2_3 LIMIT 10')
+cur.execute('select * from rtree_201806_msg_1_2_3 LIMIT 10')
+cur.execute('select * from ais_201806_msg_1_2_3 LIMIT 10')
 res = np.array(cur.fetchall())
 res
 
@@ -45,8 +38,8 @@ poly_xy = canvaspoly.boundary.coords.xy
 
 qry = qrygen(
         xy = merge(canvaspoly.boundary.coords.xy),
-        start   = datetime(2018,3,28),
-        end     = datetime(2018,3,29),
+        start   = datetime(2018,6,1),
+        end     = datetime(2018,6,2),
         xmin    = min(poly_xy[0]), 
         xmax    = max(poly_xy[0]), 
         ymin    = min(poly_xy[1]), 
@@ -58,6 +51,7 @@ print(qry)
 qry=qry.replace('ais_', 'ais_s_')
 cur.execute( 'EXPLAIN QUERY PLAN \n'  + qry)
 '''
+
 dt = datetime.now()
 cur.execute(qry)
 print(f'query time: {(datetime.now() - dt).seconds}s')

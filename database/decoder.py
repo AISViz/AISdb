@@ -48,15 +48,15 @@ def is_valid_date(year, month, day, hour=0, minute=0, second=0, **_):
 
 
 def dt_2_epoch(dt_arr, t0=datetime(2000,1,1,0,0,0)):
-    ''' convert datetime.datetime to epoch seconds '''
-    delta = lambda dt: (dt - t0).total_seconds()
+    ''' convert datetime.datetime to epoch minutes '''
+    delta = lambda dt: (dt - t0).total_seconds() // 60
     if isinstance(dt_arr, (list, np.ndarray)): return np.array(list(map(int, map(delta, dt_arr))))
     elif isinstance(dt_arr, (datetime)): return int(delta(dt_arr))
     else: raise ValueError('input must be datetime or array of datetimes')
 
 
-def epoch_2_dt(ep_arr, t0=datetime(2000,1,1,0,0,0), unit='seconds'):
-    ''' convert epoch seconds to datetime.datetime '''
+def epoch_2_dt(ep_arr, t0=datetime(2000,1,1,0,0,0), unit='minutes'):
+    ''' convert epoch minutes to datetime.datetime '''
     delta = lambda ep, unit: t0 + timedelta(**{f'{unit}' : ep})
     if isinstance(ep_arr, (list, np.ndarray)): return np.array(list(map(partial(delta, unit=unit), ep_arr)))
     elif isinstance(ep_arr, (float, int)): return delta(ep_arr, unit=unit)
@@ -71,6 +71,7 @@ def insert_msg123(cur, mstr, msg123):
     
     rows, stamps = msg123.T
     epochs = dt_2_epoch(stamps).astype(float)
+    """
     tup123 = ((
         float(r['mmsi']), float(r['mmsi']), e, e, r['lon'], r['lon'], r['lat'], r['lat'], 
         r['status'].value, r['turn'], r['speed'], r['course'], r['heading'], 
@@ -82,6 +83,18 @@ def insert_msg123(cur, mstr, msg123):
                     'navigational_status, rot, sog, cog, '
                     'heading, maneuver, utc_second) '
                     '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', tup123)
+    """
+    tup123 = ((
+        float(r['mmsi']), e, r['lon'], r['lat'], 
+        r['status'].value, r['turn'], r['speed'], r['course'], r['heading'], 
+        r['maneuver'], r['second']
+        )   for r,e in zip(rows, epochs)
+    )
+    cur.executemany(f'INSERT OR IGNORE INTO ais_{mstr}_msg_1_2_3 '
+                    '(mmsi, time, longitude, latitude, '
+                    'navigational_status, rot, sog, cog, '
+                    'heading, maneuver, utc_second) '
+                    '''VALUES (?,?,?,?,?,?,?,?,?,?,?)''', tup123)
     return
 
 
@@ -115,6 +128,7 @@ def insert_msg18(cur, mstr, msg18):
 
     rows, stamps = msg18.T
     epochs = dt_2_epoch(stamps).astype(float)
+    """
     tup18 = ((
         int(r['mmsi']), int(r['mmsi']), e, e, r['lon'], r['lon'], r['lat'], r['lat'], 
         r['radio'], #if 'nav_status' in r.keys() else None,
@@ -126,6 +140,18 @@ def insert_msg18(cur, mstr, msg18):
                     'navigational_status, sog, cog, '
                     'heading, utc_second) '
                     '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)''', tup18)
+    """
+    tup18 = ((
+        int(r['mmsi']), e, r['lon'], r['lat'], 
+        r['radio'], #if 'nav_status' in r.keys() else None,
+        r['speed'], r['course'], r['heading'], r['second'],
+        )   for r,e in zip(rows, epochs)
+    )
+    cur.executemany(f'INSERT OR IGNORE INTO ais_{mstr}_msg_18'
+                    '(mmsi, time, longitude, latitude, '
+                    'navigational_status, sog, cog, '
+                    'heading, utc_second) '
+                    '''VALUES (?,?,?,?,?,?,?,?,?)''', tup18)
     return
 
 

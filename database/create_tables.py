@@ -137,14 +137,14 @@ def sqlite_create_table_msg123(cur, month):
                 heading real,
                 maneuver "char",
                 utc_second smallint
-            ) WITHOUT ROWID;
+            );
 
                 --PRIMARY KEY (mmsi, time)
                 --PRIMARY KEY (mmsi, time, longitude, latitude)
             --)
         ''')
 
-    #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time ON 'ais_{month}_msg_1_2_3' (mmsi, time) ''')
+    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time ON 'ais_{month}_msg_1_2_3' (mmsi, time) ''')
 
     cur.execute(f''' 
             CREATE TRIGGER idx_rtree_{month}_msg_123 
@@ -157,9 +157,10 @@ def sqlite_create_table_msg123(cur, month):
                     region, country
                 ) 
                 VALUES (
-                    id, mmsi , mmsi, time, time, longitude, longitude, latitude, latitude,
-                    navigational_status, rot, sog, cog, heading, maneuver, utc_second,
-                    region, country
+                    new.id, new.mmsi, new.mmsi, new.time, new.time, 
+                    new.longitude, new.longitude, new.latitude, new.latitude,
+                    new.navigational_status, new.rot, new.sog, new.cog, 
+                    new.heading, new.maneuver, new.utc_second, new.region, new.country
                 )
             ; END
         ''')
@@ -292,6 +293,7 @@ def sqlite_create_table_msg18(cur, month):
                 region smallint,
                 country smallint,
                 --base_station integer,
+                navigational_status smallint,
                 sog real,
                 accuracy boolean,
                 longitude double precision,
@@ -299,7 +301,7 @@ def sqlite_create_table_msg18(cur, month):
                 cog real,
                 heading real,
                 utc_second smallint
-            ) WITHOUT ROWID
+            );
 
                 --PRIMARY KEY (mmsi, time)
                 --communication_state integer,
@@ -307,7 +309,7 @@ def sqlite_create_table_msg18(cur, month):
             --)
         ''')
 
-    #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time ON 'ais_{month}_msg_18' (mmsi, time) ''')
+    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time ON 'ais_{month}_msg_18' (mmsi, time) ''')
 
     cur.execute(f''' 
             CREATE TRIGGER idx_rtree_{month}_msg_18
@@ -315,14 +317,14 @@ def sqlite_create_table_msg18(cur, month):
             BEGIN
                 INSERT INTO rtree_{month}_msg_18( 
                     id, mmsi0, mmsi1, t0, t1, x0, x1, y0, y1, 
-                    navigational_status, rot, sog, cog, 
-                    heading, maneuver, utc_second,
-                    region, country
+                    navigational_status, sog, cog, 
+                    heading, utc_second, region, country
                 ) 
                 VALUES (
-                    id, mmsi, mmsi, time, time, longitude, longitude, latitude, latitude,
-                    navigational_status, rot, sog, cog, heading, maneuver, utc_second,
-                    region, country
+                    new.id, new.mmsi, new.mmsi, new.time, new.time, 
+                    new.longitude, new.longitude, new.latitude, new.latitude,
+                    new.navigational_status, new.sog, new.cog, new.heading, 
+                    new.utc_second, new.region, new.country
                 )
             ; END
         ''')
