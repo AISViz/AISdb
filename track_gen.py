@@ -4,24 +4,26 @@ from datetime import timedelta
 import numpy as np
 
 
-def trackgen(rows: np.ndarray) -> dict:
+def trackgen(rows: np.ndarray, colnames: list = ['mmsi', 'time', 'lon', 'lat', 'cog', 'sog', 'name', 'type']) -> dict:
     '''
         each row contains columns from database: 
             mmsi time lon lat cog sog name type
         rows must be sorted by first by mmsi, then time
 
-        TODO: update code to work with a variable number of columns
-
+        colnames is the name associated with each column type in rows. 
+        first two columns must be ['mmsi', 'time']
     '''
     tracks_idx = np.append(np.append([0], np.nonzero(rows[:,0].astype(int)[1:] != rows[:,0].astype(int)[:-1])[0]+1), len(rows))
     for i in range(len(tracks_idx)-1): 
         yield dict(
             mmsi=int(rows[tracks_idx[i]][0]),
-            name=str(rows[tracks_idx[i]][6]).rstrip(),
-            type=rows[tracks_idx[i]][7],
             time=rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
-            **{ n : rows[tracks_idx[i]:tracks_idx[i+1]].T[c].astype(float) for c,n in zip(range(2, 6),['lon','lat','cog','sog'])},
+            **{ n : rows[tracks_idx[i]:tracks_idx[i+1]].T[c] for c,n in zip(range(2, len(colnames)), colnames[2:])},
         )
+
+            ##**{ n : rows[tracks_idx[i]:tracks_idx[i+1]].T[c].astype(float) for c,n in zip(range(2, len(colnames)), colnames[2:])},
+            #name=str(rows[tracks_idx[i]][6]).rstrip() if len(tracks_idx[i]) >= 6 else None,
+            #type=rows[tracks_idx[i]][7] if len(tracks_idx[i]) >= 7 else None,
 
 
 #def segment(track: dict, maxdelta: timedelta, minsize: int) -> filter:

@@ -101,3 +101,8 @@ def test_query_filter_():
       WHERE {callback(month=month, alias='m18', **kwargs)}
     --ORDER BY 1, 2
       ''')
+
+
+def test_query_vessel_dimension():
+    month = '201806'
+
