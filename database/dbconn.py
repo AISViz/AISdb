@@ -45,11 +45,10 @@ def create_table_coarsetype(cur):
     )
 
 class dbconn():
-    def __init__(self, dbpath=None, postgres=False, prefix='ais_'):
+    def __init__(self, dbpath=None, postgres=False, timeout=5):
         if postgres or os.environ.get('POSTGRESDB'):
             import psycopg2 
             import psycopg2.extras
-            self.prefix = 'ais_s_'
             if __name__ == '__main__':
                 psycopg2.extensions.set_wait_callback(psycopg2.extras.wait_select)  # enable interrupt
             conn = psycopg2.connect(dbname='ee_ais', user=os.environ.get('PGUSER'), port=os.environ.get('PGPORT'), password=os.environ.get('PGPASS'), host='localhost')
@@ -66,9 +65,9 @@ class dbconn():
 
         else:
             import sqlite3
-            self.prefix = prefix
             self.lambdas = dict(
-                in_poly = lambda poly,alias='m123',**_: f'Contains(\n    GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
+                #in_poly = lambda poly,alias='m123',**_: f'Contains(\n    GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
+                in_poly = lambda poly,alias='m123',**_: f'ST_Contains(\n    ST_GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
                 in_radius = lambda *,x,y,radius,**_: f'Within(Geography(m123.ais_geom), Geography(MakePoint({x}, {y})), {radius})', 
                 in_radius_time = lambda *,x,y,radius,alias='m123',**kwargs: f''' Within(Geography({alias}.ais_geom), Geography(MakePoint({x}, {y})), {radius}) AND {alias}.time BETWEEN \'{kwargs["start"].strftime("%Y-%m-%d %H:%M:%S")}\'::date AND \'{kwargs["end"].strftime("%Y-%m-%d %H:%M:%S")}\'::date ''',
                 in_bbox = lambda south, north, west, east,**_:    f'ais_geom && MakeEnvelope({west},{south},{east},{north})'
@@ -76,13 +75,20 @@ class dbconn():
             self.dbtype = 'sqlite3'
 
             if dbpath is not None:
-                newdb = not os.path.isfile(dbpath)
-                self.conn = sqlite3.connect(dbpath, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+                #newdb = not os.path.isfile(dbpath)
+                self.conn = sqlite3.connect(dbpath, timeout=timeout, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
                 self.cur = self.conn.cursor()
-                self.conn.enable_load_extension(True)
-                self.cur.execute('SELECT load_extension("mod_spatialite.so")')
-                if newdb:
-                    self.cur.execute('SELECT InitSpatialMetaData(1)')
+                #self.conn.enable_load_extension(True)
+                #self.cur.execute('SELECT load_extension("mod_spatialite.so")')
+                self.cur.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="coarsetype_ref";')
+                if not self.cur.fetchall():
                     create_table_coarsetype(self.cur)
+                #    self.cur.execute('SELECT InitSpatialMetaDataFull(1)')
+                self.conn.commit()
+                #self.cur.execute('PRAGMA page_size=8192')
+                #self.cur.execute('PRAGMA temp_store=2')
+                #self.cur.execute('PRAGMA cache_size=10000')
+                #self.cur.execute('PRAGMA synchronous=0')
+                self.cur.execute('PRAGMA journal_mode=WAL')
+                assert (j := self.cur.fetchall()) == [('wal',)], f'journal mode: {j}'
 
-#prefix = dbconn().prefix

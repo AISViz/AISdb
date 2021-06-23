@@ -1,19 +1,19 @@
 Tools and utilities for processing AIS data
 
 Requirements:
-  * Python 3.8 (may require compile option --enable-loadable-sqlite-extensions)
+  * Python 3.8
   * NumPy
-  * Shapely
   * pyais
   * qgis
+  * Shapely
 
-Optional for web data:
+Optional:
   * requests
   * selenium
   * firefox
+  * rasterio (used for loading shore distance from raster file)
 
 Scripts included for installing:
-  * spatialite
   * geckodriver
 
 
