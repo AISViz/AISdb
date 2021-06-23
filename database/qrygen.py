@@ -128,7 +128,7 @@ class qrygen(UserDict):
         ''' returns an SQL query to crawl the database 
             query generated using given query function, parameters stored in self, and a callback function 
         '''
-        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 9, 2'
+        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 7, 2'
 
 
     def crawl_unordered(self, callback, qryfcn=msg123union18join5):
@@ -145,6 +145,7 @@ class qrygen(UserDict):
 
 
     def run_qry(self, dbpath, callback, qryfcn):
+        self.build_views(dbpath)
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
 
