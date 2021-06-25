@@ -17,7 +17,7 @@ os.chdir(f'output{sep}Python-3.9.5')
 
 subprocess.run('./configure --enable-optimizations --with-lto --disable-ipv6 --enable-loadable-sqlite-extensions'.split())
 subprocess.run('make'.split())
-subprocess.run('sudo make install'.split())
+subprocess.run('sudo make altinstall'.split())
 
 
 
