@@ -52,7 +52,7 @@ def test_query_smallboundary_dynamictables():
 
 def test_query_smallboundary_join_static_dynamic():
 
-    # msg 5 union 24
+    # join rtree tables with aggregate position reports 
     dt = datetime.now()
     rows = qrygen(
             xy = merge(canvaspoly.boundary.coords.xy),
@@ -62,7 +62,7 @@ def test_query_smallboundary_join_static_dynamic():
             xmax    = max(poly_xy[0]), 
             ymin    = min(poly_xy[1]), 
             ymax    = max(poly_xy[1]),
-        ).run_qry(dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=leftjoin_dynamic_static) 
+        ).run_qry(dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=leftjoin_dynamic_static)
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
 
