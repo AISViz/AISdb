@@ -8,13 +8,16 @@ import shutil
 
 
 req = requests.get('https://www.python.org/ftp/python/3.9.5/Python-3.9.5.tgz', stream=True)
-with open(tar := f'output{sep}Python-3.9.2.tgz', 'wb') as f:
+tar = f'output{sep}Python-3.9.5.tgz'
+with open(tar, 'wb') as f:
     list(map(lambda chunk: f.write(chunk), req.iter_content(chunk_size=1024)))
 
 tarfile.open(tar).extractall(f'output{sep}')
 os.chdir(f'output{sep}Python-3.9.5')
 
 subprocess.run('./configure --enable-optimizations --with-lto --disable-ipv6 --enable-loadable-sqlite-extensions'.split())
+subprocess.run('make'.split())
+subprocess.run('sudo make install'.split())
 
 
 

@@ -2,6 +2,7 @@ Tools and utilities for processing AIS data
 
 Requirements:
   * Python 3.8
+  * SQLite >= 3.35 (comes with python3.8)
   * NumPy
   * pyais
   * qgis
