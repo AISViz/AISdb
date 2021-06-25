@@ -90,5 +90,6 @@ class dbconn():
                 #self.cur.execute('PRAGMA cache_size=10000')
                 #self.cur.execute('PRAGMA synchronous=0')
                 self.cur.execute('PRAGMA journal_mode=WAL')
-                assert (j := self.cur.fetchall()) == [('wal',)], f'journal mode: {j}'
+                j = self.cur.fetchall())
+                assert (j == [('wal',)], f'journal mode: {j}'
 
