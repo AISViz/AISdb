@@ -29,7 +29,7 @@ class index():
     # compute 8-bit integer hash for a given dictionary
     hash_dict = lambda self, kwargs, seed='': int(md5((str(seed) + json.dumps(kwargs, sort_keys=True, default=str)).encode('utf-8')).hexdigest(), base=16) >> 80
 
-    def __init__(self, /, *, pool=1, store=False, inmemory=False, bins=True, dx=2, dy=2, dz=5000, dt=timedelta(days=1), storagedir=os.getcwd(), filename='checksums.db', **kwargs): 
+    def __init__(self, *, pool=1, store=False, inmemory=False, bins=True, dx=2, dy=2, dz=5000, dt=timedelta(days=1), storagedir=os.getcwd(), filename='checksums.db', **kwargs): 
         """
             args:
                 pool:
@@ -67,7 +67,6 @@ class index():
         self.store, self.pool, self.storagedir, self.inmemory, = store, pool, storagedir, inmemory
         self.storage = os.path.join(storagedir, filename) if not inmemory else ':memory:'
         self.kwargslist = list(self.bin_kwargs(dx, dy, dz, dt, **kwargs)) if bins else [kwargs]
-        logging.debug(f'storing checksums in {self.storage}')
 
     def __enter__(self):
         assert self.kwargslist != [], 'empty kwargs!'
@@ -82,12 +81,12 @@ class index():
         assert not self.inmemory, 'feature not yet implemented'  
         return self
 
-    def __call__(self, /, *, callback,  **passkwargs):  # https://docs.python.org/3/whatsnew/3.8.html
+    def __call__(self, *, callback,  **passkwargs):  # https://docs.python.org/3/whatsnew/3.8.html
         return list(self.__call_generator__(callback=callback, **passkwargs))
 
-    def __call_generator__(self, /, *, callback, **passkwargs):
-        #seed=f'{callback.__module__}.{callback.__name__}:{json.dumps(passkwargs, default=str, sort_keys=True)}'
-        seed=f'{json.dumps(passkwargs, default=str, sort_keys=True)}'
+    def __call_generator__(self, *, callback, **passkwargs):
+        seed=f'{callback.__module__}.{callback.__name__}:{json.dumps(passkwargs, default=str, sort_keys=True)}'
+        #seed=f'{json.dumps(passkwargs, default=str, sort_keys=True)}'
         assert self.pool == 1, 'use parallelindex for processing pool'
         for kwargs in self.kwargslist: 
             if not self.serialized(kwargs, seed): self.insert_hash(kwargs, seed, callback(**passkwargs, **kwargs))
@@ -101,13 +100,13 @@ class index():
         assert not self.inmemory, 'feature not yet implemented'  
 
     def insert_hash(self, kwargs={}, seed='', obj=None):
-        logging.debug(f'INSERT HASH {self.hash_dict(kwargs, seed)}\n{seed = }\nBIN: {kwargs = }')
+        logging.debug(f'INSERT HASH {self.hash_dict(kwargs, seed)}\nseed = {seed}\nBIN: kwargs = {kwargs}')
         with sqlite3.connect(self.storage) as con:
             db = con.cursor()
             db.execute('INSERT INTO hashmap VALUES (?,?)', (self.hash_dict(kwargs, seed), bytes(pickle.dumps(obj) if self.store else pickle.dumps(None))))
 
     def update_hash(self, kwargs={}, seed='', obj=None):
-        logging.debug(f'UPDATE HASH {self.hash_dict(kwargs, seed)}\n{seed = }\nBIN: {kwargs = }')
+        logging.debug(f'UPDATE HASH {self.hash_dict(kwargs, seed)}\nseed = {seed }\nBIN: kwargs = {kwargs}')
         with sqlite3.connect(self.storage) as con:
             db = con.cursor()
             db.execute('UPDATE hashmap SET bytes = ? WHERE hash = ?', (pickle.dumps(obj), self.hash_dict(kwargs, seed)))
@@ -118,12 +117,12 @@ class index():
             db = con.cursor()
             db.execute('SELECT * FROM hashmap WHERE hash == ?', (self.hash_dict(kwargs, seed),))
             res = db.fetchone()
-        logging.debug(f'CHECK HASH {self.hash_dict(kwargs, seed)}: {"exists!" if res is not None else "missing!"}\n{seed = }\nBIN: {kwargs = }')
+        logging.debug(f'CHECK HASH {self.hash_dict(kwargs, seed)}: {"exists!" if res is not None else "missing!" }\nseed = {seed}\nBIN: kwargs = {kwargs}')
         if res is None: return False
         if res[1] is None: return True
         if res[1] is not None: return res[1]
 
-    def bin_kwargs(self, dx, dy, dz, dt, /, **kwargs):
+    def bin_kwargs(self, dx, dy, dz, dt, **kwargs):
         """ generate argument sets as area subsets of boundary kwargs
 
             kwargs are split into dx° * dy° * dz° * dt bins.
@@ -162,7 +161,7 @@ class index():
 class parallelindex(index):
     """ run index jobs in a parallel processing pool """
 
-    def __call__(self, /, *, callback, **passkwargs):
+    def __call__(self, *, callback, **passkwargs):
         assert len(self.kwargslist) > 1, 'nothing to parallelize when bins=False'
         with Pool(self.pool) as p: 
             return list(p.map(self.__call_generator__, zip((callback for _ in self.kwargslist), self.kwargslist, (passkwargs for _ in self.kwargslist))))
@@ -196,7 +195,7 @@ if __name__ == '__main__':
 
     def parallelized_callback(**kwargs):
         """ another useless demo function """
-        print(f'hello world! {kwargs = }')
+        print(f'hello world! {kwargs}')
         time.sleep(1)
         return None
 
