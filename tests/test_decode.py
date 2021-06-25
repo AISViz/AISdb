@@ -19,7 +19,7 @@ conn.close()
 
 def test_parse_24h():
     dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
-    os.remove(dbpath)
+    #os.remove(dbpath)
     dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
     june = np.array(sorted(filenames))[ ['2018-06' in filename for filename in sorted(filenames)] ]
 
@@ -28,7 +28,7 @@ def test_parse_24h():
 
 def test_parse_10d():
     dbpath = '/run/media/matt/My Passport/june2018-06-0_test2.db'
-    os.remove(dbpath)
+    #os.remove(dbpath)
     dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
 
     june = np.array(sorted(filenames))[ ['2018-06-0' in filename for filename in sorted(filenames)] ]
@@ -39,7 +39,7 @@ def test_parse_10d():
 
 def test_parse_1m():
     dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
-    os.remove(dbpath)
+    #os.remove(dbpath)
     dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
 
     june = np.array(sorted(filenames))[ ['2018-06' in filename for filename in sorted(filenames)] ]
@@ -67,7 +67,8 @@ aisdb = dbconn(dbpath=dbpath)
 conn, cur = aisdb.conn, aisdb.cur
 
 cur.execute('select * from rtree_201806_msg_1_2_3 LIMIT 10')
-#cur.execute('VACUUM INTO "/run/media/matt/My Passport/june2018_vacuum.db"')
+cur.execute('VACUUM INTO "/run/media/matt/My Passport/june2018_vacuum.db"')
+cur.execute('VACUUM INTO "/home/matt/june2018_vacuum_test3.db"')
 cur.execute('select * from ais_201806_msg_1_2_3 LIMIT 10')
 res = np.array(cur.fetchall())
 res
