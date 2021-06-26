@@ -48,6 +48,16 @@ def test_parse_1m():
         decode_raw_pyais(fpath=os.path.join(dirpath, filename), dbpath=dbpath)
 
 
+def test_parse_1m_eE():
+    dbpath = 'output/eE_202009_test.db'
+    #os.remove(dbpath)
+    dirpath, dirnames, filenames = np.array(list(os.walk('/meridian/AIS_archive/meopar/2020/202009'))[0], dtype=object)
+
+    sept = np.array(sorted(filenames))[ ['.nm4' in filename for filename in sorted(filenames)] ]
+
+    for filename in sept:
+        decode_raw_pyais(fpath=os.path.join(dirpath, filename), dbpath=dbpath)
+
 
 #fpath = '/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018/CCG_AIS_Log_2018-06-01.csv'
 #fpath = '/run/media/matt/My Passport/raw_test/exactEarth_historical_data_2021-04-01.nm4'

@@ -1,24 +1,23 @@
 Tools and utilities for processing AIS data
 
+Setup:
+  ```
+  python3 -m pip install --upgrade numpy pysqlite3-binary pyais shapely requests rasterio packaging selenium
+  ```
+
 Requirements:
-  * Python 3.8
-  * SQLite >= 3.35 (comes with python3.8)
+  * Python 3
+  * SQLite >= 3.35
   * NumPy
   * pyais
-  * qgis
-  * Shapely
 
 Optional:
+  * qgis
+  * Shapely
   * requests
   * selenium
-  * firefox
-  * rasterio (used for loading shore distance from raster file)
+  * rasterio
 
-Scripts included for installing:
-  * geckodriver
-
-
-To test track segmentation, some sample data is provided along with some test code in test/test_segments.py
 
 
 ![ais tracks - one month in the canadian atlantic](https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/output/scriptoutput.png)

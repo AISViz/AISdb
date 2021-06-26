@@ -64,7 +64,8 @@ class dbconn():
             #create_table_coarsetype(self.cur)
 
         else:
-            import sqlite3
+            #import sqlite3
+            import pysqlite3 as sqlite3
             self.lambdas = dict(
                 #in_poly = lambda poly,alias='m123',**_: f'Contains(\n    GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
                 in_poly = lambda poly,alias='m123',**_: f'ST_Contains(\n    ST_GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
@@ -78,6 +79,11 @@ class dbconn():
                 #newdb = not os.path.isfile(dbpath)
                 self.conn = sqlite3.connect(dbpath, timeout=timeout, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
                 self.cur = self.conn.cursor()
+                #self.cur.execute('PRAGMA journal_mode=WAL')
+                #j = self.cur.fetchall()
+                #assert j == [('wal',)], f'journal mode: {j}'
+                #self.conn.commit()
+
                 #self.conn.enable_load_extension(True)
                 #self.cur.execute('SELECT load_extension("mod_spatialite.so")')
                 self.cur.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="coarsetype_ref";')
@@ -89,7 +95,4 @@ class dbconn():
                 #self.cur.execute('PRAGMA temp_store=2')
                 #self.cur.execute('PRAGMA cache_size=10000')
                 #self.cur.execute('PRAGMA synchronous=0')
-                self.cur.execute('PRAGMA journal_mode=WAL')
-                j = self.cur.fetchall()
-                assert j == [('wal',)], f'journal mode: {j}'
 
