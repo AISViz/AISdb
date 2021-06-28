@@ -68,14 +68,13 @@ SELECT CAST(m18.mmsi0 AS INT), m18.t0, m18.x0, m18.y0, m18.cog, m18.sog, m5.vess
 
 # query a union of position reports using rtree indexes
 rtree_dynamic = lambda month, callback, kwargs: (f'''
-    SELECT CAST(m123.mmsi0 AS INT) as mmsi, m123.t0, m123.x0, m123.y0, m123.cog, m123.sog, '123' as msgtype
+    SELECT CAST(m123.mmsi0 AS INT) as mmsi, m123.t0, m123.x0, m123.y0, m123.cog, m123.sog, m123.msgtype
       FROM rtree_{month}_msg_1_2_3 AS m123
       WHERE {callback(month=month, alias='m123', **kwargs)}
     UNION
-    SELECT CAST(m18.mmsi0 AS INT) as mmsi, m18.t0, m18.x0, m18.y0, m18.cog, m18.sog, '18' as msgtype
+    SELECT CAST(m18.mmsi0 AS INT) as mmsi, m18.t0, m18.x0, m18.y0, m18.cog, m18.sog, 18 as msgtype
       FROM rtree_{month}_msg_18 AS m18
-      WHERE {callback(month=month, alias='m18', **kwargs)} 
-''')
+      WHERE {callback(month=month, alias='m18', **kwargs)} ''')
 
 
 # static table views are generated at query-time using CREATE TABLE IF NOT EXISTS... 
@@ -84,6 +83,7 @@ static = lambda month, **_: (f'''
     SELECT mmsi, vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star FROM view_{month}_static ''')
 
 
+"""
 leftjoin_dynamic_static = lambda month, callback, kwargs: (f'''
 WITH dynamic AS MATERIALIZED ( {rtree_dynamic(month, callback, kwargs)} 
 ),
@@ -94,6 +94,16 @@ SELECT dynamic.mmsi, dynamic.t0, dynamic.x0, dynamic.y0, dynamic.cog, dynamic.so
       ON dynamic.mmsi = static.mmsi
     LEFT JOIN coarsetype_ref AS ref 
       ON (static.ship_type = ref.coarse_type) ''')
+"""
 
 
-
+leftjoin_dynamic_static = lambda month, callback, kwargs: (f'''
+WITH dynamic AS ( {rtree_dynamic(month, callback, kwargs)} 
+),
+static AS ( {static(month)} 
+)
+SELECT dynamic.mmsi, dynamic.t0, dynamic.x0, dynamic.y0, dynamic.cog, dynamic.sog, static.vessel_name, ref.coarse_type_txt, dynamic.msgtype
+    FROM dynamic LEFT JOIN static
+      ON dynamic.mmsi = static.mmsi
+    LEFT JOIN coarsetype_ref AS ref 
+      ON (static.ship_type = ref.coarse_type) ''')

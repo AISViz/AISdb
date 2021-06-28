@@ -67,11 +67,13 @@ class qrygen(UserDict):
         if 'xy' in self.keys() and not 'x' in self.keys() and not 'y' in self.keys(): 
             self['x'] = self['xy'][::2]; self['y'] = self['xy'][1::2]
 
-        if sum(map(lambda t: t in kwargs.keys(), ('start', 'end',))) == 2: 
+        #if sum(map(lambda t: t in kwargs.keys(), ('start', 'end',))) == 2: 
+        if 'start' in self.data.keys() and 'end' in self.data.keys(): 
             if isinstance(kwargs['start'], datetime):
                 self.data.update({'months':dt2monthstr(**kwargs)})
             elif isinstance(kwargs['start'], (float, int)):
                 self.data.update({'months':epoch2monthstr(**kwargs)})
+            else: assert False
 
         if 'x' in self.data.keys() and 'y' in self.data.keys():
 
@@ -128,7 +130,7 @@ class qrygen(UserDict):
         ''' returns an SQL query to crawl the database 
             query generated using given query function, parameters stored in self, and a callback function 
         '''
-        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 7, 2'
+        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 2'
 
 
     def crawl_unordered(self, callback, qryfcn=msg123union18join5):
