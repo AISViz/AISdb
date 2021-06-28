@@ -21,7 +21,7 @@ def compute_knots(track, rng):#, mask=[True for _ in rng]):
     """
     meters = np.array(list(map(haversine, track['lon'][rng][:-1], track['lat'][rng][:-1], track['lon'][rng][1:], track['lat'][rng][1:])))
     #seconds = np.array(list(map(timedelta.total_seconds, (track['time'][rng][1:] - track['time'][rng][:-1]))))
-    seconds = np.array(list((track['time'][rng][1:] - track['time'][rng][:-1])))
+    seconds = np.array(list((track['time'][rng][1:] - track['time'][rng][:-1]))) * 60
     return meters / seconds * 1.9438445
 
 
@@ -37,6 +37,35 @@ def zones_from_txts(dirpath='../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', d
     zones['hull'] = unary_union(zones['geoms'].values()).convex_hull
     zones['hull_xy'] = merge(zones['hull'].boundary.coords.xy)
     return zones
+
+
+def parse_zones_from_txts(dbpath, dirpath='../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', domain='east'):
+
+    from database.create_tables import sqlite_create_table_polygons
+    import pickle
+    aisdb = dbconn(dbpath)
+    conn, cur = aisdb.conn, aisdb.cur
+    sqlite_create_table_polygons(aisdb.cur)
+
+    _, dirnames, filenames = np.array(list(os.walk(dirpath)), dtype=object).T
+    txts = list(map(lambda txt: f'{dirpath}/{txt}', sorted(filter(lambda f: f[-3:] == 'txt', filenames[-1]))))
+    #merge = lambda *arr: np.concatenate(np.array(*arr).T)
+    #zones = {'domain': domain, 'geoms': {}}
+    for txt in txts:
+        with open(txt, 'r') as f: pts = f.read()
+        xy = list(map(float, pts.replace('\n\n', '').replace('\n',',').split(',')[:-1]))
+        minX, maxX, minY, maxY = min(xy[::2]), max(xy[::2]), min(xy[1::2]), max(xy[1::2])
+        #zones['geoms'][txt.rsplit(os.path.sep,1)[1].split('.')[0]] = 
+        name = txt.rsplit(os.path.sep,1)[1].split('.')[0]
+        poly = Polygon(zip(xy[::2], xy[1::2]))
+        row = (minX, maxX, minY, maxY, name, domain, pickle.dumps(poly))
+        cur.execute(''' 
+            INSERT INTO rtree_polygons (minX, maxX, minY, maxY, objname, domain, binary)
+            VALUES (?,?,?,?,?,?,?) ''', row)
+    #zones['hull'] = unary_union(zones['geoms'].values()).convex_hull
+    #zones['hull_xy'] = merge(zones['hull'].boundary.coords.xy)
+    #return zones
+    conn.commit()
 
 
 def dms2dd(d, m, s, ax):
