@@ -3,6 +3,8 @@ from datetime import timedelta
 
 import numpy as np
 
+from database import epoch_2_dt
+
 
 def trackgen(rows: np.ndarray, colnames: list = ['mmsi', 'time', 'lon', 'lat', 'cog', 'sog', 'name', 'type']) -> dict:
     '''
@@ -13,17 +15,22 @@ def trackgen(rows: np.ndarray, colnames: list = ['mmsi', 'time', 'lon', 'lat', '
         colnames is the name associated with each column type in rows. 
         first two columns must be ['mmsi', 'time']
     '''
+    assert colnames[0] == 'mmsi'
+    assert colnames[1] == 'time'
+
+    staticcols = set(colnames) & set(['name', 'type', 'dim_bow', 'dim_stern', 'dim_port', 'dim_star', 'mother_ship_mmsi', 'part_number', 'vendor_id', 'model', 'serial'])
+    dynamiccols = set(colnames) - staticcols - set(['mmsi', 'time'])
+
     tracks_idx = np.append(np.append([0], np.nonzero(rows[:,0].astype(int)[1:] != rows[:,0].astype(int)[:-1])[0]+1), len(rows))
+
     for i in range(len(tracks_idx)-1): 
         yield dict(
             mmsi=int(rows[tracks_idx[i]][0]),
+            #time=epoch_2_dt(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]),
             time=rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
-            **{ n : rows[tracks_idx[i]:tracks_idx[i+1]].T[c] for c,n in zip(range(2, len(colnames)), colnames[2:])},
+            **{ n : rows[tracks_idx[i]][c] for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in staticcols},
+            **{ n : rows[tracks_idx[i]:tracks_idx[i+1]].T[c] for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in dynamiccols},
         )
-
-            ##**{ n : rows[tracks_idx[i]:tracks_idx[i+1]].T[c].astype(float) for c,n in zip(range(2, len(colnames)), colnames[2:])},
-            #name=str(rows[tracks_idx[i]][6]).rstrip() if len(tracks_idx[i]) >= 6 else None,
-            #type=rows[tracks_idx[i]][7] if len(tracks_idx[i]) >= 7 else None,
 
 
 #def segment(track: dict, maxdelta: timedelta, minsize: int) -> filter:
@@ -47,7 +54,7 @@ def filtermask(track, rng, filters):
     '''
     mask = reduce(np.logical_and, map(lambda f: f(track, rng), filters))
     #return np.logical_and(np.append([True], mask), np.append(mask, [True]))
-    return np.append([True], mask)
+    return np.append([False], mask)
 
 
 def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
