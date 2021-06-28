@@ -27,8 +27,8 @@ class index():
         requires python3.8
     """
 
-    # compute 8-bit integer hash for a given dictionary
-    hash_dict = lambda self, kwargs, seed='': int(md5((str(seed) + json.dumps(kwargs, sort_keys=True, default=str)).encode('utf-8')).hexdigest(), base=16) >> 80
+    # compute 8-byte integer hash for a given dictionary
+    hash_dict = lambda self, kwargs, seed='': int(md5((str(seed) + json.dumps(kwargs, sort_keys=True, default=str)).encode('utf-8')).hexdigest(), base=16) >> 66
 
     def __init__(self, *, pool=1, store=False, inmemory=False, bins=True, dx=2, dy=2, dz=5000, dt=timedelta(days=1), storagedir=os.getcwd(), filename='checksums.db', **kwargs): 
         """
