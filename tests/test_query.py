@@ -18,6 +18,8 @@ poly_xy = canvaspoly.boundary.coords.xy
 
 dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
 dbpath = '/run/media/matt/My Passport/june2018-06-0_test2.db'
+dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
+dbpath = 'output/eE_202009_test_backup24h.db'
 
 
 def test_query_smallboundary_statictables():
@@ -53,16 +55,20 @@ def test_query_smallboundary_dynamictables():
 def test_query_smallboundary_join_static_dynamic():
 
     # join rtree tables with aggregate position reports 
+    start   = datetime(2018,6,1)
+    end     = datetime(2018,6,2)
+
     dt = datetime.now()
     rows = qrygen(
             xy = merge(canvaspoly.boundary.coords.xy),
-            start   = datetime(2018,6,1),
-            end     = datetime(2018,6,2),
+            start   = start,
+            end     = end,
             xmin    = min(poly_xy[0]), 
             xmax    = max(poly_xy[0]), 
             ymin    = min(poly_xy[1]), 
             ymax    = max(poly_xy[1]),
         ).run_qry(dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=leftjoin_dynamic_static)
+    #dt = datetime.now()
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
 
@@ -74,6 +80,7 @@ def test_plot_smallboundary():
     canvaspoly = viz.poly_from_coords()
     poly_xy = canvaspoly.boundary.coords.xy
 
+    dt = datetime.now()
     rows = qrygen(
             xy = merge(canvaspoly.boundary.coords.xy),
             start   = datetime(2018,6,1),
@@ -83,6 +90,8 @@ def test_plot_smallboundary():
             ymin    = min(poly_xy[1]), 
             ymax    = max(poly_xy[1]),
         ).run_qry(dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=leftjoin_dynamic_static) 
+    delta =datetime.now() - dt
+    print(f'query time: {delta.total_seconds():.2f}s')
 
     filters = [
             lambda track, rng: [True for _ in rng][:-1],
@@ -102,7 +111,7 @@ def test_plot_smallboundary():
         trackfeatures.append(linegeom)
         pts = MultiPoint(list(zip(track['lon'][rng][mask], track['lat'][rng][mask])))
         ptfeatures.append(pts)
-        identifiers.append(track['type'][0] or track['mmsi'])
+        identifiers.append(track['type'] or track['mmsi'])
 
     for ft, ident in zip(trackfeatures, identifiers): 
         viz.add_feature_polyline(ft, ident)
@@ -119,6 +128,74 @@ def test_plot_smallboundary():
 
     rows[rows[:,0] == 316002048]
     '''
+
+
+def test_cluster_stopped():
+    import hdbscan
+    from shapely.geometry import Polygon, LineString, MultiPoint
+
+    viz = TrackViz()
+
+    canvaspoly = viz.poly_from_coords()
+    poly_xy = canvaspoly.boundary.coords.xy
+
+    dt = datetime.now()
+    rows = qrygen(
+            xy = merge(canvaspoly.boundary.coords.xy),
+            start   = datetime(2018,6,1),
+            end     = datetime(2018,6,7),
+            xmin    = min(poly_xy[0]), 
+            xmax    = max(poly_xy[0]), 
+            ymin    = min(poly_xy[1]), 
+            ymax    = max(poly_xy[1]),
+        ).run_qry(dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=leftjoin_dynamic_static) 
+    delta =datetime.now() - dt
+    print(f'query time: {delta.total_seconds():.2f}s')
+
+    filters = [
+            lambda track, rng: compute_knots(track, rng) < 1,
+        ]
+
+    # generate track lines
+    cluster_x = []
+    cluster_y = []
+    for track in trackgen(rows, ):#colnames=['mmsi', 'time', 'lon', 'lat', 'cog', 'sog']):
+        rng = range(0, len(track['lon']))
+        mask = filtermask(track, rng, filters)
+        if track['lon'][rng][0] <= -180: mask[0] = False
+        print(f'{track["mmsi"]} {rng=}:\tfiltered ', len(rng) - sum(mask),'/', len(rng))
+        if sum(mask) <= 2: continue
+        cluster_x = np.append(cluster_x, track['lon'][rng][mask])
+        cluster_y = np.append(cluster_y, track['lat'][rng][mask])
+
+    pos_matrix = np.vstack((cluster_x, cluster_y)).T
+    pos_matrix_rad = np.vstack(([np.deg2rad(x) for x in cluster_x], [np.deg2rad(y) for y in cluster_y])).T
+
+    clusterer = hdbscan.HDBSCAN(
+            min_cluster_size=5, 
+            metric='haversine', 
+            prediction_data=False, 
+            cluster_selection_epsilon=0.003)
+
+    labels = clusterer.fit_predict(pos_matrix_rad)
+
+    for label in np.unique(labels):
+        if label == -1: continue
+        cluster_idx = labels == label
+        if len(np.unique(pos_matrix[cluster_idx][:,0])) < 2 or len(np.unique(pos_matrix[cluster_idx][:,1])) < 2: continue
+        pts = MultiPoint( pos_matrix[cluster_idx] ) 
+        #viz.add_feature_point(pts, ident=label)
+        polyxy = merge(unary_union(pts).convex_hull.boundary.coords.xy)
+        poly = Polygon(zip(polyxy[::2], polyxy[1::2]))
+        viz.add_feature_polyline(poly, label)
+
+    viz.clearfeatures()
+    
+    
+    #for ft, ident in zip(trackfeatures, identifiers): 
+    #    viz.add_feature_polyline(ft, ident)
+
+    #viz.clear_lines()
 
 
 def test_sdd_hdd():
