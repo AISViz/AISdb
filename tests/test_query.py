@@ -20,7 +20,7 @@ dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
 dbpath = '/run/media/matt/My Passport/june2018-06-0_test2.db'
 dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
 dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
-#dbpath = 'output/eE_202009_test_backup24h.db'
+dbpath = '/meridian/aisdb/eE_202009_test2.db'
 
 
 def test_query_smallboundary_statictables():

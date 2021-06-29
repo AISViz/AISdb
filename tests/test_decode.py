@@ -51,14 +51,16 @@ def test_parse_1m():
 
 
 def test_parse_1m_eE():
-    dbpath = 'output/eE_202009_test.db'
+    dbpath = '/meridian/aisdb/eE_202009_test2.db'
     #os.remove(dbpath)
     dirpath, dirnames, filenames = np.array(list(os.walk('/meridian/AIS_archive/meopar/2020/202009'))[0], dtype=object)
 
-    sept = np.array(sorted(filenames))[ ['.nm4' in filename for filename in sorted(filenames)] ]
+    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '.nm4' in f])
 
-    for filename in sept:
-        decode_raw_pyais(fpath=os.path.join(dirpath, filename), dbpath=dbpath)
+    dt = datetime.now()
+    parallel_decode(filepaths, dbpath)
+    delta =datetime.now() - dt
+    print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
 
 def test_sort_1w():
