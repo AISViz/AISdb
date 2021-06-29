@@ -270,6 +270,46 @@ def create_table_msg24(cur, month):
     else: assert False
 
 
+def aggregate_static_msg5_msg24(cur, months_str):
+    #aisdb = dbconn(dbpath)
+    for month in months_str:
+        cur.execute(f''' SELECT name FROM sqlite_master WHERE type='table' AND name='view_{month}_static' ''')
+        if not [] == cur.fetchall(): continue
+        print(f'aggregating static messages 5, 24 into view_{month}_static...')
+        cur.execute(f'''
+        CREATE TABLE IF NOT EXISTS view_{month}_static AS SELECT * FROM (
+            SELECT m5.mmsi, m5.vessel_name, m5.ship_type, m5.dim_bow, m5.dim_stern, m5.dim_port, m5.dim_star, 
+            COUNT(*) as n 
+              FROM ais_{month}_msg_5 AS m5
+              GROUP BY m5.mmsi, m5.ship_type, m5.vessel_name
+              HAVING n > 1
+            UNION
+            SELECT m24.mmsi, m24.vessel_name, m24.ship_type, m24.dim_bow, m24.dim_stern, m24.dim_port, m24.dim_star, 
+            COUNT(*) as n
+              FROM ais_{month}_msg_24 AS m24
+              GROUP BY m24.mmsi, m24.ship_type, m24.vessel_name
+              HAVING n > 1
+            ORDER BY 1 , 8 , 2 , 3 
+        ) 
+        GROUP BY mmsi
+        HAVING MAX(n) > 1
+        ''')
+
+        print(f'indexing view_{month}_static...')
+        cur.execute(f''' CREATE UNIQUE INDEX IF NOT EXISTS idx_view_{month}_static ON 'view_{month}_static' (mmsi) ''')
+
+        #aisdb.cur.execute(f''' CREATE INDEX IF NOT EXISTS idx_msg5_{month}_shiptype ON 'ais_{month}_msg_5' (ship_type) ''')
+        #aisdb.cur.execute(f''' CREATE INDEX IF NOT EXISTS idx_msg5_{month}_vesselname ON 'ais_{month}_msg_5' (vessel_name) ''')
+        #aisdb.cur.execute(f''' SELECT * FROM view_{month}_static ''')
+        #res = np.array(aisdb.cur.fetchall(), dtype=object)
+        #aisdb.cur.execute(f''' SELECT count(*) FROM ais_{month}_msg_5''')
+        #res = np.array(aisdb.cur.fetchall(), dtype=object)
+        #aisdb.cur.execute(f''' DROP TABLE view_{month}_static ''')
+        #aisdb.cur.execute(f''' DROP INDEX idx_msg5_{month}_vesselname ''')
+        #aisdb.cur.execute(f''' DROP INDEX idx_msg5_{month}_shiptype ''')
+    #aisdb.conn.close()
+
+
 def create_table_msg27(cur, month):
     cur.execute(f'''
             CREATE TABLE ais_{month}_msg_27 (

@@ -312,9 +312,11 @@ def parallel_decode(filepaths, dbpath):
     if not os.path.isdir(tmpdir): 
         os.mkdir(tmpdir)
 
+    # decode and serialize
     proc = partial(decode_raw_pyais, tmpdir=tmpdir)
-
-    with Pool(8) as p:
+    
+    # parallelize decoding step
+    with Pool(12) as p:
         list(p.imap_unordered(proc, filepaths))
 
     insertfcn = {
@@ -331,10 +333,14 @@ def parallel_decode(filepaths, dbpath):
     aisdb = dbconn(dbpath=dbpath)
     conn, cur = aisdb.conn, aisdb.cur
 
+    months_str = []
+
+    # deserialize
     for picklefile in sorted(os.listdir(tmpdir)):
         msgtype     = picklefile.split('_', 1)[1].rsplit('.', 1)[0]
         regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(picklefile)
         mstr        = picklefile[regexdate.start():regexdate.end()][:-2]
+        if mstr not in months_str: months_str.append(mstr)
 
         if msgtype == 'msg11' or msgtype == 'msg27' or msgtype == 'msg19' or msgtype == 'msg4': 
             os.remove(os.path.join(tmpdir, picklefile))
@@ -356,6 +362,9 @@ def parallel_decode(filepaths, dbpath):
         delta =datetime.now() - dt
         print(f'insert time {picklefile}:\t{delta.total_seconds():.2f}s')
         os.remove(os.path.join(tmpdir, picklefile))
+
+    # aggregate and index static reports: msg5, msg24
+    aggregate_static_msg5_msg25(cur, months_str)
 
     conn.close()
 
