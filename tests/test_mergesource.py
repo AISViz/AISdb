@@ -11,6 +11,7 @@ from track_gen import *
 
 
 dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
+dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
 
 
 
@@ -30,9 +31,21 @@ def test_output_allsource():
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
 
+    #zones = zones_east
     aisdb = dbconn(dbpath)
     conn, cur = aisdb.conn, aisdb.cur
     cur.execute('SELECT objname, binary FROM rtree_polygons WHERE domain = "east"')
     zones = dict(domain='east', geoms={p[0]: pickle.loads(p[1]) for p in cur.fetchall()})
 
     tracks = np.array(list(trackgen(rows)))
+    
+    # step into loops
+    track = tracks[0]
+    rng = list(segment(track, maxdelta=timedelta(hours=2), minsize=3))[0]
+    mask = filtermask(track, rng, filters)
+    n = sum(mask)
+    c = 0
+    
+
+
+

@@ -26,7 +26,6 @@ def trackgen(rows: np.ndarray, colnames: list = ['mmsi', 'time', 'lon', 'lat', '
     for i in range(len(tracks_idx)-1): 
         yield dict(
             mmsi=int(rows[tracks_idx[i]][0]),
-            #time=epoch_2_dt(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]),
             time=rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
             **{ n : rows[tracks_idx[i]][c] for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in staticcols},
             **{ n : rows[tracks_idx[i]:tracks_idx[i+1]].T[c] for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in dynamiccols},

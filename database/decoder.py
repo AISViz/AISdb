@@ -214,7 +214,7 @@ def append_file(picklefile, batch):
         # skip duplicate epoch-minute timestamps for each mmsi
         keepidx = np.nonzero([x['mmsi']!=y['mmsi'] or x['epoch']!=y['epoch'] for x,y in zip(rows[1:], rows[:-1])])[0]-1
         # write to disk
-        with open(f'{picklefile}_{key}.pickle', 'ab') as f:
+        with open(f'{picklefile}_{key}', 'ab') as f:
             #f.write(json.dumps(str(list(rows[keepidx])).replace("'", '').replace('"', '').replace('[', '').replace(']', '')))
             pickle.dump(rows[keepidx], f)
 

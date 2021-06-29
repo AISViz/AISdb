@@ -7,22 +7,17 @@ from datetime import datetime, timedelta
 
 import numpy as np
 from shapely.geometry import Point, LineString, Polygon
-#from shapely.prepared import prep
 
 from gis import compute_knots
 from database import dt2monthstr, dbconn
 from track_gen import trackgen, segment, filtermask, writecsv
+from shore_dist import shore_dist_gfw
 
-#from numba import vectorize
-#os.environ['NUMBAPRO_LIBDEVICE'] = "/usr/local/cuda-10.0/nvvm/libdevice"
-#os.environ['NUMBAPRO_NVVM'] = "/usr/local/cuda-10.0/nvvm/lib64/libnvvm.so"
-#@vectorize
-#@vectorize(['None(dict)'], target='cuda')
 
-#aisdb = dbconn()
-#conn = aisdb.conn
+sdist = shore_dist_gfw()
 
-def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type', ], keepcols=['time', 'lon', 'lat', 'cog', 'sog']):
+
+def _geofence_proc(track, zones, sdist, csvfile=None, staticcols=['mmsi', 'name', 'type', ], keepcols=['time', 'lon', 'lat', 'cog', 'sog']):
     ''' parallel process function for segmenting and geofencing tracks
         appends columns for bathymetry, shore dist, and hull surface area
     '''
@@ -31,6 +26,8 @@ def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type
     filters = [
             lambda track, rng: compute_knots(track, rng) < 50,
         ]
+    
+
     for rng in segment(track, maxdelta=timedelta(hours=2), minsize=3):
         mask = filtermask(track, rng, filters)
         if (n := sum(mask)) == 0: continue
@@ -42,6 +39,9 @@ def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type
             # from these zones, get zone for individual points
             zoneID = (([k for k,v in in_zones.items() if v.contains(p)] or [None])[0] 
                     for p in map(Point, zip(track['lon'][rng][mask][c:nc], track['lat'][rng][mask][c:nc])) )
+
+            track_shore_dist = np.array([sdist.getdist(lon, lat) for lon, lat in zip(track['lon'][rng][mask][c:nc], track['lat'][rng][mask][c:nc])]) 
+
             writecsv(
                     np.vstack((
                         *(np.array([track[col] for _ in range(n)])[c:nc] for col in staticcols),
@@ -52,7 +52,7 @@ def _geofence_proc(track, zones, csvfile=None, staticcols=['mmsi', 'name', 'type
                         np.array([zones['domain'] for _ in range(n)])[c:nc],
                         #bathymetry=None,#kadlu.load(src='gebco', var='bathy')
                         np.array([None for _ in range(n)])[c:nc], # bathymetry
-                        np.array([None for _ in range(n)])[c:nc], # shore dist
+                        track_shore_dist,
                         np.array([None for _ in range(n)])[c:nc], # approx hull area
                     )).T, 
                     csvfile + f'.{track["mmsi"]}', 
@@ -69,12 +69,12 @@ def geofence(rows, zones, csvfile):
             set_start_method('forkserver')
     """
     t1 = datetime.now()
-    with open(csvfile, 'w') as f: f.write('mmsi,vessel_name,vessel_type,time,lon,lat,heading_reported,sog_reported,sog_computed,zone_ID,domain_ID,#bathymetry,shore_dist,hull_surface\n')
+    with open(csvfile, 'w') as f: f.write('mmsi,vessel_name,vessel_type,time,lon,lat,heading_reported,sog_reported,sog_computed,zone_ID,domain_ID,bathymetry,shore_dist,hull_surface\n')
 
     print('parallelizing...')
 
     with Pool(processes=min(32, os.cpu_count()-2)) as p: 
-        p.imap_unordered(partial(_geofence_proc, zones=zones, csvfile=csvfile), trackgen(rows), chunksize=1)
+        p.imap_unordered(partial(_geofence_proc, zones=zones, sdist=sdist, csvfile=csvfile), trackgen(rows), chunksize=1)
         p.close()
         p.join()
 

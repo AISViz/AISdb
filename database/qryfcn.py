@@ -83,27 +83,19 @@ static = lambda month, **_: (f'''
     SELECT mmsi, vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star FROM view_{month}_static ''')
 
 
-"""
-leftjoin_dynamic_static = lambda month, callback, kwargs: (f'''
-WITH dynamic AS MATERIALIZED ( {rtree_dynamic(month, callback, kwargs)} 
-),
-static AS MATERIALIZED ( {static(month)} 
-)
-SELECT dynamic.mmsi, dynamic.t0, dynamic.x0, dynamic.y0, dynamic.cog, dynamic.sog, static.vessel_name, ref.coarse_type_txt, dynamic.msgtype
-    FROM dynamic LEFT JOIN static
-      ON dynamic.mmsi = static.mmsi
-    LEFT JOIN coarsetype_ref AS ref 
-      ON (static.ship_type = ref.coarse_type) ''')
-"""
-
 
 leftjoin_dynamic_static = lambda month, callback, kwargs: (f'''
-WITH dynamic AS ( {rtree_dynamic(month, callback, kwargs)} 
+WITH dynamic_{month} AS ( {rtree_dynamic(month, callback, kwargs)} 
 ),
-static AS ( {static(month)} 
+static_{month} AS ( {static(month)} 
 )
-SELECT dynamic.mmsi, dynamic.t0, dynamic.x0, dynamic.y0, dynamic.cog, dynamic.sog, static.vessel_name, ref.coarse_type_txt, dynamic.msgtype
-    FROM dynamic LEFT JOIN static
-      ON dynamic.mmsi = static.mmsi
+SELECT dynamic_{month}.mmsi, dynamic_{month}.t0, 
+        dynamic_{month}.x0, dynamic_{month}.y0, 
+        dynamic_{month}.cog, dynamic_{month}.sog, 
+        static_{month}.vessel_name, ref.coarse_type_txt, dynamic_{month}.msgtype, 
+        static_{month}.dim_bow, static_{month}.dim_stern, 
+        static_{month}.dim_port, static_{month}.dim_star
+    FROM dynamic_{month} LEFT JOIN static_{month}
+      ON dynamic_{month}.mmsi = static_{month}.mmsi
     LEFT JOIN coarsetype_ref AS ref 
-      ON (static.ship_type = ref.coarse_type) ''')
+      ON (static_{month}.ship_type = ref.coarse_type) ''')
