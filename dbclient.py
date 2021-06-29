@@ -12,6 +12,7 @@ from gis import compute_knots
 from database import dt2monthstr, dbconn
 from track_gen import trackgen, segment, filtermask, writecsv
 from shore_dist import shore_dist_gfw
+from webdata.marinetraffic import scrape_tonnage
 
 
 sdist = shore_dist_gfw()
@@ -26,6 +27,7 @@ def _geofence_proc(track, zones, sdist, csvfile=None, staticcols=['mmsi', 'name'
     filters = [
             lambda track, rng: compute_knots(track, rng) < 50,
         ]
+
     
 
     for rng in segment(track, maxdelta=timedelta(hours=2), minsize=3):

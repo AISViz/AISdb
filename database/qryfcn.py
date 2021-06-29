@@ -92,10 +92,12 @@ static_{month} AS ( {static(month)}
 SELECT dynamic_{month}.mmsi, dynamic_{month}.t0, 
         dynamic_{month}.x0, dynamic_{month}.y0, 
         dynamic_{month}.cog, dynamic_{month}.sog, 
-        static_{month}.vessel_name, ref.coarse_type_txt, dynamic_{month}.msgtype, 
+        static_{month}.vessel_name, ref.coarse_type_txt, 
+        dynamic_{month}.msgtype, static_{month}.imo,
         static_{month}.dim_bow, static_{month}.dim_stern, 
         static_{month}.dim_port, static_{month}.dim_star
     FROM dynamic_{month} LEFT JOIN static_{month}
       ON dynamic_{month}.mmsi = static_{month}.mmsi
     LEFT JOIN coarsetype_ref AS ref 
       ON (static_{month}.ship_type = ref.coarse_type) ''')
+

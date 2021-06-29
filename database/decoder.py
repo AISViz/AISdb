@@ -364,7 +364,8 @@ def parallel_decode(filepaths, dbpath):
         os.remove(os.path.join(tmpdir, picklefile))
 
     # aggregate and index static reports: msg5, msg24
-    aggregate_static_msg5_msg25(cur, months_str)
+    #aggregate_static_msg5_msg25(cur, months_str)
+    print('SKIPPING AGGREGATE STEP - debugging...')
 
     conn.close()
 

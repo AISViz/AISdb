@@ -85,6 +85,42 @@ def test_sort_1m():
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
+
+def test_aggregate_staticreports():
+        cur.execute(f"""
+            SELECT m5.mmsi, m5.vessel_name, m5.ship_type, m5.dim_bow, m5.dim_stern, 
+            m5.dim_port, m5.dim_star, m5.imo, m5.time 
+            --, COUNT(*) as n 
+              FROM ais_{month}_msg_5 AS m5
+              GROUP BY m5.mmsi, m5.ship_type, m5.vessel_name
+              --HAVING n > 1
+        """)
+
+        cur.execute(f'''
+        CREATE TABLE IF NOT EXISTS view_{month}_static AS SELECT * FROM (
+
+        cur.execute(f"""
+            SELECT m5.mmsi, m5.vessel_name, m5.ship_type, m5.dim_bow, m5.dim_stern, m5.dim_port, m5.dim_star, m5.imo, m5.time
+            --, COUNT(*) as n 
+              FROM ais_{month}_msg_5 AS m5
+              GROUP BY m5.mmsi, m5.ship_type, m5.vessel_name
+              --HAVING n > 1
+        """)
+        res = cur.fetchall()
+
+            UNION
+            SELECT m24.mmsi, m24.vessel_name, m24.ship_type, m24.dim_bow, m24.dim_stern, m24.dim_port, m24.dim_star, 
+            COUNT(*) as n
+              FROM ais_{month}_msg_24 AS m24
+              GROUP BY m24.mmsi, m24.ship_type, m24.vessel_name
+              --HAVING n > 1
+            ORDER BY 1 , 8 , 2 , 3 
+        ) 
+        GROUP BY mmsi
+        HAVING MAX(n) > 1
+        ''')
+        res = cur.fetchall()
+
 #fpath = '/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018/CCG_AIS_Log_2018-06-01.csv'
 #fpath = '/run/media/matt/My Passport/raw_test/exactEarth_historical_data_2021-04-01.nm4'
 #dbpath = '/run/media/matt/My Passport/ais_august.db'

@@ -5,7 +5,7 @@
 
 import os
 
-from hashindex.index import index
+from index import index
 from webdata.scraper import *
 
 ### TODO: check if driver is already defined in main. if so, exit

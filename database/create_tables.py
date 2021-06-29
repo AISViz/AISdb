@@ -211,10 +211,9 @@ def create_table_msg5(cur, month):
                 mode smallint
             ) ''')
     if dbtype == 'sqlite3':
-        cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg5_mmsi_time ON 'ais_{month}_msg_5' (mmsi, time)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi ON 'ais_{month}_msg_5' (mmsi)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg5_time ON 'ais_{month}_msg_5' (time)''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg5_imo  ON 'ais_{month}_msg_5' (imo)''')
-        #cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi ON 'ais_{month}_msg_5' (mmsi)''')
-        #cur.execute(f''' CREATE INDEX idx_{month}_msg5_time ON 'ais_{month}_msg_5' (time)''')
     elif dbtype == 'postgres':
         print('indexes not implemented yet for postgres')
         pass
@@ -261,9 +260,8 @@ def create_table_msg24(cur, month):
             );
         ''')
     if dbtype == 'sqlite3':
-        cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg24_mmsi_time ON 'ais_{month}_msg_24' (mmsi, time)''')
-        #cur.execute(f''' CREATE INDEX idx_{month}_msg24_time ON 'ais_{month}_msg_24' (time)''')
-        #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg24_mmsi_time ON 'ais_{month}_msg_24' (mmsi, time)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg24_mmsi ON 'ais_{month}_msg_24' (mmsi)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg24_time ON 'ais_{month}_msg_24' (time)''')
     elif dbtype == 'postgres':
         print('indexes not implemented yet for postgres')
         pass
@@ -278,17 +276,17 @@ def aggregate_static_msg5_msg24(cur, months_str):
         print(f'aggregating static messages 5, 24 into view_{month}_static...')
         cur.execute(f'''
         CREATE TABLE IF NOT EXISTS view_{month}_static AS SELECT * FROM (
-            SELECT m5.mmsi, m5.vessel_name, m5.ship_type, m5.dim_bow, m5.dim_stern, m5.dim_port, m5.dim_star, 
-            COUNT(*) as n 
+            SELECT m5.mmsi, m5.vessel_name, m5.ship_type, m5.dim_bow, m5.dim_stern, 
+                m5.dim_port, m5.dim_star, m5.imo, COUNT(*) as n 
               FROM ais_{month}_msg_5 AS m5
               GROUP BY m5.mmsi, m5.ship_type, m5.vessel_name
               HAVING n > 1
             UNION
-            SELECT m24.mmsi, m24.vessel_name, m24.ship_type, m24.dim_bow, m24.dim_stern, m24.dim_port, m24.dim_star, 
-            COUNT(*) as n
+            SELECT m24.mmsi, m24.vessel_name, m24.ship_type, m24.dim_bow, m24.dim_stern, 
+                m24.dim_port, m24.dim_star, NULL as imo, COUNT(*) as n
               FROM ais_{month}_msg_24 AS m24
               GROUP BY m24.mmsi, m24.ship_type, m24.vessel_name
-              HAVING n > 1
+              --HAVING n > 1
             ORDER BY 1 , 8 , 2 , 3 
         ) 
         GROUP BY mmsi
