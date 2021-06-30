@@ -92,7 +92,7 @@ def insert_msg123(cur, mstr, rows):
         r['maneuver'], r['second']
         )   for r in rows
     )
-    cur.executemany(f'INSERT OR IGNORE INTO ais_{mstr}_msg_1_2_3 '
+    cur.executemany(f'INSERT INTO ais_{mstr}_msg_1_2_3 '
                     '(mmsi, time, msgtype, longitude, latitude, '
                     'navigational_status, rot, sog, cog, '
                     'heading, maneuver, utc_second) '
@@ -114,7 +114,7 @@ def insert_msg5(cur, mstr, rows):
                 r['hour'], r['minute'], r['draught'], r['destination'], r['dte'], r['epoch']
             ) for r in rows 
         )
-    cur.executemany(f'INSERT OR IGNORE INTO ais_{mstr}_msg_5 '
+    cur.executemany(f'INSERT INTO ais_{mstr}_msg_5 '
                     '(message_id, repeat_indicator, mmsi, ais_version, imo, call_sign, '
                     'vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star, '
                     'fixing_device, eta_month, eta_day, eta_hour, eta_minute, draught, '
@@ -150,7 +150,7 @@ def insert_msg18(cur, mstr, rows):
         r['speed'], r['course'], r['heading'], r['second'],
         ) for r in rows
     )
-    cur.executemany(f'INSERT OR IGNORE INTO ais_{mstr}_msg_18'
+    cur.executemany(f'INSERT INTO ais_{mstr}_msg_18'
                     '(mmsi, time, msgtype, longitude, latitude, '
                     'navigational_status, sog, cog, '
                     'heading, utc_second) '
@@ -181,7 +181,7 @@ def insert_msg24(cur, mstr, rows):
             r['epoch'],
         ) for r in rows
     )
-    cur.executemany(f'INSERT OR IGNORE INTO ais_{mstr}_msg_24 '
+    cur.executemany(f'INSERT INTO ais_{mstr}_msg_24 '
                     '(message_id, repeat_indicator, mmsi, sequence_id, vessel_name, ship_type, vendor_id,  '
                     'model, serial, call_sign, dim_bow, dim_stern, dim_port, dim_star, mother_ship_mmsi, time) '
                     'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', tup24)
@@ -364,8 +364,8 @@ def parallel_decode(filepaths, dbpath):
         os.remove(os.path.join(tmpdir, picklefile))
 
     # aggregate and index static reports: msg5, msg24
-    #aggregate_static_msg5_msg25(cur, months_str)
-    print('SKIPPING AGGREGATE STEP - debugging...')
+    aggregate_static_msg5_msg25(cur, months_str)
+    conn.commit()
 
     conn.close()
 

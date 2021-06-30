@@ -77,11 +77,9 @@ rtree_dynamic = lambda month, callback, kwargs: (f'''
       WHERE {callback(month=month, alias='m18', **kwargs)} ''')
 
 
-# static table views are generated at query-time using CREATE TABLE IF NOT EXISTS... 
 # see build_views function in qrygen.py 
 static = lambda month, **_: (f'''
-    SELECT mmsi, vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star FROM view_{month}_static ''')
-
+    SELECT mmsi, vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star, imo FROM static_{month}_aggregate ''')
 
 
 leftjoin_dynamic_static = lambda month, callback, kwargs: (f'''

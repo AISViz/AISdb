@@ -1,3 +1,7 @@
+from collections import Counter
+
+import numpy as np
+
 from database import dbconn
 
 aisdb = dbconn()
@@ -269,43 +273,56 @@ def create_table_msg24(cur, month):
 
 
 def aggregate_static_msg5_msg24(cur, months_str):
-    #aisdb = dbconn(dbpath)
+    #aisdb = dbconn(dbpath=dbpath)
+    #conn, cur = aisdb.conn, aisdb.cur
+    #month = '201806'
+
     for month in months_str:
-        cur.execute(f''' SELECT name FROM sqlite_master WHERE type='table' AND name='view_{month}_static' ''')
-        if not [] == cur.fetchall(): continue
-        print(f'aggregating static messages 5, 24 into view_{month}_static...')
-        cur.execute(f'''
-        CREATE TABLE IF NOT EXISTS view_{month}_static AS SELECT * FROM (
-            SELECT m5.mmsi, m5.vessel_name, m5.ship_type, m5.dim_bow, m5.dim_stern, 
-                m5.dim_port, m5.dim_star, m5.imo, COUNT(*) as n 
+        print(f'aggregating static reports 5, 24 into static_{month}_aggregate...\n')
+        cur.execute(f''' DROP TABLE IF EXISTS static_{month}_aggregate ''')
+
+        agg_rows = []
+
+        cur.execute(f"""
+            SELECT DISTINCT m5.mmsi
               FROM ais_{month}_msg_5 AS m5
-              GROUP BY m5.mmsi, m5.ship_type, m5.vessel_name
-              HAVING n > 1
-            UNION
-            SELECT m24.mmsi, m24.vessel_name, m24.ship_type, m24.dim_bow, m24.dim_stern, 
-                m24.dim_port, m24.dim_star, NULL as imo, COUNT(*) as n
+             UNION 
+            SELECT DISTINCT m24.mmsi
               FROM ais_{month}_msg_24 AS m24
-              GROUP BY m24.mmsi, m24.ship_type, m24.vessel_name
-              --HAVING n > 1
-            ORDER BY 1 , 8 , 2 , 3 
-        ) 
-        GROUP BY mmsi
-        HAVING MAX(n) > 1
-        ''')
+              ORDER BY 1 """)
+        mmsis = np.array(cur.fetchall(), dtype=object).flatten()
 
-        print(f'indexing view_{month}_static...')
-        cur.execute(f''' CREATE UNIQUE INDEX IF NOT EXISTS idx_view_{month}_static ON 'view_{month}_static' (mmsi) ''')
+        for mmsi in mmsis :
+            cur.execute(f"""
+            SELECT m5.mmsi, m5.vessel_name, m5.ship_type, m5.dim_bow, m5.dim_stern, 
+                m5.dim_port, m5.dim_star, m5.imo
+              FROM ais_{month}_msg_5 AS m5
+              WHERE m5.mmsi = ?
+              UNION ALL
+            SELECT m24.mmsi, m24.vessel_name, m24.ship_type, m24.dim_bow, m24.dim_stern, 
+                   m24.dim_port, m24.dim_star, NULL as imo
+              FROM ais_{month}_msg_24 AS m24
+              WHERE m24.mmsi = ?
+            """, [mmsi, mmsi])
+            cols = np.array(cur.fetchall(), dtype=object).T
+            filtercols = np.array([np.array(list(filter(None, col)), dtype=object) for col in cols ], dtype=object)
+            paddedcols = np.array([col if len(col) > 0 else [None] for col in filtercols])
+            aggregated =  [Counter(cols[i]).most_common(1)[0][0] for i in range(len(cols))]
+            agg_rows.append(aggregated)
+            print(f'\r{aggregated}', end='')
 
-        #aisdb.cur.execute(f''' CREATE INDEX IF NOT EXISTS idx_msg5_{month}_shiptype ON 'ais_{month}_msg_5' (ship_type) ''')
-        #aisdb.cur.execute(f''' CREATE INDEX IF NOT EXISTS idx_msg5_{month}_vesselname ON 'ais_{month}_msg_5' (vessel_name) ''')
-        #aisdb.cur.execute(f''' SELECT * FROM view_{month}_static ''')
-        #res = np.array(aisdb.cur.fetchall(), dtype=object)
-        #aisdb.cur.execute(f''' SELECT count(*) FROM ais_{month}_msg_5''')
-        #res = np.array(aisdb.cur.fetchall(), dtype=object)
-        #aisdb.cur.execute(f''' DROP TABLE view_{month}_static ''')
-        #aisdb.cur.execute(f''' DROP INDEX idx_msg5_{month}_vesselname ''')
-        #aisdb.cur.execute(f''' DROP INDEX idx_msg5_{month}_shiptype ''')
-    #aisdb.conn.close()
+        cur.execute(f''' 
+            CREATE TABLE static_{month}_aggregate (
+                mmsi INTEGER PRIMARY KEY, 
+                vessel_name TEXT,
+                ship_type INTEGER,
+                dim_bow INTEGER,
+                dim_stern INTEGER,
+                dim_port INTEGER,
+                dim_star INTEGER,
+                imo INTEGER
+            ) ''')
+        cur.executemany(f''' INSERT INTO static_{month}_aggregate VALUES (?,?,?,?,?,?,?,?) ''', agg_rows)
 
 
 def create_table_msg27(cur, month):

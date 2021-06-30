@@ -20,7 +20,7 @@ dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
 dbpath = '/run/media/matt/My Passport/june2018-06-0_test2.db'
 dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
 dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
-dbpath = '/meridian/aisdb/eE_202009_test2.db'
+#dbpath = '/meridian/aisdb/eE_202009_test2.db'
 
 
 def test_query_smallboundary_statictables():
@@ -88,7 +88,7 @@ def test_query_join_static_dynamic_rtree_in_bbox():
             xmax    = max(poly_xy[0]), 
             ymin    = min(poly_xy[1]), 
             ymax    = max(poly_xy[1]),
-        ).run_qry(dbpath, callback=rtree_in_bbox, qryfcn=leftjoin_dynamic_static)
+        ).run_qry(dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=leftjoin_dynamic_static)
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
 
