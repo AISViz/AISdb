@@ -89,9 +89,14 @@ def test_sort_1m():
 
 def test_aggregate_staticreports():
 
+    from database import *
+    dbpath = '/meridian/aisdb/eE_202009_test2.db'
     aisdb = dbconn(dbpath=dbpath)
     conn, cur = aisdb.conn, aisdb.cur
     month = '201806'
+    month = '202009'
+    aggregate_static_msg5_msg24(cur, [month])
+    conn.commit()
 
     cur.execute(f''' DROP TABLE IF EXISTS static_{month}_aggregate ''')
 

@@ -272,16 +272,13 @@ def create_table_msg24(cur, month):
     else: assert False
 
 
-def aggregate_static_msg5_msg24(cur, months_str):
-    #aisdb = dbconn(dbpath=dbpath)
-    #conn, cur = aisdb.conn, aisdb.cur
-    #month = '201806'
+def aggregate_static_msg5_msg24(dbpath, months_str):
+    aisdb = dbconn(dbpath=dbpath)
+    conn, cur = aisdb.conn, aisdb.cur
 
     for month in months_str:
-        print(f'aggregating static reports 5, 24 into static_{month}_aggregate...\n')
+        print(f'aggregating static reports 5, 24 into static_{month}_aggregate...')
         cur.execute(f''' DROP TABLE IF EXISTS static_{month}_aggregate ''')
-
-        agg_rows = []
 
         cur.execute(f"""
             SELECT DISTINCT m5.mmsi
@@ -292,8 +289,13 @@ def aggregate_static_msg5_msg24(cur, months_str):
               ORDER BY 1 """)
         mmsis = np.array(cur.fetchall(), dtype=object).flatten()
 
+        fancyprint = lambda cols, widths=[12, 24, 12, 12, 12, 12, 12, 12]: ''.join([str(c) + ''.join([' ' for _ in range(w - len(str(c)))]) for c,w in zip(cols, widths)])
+        colnames = ['mmsi', 'vessel_name', 'ship_type', 'dim_bow', 'dim_stern', 'dim_port', 'dim_star', 'imo']
+        print(fancyprint(colnames))
+
+        agg_rows = []
         for mmsi in mmsis :
-            cur.execute(f"""
+            _ = cur.execute(f"""
             SELECT m5.mmsi, m5.vessel_name, m5.ship_type, m5.dim_bow, m5.dim_stern, 
                 m5.dim_port, m5.dim_star, m5.imo
               FROM ais_{month}_msg_5 AS m5
@@ -305,11 +307,16 @@ def aggregate_static_msg5_msg24(cur, months_str):
               WHERE m24.mmsi = ?
             """, [mmsi, mmsi])
             cols = np.array(cur.fetchall(), dtype=object).T
+            assert len(cols) > 0
             filtercols = np.array([np.array(list(filter(None, col)), dtype=object) for col in cols ], dtype=object)
-            paddedcols = np.array([col if len(col) > 0 else [None] for col in filtercols])
-            aggregated =  [Counter(cols[i]).most_common(1)[0][0] for i in range(len(cols))]
+            paddedcols = np.array([col if len(col) > 0 else [None] for col in filtercols], dtype=object)
+            aggregated =  [Counter(col).most_common(1)[0][0] for col in paddedcols]
             agg_rows.append(aggregated)
-            print(f'\r{aggregated}', end='')
+            print('\r' + fancyprint(aggregated), end='       ')
+        print()
+
+        skip_nommsi = np.array(agg_rows, dtype=object)
+        skip_nommsi = skip_nommsi[skip_nommsi[:,0] != None]
 
         cur.execute(f''' 
             CREATE TABLE static_{month}_aggregate (
@@ -322,7 +329,9 @@ def aggregate_static_msg5_msg24(cur, months_str):
                 dim_star INTEGER,
                 imo INTEGER
             ) ''')
-        cur.executemany(f''' INSERT INTO static_{month}_aggregate VALUES (?,?,?,?,?,?,?,?) ''', agg_rows)
+        cur.executemany(f''' INSERT INTO static_{month}_aggregate VALUES (?,?,?,?,?,?,?,?) ''', skip_nommsi)
+        conn.commit()
+    conn.close()
 
 
 def create_table_msg27(cur, month):

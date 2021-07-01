@@ -363,11 +363,10 @@ def parallel_decode(filepaths, dbpath):
         print(f'insert time {picklefile}:\t{delta.total_seconds():.2f}s')
         os.remove(os.path.join(tmpdir, picklefile))
 
-    # aggregate and index static reports: msg5, msg24
-    aggregate_static_msg5_msg25(cur, months_str)
-    conn.commit()
-
     conn.close()
+    # aggregate and index static reports: msg5, msg24
+    aggregate_static_msg5_msg25(dbpath, months_str)
+
 
 
 

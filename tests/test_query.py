@@ -72,6 +72,16 @@ def test_query_smallboundary_join_static_dynamic_rtree_in_bbox_mmsi_time():
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
 
+    '''
+    
+    aisdb = dbconn(dbpath)
+    conn, cur = aisdb.conn, aisdb.cur
+    cur.execute('select * from static_202009_aggregate where mmsi = 316020160')
+    cur.execute('select * from static_202009_aggregate ')
+    res = np.array(cur.fetchall())
+
+    '''
+
 
 def test_query_join_static_dynamic_rtree_in_bbox():
 
@@ -88,7 +98,7 @@ def test_query_join_static_dynamic_rtree_in_bbox():
             xmax    = max(poly_xy[0]), 
             ymin    = min(poly_xy[1]), 
             ymax    = max(poly_xy[1]),
-        ).run_qry(dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=leftjoin_dynamic_static)
+        ).run_qry(dbpath, callback=rtree_in_bbox, qryfcn=leftjoin_dynamic_static)
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
 
