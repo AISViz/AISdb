@@ -68,7 +68,7 @@ SELECT CAST(m18.mmsi0 AS INT), m18.t0, m18.x0, m18.y0, m18.cog, m18.sog, m5.vess
 
 # query a union of position reports using rtree indexes
 rtree_dynamic = lambda month, callback, kwargs: (f'''
-    SELECT CAST(m123.mmsi0 AS INT) as mmsi, m123.t0, m123.x0, m123.y0, m123.cog, m123.sog, m123.msgtype
+    SELECT CAST(m123.mmsi0 AS INT) as mmsi, CAST(m123.t0 AS INT) as t0, m123.x0, m123.y0, m123.cog, m123.sog, m123.msgtype
       FROM rtree_{month}_msg_1_2_3 AS m123
       WHERE {callback(month=month, alias='m123', **kwargs)}
     UNION
@@ -90,10 +90,11 @@ static_{month} AS ( {static(month)}
 SELECT dynamic_{month}.mmsi, dynamic_{month}.t0, 
         dynamic_{month}.x0, dynamic_{month}.y0, 
         dynamic_{month}.cog, dynamic_{month}.sog, 
-        static_{month}.vessel_name, ref.coarse_type_txt, 
-        dynamic_{month}.msgtype, static_{month}.imo,
+        dynamic_{month}.msgtype, 
+        static_{month}.imo, static_{month}.vessel_name,
         static_{month}.dim_bow, static_{month}.dim_stern, 
-        static_{month}.dim_port, static_{month}.dim_star
+        static_{month}.dim_port, static_{month}.dim_star,
+        static_{month}.ship_type, ref.coarse_type_txt 
     FROM dynamic_{month} LEFT JOIN static_{month}
       ON dynamic_{month}.mmsi = static_{month}.mmsi
     LEFT JOIN coarsetype_ref AS ref 
