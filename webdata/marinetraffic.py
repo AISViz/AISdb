@@ -13,6 +13,9 @@ from webdata.scraper import *
 
 class scrape_tonnage():
 
+    def __init__(self, dbpath):
+        self.storagedir, self.filename = os.path.abspath(dbpath).rsplit(os.path.sep, 1)[0], 'marinetraffic.db'
+
     def __enter__(self):
         self.driver = init_webdriver()
         return self
@@ -46,18 +49,20 @@ class scrape_tonnage():
 
         exists = self.driver.find_elements_by_id('vesselDetails_vesselInfoSection')
         if exists: 
+            print(f'{exists.text}')
             elem = exists[0].find_element_by_id('summerDwt')
             #elem.location_once_scrolled_into_view
             return elem.text.split(' ')[2]
         else: 
+            print(0)
             return 0
 
 
-    def get_tonnage_mmsi_imo(self, mmsi, imo, storagedir=os.getcwd(), filename='tonnage.db'):
+    def get_tonnage_mmsi_imo(self, mmsi, imo):
         if not 201000000 <= mmsi < 776000000: return 0
         if not 1000000 <= imo < 9999999: imo = 0
 
-        with index(bins=False, store=True, storagedir=storagedir, filename=filename) as web:
+        with index(bins=False, store=True, storagedir=self.storagedir, filename=self.filename) as web:
             tonnage = web(callback=self.tonnage_callback, mmsi=mmsi, imo=imo, seed='dwt marinetraffic.com')[0]
 
         if tonnage == '-': return 0
