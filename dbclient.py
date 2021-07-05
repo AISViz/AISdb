@@ -1,6 +1,6 @@
-import logging
 import os
 from multiprocessing import Pool#, set_start_method
+import pickle
 import time
 from functools import partial
 from datetime import datetime, timedelta
@@ -8,92 +8,178 @@ from datetime import datetime, timedelta
 import numpy as np
 from shapely.geometry import Point, LineString, Polygon
 
+
 from gis import compute_knots
 from database import dt2monthstr, dbconn
 from track_gen import trackgen, segment, filtermask, writecsv
 from shore_dist import shore_dist_gfw
+from webdata import marinetraffic 
 from webdata.marinetraffic import scrape_tonnage
+from gebco import Gebco
+from wsa import wsa
 
 
-sdist = shore_dist_gfw()
+
+def binarysearch(arr, search):
+    ''' fast indexing of ordered arrays '''
+    low, high = 0, len(arr)-1
+    while (low <= high):
+        mid = int((low + high) / 2)
+        if arr[mid] == search or mid == 0 or mid == len(arr)-1:
+            return mid
+        elif (arr[mid] >= search):
+            high = mid -1 
+        else:
+            low = mid +1
+    return mid
 
 
-def _geofence_proc(track, zones, sdist, csvfile=None, staticcols=['mmsi', 'name', 'type', ], keepcols=['time', 'lon', 'lat', 'cog', 'sog']):
+def _mergeprocess(track, zones, tmpdir, colnames):
     ''' parallel process function for segmenting and geofencing tracks
         appends columns for bathymetry, shore dist, and hull surface area
     '''
+
     print(track['mmsi'])
     chunksize=5000
     filters = [
             lambda track, rng: compute_knots(track, rng) < 50,
         ]
 
-    
+    filepath = os.path.join(tmpdir, str(track['mmsi']))
+    '''
+    bounds_lon, bounds_lat = zones['hull_xy'][::2], zones['hull_xy'][1::2]
+    west, east = np.min(bounds_lon), np.max(bounds_lon)
+    south, north = np.min(bounds_lat), np.max(bounds_lat)
 
-    for rng in segment(track, maxdelta=timedelta(hours=2), minsize=3):
-        mask = filtermask(track, rng, filters)
-        if (n := sum(mask)) == 0: continue
-        for c in range(0, (n // chunksize) + 1, chunksize):
-            nc = c + chunksize
-            # get subset of zones that intersect with track
-            in_zones = { k:v for k,v in zones['geoms'].items() if 
-                    LineString(zip(track['lon'][rng][mask][c:nc], track['lat'][rng][mask][c:nc])).intersects(v) }
-            # from these zones, get zone for individual points
-            zoneID = (([k for k,v in in_zones.items() if v.contains(p)] or [None])[0] 
-                    for p in map(Point, zip(track['lon'][rng][mask][c:nc], track['lat'][rng][mask][c:nc])) )
+    assert north <= 90
+    assert south >= -90
+    if west < -180 or east > 180:
+        print('warning: encountered longitude boundary exceeding (-180, 180) in zone geometry')
+        if west < -180: west = -180
+        if east > 180: east = 180
+    '''
 
-            track_shore_dist = np.array([sdist.getdist(lon, lat) for lon, lat in zip(track['lon'][rng][mask][c:nc], track['lat'][rng][mask][c:nc])]) 
+    with open(filepath, 'ab') as f:
 
-            writecsv(
-                    np.vstack((
-                        *(np.array([track[col] for _ in range(n)])[c:nc] for col in staticcols),
-                        #*(np.full(shape=n, fill_value=track[col])[c:nc] for col in staticcols),
-                        *(track[col][rng][mask][c:nc] for col in keepcols),
-                        np.append(compute_knots(track, rng), [0])[mask][c:nc],
+        for rng in segment(track, maxdelta=timedelta(hours=2), minsize=3):
+
+            mask = filtermask(track, rng, filters)
+
+            if (n := sum(mask)) == 0: continue
+            for c in range(0, (n // chunksize) + 1, chunksize):
+
+                nc = c + chunksize
+                track_xy = list(zip(track['lon'][rng][mask][c:nc], track['lat'][rng][mask][c:nc]))
+
+                # get subset of zones that intersect with track
+                in_zones = { k:v for k,v in zones['geoms'].items() if LineString(track_xy).intersects(v) }
+
+                # from these zones, get zone for individual points
+                zoneID = (([k for k,v in in_zones.items() if v.contains(p)] or [None])[0] for p in map(Point, track_xy))
+                
+                # append zone context to track rows
+                stacked = np.vstack((
+                        [track['mmsi'] for _ in range(sum(mask[c:nc]))],
+                        track['time'][rng][mask][c:nc],
+                        *(np.array([track[col] for _ in range(n)])[c:nc] for col in colnames if col in track['static']),  # static columns - msgs 5, 24
+                        *(track[col][rng][mask][c:nc] for col in colnames if col in track['dynamic']),  # dynamic columns - msgs 1, 2, 3, 18 
+                        np.append(compute_knots(track, rng), [0])[mask][c:nc],  # computed sog
                         list(zoneID),
                         np.array([zones['domain'] for _ in range(n)])[c:nc],
-                        #bathymetry=None,#kadlu.load(src='gebco', var='bathy')
-                        np.array([None for _ in range(n)])[c:nc], # bathymetry
-                        track_shore_dist,
-                        np.array([None for _ in range(n)])[c:nc], # approx hull area
-                    )).T, 
-                    csvfile + f'.{track["mmsi"]}', 
-                    mode='a'
-                )
+                    )).T
+
+                source_stats = dict(
+                    
+                    )
+
+
+                pickle.dump(out, f)
+
     return True
 
 
-def geofence(rows, zones, csvfile):
-    """ 
-        # set start method in main script
+def merge_layers(rows, zones, dbpath):
+    """ # set start method in main script
         import os; from multiprocessing import set_start_method
         if os.name == 'posix' and __name__ == '__main__': 
             set_start_method('forkserver')
     """
-    t1 = datetime.now()
-    with open(csvfile, 'w') as f: f.write('mmsi,vessel_name,vessel_type,time,lon,lat,heading_reported,sog_reported,sog_computed,zone_ID,domain_ID,bathymetry,shore_dist,hull_surface\n')
+    # create temporary directory for parsed data
+    path, dbfile = dbpath.rsplit(os.path.sep, 1)
+    tmpdir = os.path.join(path, 'tmp_parsing')
+    if not os.path.isdir(tmpdir):
+        os.mkdir(tmpdir)
 
-    print('parallelizing...')
+    # read data layers from disk to merge with AIS
+    print('aggregating ais, shore distance, bathymetry, vessel geometry...')
+    with (  shore_dist_gfw() as sdist,
+            Gebco() as bathymetry, 
+            marinetraffic.scrape_tonnage(dbpath) as hullgeom    ):
 
-    with Pool(processes=min(32, os.cpu_count()-2)) as p: 
-        p.imap_unordered(partial(_geofence_proc, zones=zones, sdist=sdist, csvfile=csvfile), trackgen(rows), chunksize=1)
+        xy = rows[:,2:4]
+        mmsi_column, imo_column, ship_type_column = 0, 7, 13
+
+        # vessel geometry
+        print('loading marinetraffic vessel data...')
+        deadweight_tonnage = np.array([hullgeom.get_tonnage_mmsi_imo(r[mmsi_column], r[imo_column] or 0 ) if r[imo_column] != None else 0  for r in rows ])
+
+        # wetted surface area - regression on tonnage and ship type
+        ship_type = np.logical_or(rows[:,ship_type_column], [0 for _ in range(len(rows))])
+        submerged_hull = np.array([wsa(d, r) for d,r in zip(deadweight_tonnage,ship_type) ])
+
+        # shore distance from cell grid
+        print('loading shore distance...')
+        km_from_shore = np.array([sdist.getdist(x, y) for x, y in xy ])
+
+        # seafloor depth from cell grid
+        print('loading bathymetry...')
+        depth = np.array([bathymetry.getdepth(x, y) for x,y in xy ]) * -1
+
+    merged = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
+
+    colnames = [
+        'mmsi', 'time', 'lon', 'lat', 
+        'cog', 'sog', 'msgtype',
+        'imo', 'vessel_name',  
+        'dim_bow', 'dim_stern', 'dim_port', 'dim_star',
+        'ship_type', 'ship_type_txt',
+        'deadweight_tonnage', 'submerged_hull_m^2',
+        'depth_metres',
+    ]
+
+
+    print('merging...')
+
+    with Pool(processes=12) as p:
+        # define fcn as _mergeprocess() with zones, db context as static args
+        fcn = partial(_mergeprocess, zones=zones, tmpdir=tmpdir, colnames=colnames)
+        # map track generator to anonymous fcn for each process in processing pool
+        p.imap_unordered(fcn, trackgen(merged, colnames=colnames), chunksize=1)
         p.close()
         p.join()
+    _ = [colnames.append(col) for col in ['sog_computed', 'zone', 'domain']]
 
-    '''
+    csvfile = path + os.path.sep + 'output.csv'
+    with open(csvfile, 'w') as f: 
+        f.write(', '.join(colnames) +'\n')
 
-    for track in trackgen(rows):
-        _geofence_proc(track=track, zones=zones, filters=filters, csvfile=csvfile)
-        break
+    for picklefile in sorted(os.listdir(tmpdir)):
+        results = np.ndarray(shape=(0, len(colnames)) )
+        with open(os.path.join(tmpdir, picklefile), 'rb') as f:
+            while True:
+                try:
+                    getrows = pickle.load(f)
+                except EOFError as e:
+                    break
+                except Exception as e:
+                    raise e
+                results = np.vstack((results, getrows))
+        writecsv(results, pathname=csvfile)
+        os.remove(picklefile)
 
-    '''
+    return 
 
-    t2 = datetime.now()
-    print(f'processed in {(t2-t1).seconds}s')
-    assert os.name == 'posix', 'todo: os-agnostic concatenation'
-    os.system(f'cat {csvfile}.* >> {csvfile}')
-    time.sleep(5)
-    os.system(f'rm {csvfile}.*')
+
 
 
 '''
@@ -103,7 +189,6 @@ gen = explode_month(*next(getrows(qryfcn,rows_months,months_str), cols, csvfile)
 '''
 """
 if __name__ == '__main__':
-    # sample code
     for track in trackgen(rows):
         for rng in segment(track, maxdelta=timedelta(hours=2), minsize=3):
             mask = filtermask(track, rng)
@@ -152,8 +237,8 @@ def explode_month(kwargs, csvfile, keepraw=True):
             np.vstack((
                     *(np.array([qrow[c] for _ in range(n)]) for c in cols['keepcols']),
                     np.array([track['mmsi'] for _ in range(n)], dtype=np.uint32), # mmsi
-                    np.array([track['name'] for _ in range(n)]), # name 
-                    np.array([track['type'] for _ in range(n)]), # type
+                    np.array([track['vessel_name'] for _ in range(n)]), # name 
+                    np.array([track['ship_type_txt'] for _ in range(n)]), # type
                     track['time'],
                     track['lon'],
                     track['lat'],
@@ -168,8 +253,8 @@ def explode_month(kwargs, csvfile, keepraw=True):
                     np.vstack((
                         *(np.array([qrow[c] for _ in range(n2)]) for c in cols['keepcols']),
                         np.array([track['mmsi'] for _ in range(n2)], dtype=np.uint32), # mmsi
-                        np.array([track['name'] for _ in range(n2)]), # name 
-                        np.array([track['type'] for _ in range(n2)]), # type
+                        np.array([track['vessel_name'] for _ in range(n2)]), # name 
+                        np.array([track['ship_type_txt'] for _ in range(n2)]), # type
                         track['time'][rng][mask2],
                         track['lon'][rng][mask2],
                         track['lat'][rng][mask2],

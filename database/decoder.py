@@ -19,19 +19,6 @@ from index import index
 
 
 
-def binarysearch(arr, search):
-    ''' fast indexing of ordered arrays. used for finding nearest base station report at given index '''
-    low, high = 0, len(arr)-1
-    while (low <= high):
-        mid = int((low + high) / 2)
-        if arr[mid] == search or mid == 0 or mid == len(arr)-1:
-            return mid
-        elif (arr[mid] >= search):
-            high = mid -1 
-        else:
-            low = mid +1
-    return mid
-
 
 #dt_dict = lambda t: dict(year=t.year, month=t.month, day=t.day, hour=t.hour, minute=t.minute, second=t.second)
 
