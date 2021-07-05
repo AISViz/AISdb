@@ -1,15 +1,22 @@
 from functools import reduce
 from datetime import timedelta
 
-import numpy as np
 
 from database import epoch_2_dt
 
+import numpy as np
 
-def trackgen(rows: np.ndarray, colnames: list = ['mmsi', 'time', 'lon', 'lat', 'cog', 'sog', 'name', 'type']) -> dict:
-    '''
-        each row contains columns from database: 
-            mmsi time lon lat cog sog name type
+def trackgen(
+        rows: np.ndarray,
+        colnames: list = [
+            'mmsi', 'time', 'lon', 'lat',
+            'cog', 'sog', 'msgtype',
+            'imo', 'vessel_name',
+            'dim_bow', 'dim_stern', 'dim_port', 'dim_star',
+            'ship_type', 'ship_type_txt',
+        ]) -> dict:
+    ''' each row contains columns from database: 
+            mmsi time lon lat cog sog name type...
         rows must be sorted by first by mmsi, then time
 
         colnames is the name associated with each column type in rows. 
@@ -18,17 +25,26 @@ def trackgen(rows: np.ndarray, colnames: list = ['mmsi', 'time', 'lon', 'lat', '
     assert colnames[0] == 'mmsi'
     assert colnames[1] == 'time'
 
-    staticcols = set(colnames) & set(['name', 'type', 'dim_bow', 'dim_stern', 'dim_port', 'dim_star', 'mother_ship_mmsi', 'part_number', 'vendor_id', 'model', 'serial'])
+    staticcols = set(colnames) & set([
+        'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'dim_stern', 'dim_port', 'dim_star', 
+        'mother_ship_mmsi', 'part_number', 'vendor_id', 'model', 'serial', 'imo', 'msgtype',
+        'deadweight_tonnage', 'submerged_hull_m^2',
+    ])
+
     dynamiccols = set(colnames) - staticcols - set(['mmsi', 'time'])
 
     tracks_idx = np.append(np.append([0], np.nonzero(rows[:,0].astype(int)[1:] != rows[:,0].astype(int)[:-1])[0]+1), len(rows))
 
     for i in range(len(tracks_idx)-1): 
         yield dict(
-            mmsi=int(rows[tracks_idx[i]][0]),
-            time=rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
-            **{ n : rows[tracks_idx[i]][c] for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in staticcols},
-            **{ n : rows[tracks_idx[i]:tracks_idx[i+1]].T[c] for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in dynamiccols},
+            mmsi    =   int(rows[tracks_idx[i]][0]),
+            time    =   rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
+            static  =   staticcols,
+            dynamic =   dynamiccols,
+            **{ n   :   (rows[tracks_idx[i]][c] or 0) 
+                    for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in staticcols},
+            **{ n   :   rows[tracks_idx[i]:tracks_idx[i+1]].T[c] 
+                    for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in dynamiccols},
         )
 
 
