@@ -91,7 +91,7 @@ def test_query_join_static_dynamic_rtree_in_bbox():
 
     dt = datetime.now()
     rows = qrygen(
-            xy = merge(canvaspoly.boundary.coords.xy),
+            #xy = merge(canvaspoly.boundary.coords.xy),
             start   = start,
             end     = end,
             xmin    = min(poly_xy[0]), 

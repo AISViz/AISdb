@@ -28,9 +28,11 @@ class scrape_tonnage():
         loaded = lambda drv: 'asset_type' in drv.current_url or '404' == drv.title[0:3] or drv.find_elements_by_id('vesselDetails_voyageInfoSection')
 
         if imo == 0:
-            self.driver.get(f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}')
+            url = f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}'
         else:
-            self.driver.get(f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}/imo:{imo}')
+            url = f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}/imo:{imo}'
+        print(url, end='\t')
+        self.driver.get(url)
 
         WebDriverWait(self.driver, 15).until(loaded)
 
@@ -49,9 +51,9 @@ class scrape_tonnage():
 
         exists = self.driver.find_elements_by_id('vesselDetails_vesselInfoSection')
         if exists: 
-            print(f'{exists.text}')
             elem = exists[0].find_element_by_id('summerDwt')
             #elem.location_once_scrolled_into_view
+            print(mmsi, elem.text)
             return elem.text.split(' ')[2]
         else: 
             print(0)

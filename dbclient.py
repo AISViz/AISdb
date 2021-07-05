@@ -59,41 +59,102 @@ def _mergeprocess(track, zones, tmpdir, colnames):
         if east > 180: east = 180
     '''
 
+    # returns absolute value of bathymetric depths with topographic heights converted to 0
+    depth_nonnegative = lambda track, zoneset: [d if d >= 0 else 0 for d in track['depth_metres'][zoneset]]
+
+    # returns minutes spent within kilometers range from shore
+    time_in_shoredist_rng = lambda track, subset, dist0=0.01, dist1=5: (
+        sum(map(len, segment(
+            {'time': track['time'][subset][[dist0 <= d <= dist1 for d in track['km_from_shore'][subset]]]}, 
+            maxdelta=timedelta(minutes=1), 
+            minsize=1
+        )))
+    )
+
+    # collect vessel track statistics
+    segmentinfo = lambda track, stacked_arr, zonerng, domain=zones['domain']: dict(
+            mmsi                                =   track['mmsi'],
+            vessel_type                         =   track['ship_type_txt'] or None,
+            domain                              =   domain,
+            src_zone                            =   stacked_arr[zonerng:,20][0],
+            rcv_zone                            =   None,
+            vessel_length                       =   (track['dim_bow'] + track['dim_stern']) or None,
+            hull_submerged_surface_area         =   track['submerged_hull_m^2'] or None,
+            first_timestamp                     =   epoch_2_dt(track['time'][0]).strftime('%Y-%m-%d %H:%M:%S UTC'),
+            last_timestamp                      =   epoch_2_dt(track['time'][-1]).strftime('%Y-%m-%d %H:%M:%S UTC'),
+            year                                =   epoch_2_dt(track['time'][0]).year,
+            month                               =   epoch_2_dt(track['time'][0]).month,
+            day                                 =   epoch_2_dt(track['time'][0]).day,
+            ballast                             =   None,
+        )
+
+    # collect stats about a vessel in context of a zone
+    zone_stats = lambda track, zoneset: dict(
+            min_shore_dist                      =   np.min(track['km_from_shore'][zoneset]), 
+            avg_shore_dist                      =   np.average(track['km_from_shore'][zoneset]), 
+            max_shore_dist                      =   np.max(track['km_from_shore'][zoneset]), 
+            min_depth                           =   np.min(depth_nonnegative(track, zoneset)),
+            avg_depth                           =   np.average(depth_nonnegative(track, zoneset)),
+            max_depth                           =   np.max(depth_nonnegative(track, zoneset)),
+            minutes_within_10m_5km_shoredist    =   time_in_shoredist_rng(track, zoneset, 0.01, 5),
+            minutes_within_30m_20km_shoredist   =   time_in_shoredist_rng(track, zoneset, 0.03, 20),
+            minutes_within_100m_50km_shoredist  =   time_in_shoredist_rng(track, zoneset, 0.1, 50),
+            first_seen_in_zone                  =   epoch_2_dt(track['time'][zoneset][0]).strftime('%Y-%m-%d %H:%M:%S UTC'),
+            last_seen_in_zone                   =   epoch_2_dt(track['time'][zoneset][-1]).strftime('%Y-%m-%d %H:%M:%S UTC'),
+        )
+
+
     with open(filepath, 'ab') as f:
 
-        for rng in segment(track, maxdelta=timedelta(hours=2), minsize=3):
+        for rng in segment(track, maxdelta=timedelta(days=1), minsize=3):
 
             mask = filtermask(track, rng, filters)
-
             if (n := sum(mask)) == 0: continue
+
             for c in range(0, (n // chunksize) + 1, chunksize):
 
                 nc = c + chunksize
-                track_xy = list(zip(track['lon'][rng][mask][c:nc], track['lat'][rng][mask][c:nc]))
+                subset = np.array(rng)[mask][c:nc]
+                track_xy = list(zip(track['lon'][subset], track['lat'][subset]))
 
                 # get subset of zones that intersect with track
                 in_zones = { k:v for k,v in zones['geoms'].items() if LineString(track_xy).intersects(v) }
+                if in_zones == {} : continue
 
                 # from these zones, get zone for individual points
-                zoneID = (([k for k,v in in_zones.items() if v.contains(p)] or [None])[0] for p in map(Point, track_xy))
-                
+                zoneID = np.array(list(([k for k,v in in_zones.items() if v.contains(p)] or [None])[0] 
+                            for p in map(Point, track_xy)), dtype=object)
+
                 # append zone context to track rows
                 stacked = np.vstack((
-                        [track['mmsi'] for _ in range(sum(mask[c:nc]))],
-                        track['time'][rng][mask][c:nc],
+                        [track['mmsi'] for _ in subset],
+                        track['time'][subset],
                         *(np.array([track[col] for _ in range(n)])[c:nc] for col in colnames if col in track['static']),  # static columns - msgs 5, 24
-                        *(track[col][rng][mask][c:nc] for col in colnames if col in track['dynamic']),  # dynamic columns - msgs 1, 2, 3, 18 
+                        *(track[col][subset] for col in colnames if col in track['dynamic']),  # dynamic columns - msgs 1, 2, 3, 18 
                         np.append(compute_knots(track, rng), [0])[mask][c:nc],  # computed sog
-                        list(zoneID),
+                        zoneID,
                         np.array([zones['domain'] for _ in range(n)])[c:nc],
                     )).T
 
-                source_stats = dict(
-                    
-                    )
+                
+                # collect transits between zone boundaries
+                zonecrossing = np.append(np.append([0], np.where(stacked[:-1,20] != stacked[1:,20])[0] +1), [len(stacked)])
 
-
-                pickle.dump(out, f)
+                # aggregate zone stats at transit nodes
+                for zonerng in range(len(zonecrossing)-1):
+                    zoneset= subset[zonecrossing[zonerng] : zonecrossing[zonerng+1]]
+                    track_stats =  segmentinfo(track, stacked, zonerng)
+                    src_zone_stats = zone_stats(track, zoneset)
+                    if zonerng != zonecrossing[-2]:
+                        nextzoneset = subset[zonecrossing[zonerng+1] : zonecrossing[zonerng+2]]
+                        track_stats['rcv_zone'] = stacked[zonerng+1:,20][0]
+                        rcv_zone_stats = zone_stats(track, nextzoneset)
+                    else:
+                        rcv_zone_stats = {}
+                        
+                    track_stats['src_stats'] = src_zone_stats
+                    track_stats['rcv_stats'] = rcv_zone_stats
+                    pickle.dump(track_stats, f)
 
     return True
 
@@ -135,6 +196,7 @@ def merge_layers(rows, zones, dbpath):
         print('loading bathymetry...')
         depth = np.array([bathymetry.getdepth(x, y) for x,y in xy ]) * -1
 
+    print('merging...')
     merged = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
 
     colnames = [
@@ -144,12 +206,10 @@ def merge_layers(rows, zones, dbpath):
         'dim_bow', 'dim_stern', 'dim_port', 'dim_star',
         'ship_type', 'ship_type_txt',
         'deadweight_tonnage', 'submerged_hull_m^2',
-        'depth_metres',
+        'km_from_shore', 'depth_metres',
     ]
 
-
-    print('merging...')
-
+    print('aggregating...')
     with Pool(processes=12) as p:
         # define fcn as _mergeprocess() with zones, db context as static args
         fcn = partial(_mergeprocess, zones=zones, tmpdir=tmpdir, colnames=colnames)
@@ -159,23 +219,36 @@ def merge_layers(rows, zones, dbpath):
         p.join()
     _ = [colnames.append(col) for col in ['sog_computed', 'zone', 'domain']]
 
-    csvfile = path + os.path.sep + 'output.csv'
-    with open(csvfile, 'w') as f: 
-        f.write(', '.join(colnames) +'\n')
+    picklefiles = sorted(os.listdir(tmpdir))
 
-    for picklefile in sorted(os.listdir(tmpdir)):
-        results = np.ndarray(shape=(0, len(colnames)) )
-        with open(os.path.join(tmpdir, picklefile), 'rb') as f:
-            while True:
-                try:
-                    getrows = pickle.load(f)
-                except EOFError as e:
-                    break
-                except Exception as e:
-                    raise e
-                results = np.vstack((results, getrows))
-        writecsv(results, pathname=csvfile)
-        os.remove(picklefile)
+    rowfromdict = lambda d: ','.join(map(str, [val if not type(val) == dict else ','.join(map(str, val.values())) for val in d.values()]))
+
+    header = lambda d: (','.join([
+        ','.join([k for k,v in d.items() if type(v) != dict ]) , 
+        ','.join(['src_' + s for s in map(str, [val for val in d['src_stats'].keys() ])]) , 
+        ','.join(['rcv_' + s for s in map(str, [val for val in d['src_stats'].keys() ])]),
+        ]) + '\n')
+
+    csvfile = path + os.path.sep + 'output.csv'
+
+    with open(os.path.join(tmpdir, picklefiles[0]), 'rb') as f0, open(csvfile, 'w') as f1:
+        f1.write(header(pickle.load(f0)))
+    with open(csvfile, 'a') as output:
+        for picklefile in picklefiles:
+            #results = np.ndarray(shape=(0, len(colnames)) )
+            results = []
+            with open(os.path.join(tmpdir, picklefile), 'rb') as f:
+                while True:
+                    try:
+                        getrow = pickle.load(f)
+                    except EOFError as e:
+                        break
+                    except Exception as e:
+                        raise e
+                    #results = np.vstack((results, getrows))
+                    results.append(rowfromdict(getrow))
+            output.write('\n'.join(results) +'\n')
+            os.remove(os.path.join(tmpdir, picklefile))
 
     return 
 

@@ -27,24 +27,46 @@ def test_output_allsource():
 
     # join rtree tables with aggregate position reports 
     start   = datetime(2018,6,1)
-    end     = datetime(2018,6,2)
+    end     = datetime(2018,7,1)
 
+    # query zones
+    #aisdb = dbconn(dbpath)
+    #conn, cur = aisdb.conn, aisdb.cur
+    #cur.execute('SELECT objname, binary FROM rtree_polygons WHERE domain = "east"')
+    #zones = dict(domain='east', geoms={p[0]: pickle.loads(p[1]) for p in cur.fetchall()})
+
+    from shapely.ops import unary_union
+    hull = unary_union(zones['geoms'].values()).convex_hull
+    hull_xy = merge(zones['hull'].boundary.coords.xy)
+    west, east, south, north = np.min(hull_xy[::2]), np.max(hull_xy[::2]), np.min(hull_xy[1::2]), np.max(hull_xy[1::2])
+
+    # query db for points in domain convex hull
     dt = datetime.now()
-    rows = qrygen(start=start, end=end).run_qry(dbpath, callback=rtree_in_time_mmsi, qryfcn=leftjoin_dynamic_static)
+    rows = qrygen(
+            #xy = merge(canvaspoly.boundary.coords.xy),
+            start   = start,
+            end     = end,
+            xmin    = west, 
+            xmax    = east, 
+            ymin    = south, 
+            ymax    = north,
+        ).run_qry(dbpath, callback=rtree_in_bbox, qryfcn=leftjoin_dynamic_static)
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
 
-    aisdb = dbconn(dbpath)
-    conn, cur = aisdb.conn, aisdb.cur
-    cur.execute('SELECT objname, binary FROM rtree_polygons WHERE domain = "east"')
-    zones = dict(domain='east', geoms={p[0]: pickle.loads(p[1]) for p in cur.fetchall()})
+    from dbclient import *
+    merge_layers(rows, zones, dbpath)
+
+
+
+
 
     from importlib import reload
     import track_gen
     reload(track_gen)
     from track_gen import *
 
-    tracks = np.array(list(trackgen(rows, colnames=colnames)))
+    tracks = np.array(list(trackgen(merged, colnames=colnames)))
     filters = [
             lambda track, rng: compute_knots(track, rng) < 50,
         ]
