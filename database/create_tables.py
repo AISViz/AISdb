@@ -66,9 +66,10 @@ def sqlite_create_table_msg123(cur, month):
                 heading real,
                 maneuver "char",
                 utc_second smallint
-            ) 
-                --PRIMARY KEY (mmsi, time)
-            --) WITHOUT ROWID;
+            --) 
+                ,
+                PRIMARY KEY (mmsi, time)
+            ) WITHOUT ROWID;
         ''')
 
     # temporal resolution is reduced to one minute at insertion - only the first item is kept
@@ -86,7 +87,7 @@ def sqlite_create_table_msg123(cur, month):
                     cog, heading, maneuver, utc_second
                 ) 
                 VALUES (
-                    --new.id, 
+                    --new.ROWID, 
                     new.mmsi, new.mmsi, new.time, new.time, 
                     new.longitude, new.longitude, new.latitude, new.latitude,
                     new.msgtype, new.navigational_status, new.rot, new.sog, 
@@ -141,9 +142,10 @@ def sqlite_create_table_msg18(cur, month):
                 cog real,
                 heading real,
                 utc_second smallint
-            )
-                --PRIMARY KEY (mmsi, time)
-            --) WITHOUT ROWID;
+            --)
+                ,
+                PRIMARY KEY (mmsi, time)
+            ) WITHOUT ROWID;
                 --communication_state integer,
                 --PRIMARY KEY (mmsi, time, longitude, latitude)
         ''')
@@ -162,7 +164,7 @@ def sqlite_create_table_msg18(cur, month):
                     heading, utc_second
                 ) 
                 VALUES (
-                    --new.id, 
+                    --new.ROWID, 
                     new.mmsi, new.mmsi, new.time, new.time, 
                     new.longitude, new.longitude, new.latitude, new.latitude,
                     new.navigational_status, new.sog, new.cog, new.heading, 

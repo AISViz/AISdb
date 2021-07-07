@@ -36,6 +36,7 @@ def trackgen(
     tracks_idx = np.append(np.append([0], np.nonzero(rows[:,0].astype(int)[1:] != rows[:,0].astype(int)[:-1])[0]+1), len(rows))
 
     for i in range(len(tracks_idx)-1): 
+        #assert len(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]) == len(np.unique(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]))
         yield dict(
             mmsi    =   int(rows[tracks_idx[i]][0]),
             time    =   rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
@@ -57,7 +58,7 @@ def segment(track: dict, maxdelta: timedelta, minsize: int) -> filter:
     return filter(lambda seg: len(seg) >= minsize, list(map(range, splits_idx(track)[:-1], splits_idx(track)[1:])))
 
 
-def filtermask(track, rng, filters):
+def filtermask(track, rng, filters, first_val=False):
     '''
     from .gis import compute_knots
     filters=[
@@ -69,7 +70,7 @@ def filtermask(track, rng, filters):
     '''
     mask = reduce(np.logical_and, map(lambda f: f(track, rng), filters))
     #return np.logical_and(np.append([True], mask), np.append(mask, [True]))
-    return np.append([False], mask)
+    return np.append([first_val], mask)
 
 
 def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):

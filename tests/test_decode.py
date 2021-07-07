@@ -16,8 +16,10 @@ conn.close()
 
 
 def test_parse_24h():
+
+    from database import *
     dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
-    #os.remove(dbpath)
+    os.remove(dbpath)
     dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
     filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
 

@@ -14,17 +14,22 @@ from webdata.scraper import *
 class scrape_tonnage():
 
     def __init__(self, dbpath):
-        self.storagedir, self.filename = os.path.abspath(dbpath).rsplit(os.path.sep, 1)[0], 'marinetraffic.db'
+        self.storagedir = os.path.abspath(dbpath).rsplit(os.path.sep, 1)[0]
+        self.filename = 'marinetraffic.db'
+        self.driver = None
 
     def __enter__(self):
-        self.driver = init_webdriver()
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        self.driver.close()
-        self.driver.quit()
+        if self.driver is not None: 
+            self.driver.close()
+            self.driver.quit()
 
     def tonnage_callback(self, mmsi, imo=0, **_):
+        if self.driver is None: 
+            self.driver = init_webdriver()
+
         loaded = lambda drv: 'asset_type' in drv.current_url or '404' == drv.title[0:3] or drv.find_elements_by_id('vesselDetails_voyageInfoSection')
 
         if imo == 0:

@@ -76,14 +76,25 @@ def insert_msg123(cur, mstr, rows):
     tup123 = ((
         float(r['mmsi']), r['epoch'], r['type'], r['lon'], r['lat'], 
         int(r['status']), r['turn'], r['speed'], r['course'], r['heading'], 
-        r['maneuver'], r['second']
+        r['maneuver'], r['second'],
         )   for r in rows
     )
-    cur.executemany(f'INSERT INTO ais_{mstr}_msg_1_2_3 '
-                    '(mmsi, time, msgtype, longitude, latitude, '
-                    'navigational_status, rot, sog, cog, '
-                    'heading, maneuver, utc_second) '
-                    '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''', tup123)
+    coveridx = ((r['mmsi'], r['epoch']) for r in rows)
+    cur.executemany(f'''
+                    INSERT OR IGNORE INTO ais_{mstr}_msg_1_2_3 
+                    (mmsi, time, msgtype, longitude, latitude, 
+                    navigational_status, rot, sog, cog, 
+                    heading, maneuver, utc_second) 
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?) 
+                    --ON CONFLICT (mmsi, time) 
+                    --DO NOTHING
+                    --WHERE NOT EXISTS ( 
+                    --SELECT * FROM rtree_{mstr}_msg_1_2_3 AS rtree
+                    --    WHERE rtree.mmsi0 = CAST(mmsi AS FLOAT)
+                    --    AND rtree.t0 = CAST(time AS FLOAT)
+                    --) 
+                    '''
+                    , tup123)
     return
 
 
@@ -137,11 +148,21 @@ def insert_msg18(cur, mstr, rows):
         r['speed'], r['course'], r['heading'], r['second'],
         ) for r in rows
     )
-    cur.executemany(f'INSERT INTO ais_{mstr}_msg_18'
-                    '(mmsi, time, msgtype, longitude, latitude, '
-                    'navigational_status, sog, cog, '
-                    'heading, utc_second) '
-                    '''VALUES (?,?,?,?,?,?,?,?,?,?)''', tup18)
+    cur.executemany(f'''
+                    INSERT OR IGNORE INTO ais_{mstr}_msg_18 
+                    (mmsi, time, msgtype, longitude, latitude, 
+                    navigational_status, sog, cog, 
+                    heading, utc_second) 
+                    VALUES (?,?,?,?,?,?,?,?,?,?) 
+                    --ON CONFLICT (mmsi, time) 
+                    --DO NOTHING
+                    --WHERE NOT EXISTS ( 
+                    --SELECT FROM rtree_{mstr}_msg_18 AS rtree
+                    --    WHERE rtree.mmsi0 = CAST(mmsi AS FLOAT)
+                    --    AND rtree.t0 = CAST(time AS FLOAT)
+                    --) 
+                    '''
+                    , tup18)
     return
 
 
@@ -223,6 +244,9 @@ def decode_raw_pyais(fpath, tmpdir):
     regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(fpath)
     mstr        = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
     picklefile  = os.path.join(tmpdir, ''.join(fpath[regexdate.start():regexdate.end()].split('-')))
+
+    if sum( [os.path.isfile(f'{picklefile}_msg{msgtype}') for msgtype in (1,2,3,5,18,24)] ) >= 6: 
+        return
 
     n           = 0
     skipped     = 0
@@ -352,7 +376,7 @@ def parallel_decode(filepaths, dbpath):
 
     conn.close()
     # aggregate and index static reports: msg5, msg24
-    aggregate_static_msg5_msg25(dbpath, months_str)
+    aggregate_static_msg5_msg24(dbpath, months_str)
 
 
 

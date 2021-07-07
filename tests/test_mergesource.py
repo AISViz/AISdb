@@ -2,25 +2,29 @@ from datetime import datetime, timedelta
 import numpy as np
 #np.set_printoptions(precision=5, linewidth=80, formatter=dict(datetime=datetime, timedelta=timedelta), floatmode='maxprec', suppress=True)
 import shapely.wkt
+import pickle
 
 from database import *
 from shapely.geometry import Polygon, LineString, MultiPoint
 from gis import *
 #from track_viz import *
 from track_gen import *
+from dbclient import *
 
 
+dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
 dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
 dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
 
 
+zones_east = zones_from_txts('../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', 'east')
+zones_west = zones_from_txts('../scripts/dfo_project/WestCoast_EEZ_Zones_12_8', 'west')
+zones = zones_east
 
-def test_parse_regions():
-    zones_east = zones_from_txts('../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', 'east')
-    zones_west = zones_from_txts('../scripts/dfo_project/WestCoast_EEZ_Zones_12_8', 'west')
-    '''
-    zones = zones_east
-    '''
+
+#def test_parse_regions():
+    #zones_east = zones_from_txts('../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', 'east')
+    #zones_west = zones_from_txts('../scripts/dfo_project/WestCoast_EEZ_Zones_12_8', 'west')
 
 
 def test_output_allsource():
@@ -38,11 +42,12 @@ def test_output_allsource():
     from shapely.ops import unary_union
     hull = unary_union(zones['geoms'].values()).convex_hull
     hull_xy = merge(zones['hull'].boundary.coords.xy)
-    west, east, south, north = np.min(hull_xy[::2]), np.max(hull_xy[::2]), np.min(hull_xy[1::2]), np.max(hull_xy[1::2])
 
-    # query db for points in domain convex hull
+    # query db for points in domain 
+    west, east, south, north = np.min(hull_xy[::2]), np.max(hull_xy[::2]), np.min(hull_xy[1::2]), np.max(hull_xy[1::2])
     dt = datetime.now()
-    rows = qrygen(
+
+    rowgen = qrygen(
             #xy = merge(canvaspoly.boundary.coords.xy),
             start   = start,
             end     = end,
@@ -50,15 +55,46 @@ def test_output_allsource():
             xmax    = east, 
             ymin    = south, 
             ymax    = north,
-        ).run_qry(dbpath, callback=rtree_in_bbox, qryfcn=leftjoin_dynamic_static)
+        ).gen_qry(dbpath, callback=rtree_in_bbox, qryfcn=leftjoin_dynamic_static)
+
+    tracks = (next(trackgen(r)) for r in rowgen)
+
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
 
-    from dbclient import *
-    merge_layers(rows, zones, dbpath)
+
+    merged = merge_layers(rowgen, zones, dbpath)
+    concat_layers(merged, zones, dbpath)
+
+    return
 
 
+if __name__ == '__main__':
 
+    with open('output/testrows', 'wb') as f:
+        #assert len(rows) > 1000
+        for row in rowgen:
+            pickle.dump(row, f)
+
+    with open('output/mergedrows', 'wb') as f:
+        assert len(list(merged)) > 1000
+        pickle.dump(merged, f)
+        
+    with open('output/testrows', 'rb') as f:
+        rows = pickle.load(f)
+
+    with open('output/mergedrows', 'rb') as f:
+        merged = pickle.load(f)
+
+    colnames = [
+            'mmsi', 'time', 'lon', 'lat', 
+            'cog', 'sog', 'msgtype',
+            'imo', 'vessel_name',  
+            'dim_bow', 'dim_stern', 'dim_port', 'dim_star',
+            'ship_type', 'ship_type_txt',
+            'deadweight_tonnage', 'submerged_hull_m^2',
+            'km_from_shore', 'depth_metres',
+        ]
 
 
     from importlib import reload
@@ -73,11 +109,19 @@ def test_output_allsource():
     
     # step into loops
     track = tracks[0]
-    rng = list(segment(track, maxdelta=timedelta(hours=2), minsize=3))[0]
+
+    gen = trackgen(rows, colnames=colnames[0:rows.shape[1]])
+    for track in gen:
+
+    gen = trackgen(merged, colnames=colnames[0:merged.shape[1]])
+    for track in gen:
+        if track['mmsi'] == 246770976: break
+
+    rng = list(segment(track, maxdelta=timedelta(hours=3), minsize=1))[0]
     mask = filtermask(track, rng, filters)
     n = sum(mask)
     c = 0
-    chunksize=5000
+    chunksize=500000
 
     from shore_dist import shore_dist_gfw
     from gebco import Gebco
@@ -93,9 +137,6 @@ def test_output_allsource():
     sdist.__exit__(None, None, None)
     bathymetry.__exit__(None, None, None)
     hullgeom.__exit__(None, None, None)
-
-
-    
 
 
 

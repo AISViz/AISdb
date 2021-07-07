@@ -27,8 +27,9 @@ class index():
         requires python3.8
     """
 
-    # compute 8-byte integer hash for a given dictionary
-    hash_dict = lambda self, kwargs, seed='': int(md5((str(seed) + json.dumps(kwargs, sort_keys=True, default=str)).encode('utf-8')).hexdigest(), base=16) >> 66
+    # compute 64-bit integer hash for a given dictionary
+    # sqlite maxint: +/- (2^63)-1
+    hash_dict = lambda self, kwargs, seed='': (int(md5((str(seed) + json.dumps(kwargs, sort_keys=True, default=str)).encode('utf-8')).hexdigest(), base=16) >> 64) - (2**63) -1
 
     def __init__(self, *, pool=1, store=False, inmemory=False, bins=True, dx=2, dy=2, dz=5000, dt=timedelta(days=1), storagedir=os.getcwd(), filename='checksums.db', **kwargs): 
         """
@@ -74,8 +75,12 @@ class index():
         assert os.path.isdir(str(self.storagedir)), f'invalid dir {storagedir}'
         with sqlite3.connect(self.storage) as con:
             db = con.cursor()
-            db.execute('CREATE TABLE IF NOT EXISTS hashmap(hash INT NOT NULL, bytes BLOB)')
-            db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_map on hashmap(hash)')
+            db.execute('CREATE TABLE IF NOT EXISTS hashmap(hash INTEGER PRIMARY KEY, bytes BLOB) WITHOUT ROWID;')
+            #db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_map on hashmap(hash)')
+            minval = (int(''.join(['0' for _ in range(32)]), base=16) >> 64) - (2**63) 
+            maxval = (int(''.join(['f' for _ in range(32)]), base=16) >> 64) - (2**63) 
+            db.execute('INSERT OR IGNORE INTO hashmap VALUES (?,?)', (minval, pickle.dumps(None)))
+            db.execute('INSERT OR IGNORE INTO hashmap VALUES (?,?)', (maxval, pickle.dumps(None)))
         # TODO: 
         # if self.inmemory: copy disk database into memory
         # https://stackoverflow.com/questions/4019081/how-to-copy-a-sqlite-table-from-a-disk-database-to-a-memory-database-in-python

@@ -101,16 +101,22 @@ class qrygen(UserDict):
         return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months']))
 
 
-    def qry_thread(self, dbpath, qry):
-        aisdb = dbconn(dbpath)
-        aisdb.cur.execute(qry)
-        return aisdb.cur.fetchall()
+    #def qry_thread(self, dbpath, qry):
+    #    aisdb = dbconn(dbpath)
+    #    aisdb.cur.execute(qry)
+    #    return aisdb.cur.fetchall()
 
 
     def run_qry(self, dbpath, callback, qryfcn):
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
 
+        aisdb = dbconn(dbpath)
+        aisdb.cur.execute(qry)
+        res = aisdb.cur.fetchall()
+        aisdb.conn.close()
+        return np.array(res) 
+        '''
         with concurrent.futures.ThreadPoolExecutor() as executor:
             aisdb = dbconn(dbpath)
             future = executor.submit(self.qry_thread, dbpath=dbpath, qry=qry)
@@ -123,6 +129,34 @@ class qrygen(UserDict):
                 raise err
             finally:
                 aisdb.conn.close()
+        '''
 
-        return np.array(res, dtype=object)
+    def gen_qry(self, dbpath, callback, qryfcn):
+        qry = self.crawl(callback=callback, qryfcn=qryfcn)
+        print(qry)
+        aisdb = dbconn(dbpath)
+        aisdb.cur.execute(qry)
+
+        '''
+        n = 0
+        while res := aisdb.cur.fetchmany(100000): 
+            n += len(res)
+            print( n )
+            yield np.array(res)
+        '''
+
+        mmsi_rows = None
+        while len(res := np.array(aisdb.cur.fetchmany(100000))) > 0: 
+            if not isinstance(mmsi_rows, np.ndarray):
+                mmsi_rows = res
+            else:
+                mmsi_rows = np.vstack((mmsi_rows, res))
+            while len(np.unique(mmsi_rows[:,0])) > 1:
+                ummsi_idx = np.where(mmsi_rows[:,0] != mmsi_rows[0,0])[0][0]
+                yield mmsi_rows[0:ummsi_idx]
+                mmsi_rows = mmsi_rows[ummsi_idx:]
+        yield mmsi_rows
+
+
+        print('done')
 
