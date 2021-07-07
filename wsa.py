@@ -9,7 +9,7 @@ Cameron S. Moser, Timothy P. Wier, Matthew R. First, Jonathan F. Grant, Scott C.
 def wsa(dwt, ship_type, **_):
     ''' regression of Denny-Mumford WSA formula '''
 
-    if ship_type < 30:              # wing in ground craft
+    if ship_type < 30:              # None, wing in ground craft, other
         return 0
 
     elif ship_type == 30:           # fishing

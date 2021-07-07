@@ -34,9 +34,7 @@ if not os.path.isfile(os.path.join(os.path.dirname(__file__), 'webdriver')) and 
     print('drivers installed!')
 
 
-
 os.environ['PATH'] = f'{os.path.dirname(__file__)}:{os.environ.get("PATH")}'
-
 
 from selenium import webdriver
 from selenium.common.exceptions import StaleElementReferenceException, SessionNotCreatedException
@@ -47,8 +45,8 @@ from selenium.webdriver.support.expected_conditions import presence_of_element_l
 from selenium.webdriver.common.by import By
 
 
-
 def init_webdriver():
+
     # configs
     headless = True
     (opt := Options()).headless = headless

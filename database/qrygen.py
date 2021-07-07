@@ -67,11 +67,13 @@ class qrygen(UserDict):
         if 'xy' in self.keys() and not 'x' in self.keys() and not 'y' in self.keys(): 
             self['x'] = self['xy'][::2]; self['y'] = self['xy'][1::2]
 
-        if sum(map(lambda t: t in kwargs.keys(), ('start', 'end',))) == 2: 
+        #if sum(map(lambda t: t in kwargs.keys(), ('start', 'end',))) == 2: 
+        if 'start' in self.data.keys() and 'end' in self.data.keys(): 
             if isinstance(kwargs['start'], datetime):
                 self.data.update({'months':dt2monthstr(**kwargs)})
             elif isinstance(kwargs['start'], (float, int)):
                 self.data.update({'months':epoch2monthstr(**kwargs)})
+            else: assert False
 
         if 'x' in self.data.keys() and 'y' in self.data.keys():
 
@@ -85,50 +87,11 @@ class qrygen(UserDict):
                 assert 'radius' in self.keys(), 'undefined radius'
 
 
-    def build_views(self, dbpath):
-        aisdb = dbconn(dbpath)
-        for month in self['months']:
-            aisdb.cur.execute(f''' SELECT name FROM sqlite_master WHERE type='table' AND name='view_{month}_static' ''')
-            if not [] == aisdb.cur.fetchall(): continue
-            print(f'aggregating static messages 5, 18 into view_{month}_static...')
-            aisdb.cur.execute(f'''
-            CREATE TABLE IF NOT EXISTS view_{month}_static AS SELECT * FROM (
-                SELECT m5.mmsi, m5.vessel_name, m5.ship_type, m5.dim_bow, m5.dim_stern, m5.dim_port, m5.dim_star, 
-                COUNT(*) as n 
-                  FROM ais_{month}_msg_5 AS m5
-                  GROUP BY m5.mmsi, m5.ship_type, m5.vessel_name
-                  HAVING n > 1
-                UNION
-                SELECT m24.mmsi, m24.vessel_name, m24.ship_type, m24.dim_bow, m24.dim_stern, m24.dim_port, m24.dim_star, 
-                COUNT(*) as n
-                  FROM ais_{month}_msg_24 AS m24
-                  GROUP BY m24.mmsi, m24.ship_type, m24.vessel_name
-                  HAVING n > 1
-                ORDER BY 1 , 8 , 2 , 3 
-            ) 
-            GROUP BY mmsi
-            HAVING MAX(n) > 1
-            ''')
-
-            aisdb.cur.execute(f''' CREATE UNIQUE INDEX IF NOT EXISTS idx_view_{month}_static ON 'view_{month}_static' (mmsi) ''')
-
-            #aisdb.cur.execute(f''' CREATE INDEX IF NOT EXISTS idx_msg5_{month}_shiptype ON 'ais_{month}_msg_5' (ship_type) ''')
-            #aisdb.cur.execute(f''' CREATE INDEX IF NOT EXISTS idx_msg5_{month}_vesselname ON 'ais_{month}_msg_5' (vessel_name) ''')
-            #aisdb.cur.execute(f''' SELECT * FROM view_{month}_static ''')
-            #res = np.array(aisdb.cur.fetchall(), dtype=object)
-            #aisdb.cur.execute(f''' SELECT count(*) FROM ais_{month}_msg_5''')
-            #res = np.array(aisdb.cur.fetchall(), dtype=object)
-            #aisdb.cur.execute(f''' DROP TABLE view_{month}_static ''')
-            #aisdb.cur.execute(f''' DROP INDEX idx_msg5_{month}_vesselname ''')
-            #aisdb.cur.execute(f''' DROP INDEX idx_msg5_{month}_shiptype ''')
-        aisdb.conn.close()
-
-
     def crawl(self, callback, qryfcn=msg123union18join5):
         ''' returns an SQL query to crawl the database 
             query generated using given query function, parameters stored in self, and a callback function 
         '''
-        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 7, 2'
+        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 2'
 
 
     def crawl_unordered(self, callback, qryfcn=msg123union18join5):
@@ -138,17 +101,22 @@ class qrygen(UserDict):
         return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months']))
 
 
-    def qry_thread(self, dbpath, qry):
-        aisdb = dbconn(dbpath)
-        aisdb.cur.execute(qry)
-        return aisdb.cur.fetchall()
+    #def qry_thread(self, dbpath, qry):
+    #    aisdb = dbconn(dbpath)
+    #    aisdb.cur.execute(qry)
+    #    return aisdb.cur.fetchall()
 
 
     def run_qry(self, dbpath, callback, qryfcn):
-        self.build_views(dbpath)
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
 
+        aisdb = dbconn(dbpath)
+        aisdb.cur.execute(qry)
+        res = aisdb.cur.fetchall()
+        aisdb.conn.close()
+        return np.array(res) 
+        '''
         with concurrent.futures.ThreadPoolExecutor() as executor:
             aisdb = dbconn(dbpath)
             future = executor.submit(self.qry_thread, dbpath=dbpath, qry=qry)
@@ -161,6 +129,34 @@ class qrygen(UserDict):
                 raise err
             finally:
                 aisdb.conn.close()
+        '''
 
-        return np.array(res, dtype=object)
+    def gen_qry(self, dbpath, callback, qryfcn):
+        qry = self.crawl(callback=callback, qryfcn=qryfcn)
+        print(qry)
+        aisdb = dbconn(dbpath)
+        aisdb.cur.execute(qry)
+
+        '''
+        n = 0
+        while res := aisdb.cur.fetchmany(100000): 
+            n += len(res)
+            print( n )
+            yield np.array(res)
+        '''
+
+        mmsi_rows = None
+        while len(res := np.array(aisdb.cur.fetchmany(100000))) > 0: 
+            if not isinstance(mmsi_rows, np.ndarray):
+                mmsi_rows = res
+            else:
+                mmsi_rows = np.vstack((mmsi_rows, res))
+            while len(np.unique(mmsi_rows[:,0])) > 1:
+                ummsi_idx = np.where(mmsi_rows[:,0] != mmsi_rows[0,0])[0][0]
+                yield mmsi_rows[0:ummsi_idx]
+                mmsi_rows = mmsi_rows[ummsi_idx:]
+        yield mmsi_rows
+
+
+        print('done')
 

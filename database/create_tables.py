@@ -1,3 +1,7 @@
+from collections import Counter
+
+import numpy as np
+
 from database import dbconn
 
 aisdb = dbconn()
@@ -7,15 +11,17 @@ dbtype = aisdb.dbtype
 
 def sqlite_create_table_polygons(cur):
     cur.execute(f'''
-            CREATE VIRTUAL TABLE rtree_polygons USING rtree(
+            CREATE VIRTUAL TABLE IF NOT EXISTS rtree_polygons USING rtree(
                 id, 
                 minX, maxX, 
                 minY, maxY, 
                 +objname TEXT, 
-                +objtype TEXT,
+                +domain TEXT,
                 +binary BLOB
         );
     ''')
+    #cur.execute('DROP TABLE rtree_polygons')
+    #sqlite_create_table_polygons(cur)
 
 
 def sqlite_create_table_msg123(cur, month):
@@ -32,8 +38,7 @@ def sqlite_create_table_msg123(cur, month):
                 --latitude double precision,
                 y0, y1,
                 --+millisecond smallint,
-                +region smallint,
-                +country smallint,
+                +msgtype integer,
                 +navigational_status smallint,
                 +rot double precision,
                 +sog real,
@@ -50,8 +55,7 @@ def sqlite_create_table_msg123(cur, month):
                 --"time" timestamp without time zone NOT NULL,
                 time INTEGER,
                 --millisecond INTEGER,
-                region smallint,
-                country smallint,
+                msgtype INTEGER,
                 --base_station integer,
                 navigational_status smallint,
                 rot double precision,
@@ -61,13 +65,15 @@ def sqlite_create_table_msg123(cur, month):
                 cog real,
                 heading real,
                 maneuver "char",
-                utc_second smallint,
+                utc_second smallint
+            --) 
+                ,
                 PRIMARY KEY (mmsi, time)
             ) WITHOUT ROWID;
         ''')
 
     # temporal resolution is reduced to one minute at insertion - only the first item is kept
-    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time ON 'ais_{month}_msg_1_2_3' (mmsi, time) ''')
+    #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time ON 'ais_{month}_msg_1_2_3' (mmsi, time) ''')
 
     cur.execute(f''' 
             CREATE TRIGGER idx_rtree_{month}_msg_123 
@@ -75,17 +81,17 @@ def sqlite_create_table_msg123(cur, month):
             BEGIN
                 INSERT INTO rtree_{month}_msg_1_2_3( 
                     --id, 
-                    mmsi0, mmsi1, t0, t1, x0, x1, y0, y1, 
-                    navigational_status, rot, sog, cog, 
-                    heading, maneuver, utc_second,
-                    region, country
+                    mmsi0, mmsi1, t0, t1, 
+                    x0, x1, y0, y1,
+                    msgtype, navigational_status, rot, sog, 
+                    cog, heading, maneuver, utc_second
                 ) 
                 VALUES (
-                    --new.id, 
+                    --new.ROWID, 
                     new.mmsi, new.mmsi, new.time, new.time, 
                     new.longitude, new.longitude, new.latitude, new.latitude,
-                    new.navigational_status, new.rot, new.sog, new.cog, 
-                    new.heading, new.maneuver, new.utc_second, new.region, new.country
+                    new.msgtype, new.navigational_status, new.rot, new.sog, 
+                    new.cog, new.heading, new.maneuver, new.utc_second
                 )
             ; END
         ''')
@@ -104,8 +110,9 @@ def sqlite_create_table_msg18(cur, month):
                 t0, t1,
                 x0, x1,
                 y0, y1,
-                +region smallint,
-                +country smallint,
+                --+region smallint,
+                --+country smallint,
+                +msgtype integer,
                 +navigational_status smallint,
                 --+rot double precision,
                 +sog real,
@@ -123,8 +130,9 @@ def sqlite_create_table_msg18(cur, month):
                 --"time" timestamp without time zone NOT NULL,
                 time INTEGER,
                 --millisecond smallint,
-                region smallint,
-                country smallint,
+                msgtype INTEGER,
+                --region smallint,
+                --country smallint,
                 --base_station integer,
                 navigational_status smallint,
                 sog real,
@@ -133,17 +141,17 @@ def sqlite_create_table_msg18(cur, month):
                 latitude double precision,
                 cog real,
                 heading real,
-                utc_second smallint,
+                utc_second smallint
+            --)
+                ,
                 PRIMARY KEY (mmsi, time)
             ) WITHOUT ROWID;
-
                 --communication_state integer,
                 --PRIMARY KEY (mmsi, time, longitude, latitude)
-            --)
         ''')
 
     # temporal resolution is reduced to one minute at insertion - only the first item is kept
-    cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time ON 'ais_{month}_msg_18' (mmsi, time) ''')
+    #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time ON 'ais_{month}_msg_18' (mmsi, time) ''')
 
     cur.execute(f''' 
             CREATE TRIGGER idx_rtree_{month}_msg_18
@@ -153,14 +161,14 @@ def sqlite_create_table_msg18(cur, month):
                     --id, 
                     mmsi0, mmsi1, t0, t1, x0, x1, y0, y1, 
                     navigational_status, sog, cog, 
-                    heading, utc_second, region, country
+                    heading, utc_second
                 ) 
                 VALUES (
-                    --new.id, 
+                    --new.ROWID, 
                     new.mmsi, new.mmsi, new.time, new.time, 
                     new.longitude, new.longitude, new.latitude, new.latitude,
                     new.navigational_status, new.sog, new.cog, new.heading, 
-                    new.utc_second, new.region, new.country
+                    new.utc_second
                 )
             ; END
         ''')
@@ -209,10 +217,9 @@ def create_table_msg5(cur, month):
                 mode smallint
             ) ''')
     if dbtype == 'sqlite3':
-        cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg5_mmsi_time ON 'ais_{month}_msg_5' (mmsi, time)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi ON 'ais_{month}_msg_5' (mmsi)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg5_time ON 'ais_{month}_msg_5' (time)''')
         cur.execute(f''' CREATE INDEX idx_{month}_msg5_imo  ON 'ais_{month}_msg_5' (imo)''')
-        #cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi ON 'ais_{month}_msg_5' (mmsi)''')
-        #cur.execute(f''' CREATE INDEX idx_{month}_msg5_time ON 'ais_{month}_msg_5' (time)''')
     elif dbtype == 'postgres':
         print('indexes not implemented yet for postgres')
         pass
@@ -259,13 +266,74 @@ def create_table_msg24(cur, month):
             );
         ''')
     if dbtype == 'sqlite3':
-        cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg24_mmsi_time ON 'ais_{month}_msg_24' (mmsi, time)''')
-        #cur.execute(f''' CREATE INDEX idx_{month}_msg24_time ON 'ais_{month}_msg_24' (time)''')
-        #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg24_mmsi_time ON 'ais_{month}_msg_24' (mmsi, time)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg24_mmsi ON 'ais_{month}_msg_24' (mmsi)''')
+        cur.execute(f''' CREATE INDEX idx_{month}_msg24_time ON 'ais_{month}_msg_24' (time)''')
     elif dbtype == 'postgres':
         print('indexes not implemented yet for postgres')
         pass
     else: assert False
+
+
+def aggregate_static_msg5_msg24(dbpath, months_str):
+    aisdb = dbconn(dbpath=dbpath)
+    conn, cur = aisdb.conn, aisdb.cur
+
+    for month in months_str:
+        print(f'aggregating static reports 5, 24 into static_{month}_aggregate...')
+        cur.execute(f''' DROP TABLE IF EXISTS static_{month}_aggregate ''')
+
+        cur.execute(f"""
+            SELECT DISTINCT m5.mmsi
+              FROM ais_{month}_msg_5 AS m5
+             UNION 
+            SELECT DISTINCT m24.mmsi
+              FROM ais_{month}_msg_24 AS m24
+              ORDER BY 1 """)
+        mmsis = np.array(cur.fetchall(), dtype=object).flatten()
+
+        fancyprint = lambda cols, widths=[12, 24, 12, 12, 12, 12, 12, 12]: ''.join([str(c) + ''.join([' ' for _ in range(w - len(str(c)))]) for c,w in zip(cols, widths)])
+        colnames = ['mmsi', 'vessel_name', 'ship_type', 'dim_bow', 'dim_stern', 'dim_port', 'dim_star', 'imo']
+        print(fancyprint(colnames))
+
+        agg_rows = []
+        for mmsi in mmsis :
+            _ = cur.execute(f"""
+            SELECT m5.mmsi, m5.vessel_name, m5.ship_type, m5.dim_bow, m5.dim_stern, 
+                m5.dim_port, m5.dim_star, m5.imo
+              FROM ais_{month}_msg_5 AS m5
+              WHERE m5.mmsi = ?
+              UNION ALL
+            SELECT m24.mmsi, m24.vessel_name, m24.ship_type, m24.dim_bow, m24.dim_stern, 
+                   m24.dim_port, m24.dim_star, NULL as imo
+              FROM ais_{month}_msg_24 AS m24
+              WHERE m24.mmsi = ?
+            """, [mmsi, mmsi])
+            cols = np.array(cur.fetchall(), dtype=object).T
+            assert len(cols) > 0
+            filtercols = np.array([np.array(list(filter(None, col)), dtype=object) for col in cols ], dtype=object)
+            paddedcols = np.array([col if len(col) > 0 else [None] for col in filtercols], dtype=object)
+            aggregated =  [Counter(col).most_common(1)[0][0] for col in paddedcols]
+            agg_rows.append(aggregated)
+            print('\r' + fancyprint(aggregated), end='       ')
+        print()
+
+        skip_nommsi = np.array(agg_rows, dtype=object)
+        skip_nommsi = skip_nommsi[skip_nommsi[:,0] != None]
+
+        cur.execute(f''' 
+            CREATE TABLE static_{month}_aggregate (
+                mmsi INTEGER PRIMARY KEY, 
+                vessel_name TEXT,
+                ship_type INTEGER,
+                dim_bow INTEGER,
+                dim_stern INTEGER,
+                dim_port INTEGER,
+                dim_star INTEGER,
+                imo INTEGER
+            ) ''')
+        cur.executemany(f''' INSERT INTO static_{month}_aggregate VALUES (?,?,?,?,?,?,?,?) ''', skip_nommsi)
+        conn.commit()
+    conn.close()
 
 
 def create_table_msg27(cur, month):

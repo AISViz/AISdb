@@ -3,8 +3,10 @@ import re
 from datetime import datetime, timedelta
 from packaging import version
 import logging
-#from multiprocessing import Pool, Lock
+from multiprocessing import Pool#, Lock
 from functools import partial
+import json
+import pickle
 
 
 import numpy as np
@@ -17,21 +19,8 @@ from index import index
 
 
 
-def binarysearch(arr, search):
-    ''' fast indexing of ordered arrays. used for finding nearest base station report at given index '''
-    low, high = 0, len(arr)-1
-    while (low <= high):
-        mid = int((low + high) / 2)
-        if arr[mid] == search or mid == 0 or mid == len(arr)-1:
-            return mid
-        elif (arr[mid] >= search):
-            high = mid -1 
-        else:
-            low = mid +1
-    return mid
 
-
-dt = lambda t: dict(year=t.year, month=t.month, day=t.day, hour=t.hour, minute=t.minute, second=t.second)
+#dt_dict = lambda t: dict(year=t.year, month=t.month, day=t.day, hour=t.hour, minute=t.minute, second=t.second)
 
 
 def is_valid_date(year, month, day, hour=0, minute=0, second=0, **_):
@@ -64,13 +53,13 @@ def epoch_2_dt(ep_arr, t0=datetime(2000,1,1,0,0,0), unit='minutes'):
 
     
 
-def insert_msg123(cur, mstr, msg123):
+def insert_msg123(cur, mstr, rows):
     cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_1_2_3" ')
     if not cur.fetchall(): 
         sqlite_create_table_msg123(cur, mstr)
     
-    rows, stamps = msg123.T
-    epochs = dt_2_epoch(stamps).astype(float)
+    #rows, stamps = msg123.T
+    #epochs = dt_2_epoch(stamps).astype(float)
     """
     tup123 = ((
         float(r['mmsi']), float(r['mmsi']), e, e, r['lon'], r['lon'], r['lat'], r['lat'], 
@@ -85,34 +74,45 @@ def insert_msg123(cur, mstr, msg123):
                     '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', tup123)
     """
     tup123 = ((
-        float(r['mmsi']), e, r['lon'], r['lat'], 
-        r['status'].value, r['turn'], r['speed'], r['course'], r['heading'], 
-        r['maneuver'], r['second']
-        )   for r,e in zip(rows, epochs)
+        float(r['mmsi']), r['epoch'], r['type'], r['lon'], r['lat'], 
+        int(r['status']), r['turn'], r['speed'], r['course'], r['heading'], 
+        r['maneuver'], r['second'],
+        )   for r in rows
     )
-    cur.executemany(f'INSERT OR IGNORE INTO ais_{mstr}_msg_1_2_3 '
-                    '(mmsi, time, longitude, latitude, '
-                    'navigational_status, rot, sog, cog, '
-                    'heading, maneuver, utc_second) '
-                    '''VALUES (?,?,?,?,?,?,?,?,?,?,?)''', tup123)
+    coveridx = ((r['mmsi'], r['epoch']) for r in rows)
+    cur.executemany(f'''
+                    INSERT OR IGNORE INTO ais_{mstr}_msg_1_2_3 
+                    (mmsi, time, msgtype, longitude, latitude, 
+                    navigational_status, rot, sog, cog, 
+                    heading, maneuver, utc_second) 
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?) 
+                    --ON CONFLICT (mmsi, time) 
+                    --DO NOTHING
+                    --WHERE NOT EXISTS ( 
+                    --SELECT * FROM rtree_{mstr}_msg_1_2_3 AS rtree
+                    --    WHERE rtree.mmsi0 = CAST(mmsi AS FLOAT)
+                    --    AND rtree.t0 = CAST(time AS FLOAT)
+                    --) 
+                    '''
+                    , tup123)
     return
 
 
-def insert_msg5(cur, mstr, msg5):
+def insert_msg5(cur, mstr, rows):
     cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_{mstr}_msg_5" ')
     if not cur.fetchall(): 
         create_table_msg5(cur, mstr)
 
-    rows, stamps = msg5.T
-    epochs = dt_2_epoch(stamps).astype(float)
+    #rows, stamps = msg5.T
+    #epochs = dt_2_epoch(stamps).astype(float)
     tup5 = ((
                 r['type'], r['repeat'], int(r['mmsi']), r['ais_version'], r['imo'], r['callsign'], 
                 r['shipname'].rstrip(), r['shiptype'], r['to_bow'], r['to_stern'], r['to_port'], 
                 r['to_starboard'], r['epfd'], r['month'], r['day'], 
-                r['hour'], r['minute'], r['draught'], r['destination'], r['dte'], e
-            ) for r,e in zip(rows, epochs)
+                r['hour'], r['minute'], r['draught'], r['destination'], r['dte'], r['epoch']
+            ) for r in rows 
         )
-    cur.executemany(f'INSERT OR IGNORE INTO ais_{mstr}_msg_5 '
+    cur.executemany(f'INSERT INTO ais_{mstr}_msg_5 '
                     '(message_id, repeat_indicator, mmsi, ais_version, imo, call_sign, '
                     'vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star, '
                     'fixing_device, eta_month, eta_day, eta_hour, eta_minute, draught, '
@@ -121,13 +121,13 @@ def insert_msg5(cur, mstr, msg5):
     return
 
 
-def insert_msg18(cur, mstr, msg18):
+def insert_msg18(cur, mstr, rows):
     cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_18" ')
     if not cur.fetchall(): 
         sqlite_create_table_msg18(cur, mstr)
 
-    rows, stamps = msg18.T
-    epochs = dt_2_epoch(stamps).astype(float)
+    #rows, stamps = msg18.T
+    #epochs = dt_2_epoch(stamps).astype(float)
     """
     tup18 = ((
         int(r['mmsi']), int(r['mmsi']), e, e, r['lon'], r['lon'], r['lat'], r['lat'], 
@@ -142,26 +142,37 @@ def insert_msg18(cur, mstr, msg18):
                     '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)''', tup18)
     """
     tup18 = ((
-        int(r['mmsi']), e, r['lon'], r['lat'], 
-        r['radio'], #if 'nav_status' in r.keys() else None,
+        int(r['mmsi']), r['epoch'], r['type'], r['lon'], r['lat'], 
+        r['radio'] if 'radio' in r.keys() else None,
+        #if 'nav_status' in r.keys() else None,
         r['speed'], r['course'], r['heading'], r['second'],
-        )   for r,e in zip(rows, epochs)
+        ) for r in rows
     )
-    cur.executemany(f'INSERT OR IGNORE INTO ais_{mstr}_msg_18'
-                    '(mmsi, time, longitude, latitude, '
-                    'navigational_status, sog, cog, '
-                    'heading, utc_second) '
-                    '''VALUES (?,?,?,?,?,?,?,?,?)''', tup18)
+    cur.executemany(f'''
+                    INSERT OR IGNORE INTO ais_{mstr}_msg_18 
+                    (mmsi, time, msgtype, longitude, latitude, 
+                    navigational_status, sog, cog, 
+                    heading, utc_second) 
+                    VALUES (?,?,?,?,?,?,?,?,?,?) 
+                    --ON CONFLICT (mmsi, time) 
+                    --DO NOTHING
+                    --WHERE NOT EXISTS ( 
+                    --SELECT FROM rtree_{mstr}_msg_18 AS rtree
+                    --    WHERE rtree.mmsi0 = CAST(mmsi AS FLOAT)
+                    --    AND rtree.t0 = CAST(time AS FLOAT)
+                    --) 
+                    '''
+                    , tup18)
     return
 
 
-def insert_msg24(cur, mstr, msg24):
+def insert_msg24(cur, mstr, rows):
     cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_{mstr}_msg_24" ')
     if not cur.fetchall(): 
         create_table_msg24(cur, mstr)
 
-    rows, stamps = msg24.T
-    epochs = dt_2_epoch(stamps).astype(float)
+    #rows, stamps = msg24.T
+    #epochs = dt_2_epoch(stamps).astype(float)
     tup24 = ((
             r['type'], r['repeat'], int(r['mmsi']), r['partno'], 
             r['shipname']           if r['partno'] == 0 else None,
@@ -175,16 +186,17 @@ def insert_msg24(cur, mstr, msg24):
             r['to_port']            if r['partno'] == 1 else None, 
             r['to_starboard']       if r['partno'] == 1 else None, 
             r['mothership_mmsi']    if r['partno'] == 1 else None, 
-            e,
-        ) for r,e in zip(rows, epochs)
+            r['epoch'],
+        ) for r in rows
     )
-    cur.executemany(f'INSERT OR IGNORE INTO ais_{mstr}_msg_24 '
+    cur.executemany(f'INSERT INTO ais_{mstr}_msg_24 '
                     '(message_id, repeat_indicator, mmsi, sequence_id, vessel_name, ship_type, vendor_id,  '
                     'model, serial, call_sign, dim_bow, dim_stern, dim_port, dim_star, mother_ship_mmsi, time) '
                     'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', tup24)
     return
 
 
+'''
 def batch_insert(dbpath, batch, mstr):
 
     aisdb = dbconn(dbpath=dbpath, timeout=30)
@@ -194,31 +206,54 @@ def batch_insert(dbpath, batch, mstr):
     if [] != batch['msg3']  : insert_msg123(cur, mstr, np.array(batch['msg3']))
     if [] != batch['msg5']  : insert_msg5(  cur, mstr, np.array(batch['msg5']))
     if [] != batch['msg18'] : insert_msg18( cur, mstr, np.array(batch['msg18']))
+    if [] != batch['msg19'] : insert_msg18( cur, mstr, np.array(batch['msg19']))
     if [] != batch['msg24'] : insert_msg24( cur, mstr, np.array(batch['msg24']))
     conn.commit()
     conn.close()
+'''
 
 
-def decode_raw_pyais(fpath, dbpath):
+def append_file(picklefile, batch):
+    for key in batch.keys():
+        # sort rows by mmsi, type, and epoch timestamp
+        rows = np.array(sorted(batch[key], key=lambda r: [r['mmsi'], r['type'], r['epoch']] ), dtype=object)
+        # skip empty rows
+        if len(rows) == 0: continue
+        # skip duplicate epoch-minute timestamps for each mmsi
+        keepidx = np.nonzero([x['mmsi']!=y['mmsi'] or x['epoch']!=y['epoch'] for x,y in zip(rows[1:], rows[:-1])])[0]-1
+        # write to disk
+        with open(f'{picklefile}_{key}', 'ab') as f:
+            #f.write(json.dumps(str(list(rows[keepidx])).replace("'", '').replace('"', '').replace('[', '').replace(']', '')))
+            pickle.dump(rows[keepidx], f)
+
+
+def decode_raw_pyais(fpath, tmpdir):
 
     # if the file was already parsed, skip it
-    path, dbfile = dbpath.rsplit(os.path.sep, 1)
-    with index(storagedir=path, filename=dbfile, bins=False, store=False) as parsed:
-        if parsed.serialized(kwargs=dict(fpath=fpath)):
-            return
+    #path, dbfile = dbpath.rsplit(os.path.sep, 1)
+    #tmpdir      = os.path.join(path, 'tmp_parsing')
+    #if not os.path.isdir(tmpdir): os.mkdir(tmpdir)
+
+    #with index(storagedir=path, filename=dbfile, bins=False, store=False) as parsed:
+    #    if parsed.serialized(kwargs=dict(fpath=fpath)):
+    #        return
 
     splitmsg    = lambda rawmsg: rawmsg.split('\\')
-    parsetime   = lambda comment: datetime.fromtimestamp(int(comment.split('c:')[1].split(',')[0].split('*')[0]))
+    parsetime   = lambda comment: dt_2_epoch(datetime.fromtimestamp(int(comment.split('c:')[1].split(',')[0].split('*')[0])))
 
     regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(fpath)
     mstr        = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
+    picklefile  = os.path.join(tmpdir, ''.join(fpath[regexdate.start():regexdate.end()].split('-')))
+
+    if sum( [os.path.isfile(f'{picklefile}_msg{msgtype}') for msgtype in (1,2,3,5,18,24)] ) >= 6: 
+        return
 
     n           = 0
     skipped     = 0
     failed      = 0
     t0          = datetime.now()
     batch       = {f'msg{i}' : [] for i in (1, 2, 3, 4, 5, 11, 18, 19, 24, 27)}
-    print(f'{fpath.split(os.path.sep)[-1]}\tprocessing message {n}', end='')
+    #print(f'{fpath.split(os.path.sep)[-1]}\tprocessing message {n}', end='')
 
 
 
@@ -259,21 +294,90 @@ def decode_raw_pyais(fpath, dbpath):
             n += 1
             #logging.debug(f'{stamp}  ->  ')
             #logging.debug(f'{parsetime(stamp)}')
-            batch[f'msg{msg["type"]}'].append([msg, parsetime(stamp)])
+            #batch[f'msg{msg["type"]}'].append([msg, parsetime(stamp)])
+            msg['epoch'] = parsetime(stamp)
+            batch[f'msg{msg["type"]}'].append(msg)
 
             # every once in a while insert into DB and print a status message
             if n % 100000 == 0: 
-                print(f'\r{fpath.split(os.path.sep)[-1]}\tprocessing message {n}', end='')
-                batch_insert(dbpath=dbpath, batch=batch, mstr=mstr)
+                #print(f'\r{fpath.split(os.path.sep)[-1]}\tprocessing message {n}', end='')
+                #batch_insert(dbpath=dbpath, batch=batch, mstr=mstr)
+                append_file(picklefile, batch)
                 batch = {f'msg{i}' : [] for i in (1, 2, 3, 4, 5, 11, 18, 19, 24, 27)}
 
-        batch_insert(dbpath, batch, mstr)
+        #batch_insert(dbpath, batch, mstr)
+        append_file(picklefile, batch)
 
-    print(f'\r{fpath.split(os.path.sep)[-1]}\tprocessed {n} messages in {(datetime.now() - t0).total_seconds():.0f}s.\tskipped: {skipped}\tfailed: {failed}')
+    print(f'{fpath.split(os.path.sep)[-1]}\tprocessed {n} messages in {(datetime.now() - t0).total_seconds():.0f}s.\tskipped: {skipped}\tfailed: {failed}')
 
     # store a checksum of the filename
-    with index(storagedir=path, filename=dbfile, bins=False, store=False) as parsed:
-        parsed.insert_hash(kwargs=dict(fpath=fpath))
+    #with index(storagedir=path, filename=dbfile, bins=False, store=False) as parsed:
+    #    parsed.insert_hash(kwargs=dict(fpath=fpath))
+
+
+def parallel_decode(filepaths, dbpath):
+
+    # create temporary directory for parsed data
+    path, dbfile = dbpath.rsplit(os.path.sep, 1)
+    tmpdir = os.path.join(path, 'tmp_parsing')
+    if not os.path.isdir(tmpdir): 
+        os.mkdir(tmpdir)
+
+    # decode and serialize
+    proc = partial(decode_raw_pyais, tmpdir=tmpdir)
+    
+    # parallelize decoding step
+    with Pool(12) as p:
+        list(p.imap_unordered(proc, filepaths))
+
+    insertfcn = {
+            'msg1' : insert_msg123,
+            'msg2' : insert_msg123,
+            'msg3' : insert_msg123,
+            'msg5' : insert_msg5,
+            'msg18' : insert_msg18,
+            #'msg19' : ,
+            'msg24' : insert_msg24,
+            #'msg27' : insert_msg123,
+        }
+
+    aisdb = dbconn(dbpath=dbpath)
+    conn, cur = aisdb.conn, aisdb.cur
+
+    months_str = []
+
+    # deserialize
+    for picklefile in sorted(os.listdir(tmpdir)):
+        msgtype     = picklefile.split('_', 1)[1].rsplit('.', 1)[0]
+        regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(picklefile)
+        mstr        = picklefile[regexdate.start():regexdate.end()][:-2]
+        if mstr not in months_str: months_str.append(mstr)
+
+        if msgtype == 'msg11' or msgtype == 'msg27' or msgtype == 'msg19' or msgtype == 'msg4': 
+            os.remove(os.path.join(tmpdir, picklefile))
+            continue
+
+        dt = datetime.now()
+
+        with open(os.path.join(tmpdir, picklefile), 'rb') as f:
+            while True:
+                try:
+                    rows = pickle.load(f)
+                except EOFError as e:
+                    break
+                except Exception as e:
+                    raise e
+                insertfcn[msgtype](cur, mstr, rows)
+        conn.commit()
+
+        delta =datetime.now() - dt
+        print(f'insert time {picklefile}:\t{delta.total_seconds():.2f}s')
+        os.remove(os.path.join(tmpdir, picklefile))
+
+    conn.close()
+    # aggregate and index static reports: msg5, msg24
+    aggregate_static_msg5_msg24(dbpath, months_str)
+
 
 
 
