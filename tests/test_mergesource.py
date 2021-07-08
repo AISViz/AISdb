@@ -15,6 +15,7 @@ from dbclient import *
 dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
 dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
 dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
+dbpath = '/meridian/aisdb/eE_202009_test2.db'
 
 
 zones_east = zones_from_txts('../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', 'east')
@@ -30,6 +31,8 @@ zones = zones_east
 def test_output_allsource():
 
     # join rtree tables with aggregate position reports 
+    start   = datetime(2020,9,1)
+    end     = datetime(2020,10,1)
     start   = datetime(2018,6,1)
     end     = datetime(2018,7,1)
 
