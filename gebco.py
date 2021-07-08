@@ -16,13 +16,13 @@ class Gebco():
 
         # download the file if necessary
         if not os.path.isfile(zipf):
-            logging.info('downloading and decompressing gebco bathymetry (netcdf ~8GB)... ')
+            logging.info('downloading gebco bathymetry (geotiff ~8GB decompressed)... ')
             url = 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2020/geotiff/'
-            with requests.get(url, stream=True) as payload_netcdf:
-                assert payload_netcdf.status_code == 200, 'error fetching file'
+            with requests.get(url, stream=True) as payload:
+                assert payload.status_code == 200, 'error fetching file'
                 with open(zipf, 'wb') as f:
                     with tqdm(total=3730631664, desc=zipf, unit='B', unit_scale=True) as t:
-                        for chunk in payload_netcdf.iter_content(chunk_size=8192): 
+                        for chunk in payload.iter_content(chunk_size=8192): 
                             _ = t.update(f.write(chunk))
 
             # unzip the downloaded file

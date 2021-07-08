@@ -49,6 +49,7 @@ segmentinfo = lambda track, stacked_arr, src_zone, domain: dict(
         month                               =   epoch_2_dt(track['time'][0]).month,
         day                                 =   epoch_2_dt(track['time'][0]).day,
         ballast                             =   None,
+        confidence                          =   0,
     )
 
 # collect stats about a vessel in context of a zone
@@ -218,11 +219,11 @@ def merge_layers(rowgen, zones, dbpath):
             mmsi_column, imo_column, ship_type_column = 0, 7, 13
 
             # vessel geometry
-            print('aggregating unique mmsi, imo...')
+            #print('aggregating unique mmsi, imo...')
             uniqueID = {}
             _ = [uniqueID.update({f'{r[mmsi_column]}_{r[imo_column]}' : {'m' : r[mmsi_column], 'i' : r[imo_column]}}) for r in rows]
 
-            print('loading marinetraffic vessel data...')
+            #print('loading marinetraffic vessel data...')
             for uid in uniqueID.values():
                 ummsi, uimo = uid.values()
                 if uimo != None:
@@ -237,11 +238,11 @@ def merge_layers(rowgen, zones, dbpath):
             submerged_hull = np.array([wsa(d, r) for d,r in zip(deadweight_tonnage,ship_type) ])
 
             # shore distance from cell grid
-            print('loading shore distance...')
+            #print('loading shore distance...')
             km_from_shore = np.array([sdist.getdist(x, y) for x, y in xy ])
 
             # seafloor depth from cell grid
-            print('loading bathymetry...')
+            #print('loading bathymetry...')
             depth = np.array([bathymetry.getdepth(x, y) for x,y in xy ]) * -1
 
             yield np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
@@ -265,18 +266,19 @@ def concat_layers(merged, zones, dbpath):
     ]
 
     print('aggregating...')
-    '''
-    for track in trackgen(merged, colnames):
-        _mergeprocess(track, zones, dbpath, colnames)
+    for track in merged:
+        #_mergeprocess(track, zones, dbpath, colnames)
+        _mergeprocess(next(trackgen(track, colnames=colnames)), zones, dbpath, colnames)
 
     '''
     with Pool(processes=4) as p:
         # define fcn as _mergeprocess() with zones, db context as static args
         fcn = partial(_mergeprocess, zones=zones, dbpath=dbpath, colnames=colnames)
         # map track generator to anonymous fcn for each process in processing pool
-        p.imap_unordered(fcn, (next(trackgen(m)) for m in merged), chunksize=1)
+        p.imap_unordered(fcn, (next(trackgen(m, colnames=colnames)) for m in merged), chunksize=1)
         p.close()
         p.join()
+    '''
     _ = [colnames.append(col) for col in ['sog_computed', 'zone', 'domain']]
 
     picklefiles = [fname for fname in sorted(os.listdir(tmpdir(dbpath))) if '_' not in fname]
