@@ -80,11 +80,19 @@ if __name__ == '__main__':
             pickle.dump(row, f)
 
     with open('output/mergedrows', 'wb') as f:
-        assert len(list(merged)) > 1000
-        pickle.dump(merged, f)
+        #assert len(list(merged)) > 1000
+        #pickle.dump(merged, f)
+        for row in merged:
+            pickle.dump(row, f)
         
+    rowgen = []
     with open('output/testrows', 'rb') as f:
-        rows = pickle.load(f)
+        while True:
+            try:
+                rows = pickle.load(f)
+            except EOFError as e:
+                break
+            rowgen.append(rows)
 
     with open('output/mergedrows', 'rb') as f:
         merged = pickle.load(f)
