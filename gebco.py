@@ -1,7 +1,6 @@
 import os
 import zipfile
 
-import kadlu
 import requests
 from tqdm import tqdm
 import rasterio
@@ -9,10 +8,13 @@ import rasterio
 
 class Gebco():
 
+    def __init__(self, dbpath):
+        self.dirname, pathfile = dbpath.rsplit(os.path.sep, 1)
+
     def fetch_bathymetry_grid(self):
         """ download geotiff zip archive and extract it """
 
-        zipf = os.path.join(kadlu.storage_cfg(), "gebco_2020_geotiff.zip")
+        zipf = os.path.join(self.dirname, "gebco_2020_geotiff.zip")
 
         # download the file if necessary
         if not os.path.isfile(zipf):
