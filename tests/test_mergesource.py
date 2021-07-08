@@ -91,8 +91,14 @@ if __name__ == '__main__':
                 break
             rowgen.append(rows)
 
+    merged = []
     with open('output/mergedrows', 'rb') as f:
-        merged = pickle.load(f)
+        while True:
+            try:
+                rows = pickle.load(f)
+            except EOFError as e:
+                break
+            merged.append(rows)
 
     colnames = [
             'mmsi', 'time', 'lon', 'lat', 
