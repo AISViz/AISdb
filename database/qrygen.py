@@ -135,15 +135,11 @@ class qrygen(UserDict):
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
         aisdb = dbconn(dbpath)
-        aisdb.cur.execute(qry)
 
-        '''
-        n = 0
-        while res := aisdb.cur.fetchmany(100000): 
-            n += len(res)
-            print( n )
-            yield np.array(res)
-        '''
+        dt = datetime.now()
+        aisdb.cur.execute(qry)
+        delta =datetime.now() - dt
+        print(f'query time: {delta.total_seconds():.2f}s')
 
         mmsi_rows = None
         while len(res := np.array(aisdb.cur.fetchmany(100000))) > 0: 
