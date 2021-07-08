@@ -55,16 +55,14 @@ class Gebco():
 
 
     def getdepth(self, lon, lat):
-
         for filepath, bounds in self.rasterfiles.items():
-            if bounds['w'] <= lon <=  bounds['e'] and bounds['s'] <= lat <= bounds['n']: break
-        
-        if not 'band1' in bounds.keys(): 
-            bounds.update({'dataset': rasterio.open(kadlu.storage_cfg() + filepath)})
-            bounds.update({'band1': bounds['dataset'].read(1)})
+            if bounds['w'] <= lon <=  bounds['e'] and bounds['s'] <= lat <= bounds['n']: 
+                if not 'band1' in bounds.keys(): 
+                    bounds.update({'dataset': rasterio.open(kadlu.storage_cfg() + filepath)})
+                    bounds.update({'band1': bounds['dataset'].read(1)})
+                ixlon, ixlat = bounds['dataset'].index(lon, lat)
+                return bounds['band1'][ixlon-1,ixlat-1]
 
-        ixlon, ixlat = bounds['dataset'].index(lon, lat)
-        return bounds['band1'][ixlon-1,ixlat-1]
 
 
 
