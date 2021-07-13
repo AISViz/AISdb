@@ -132,15 +132,18 @@ class qrygen(UserDict):
         '''
 
     def gen_qry(self, dbpath, callback, qryfcn):
+        # create query to crawl db
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
-        aisdb = dbconn(dbpath)
 
+        # initialize db, run query
+        aisdb = dbconn(dbpath)
         dt = datetime.now()
         aisdb.cur.execute(qry)
         delta =datetime.now() - dt
         print(f'query time: {delta.total_seconds():.2f}s')
 
+        # get 100k rows at a time, yield sets of rows for each unique MMSI
         mmsi_rows = None
         while len(res := np.array(aisdb.cur.fetchmany(100000))) > 0: 
             if not isinstance(mmsi_rows, np.ndarray):

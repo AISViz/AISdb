@@ -18,7 +18,7 @@ class Gebco():
 
         # download the file if necessary
         if not os.path.isfile(zipf):
-            logging.info('downloading gebco bathymetry (geotiff ~8GB decompressed)... ')
+            print('downloading gebco bathymetry (geotiff ~8GB decompressed)... ')
             url = 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2020/geotiff/'
             with requests.get(url, stream=True) as payload:
                 assert payload.status_code == 200, 'error fetching file'
@@ -29,7 +29,7 @@ class Gebco():
 
             # unzip the downloaded file
             with zipfile.ZipFile(zipf, 'r') as zip_ref:
-                logging.info('extracting bathymetry data...')
+                print('extracting bathymetry data...')
                 zip_ref.extractall(path=self.dirname)
 
         return
