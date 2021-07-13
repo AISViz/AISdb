@@ -33,6 +33,7 @@ def test_output_allsource():
     # join rtree tables with aggregate position reports 
     start   = datetime(2020,9,1)
     end     = datetime(2020,10,1)
+
     start   = datetime(2018,6,1)
     end     = datetime(2018,7,1)
 

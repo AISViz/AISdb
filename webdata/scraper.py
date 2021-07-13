@@ -36,6 +36,8 @@ if not os.path.isfile(os.path.join(os.path.dirname(__file__), 'webdriver')) and 
 
 os.environ['PATH'] = f'{os.path.dirname(__file__)}:{os.environ.get("PATH")}'
 
+import shutil
+
 from selenium import webdriver
 from selenium.common.exceptions import StaleElementReferenceException, SessionNotCreatedException
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
@@ -62,10 +64,20 @@ def init_webdriver():
     opt.set_preference('dom.disable_beforeunload', True)
     driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
 
-    if os.path.isfile(path := '/usr/lib/firefox/firefox') or (path := shutil.which('firefox')):  
-        driver = webdriver.Firefox(firefox_binary=FirefoxBinary(path), executable_path=os.path.join(os.path.dirname(__file__), driverpath), options=opt)
+    firefoxpath = '/usr/lib/firefox/firefox' if os.path.ispath('/usr/lib/firefox/firefox') else shutil.which('firefox')
+
+    if os.path.isfile(firefoxpath):  
+        driver = webdriver.Firefox(
+                firefox_binary=FirefoxBinary(firefoxpath), 
+                executable_path=os.path.join(os.path.dirname(__file__), driverpath), 
+                options=opt,
+                service_log_path=os.path.join(os.path.dirname(__file__), 'geckodriver.log'),
+            )
     else: 
-        driver = webdriver.Firefox(executable_path=os.path.join(os.path.dirname(__file__), driverpath), options=opt)
+        driver = webdriver.Firefox(
+                executable_path=os.path.join(os.path.dirname(__file__), driverpath), 
+                options=opt,
+            )
     driver.set_window_size(9999,9999) if headless else driver.maximize_window()
     return driver
 
