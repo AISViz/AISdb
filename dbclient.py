@@ -208,9 +208,7 @@ def merge_layers(rowgen, zones, dbpath):
 
     # read data layers from disk to merge with AIS
     print('aggregating ais, shore distance, bathymetry, vessel geometry...')
-    with (  shore_dist_gfw(dbpath=dbpath) as sdist,
-            Gebco(dbpath=dbpath) as bathymetry, 
-            marinetraffic.scrape_tonnage(dbpath=dbpath) as hullgeom    ):
+    with shore_dist_gfw(dbpath=dbpath) as sdist, Gebco(dbpath=dbpath) as bathymetry, marinetraffic.scrape_tonnage(dbpath=dbpath) as hullgeom:
 
         for rows in rowgen:
             #rows = np.array(list(rowgen))
