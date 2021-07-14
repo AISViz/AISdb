@@ -2,7 +2,7 @@ Tools and utilities for processing AIS data
 
 Setup:
   ```
-  python3 -m pip install --upgrade numpy pysqlite3-binary pyais shapely requests rasterio packaging selenium
+  python3 -m pip install --upgrade numpy pysqlite3-binary pyais shapely requests rasterio packaging selenium tqdm
   ```
 
 Requirements:
