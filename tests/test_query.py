@@ -21,15 +21,21 @@ dbpath = '/run/media/matt/My Passport/june2018-06-0_test2.db'
 dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
 dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
 #dbpath = '/meridian/aisdb/eE_202009_test2.db'
+dbpath = '/vol1/aisdb/testdb_202009.db'
+
+start = datetime(2020,9,1)
+end = datetime(2020,10,1)
 
 
 def test_query_smallboundary_statictables():
+    start   = datetime(2018,6,1)
+    end     = datetime(2018,6,2)
 
     # static: msg 5 union 24
     dt = datetime.now()
     rows = qrygen(
-            start   = datetime(2018,6,1),
-            end     = datetime(2018,6,2),
+            start=start,
+            end=end,
         ).run_qry(dbpath=dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=static) 
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')

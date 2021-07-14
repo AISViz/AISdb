@@ -145,7 +145,9 @@ class qrygen(UserDict):
 
         # get 100k rows at a time, yield sets of rows for each unique MMSI
         mmsi_rows = None
-        while len(res := np.array(aisdb.cur.fetchmany(100000))) > 0: 
+        #while len(res := np.array(aisdb.cur.fetchmany(100000))) > 0: 
+        res = np.array(aisdb.cur.fetchmany(100000))
+        while len(res) > 0: 
             if not isinstance(mmsi_rows, np.ndarray):
                 mmsi_rows = res
             else:
@@ -154,6 +156,7 @@ class qrygen(UserDict):
                 ummsi_idx = np.where(mmsi_rows[:,0] != mmsi_rows[0,0])[0][0]
                 yield mmsi_rows[0:ummsi_idx]
                 mmsi_rows = mmsi_rows[ummsi_idx:]
+            res = np.array(aisdb.cur.fetchmany(100000))
         yield mmsi_rows
 
 
