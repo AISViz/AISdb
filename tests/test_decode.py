@@ -97,7 +97,7 @@ def test_aggregate_staticreports():
     conn, cur = aisdb.conn, aisdb.cur
     month = '201806'
     month = '202009'
-    aggregate_static_msg5_msg24(cur, [month])
+    aggregate_static_msg5_msg24(dbpath, [month])
     conn.commit()
 
     cur.execute(f''' DROP TABLE IF EXISTS static_{month}_aggregate ''')
