@@ -246,8 +246,11 @@ class TrackViz(QMainWindow):
         merged = shapely.ops.linemerge([geom.boundary, meridian])
         border = shapely.ops.unary_union(merged)
         decomp = shapely.ops.polygonize(border)
-        splits = [Polygon(zip(adjust((p := next(decomp)).boundary.coords.xy[0]), p.boundary.coords.xy[1])),
-                  Polygon(zip(np.abs(adjust((p := next(decomp)).boundary.coords.xy[0])), p.boundary.coords.xy[1])) ]
+        #splits = [Polygon(zip(adjust((p := next(decomp)).boundary.coords.xy[0]), p.boundary.coords.xy[1])),
+        #          Polygon(zip(np.abs(adjust((p := next(decomp)).boundary.coords.xy[0])), p.boundary.coords.xy[1])) ]
+        p1, p2 = next(decomp), next(decomp)
+        splits = [Polygon(zip(adjust(p1.boundary.coords.xy[0]), p1.boundary.coords.xy[1])),
+                  Polygon(zip(np.abs(adjust(p2.boundary.coords.xy[0])), p2.boundary.coords.xy[1])) ]
         return splits
 
 

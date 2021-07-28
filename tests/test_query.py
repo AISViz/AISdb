@@ -28,6 +28,7 @@ end = datetime(2020,10,1)
 
 
 def test_query_smallboundary_statictables():
+
     start   = datetime(2018,6,1)
     end     = datetime(2018,6,2)
 
@@ -43,13 +44,15 @@ def test_query_smallboundary_statictables():
 
 
 def test_query_smallboundary_dynamictables():
+    start   = datetime(2018,6,1)
+    end     = datetime(2018,6,2)
 
     # dynamic: msg 123 union 18
     dt = datetime.now()
     rows = qrygen(
             xy = merge(canvaspoly.boundary.coords.xy),
-            start   = datetime(2018,6,1),
-            end     = datetime(2018,6,2),
+            start=start,
+            end=end,
             xmin    = min(poly_xy[0]), 
             xmax    = max(poly_xy[0]), 
             ymin    = min(poly_xy[1]), 
@@ -198,6 +201,23 @@ def test_plot_smallboundary():
 
     rows[rows[:,0] == 316002048]
     '''
+
+def test_drop_intermediate_tables():
+
+    aisdb = dbconn(dbpath=dbpath)
+    conn, cur = aisdb.conn, aisdb.cur
+
+    mstr = start.strftime('%Y%m')
+    qry = f'drop table ais_{mstr}_msg_1_2_3'
+    cur.execute(qry)
+    qry = f'drop table ais_{mstr}_msg_18'
+    cur.execute(qry)
+    qry = f'drop table ais_{mstr}_msg_5'
+    cur.execute(qry)
+    qry = f'drop table ais_{mstr}_msg_24'
+    cur.execute(qry)
+    qry = f'vacuum into "/vol1/aisdb/vacuumed_202009.db" '
+    cur.execute(qry)
 
 
 def test_cluster_stopped():
