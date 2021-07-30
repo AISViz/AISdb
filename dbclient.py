@@ -133,6 +133,9 @@ def _mergeprocess(track, zones, dbpath, colnames):
         # get subset of zones that intersect with track
         in_zones = {}
         for zonerng in range(0, len(subset), 1000):
+            if not len(track['lon'][subset][zonerng:zonerng+1000]) > 1:
+                print('warning: skipping track segment of length 1')
+                continue
             in_zones.update({ k:v for k,v in zones['geoms'].items() if LineString(zip(track['lon'][subset][zonerng:zonerng+1000], track['lat'][subset][zonerng:zonerng+1000])).intersects(v) })
 
         #in_zones = { k:v for k,v in zones['geoms'].items() if LineString(zip(track['lon'][subset], track['lat'][subset])).intersects(v) }
