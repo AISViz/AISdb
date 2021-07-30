@@ -91,3 +91,14 @@ SELECT m18.mmsi, m5.imo, m18.time, m18.longitude, m18.latitude, m18.cog, m18.sog
   GROUP BY m18.mmsi, m18.time, m18.longitude, m18.latitude, m18.cog, m18.sog, m5.vessel_name, ref.coarse_type_txt, m5.imo
   ''')
 
+
+scan_static = lambda month, callback, kwargs: (f'''
+SELECT DISTINCT mmsi, imo, vessel_name, ship_type
+  FROM {prefix}{month}_msg_5 AS m5
+  WHERE {callback(month=month, alias='m5', **kwargs)}
+UNION
+SELECT DISTINCT mmsi, imo, vessel_name, ship_type
+  FROM {prefix}{month}_msg_24 AS m24 
+  WHERE {callback(month=month, alias='m24', **kwargs)}
+  ''')
+

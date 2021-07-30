@@ -204,7 +204,7 @@ def test_plot_smallboundary():
 
 def test_drop_intermediate_tables():
 
-    aisdb = dbconn(dbpath=dbpath)
+    aisdb = dbconn(dbpath=dbpath, postgres=False)
     conn, cur = aisdb.conn, aisdb.cur
 
     mstr = start.strftime('%Y%m')
@@ -216,7 +216,7 @@ def test_drop_intermediate_tables():
     cur.execute(qry)
     qry = f'drop table ais_{mstr}_msg_24'
     cur.execute(qry)
-    qry = f'vacuum into "/vol1/aisdb/vacuumed_202009.db" '
+    qry = f'vacuum into "/meridian/aisdb/vacuumed_202009.db" '
     cur.execute(qry)
 
 

@@ -288,16 +288,14 @@ def concat_layers(merged, zones, dbpath):
         'deadweight_tonnage', 'submerged_hull_m^2',
         'km_from_shore', 'depth_metres',
     ]
-
     print('aggregating...')
-    for track in merged:
-        # track = trackgen
-        #_mergeprocess(track, zones, dbpath, colnames)
-        _mergeprocess(next(trackgen(track, colnames=colnames)), zones, dbpath, colnames)
-        #_mergeprocess(track, zones, dbpath, colnames)
+
+    for mmsiset in merged:
+        _mergeprocess(next(trackgen(mmsiset, colnames=colnames)), zones, dbpath, colnames)
 
     '''
-    with Pool(processes=4) as p:
+
+    with Pool(processes=12) as p:
         # define fcn as _mergeprocess() with zones, db context as static args
         fcn = partial(_mergeprocess, zones=zones, dbpath=dbpath, colnames=colnames)
         # map track generator to anonymous fcn for each process in processing pool

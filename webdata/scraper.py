@@ -64,7 +64,7 @@ def init_webdriver():
     opt.set_preference('dom.disable_beforeunload', True)
     driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
 
-    firefoxpath = '/usr/lib/firefox/firefox' if os.path.ispath('/usr/lib/firefox/firefox') else shutil.which('firefox')
+    firefoxpath = '/usr/lib/firefox/firefox' if os.path.isfile('/usr/lib/firefox/firefox') else shutil.which('firefox')
 
     if os.path.isfile(firefoxpath):  
         driver = webdriver.Firefox(
