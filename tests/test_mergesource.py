@@ -16,6 +16,7 @@ dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
 dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
 dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
 dbpath = '/meridian/aisdb/eE_202009_test2.db'
+dbpath = '/run/media/matt/My Passport/eE_202009_test.db'
 
 
 zones_east = zones_from_txts('../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', 'east')
@@ -30,7 +31,6 @@ zones = zones_east
 
 def test_output_allsource():
 
-    # join rtree tables with aggregate position reports 
     start   = datetime(2020,9,1)
     end     = datetime(2020,10,1)
 
@@ -49,7 +49,6 @@ def test_output_allsource():
 
     # query db for points in domain 
     west, east, south, north = np.min(hull_xy[::2]), np.max(hull_xy[::2]), np.min(hull_xy[1::2]), np.max(hull_xy[1::2])
-    dt = datetime.now()
 
     rowgen = qrygen(
             #xy = merge(canvaspoly.boundary.coords.xy),
@@ -63,11 +62,8 @@ def test_output_allsource():
 
     tracks = (next(trackgen(r)) for r in rowgen)
 
-    delta =datetime.now() - dt
-    print(f'query time: {delta.total_seconds():.2f}s')
-
-
     merged = merge_layers(rowgen, zones, dbpath)
+
     concat_layers(merged, zones, dbpath)
 
     return
@@ -157,4 +153,17 @@ if __name__ == '__main__':
     hullgeom.__exit__(None, None, None)
 
 
+"""
+db query 1 month: 41 min
 
+script start:       3:40pm
+processing start:   4:21pm
+processing end:     crash 5:30pm  on mmsi 316008896
+
+for mmsirows in merged:
+    if mmsirows[0][0] == 316008896: 
+        track = next(trackgen(mmsirows, colnames=colnames))
+        break
+
+
+"""

@@ -49,7 +49,7 @@ segmentinfo = lambda track, stacked_arr, src_zone, domain: dict(
         month                               =   epoch_2_dt(track['time'][0]).month,
         day                                 =   epoch_2_dt(track['time'][0]).day,
         ballast                             =   None,
-        confidence                          =   0,
+        #confidence                          =   0,
     )
 
 # collect stats about a vessel in context of a zone
@@ -84,7 +84,8 @@ def binarysearch(arr, search):
 
 def _mergeprocess(track, zones, dbpath, colnames):
     ''' parallel process function for segmenting and geofencing tracks
-        appends columns for bathymetry, shore dist, and hull surface area
+        
+        yields merged sets of rows with regions context 
     '''
 
     chunksize=500000
@@ -92,8 +93,9 @@ def _mergeprocess(track, zones, dbpath, colnames):
             lambda track, rng: compute_knots(track, rng) < 50,
         ]
 
-    filepath = os.path.join(tmpdir(dbpath), str(track['mmsi']))
+    filepath = os.path.join(tmpdir(dbpath), str(track['mmsi']).zfill(9))
     if os.path.isfile(filepath): 
+        print(f'skipping {track["mmsi"]}')
         return
     print(f'{track["mmsi"]}\tcount={len(track["time"])}')
 
@@ -113,6 +115,7 @@ def _mergeprocess(track, zones, dbpath, colnames):
     statrows = []
 
     for rng in segment(track, maxdelta=timedelta(hours=3), minsize=1):
+        #print(rng)
 
         mask = filtermask(track, rng, filters, True)
     
@@ -120,15 +123,19 @@ def _mergeprocess(track, zones, dbpath, colnames):
         if n == 0: continue
         #for c in range(0, (n // chunksize) + 1, chunksize):
         #nc = c + chunksize
-        if n / len(mask) < .65 :
-            print(f'WARNING: skipped row {track["mmsi"]} {rng}\tconfidence={n / len(mask)}')
-            continue
+        #if n / len(mask) < .65 :
+        #    print(f'WARNING: skipped row {track["mmsi"]} {rng}\tconfidence={n / len(mask)}')
+        #    continue
 
         subset = np.array(rng)[mask]#[c:nc]
         if len(subset) == 1: continue
 
         # get subset of zones that intersect with track
-        in_zones = { k:v for k,v in zones['geoms'].items() if LineString(zip(track['lon'][subset], track['lat'][subset])).intersects(v) }
+        in_zones = {}
+        for zonerng in range(0, len(subset), 1000):
+            in_zones.update({ k:v for k,v in zones['geoms'].items() if LineString(zip(track['lon'][subset][zonerng:zonerng+1000], track['lat'][subset][zonerng:zonerng+1000])).intersects(v) })
+
+        #in_zones = { k:v for k,v in zones['geoms'].items() if LineString(zip(track['lon'][subset], track['lat'][subset])).intersects(v) }
         if in_zones == {} : continue
 
         # from these zones, get zone for individual points
@@ -161,7 +168,7 @@ def _mergeprocess(track, zones, dbpath, colnames):
             
             src_zone = zoneID[zoneidx]
             track_stats = segmentinfo(track, stacked, src_zone=src_zone, domain=zones['domain'])
-            track_stats['confidence'] = sum(mask) / len(mask)
+            #track_stats['confidence'] = sum(mask) / len(mask)
             track_stats['rcv_zone'] = zoneID[nextzoneidx]
             assert not track_stats['src_zone'] == track_stats['rcv_zone']
 
@@ -200,11 +207,27 @@ def tmpdir(dbpath):
 
 
 def merge_layers(rowgen, zones, dbpath):
+    ''' generator function to merge AIS row data with shore distance, bathymetry, and geometry databases
+
+        args:
+            rowgen: generator function 
+                yields sets of rows grouped by MMSI sorted by time
+            zones: dictionary
+                see zones_from_txts() function in gis.py
+                returns geometry objects as dictionary values
+            dbpath: string
+                path to .db file
+
+        yields:
+            sets of rows grouped by MMSI sorted by time with additional columns appended
+
     """ # set start method in main script
         import os; from multiprocessing import set_start_method
         if os.name == 'posix' and __name__ == '__main__': 
             set_start_method('forkserver')
     """
+
+    '''
 
     # read data layers from disk to merge with AIS
     print('aggregating ais, shore distance, bathymetry, vessel geometry...')
@@ -265,8 +288,10 @@ def concat_layers(merged, zones, dbpath):
 
     print('aggregating...')
     for track in merged:
+        # track = trackgen
         #_mergeprocess(track, zones, dbpath, colnames)
         _mergeprocess(next(trackgen(track, colnames=colnames)), zones, dbpath, colnames)
+        #_mergeprocess(track, zones, dbpath, colnames)
 
     '''
     with Pool(processes=4) as p:
