@@ -15,7 +15,7 @@ from dbclient import *
 dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
 dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
 dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
-dbpath = '/meridian/aisdb/eE_202009_test2.db'
+dbpath = '/meridian/aisdb/eE_202009_test.db'
 dbpath = '/run/media/matt/My Passport/eE_202009_test.db'
 
 
@@ -64,12 +64,12 @@ def test_output_allsource():
 
     merged = merge_layers(rowgen, zones, dbpath)
 
-    concat_layers(merged, zones, dbpath)
+    concat_layers(merged, zones, dbpath, parallel=True)
 
     return
 
 
-if __name__ == '__main__':
+if False:  # testing
 
     with open('output/testrows', 'wb') as f:
         #assert len(rows) > 1000
@@ -164,6 +164,8 @@ for mmsirows in merged:
     if mmsirows[0][0] == 316008896: 
         track = next(trackgen(mmsirows, colnames=colnames))
         break
+
+rng = list(segment(track, maxdelta=timedelta(hours=3), minsize=1))[2]
 
 
 """

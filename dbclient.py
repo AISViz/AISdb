@@ -276,7 +276,7 @@ def merge_layers(rowgen, zones, dbpath):
     #return merged
 
 
-def concat_layers(merged, zones, dbpath):
+def concat_layers(merged, zones, dbpath, parallel=False):
     #merged = merge_layers(rows, zones, dbpath)
 
     colnames = [
@@ -290,19 +290,18 @@ def concat_layers(merged, zones, dbpath):
     ]
     print('aggregating...')
 
-    for mmsiset in merged:
-        _mergeprocess(next(trackgen(mmsiset, colnames=colnames)), zones, dbpath, colnames)
+    if not parallel: 
+        for mmsiset in merged:
+            _mergeprocess(next(trackgen(mmsiset, colnames=colnames)), zones, dbpath, colnames)
+    else:
+        with Pool(processes=12) as p:
+            # define fcn as _mergeprocess() with zones, db context as static args
+            fcn = partial(_mergeprocess, zones=zones, dbpath=dbpath, colnames=colnames)
+            # map track generator to anonymous fcn for each process in processing pool
+            p.imap_unordered(fcn, (next(trackgen(m, colnames=colnames)) for m in merged), chunksize=1)
+            p.close()
+            p.join()
 
-    '''
-
-    with Pool(processes=12) as p:
-        # define fcn as _mergeprocess() with zones, db context as static args
-        fcn = partial(_mergeprocess, zones=zones, dbpath=dbpath, colnames=colnames)
-        # map track generator to anonymous fcn for each process in processing pool
-        p.imap_unordered(fcn, (next(trackgen(m, colnames=colnames)) for m in merged), chunksize=1)
-        p.close()
-        p.join()
-    '''
     _ = [colnames.append(col) for col in ['sog_computed', 'zone', 'domain']]
 
     picklefiles = [fname for fname in sorted(os.listdir(tmpdir(dbpath))) if '_' not in fname]

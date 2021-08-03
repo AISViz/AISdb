@@ -66,5 +66,3 @@ class Gebco():
                 return bounds['band1'][ixlon-1,ixlat-1]
 
 
-
-

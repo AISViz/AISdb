@@ -180,6 +180,10 @@ class parallelindex(index):
         return pickle.loads(self.serialized(kwargs, seed))
 
 
+class memindex(index):
+    pass
+
+
 if __name__ == '__main__':
     """ run the demo to split boundary arguments into smaller areas, 
         then log the results of each function call
