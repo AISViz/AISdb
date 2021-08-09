@@ -214,6 +214,7 @@ def batch_insert(dbpath, batch, mstr):
 
 
 def append_file(picklefile, batch):
+    ''' appends batch data to a given picklefile. used by decode_raw_pyais '''
     for key in batch.keys():
         # sort rows by mmsi, type, and epoch timestamp
         rows = np.array(sorted(batch[key], key=lambda r: [r['mmsi'], r['type'], r['epoch']] ), dtype=object)
@@ -228,6 +229,7 @@ def append_file(picklefile, batch):
 
 
 def decode_raw_pyais(fpath, tmpdir):
+    ''' parallel process worker function. see parallel_decode() for usage '''
 
     # if the file was already parsed, skip it
     #path, dbfile = dbpath.rsplit(os.path.sep, 1)
@@ -315,7 +317,34 @@ def decode_raw_pyais(fpath, tmpdir):
     #    parsed.insert_hash(kwargs=dict(fpath=fpath))
 
 
-def parallel_decode(filepaths, dbpath):
+def parallel_decode(filepaths, dbpath, processes=12):
+    ''' decode NMEA binary message format and store in an SQLite database
+
+        messages will be decoded and prepared for insertion in parallel, and 
+        parsed results will be serialized and stored in a temporary directory 
+        'tmp_parsing' in the same directory as the dbpath file.
+        the serialized results will then be ingested into the database in 
+        sequence.
+        after the messages are loaded into preliminary tables in the database,
+        database triggers are used to update the intermediary tables for the 
+        dynamic message data. 
+        this function will also call aggregate_static_msg5_msg24() to 
+        generate an aggregate result table from the static report data
+
+        the intended usage is to store and preprocess messages for an entire
+        month at one time, since the intermediary tables require context of the
+        entire month when building indexes
+
+        args:
+            filepaths (list)
+                absolute filepath locations for AIS message files to be ingested
+                into the database
+            dbpath (string)
+                location of where the created database should be saved
+
+        returns:
+            None
+    '''
 
     # create temporary directory for parsed data
     path, dbfile = dbpath.rsplit(os.path.sep, 1)
@@ -327,7 +356,7 @@ def parallel_decode(filepaths, dbpath):
     proc = partial(decode_raw_pyais, tmpdir=tmpdir)
     
     # parallelize decoding step
-    with Pool(12) as p:
+    with Pool(processes) as p:
         list(p.imap_unordered(proc, filepaths))
 
     insertfcn = {

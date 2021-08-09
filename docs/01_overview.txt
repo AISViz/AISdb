@@ -1,0 +1,21 @@
+This project contains functions and scripts for the purpose of decoding, storing, accessing, and processing AIS data. 
+What follows below is a short overview of the functions contained in this package, along with a short description of each.
+
+
+  database/
+    __init__.py             import statements
+    create_tables.py        SQL database schematics and triggers. used in decoder.py
+    dbconn.py               exposes the SQLite DB connection. some postgres code is also included for legacy purposes
+    decoder.py              parsing .NMEA messages to create an SQL database. See function parallel_decode()
+    install_dep.py          will probably be removed in the future. contains code for compiling python from source
+    lambdas.py              contains useful one-liners and lambda functions. notably includes DB query callback functions
+    qryfcn.py               functions for dynamically creating SQL queries. used when calling qrygen.py
+    qrygen.py               class to convert a dictionary of input parameters into SQL code, and generate queries
+
+  webdata/
+    marinetraffic.py        scrape vessel information such as deadweight tonnage from marinetraffic.com
+    scraper.py              a general-use webscraper utilizing selenium, firefox, and mozilla geckodriver
+
+  __init__.py               import statements
+  
+    
