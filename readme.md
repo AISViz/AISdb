@@ -43,7 +43,7 @@ gebco.py                  load bathymetry data from GEBCO raster files
 gis.py                    geometry and GIS related utilities
 index.py                  job scheduler and hashmap database utility, used to parallelize functions and store arbitrary binary
 interp.py                 linear interpolation of track segments on temporal axis
-rowexplore.py             crawl the entire database for rows matching certain conditions
+rowexplode.py             crawl the entire database for rows matching certain conditions
 shore_dist.py             collect shore distance at a given coordinates using GFW distance raster
 track_gen.py              generation, segmentation, and filtering of vessel trajectories
 track_viz.py              vizualize AIS data and geometry features using QGIS. should be considered experimental
@@ -79,11 +79,11 @@ Some points to note when decoding:
 ### Querying the database  
   
   
-#### Table naming conventions
+##### Table naming conventions
   TODO: add documentation  
 
 
-#### Dynamically generating SQL queries from a dictionary of input parameters  
+##### Dynamically generating SQL queries from a dictionary of input parameters  
   TODO: add documentation  
 
 
