@@ -55,7 +55,7 @@ webdata/
 
 ## Getting Started
 
-###  Parsing raw NMEA messages into a database
+### Parsing raw NMEA messages into a database
 
 How to generate an SQLite database from NMEA binary messages:  
 
@@ -74,8 +74,13 @@ Some points to note when decoding:
   - Only dynamic position reports (messages 1, 2, 3, 18, 19) and static reports (messages 5, 24) will be kept.
   - All other message types will be discarded. Support for long range position reports (message 27) may be added in the future.
   - Temporal resolution will be reduced to one message per MMSI per minute. The first occurring message will be kept
-  - Decoding, deduplicating, and downscaling will be done in parallel. The actual database insertion and subsequent aggregation steps will be performed sequentially (I/O bound)
+  - Decoding, deduplicating, and downscaling will be done in parallel. The actual database insertion and subsequent aggregation steps will be performed sequentially (I/O bound)  
 
+
+### Querying the database
+```
+  TODO: add documentation
+```
 
 
 ## Acknowledgement
