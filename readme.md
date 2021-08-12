@@ -60,15 +60,14 @@ webdata/
 How to generate an SQLite database from NMEA binary messages:  
 
 ```
+import os
 from database import parallel_decode
 
-# example
-filepaths = ['/home/matt/ais/NMEA_20210101.nm4', '/home/matt/ais/NMEA_20210102.nm4', ] # list should include ALL messages available for the given month(s) of data
-dbpath = '/home/matt/ais.db'  # location of where the database file will be stored
-processes = 12  # number of parallel process workers to use
+filepaths = os.listdir('/home/matt/ais_raw_NMEA/')    # filepaths to .nm4 message reports (list of strings)
+dbpath = '/home/matt/ais.db'                          # location of where the database file will be stored
+processes = 12                                        # number of parallel process workers to use
 
 parallel_decode(filepaths, dbpath, processes)
-
 ```
 
 Some points to note when decoding: 
