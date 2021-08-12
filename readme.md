@@ -76,10 +76,15 @@ Some points to note when decoding:
   - Decoding, deduplicating, and downscaling will be done in parallel. The actual database insertion and subsequent aggregation steps will be performed sequentially (I/O bound)  
 
 
-### Querying the database
-```
-  TODO: add documentation
-```
+### Querying the database  
+  
+  
+#### Table naming conventions
+  TODO: add documentation  
+
+
+#### Dynamically generating SQL queries from a dictionary of input parameters  
+  TODO: add documentation  
 
 
 ## Acknowledgement
