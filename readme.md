@@ -81,6 +81,7 @@ Some points to note when decoding:
   - Decoding, deduplicating, and downscaling will be done in parallel. The actual database insertion and subsequent aggregation steps will be performed sequentially (I/O bound)
 
 
-Acknowledgement:
+
+## Acknowledgement
   - Database schema has been adapted from the postgres data model developed by Casey Hilliard
 
