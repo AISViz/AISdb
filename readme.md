@@ -58,8 +58,9 @@ webdata/
 
 ## Getting Started
 
-** Parsing raw NMEA messages into a database
-How to generate an SQLite database from NMEA binary messages:
+###  Parsing raw NMEA messages into a database
+
+How to generate an SQLite database from NMEA binary messages:  
 
 ```
 from database import parallel_decode
@@ -81,5 +82,5 @@ Some points to note when decoding:
 
 
 Acknowledgement:
-  * Database schema has been adapted from the postgres data model developed by Casey Hilliard
+  - Database schema has been adapted from the postgres data model developed by Casey Hilliard
 
