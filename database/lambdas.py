@@ -6,13 +6,22 @@ import numpy as np
 from database.dbconn import dbconn
 from database import epoch_2_dt
 
+'''
+the following code block will set implementation-specific lambdas according to 
+the implementation selected in class dbconn. see dbconn.py for more info
+'''
 for key, val in dbconn().lambdas.items(): setattr(__main__, key, val)
-
 in_radius = __main__.in_radius
 in_poly = __main__.in_poly
 in_radius_time = __main__.in_radius_time
 in_bbox = __main__.in_bbox
 
+
+'''
+collection of callback functions for dynamically generating SQL queries,
+as well as some general utility one-liners, e.g. zipping XY coordinate arrays 
+for WKT geometry parsing
+'''
 
 dt2monthstr = lambda start, end, **_: np.unique([t.strftime('%Y%m') for t in np.arange(start, end, timedelta(days=1)).astype(datetime) ]).astype(str)
 epoch2monthstr = lambda start, end, **_: dt2monthstr(epoch_2_dt(start), epoch_2_dt(end))

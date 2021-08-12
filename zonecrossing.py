@@ -310,7 +310,7 @@ def concat_layers(merged, zones, dbpath, parallel=False):
 
     header = lambda d: (','.join([
         ','.join([k for k,v in d.items() if type(v) != dict ]) , 
-        ','.join(['src_' + s for s in map(str, [val for val in d['src_stats'].keys() ])]) , 
+        ','.join(['src_' + s for s in map(str, [val for val in d['src_stats'].keys() ])]), 
         ','.join(['rcv_' + s for s in map(str, [val for val in d['src_stats'].keys() ])]),
         ]) + '\n')
 
@@ -339,94 +339,3 @@ def concat_layers(merged, zones, dbpath, parallel=False):
     return 
 
 
-
-
-'''
-res = next(getrows(qryfcn, rows_months, months_str, cols))
-gen = explode_month(*next(getrows(qryfcn,rows_months,months_str), cols, csvfile))
-
-'''
-"""
-if __name__ == '__main__':
-    for track in trackgen(rows):
-        for rng in segment(track, maxdelta=timedelta(hours=2), minsize=3):
-            mask = filtermask(track, rng)
-            sog_haversine = compute_knots(track, rng)
-            print(f'{track["mmsi"]}  rng: {rng}  sog vs haversine avg diff: '
-                  f'{np.average(np.abs(np.append([0],sog_haversine)[mask] - track["sog"][rng][mask]))}')
-"""
-
-
-def getrows(conn, qryfcn, rows_months, months_str, cols):
-    '''
-    qrows_month, mstr = rows_months[-1], months_str[-1]
-    '''
-    #callback = lambda alias, ummsi, **_: f'''{alias}.mmsi in ('{"', '".join(map(str, ummsi))}')'''
-    callback = lambda alias, ummsi, **_: f'''{alias}.mmsi in ({", ".join(map(str, ummsi))})'''
-    for qrows_month, mstr in zip(rows_months, months_str):
-        print(f'querying {mstr}...')
-        ummsi = np.unique(qrows_month[:,cols['mmsi']])
-        qry = qryfcn(mstr, callback, dict(ummsi=ummsi)) + '\nORDER BY mmsi, time'
-        cur = conn.cursor()
-        cur.execute(qry)
-        res = np.array(cur.fetchall())
-        #logging.debug(f'{np.unique(res[:,0])}')
-        yield dict(res=res, qrows_month=qrows_month, cols=cols, mstr=mstr)
-
-
-def explode_month(kwargs, csvfile, keepraw=True):
-    '''
-    kwargs = list(getrows(qryfcn,rows_months, months_str, cols))[-1]
-    '''
-    qrows_month, res, mstr, cols = kwargs['qrows_month'], kwargs['res'], kwargs['mstr'], kwargs['cols']
-    print(f'exploding rowdata from {mstr}...')
-    tracks = { t['mmsi'] : t for t in trackgen(res) }
-
-    raw = np.ndarray(shape=(0, len(cols['keepcols']) + 8), dtype=object)
-    out = np.ndarray(shape=(0, len(cols['keepcols']) + 9), dtype=object)
-    for qrow in qrows_month:
-        if (mmsi := int(qrow[cols['mmsi']])) not in tracks.keys(): continue
-        if len(tracks[mmsi]['time']) == 0: continue
-        mask = ((tracks[mmsi]['time'] > qrow[cols['start']]) * (tracks[mmsi]['time'] < qrow[cols['end']]))
-        n = sum(mask)
-        if n == 0: continue
-        track = tracks[mmsi].copy()
-        for c in ['time', 'lon', 'lat', 'cog', 'sog']: track[c] = track[c][mask] 
-        if keepraw: raw = np.vstack((raw, 
-            np.vstack((
-                    *(np.array([qrow[c] for _ in range(n)]) for c in cols['keepcols']),
-                    np.array([track['mmsi'] for _ in range(n)], dtype=np.uint32), # mmsi
-                    np.array([track['vessel_name'] for _ in range(n)]), # name 
-                    np.array([track['ship_type_txt'] for _ in range(n)]), # type
-                    track['time'],
-                    track['lon'],
-                    track['lat'],
-                    track['cog'],
-                    track['sog'],
-                )).T
-            ))
-        for rng in segment(track, timedelta(days=7), minsize=1):
-            mask2 = filtermask(track, rng, filters=[lambda track, rng: compute_knots(track, rng) < 50])
-            n2 = sum(mask2)
-            out = np.vstack((out, 
-                    np.vstack((
-                        *(np.array([qrow[c] for _ in range(n2)]) for c in cols['keepcols']),
-                        np.array([track['mmsi'] for _ in range(n2)], dtype=np.uint32), # mmsi
-                        np.array([track['vessel_name'] for _ in range(n2)]), # name 
-                        np.array([track['ship_type_txt'] for _ in range(n2)]), # type
-                        track['time'][rng][mask2],
-                        track['lon'][rng][mask2],
-                        track['lat'][rng][mask2],
-                        track['cog'][rng][mask2],
-                        track['sog'][rng][mask2],
-                        np.append(compute_knots(track, rng), [0]).astype(np.uint16)[mask2],
-                    )).T
-                ))
-                    
-    assert len(out) > 0
-
-    print(f'mmsis found: {len(np.unique(raw[:,3]))} / {len(np.unique(qrows_month[:,3]))}')
-
-    if keepraw: writecsv(raw, csvfile + f'.raw.{mstr}', mode='a',)
-    writecsv(out, csvfile + f'.filtered.{mstr}', mode='a',)
-    

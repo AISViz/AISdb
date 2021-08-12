@@ -275,6 +275,21 @@ def create_table_msg24(cur, month):
 
 
 def aggregate_static_msg5_msg24(dbpath, months_str):
+    ''' collect an aggregate of static vessel reports for each unique MMSI 
+        identifier. The most frequently repeated values for each MMSI will
+        be kept in instances where there are different reports for the same MMSI
+
+        this function should be called every time new data is added to the table
+
+        args: 
+            dbpath (string)
+                path to SQLite database file
+
+            months_str (string)
+                string describing the month of the tables to be aggregated. 
+                format: YYYYMM 
+    '''
+
     aisdb = dbconn(dbpath=dbpath)
     conn, cur = aisdb.conn, aisdb.cur
 

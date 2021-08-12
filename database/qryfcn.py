@@ -1,6 +1,12 @@
 from database.qryfcn_legacy import *
 
 
+'''
+some boilerplate for dynamically generating SQL queries.
+callback functions should return a string to further filter returned rows,
+see examples in lambdas.py for more info
+'''
+
 rtree_nogeom = lambda month, callback, kwargs, bounds=dict(xmin=-180, ymin=-90, xmax=180, ymax=90): (f'''
 SELECT m123.mmsi0, m123.t0, m123.x0, m123.y0, m123.cog, m123.sog, m5.vessel_name, ref.coarse_type_txt
   FROM rtree_{month}_msg_1_2_3 AS m123

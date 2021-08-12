@@ -2,7 +2,7 @@ import os
 
 
 def create_table_coarsetype(cur):
-    ''' static tables are created during db instantiation 
+    ''' create a table to describe integer vessel type as a human-readable string
         included here instead of create_tables.py to prevent circular import error
     ''' 
 
@@ -45,6 +45,25 @@ def create_table_coarsetype(cur):
     )
 
 class dbconn():
+    ''' class to return a database connection object
+
+        by default this will create a new SQLite database if the dbpath does 
+        not yet exist. postgres code is also included for legacy purposes.
+
+        attributes:
+            conn (sqlite3.Connection)
+                database connection object 
+            cur (sqlite3.Cursor)
+                database cursor object 
+            lambdas (dict)
+                included here instead of in lambdas.py to allow for 
+                legacy postgres support depending on which database type is used. 
+                see lambdas.py for more info
+            dbtype (string)
+                either 'sqlite3' or 'postgres' depending on which was used
+
+    '''
+
     def __init__(self, dbpath=None, postgres=False, timeout=5):
         if postgres or os.environ.get('POSTGRESDB'):
             import psycopg2 
