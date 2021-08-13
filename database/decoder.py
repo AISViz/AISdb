@@ -18,8 +18,6 @@ from database.create_tables import *
 from index import index
 
 
-
-
 #dt_dict = lambda t: dict(year=t.year, month=t.month, day=t.day, hour=t.hour, minute=t.minute, second=t.second)
 
 

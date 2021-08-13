@@ -52,6 +52,7 @@ segmentinfo = lambda track, stacked_arr, src_zone, domain: dict(
         #confidence                          =   0,
     )
 
+
 # collect stats about a vessel in context of a zone
 zone_stats = lambda track, zoneset: dict(
         min_shore_dist                      =   np.min(track['km_from_shore'][zoneset]), 
@@ -118,7 +119,7 @@ def _mergeprocess(track, zones, dbpath, colnames):
         #print(rng)
 
         mask = filtermask(track, rng, filters, True)
-    
+         
         n = sum(mask)
         if n == 0: continue
         #for c in range(0, (n // chunksize) + 1, chunksize):
