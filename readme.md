@@ -76,12 +76,12 @@ gebco.py                  load bathymetry data from GEBCO raster files
 gis.py                    geometry and GIS related utilities
 index.py                  job scheduler and hashmap database utility, used to parallelize functions and store arbitrary binary
 interp.py                 linear interpolation of track segments on temporal axis
-rowexplode.py             crawl the entire database for rows matching certain conditions
+network_graph.py          collect vessel transits between zones (nodes), and aggregate various trajectory statistics
+rowexplode.py             crawl the database for rows matching certain conditions
 shore_dist.py             collect shore distance at a given coordinates using GFW distance raster
 track_gen.py              generation, segmentation, and filtering of vessel trajectories
 track_viz.py              vizualize AIS data and geometry features using QGIS. should be considered experimental
 wsa.py                    compute wetted surface area using denny-mumford regression on vessel deadweight tonnage
-zonecrossing.py           collect vessel transits between regions of interest, and aggregate various trajectory statistics
 </pre> 
 
 

@@ -9,7 +9,7 @@ import numpy as np
 from shapely.geometry import Point, LineString, Polygon
 
 
-from gis import compute_knots
+from gis import delta_knots, delta_meters
 from database import dt2monthstr, dbconn, epoch_2_dt
 from track_gen import trackgen, segment, filtermask, writecsv
 from shore_dist import shore_dist_gfw
@@ -40,65 +40,62 @@ segmentinfo = lambda track, stacked_arr, src_zone, domain: dict(
         vessel_type                         =   track['ship_type_txt'] or '',
         domain                              =   domain,
         src_zone                            =   src_zone,
-        rcv_zone                            =   '',
+        rcv_zone                            =   'NULL',
         vessel_length                       =   (track['dim_bow'] + track['dim_stern']) or '',
         hull_submerged_surface_area         =   track['submerged_hull_m^2'] or '',
-        first_timestamp                     =   epoch_2_dt(track['time'][0]).strftime('%Y-%m-%d %H:%M:%S UTC'),
-        last_timestamp                      =   epoch_2_dt(track['time'][-1]).strftime('%Y-%m-%d %H:%M:%S UTC'),
-        year                                =   epoch_2_dt(track['time'][0]).year,
-        month                               =   epoch_2_dt(track['time'][0]).month,
-        day                                 =   epoch_2_dt(track['time'][0]).day,
         ballast                             =   None,
-        #confidence                          =   0,
+        #year                                =   epoch_2_dt(track['time'][0]).year,
+        #month                               =   epoch_2_dt(track['time'][0]).month,
+        #day                                 =   epoch_2_dt(track['time'][0]).day,
+        #first_timestamp                     =   epoch_2_dt(track['time'][0]).strftime('%Y-%m-%d %H:%M:%S UTC'),
+        #last_timestamp                      =   epoch_2_dt(track['time'][-1]).strftime('%Y-%m-%d %H:%M:%S UTC'),
     )
 
 
 # collect stats about a vessel in context of a zone
 zone_stats = lambda track, zoneset: dict(
+        first_seen_in_zone                  =   epoch_2_dt(track['time'][zoneset][0]).strftime('%Y-%m-%d %H:%M:%S UTC'),
+        last_seen_in_zone                   =   epoch_2_dt(track['time'][zoneset][-1]).strftime('%Y-%m-%d %H:%M:%S UTC'),
+        year                                =   epoch_2_dt(track['time'][zoneset][0]).year,
+        month                               =   epoch_2_dt(track['time'][zoneset][0]).month,
+        day                                 =   epoch_2_dt(track['time'][zoneset][0]).day,
+        total_distance_meters               =   np.sum(delta_meters(track, zoneset[[0,-1]])),
+        cumulative_distance_meters          =   np.sum(delta_meters(track, zoneset)),
+        velocity_knots_min                  =   np.min(delta_knots(track, zoneset)),
+        velocity_knots_avg                  =   np.average(delta_knots(track, zoneset)),
+        velocity_knots_max                  =   np.max(delta_knots(track, zoneset)),
         min_shore_dist                      =   np.min(track['km_from_shore'][zoneset]), 
         avg_shore_dist                      =   np.average(track['km_from_shore'][zoneset]), 
         max_shore_dist                      =   np.max(track['km_from_shore'][zoneset]), 
         min_depth                           =   np.min(depth_nonnegative(track, zoneset)),
         avg_depth                           =   np.average(depth_nonnegative(track, zoneset)),
         max_depth                           =   np.max(depth_nonnegative(track, zoneset)),
+        minutes_spent_in_zone               =   int((epoch_2_dt(track['time'][zoneset][-1]) - epoch_2_dt(track['time'][zoneset][0])).total_seconds()) / 60,
         minutes_within_10m_5km_shoredist    =   time_in_shoredist_rng(track, zoneset, 0.01, 5),
         minutes_within_30m_20km_shoredist   =   time_in_shoredist_rng(track, zoneset, 0.03, 20),
         minutes_within_100m_50km_shoredist  =   time_in_shoredist_rng(track, zoneset, 0.1, 50),
-        first_seen_in_zone                  =   epoch_2_dt(track['time'][zoneset][0]).strftime('%Y-%m-%d %H:%M:%S UTC'),
-        last_seen_in_zone                   =   epoch_2_dt(track['time'][zoneset][-1]).strftime('%Y-%m-%d %H:%M:%S UTC'),
     )
 
 
-def binarysearch(arr, search):
-    ''' fast indexing of ordered arrays '''
-    low, high = 0, len(arr)-1
-    while (low <= high):
-        mid = int((low + high) / 2)
-        if arr[mid] == search or mid == 0 or mid == len(arr)-1:
-            return mid
-        elif (arr[mid] >= search):
-            high = mid -1 
-        else:
-            low = mid +1
-    return mid
 
-
-def _mergeprocess(track, zones, dbpath, colnames):
-    ''' parallel process function for segmenting and geofencing tracks
-        
-        yields merged sets of rows with regions context 
+def geofence(track_merged, zones, dbpath, colnames, 
+        filters=[
+            lambda track, rng: [True for _ in rng],
+            ]):
     '''
 
-    chunksize=500000
     filters = [
-            lambda track, rng: compute_knots(track, rng) < 50,
+            #lambda track, rng: delta_knots(track, rng) < 50,
+            lambda track, rng: delta_meters(track, rng) < 10000,
         ]
 
-    filepath = os.path.join(tmpdir(dbpath), str(track['mmsi']).zfill(9))
+    '''
+
+    filepath = os.path.join(tmpdir(dbpath), str(track_merged['mmsi']).zfill(9))
     if os.path.isfile(filepath): 
-        print(f'skipping {track["mmsi"]}')
+        print(f'skipping {track_merged["mmsi"]}')
         return
-    print(f'{track["mmsi"]}\tcount={len(track["time"])}')
+    print(f'{track_merged["mmsi"]}\tcount={len(track_merged["time"])}')
 
     '''
     bounds_lon, bounds_lat = zones['hull_xy'][::2], zones['hull_xy'][1::2]
@@ -113,20 +110,15 @@ def _mergeprocess(track, zones, dbpath, colnames):
         if east > 180: east = 180
     '''
 
-    statrows = []
+    transits = []
+    transit_nodes = []
+    transit_edges = []
 
-    for rng in segment(track, maxdelta=timedelta(hours=3), minsize=1):
-        #print(rng)
-
-        mask = filtermask(track, rng, filters, True)
-         
-        n = sum(mask)
-        if n == 0: continue
-        #for c in range(0, (n // chunksize) + 1, chunksize):
-        #nc = c + chunksize
-        #if n / len(mask) < .65 :
-        #    print(f'WARNING: skipped row {track["mmsi"]} {rng}\tconfidence={n / len(mask)}')
-        #    continue
+    for rng in segment(track_merged, maxdelta=timedelta(hours=3), minsize=1):
+        mask = filtermask(track_merged, rng, filters, first_val=True)
+        if sum(mask) == 0: 
+            print(f'{track_merged["mmsi"]} results filtered, skipping rng = {rng}')
+            continue
 
         subset = np.array(rng)[mask]#[c:nc]
         if len(subset) == 1: continue
@@ -134,62 +126,77 @@ def _mergeprocess(track, zones, dbpath, colnames):
         # get subset of zones that intersect with track
         in_zones = {}
         for zonerng in range(0, len(subset), 1000):
-            if not len(track['lon'][subset][zonerng:zonerng+1000]) > 1:
+            if not len(track_merged['lon'][subset][zonerng:zonerng+1000]) > 1:
                 print('warning: skipping track segment of length 1')
                 continue
-            in_zones.update({ k:v for k,v in zones['geoms'].items() if LineString(zip(track['lon'][subset][zonerng:zonerng+1000], track['lat'][subset][zonerng:zonerng+1000])).intersects(v) })
+            in_zones.update({ k:v for k,v in zones['geoms'].items() if LineString(zip(track_merged['lon'][subset][zonerng:zonerng+1000], track_merged['lat'][subset][zonerng:zonerng+1000])).intersects(v) })
 
-        #in_zones = { k:v for k,v in zones['geoms'].items() if LineString(zip(track['lon'][subset], track['lat'][subset])).intersects(v) }
-        if in_zones == {} : continue
-
+        #in_zones = { k:v for k,v in zones['geoms'].items() if LineString(zip(track_merged['lon'][subset], track_merged['lat'][subset])).intersects(v) }
         # from these zones, get zone for individual points
-        zoneID = np.array(list(([k for k,v in in_zones.items() if v.contains(p)] or [''])[0] 
-            for p in map(Point, zip(track['lon'][subset], track['lat'][subset]))), dtype=object)
+        zoneID = np.array(
+                list(([k for k,v in in_zones.items() if v.contains(p)] or ['Z0'])[0] 
+                    for p in map(Point, zip(track_merged['lon'][subset], track_merged['lat'][subset]))),
+                dtype=object)
         #assert not (np.unique(zoneID)[0] == '' and len(np.unique(zoneID)) == 1)
 
         # append zone context to track rows
-        stacked = np.vstack((
-                [track['mmsi'] for _ in subset],
-                track['time'][subset],
-                *(np.array([track[col] for _ in range(n)]) for col in colnames if col in track['static']),
-                *(track[col][subset] for col in colnames if col in track['dynamic']),
-                np.append(compute_knots(track, rng), [0])[mask],
+        transit_window = np.vstack((
+                [track_merged['mmsi'] for _ in subset],
+                track_merged['time'][subset],
+                *(np.array([track_merged[col] for _ in range(n)]) for col in colnames if col in track_merged['static']),
+                *(track_merged[col][subset] for col in colnames if col in track_merged['dynamic']),
+                np.append(delta_knots(track_merged, subset), [0]),
                 zoneID,
                 np.array([zones['domain'] for _ in range(n)]),
             )).T
 
-        #assert len(stacked[0]) > 1
+        #transit_nodes.append((tx, in_zones, zoneID))
+        transits.append(transit_window)
+        transit_nodes.append(set(in_zones.keys()))
+        transit_edges.append(zoneID)
+
+    # concatenate non-transiting segments 
+    i = 0
+    while i < len(transit_nodes)-1:
+        if (len(transit_nodes[i]) == 1 and transit_edges[i][-1] == transit_edges[i+1][0]):
+            transits[i] = np.vstack((transits[i], transits.pop(i+1)))
+            transit_nodes.pop(i)
+            transit_edges[i] = np.append(transit_edges[i], transit_edges.pop(i+1))
+        else:
+            i += 1
+
+    return transits, transit_nodes, transit_edges
+
+
+def network_graph(track_merged, zones, dbpath, colnames, *args):
+    ''' parallel process function for segmenting and geofencing tracks
         
-        # collect transits between zone boundaries
-        zonecrossing = np.append(np.append([0], np.where(stacked[:-1,-2] != stacked[1:,-2])[0] +1), [len(stacked)-1])
-        if zonecrossing[-2] == zonecrossing[-1]:
-            zonecrossing = zonecrossing[:-1]
+        yields merged sets of rows with regions context 
+    '''
+    statrows = []
+    transits, transit_nodes, transit_edges = geofence(track_merged, zones, dbpath, colnames, *args)
+
+    # collect transits between zone boundaries
+    for transit_window, zoneID in zip(transits, transit_edges):
+        setrng = np.array(range(len(track_merged['time'])))
+        intersection = np.array(list(set(np.append(np.append([0], np.where(transit_window[:-1,-2] != transit_window[1:,-2])[0] +1), [len(transit_window)-1]))), dtype=object)
+
+        track_stats = segmentinfo(track_merged, transit_window, src_zone=zoneID[intersection[-2]], domain=zones['domain'])
 
         # aggregate zone stats at transit nodes using sliding windows
-        for zoneidx, nextzoneidx, thirdzoneidx in zip(zonecrossing[:-2], zonecrossing[1:-1], zonecrossing[2:]):
-            zoneset= subset[zoneidx : nextzoneidx]
-            nextzoneset = subset[nextzoneidx : thirdzoneidx]
+        for zoneidx, nextzoneidx, thirdzoneidx in zip(intersection[:-2], intersection[1:-1], intersection[2:]):
+            zoneset = setrng[zoneidx : nextzoneidx]
+            nextzoneset = setrng[nextzoneidx : thirdzoneidx]
             
             src_zone = zoneID[zoneidx]
-            track_stats = segmentinfo(track, stacked, src_zone=src_zone, domain=zones['domain'])
-            #track_stats['confidence'] = sum(mask) / len(mask)
-            track_stats['rcv_zone'] = zoneID[nextzoneidx]
-            assert not track_stats['src_zone'] == track_stats['rcv_zone']
+            track_stats = segmentinfo(track_merged, transit_window, src_zone=src_zone, domain=zones['domain'])
+            track_stats['src_stats'] = zone_stats(track_merged, zoneset)
+            track_stats['rcv_zone']  = zoneID[nextzoneidx]
+            track_stats['rcv_stats'] = zone_stats(track_merged, nextzoneset)
+            statrows.append(track_stats.copy())
 
-            src_zone_stats = zone_stats(track, zoneset)
-            rcv_zone_stats = zone_stats(track, nextzoneset)
-            track_stats['src_stats'] = src_zone_stats
-            track_stats['rcv_stats'] = rcv_zone_stats
-
-            statrows.append(track_stats)
-
-        zoneset = subset[zonecrossing[-2]:]
-
-        src_zone = zoneID[zonecrossing[-2]]
-        track_stats =  segmentinfo(track, stacked, src_zone, domain=zones['domain'])
-
-        src_zone_stats = zone_stats(track, zoneset)
-        track_stats['src_stats'] = src_zone_stats
+        zoneset = setrng[intersection[-2]:]
+        track_stats['src_stats'] = zone_stats(track_merged, zoneset)
         statrows.append(track_stats)
 
     if len(statrows) == 0: 
@@ -293,11 +300,11 @@ def concat_layers(merged, zones, dbpath, parallel=False):
 
     if not parallel: 
         for mmsiset in merged:
-            _mergeprocess(next(trackgen(mmsiset, colnames=colnames)), zones, dbpath, colnames)
+            network_graph(next(trackgen(mmsiset, colnames=colnames)), zones, dbpath, colnames)
     else:
         with Pool(processes=12) as p:
-            # define fcn as _mergeprocess() with zones, db context as static args
-            fcn = partial(_mergeprocess, zones=zones, dbpath=dbpath, colnames=colnames)
+            # define fcn as network_graph with zones, db context as static args
+            fcn = partial(network_graph(), zones=zones, dbpath=dbpath, colnames=colnames)
             # map track generator to anonymous fcn for each process in processing pool
             p.imap_unordered(fcn, (next(trackgen(m, colnames=colnames)) for m in merged), chunksize=1)
             p.close()
