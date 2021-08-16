@@ -60,7 +60,7 @@ Some points to note when decoding:
 database/
   __init__.py             import statements  
   create_tables.py        SQL database schematics and triggers. used in decoder.py
-  dbconn.py               exposes the SQLite DB connection. some postgres code is also included for legacy purposes
+  dbconn.py               exposes the SQLite DB connection. some postgres code is also included for legacy 
   decoder.py              parsing .NMEA messages to create an SQL database. See function parallel_decode()
   install_dep.py          will probably be removed in the future. contains code for compiling python from source
   lambdas.py              contains useful one-liners and lambda functions. notably includes DB query callback functions

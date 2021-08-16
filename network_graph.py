@@ -17,6 +17,7 @@ from webdata import marinetraffic
 from webdata.marinetraffic import scrape_tonnage
 from gebco import Gebco
 from wsa import wsa
+from proc_util import tmpdir
 
 
 
@@ -76,145 +77,6 @@ zone_stats = lambda track, zoneset: dict(
         minutes_within_100m_50km_shoredist  =   time_in_shoredist_rng(track, zoneset, 0.1, 50),
     )
 
-
-
-def geofence(track_merged, zones, dbpath, colnames, 
-        filters=[
-            lambda track, rng: [True for _ in rng],
-            ]):
-    '''
-
-    filters = [
-            #lambda track, rng: delta_knots(track, rng) < 50,
-            lambda track, rng: delta_meters(track, rng) < 10000,
-        ]
-
-    '''
-
-    filepath = os.path.join(tmpdir(dbpath), str(track_merged['mmsi']).zfill(9))
-    if os.path.isfile(filepath): 
-        print(f'skipping {track_merged["mmsi"]}')
-        return
-    print(f'{track_merged["mmsi"]}\tcount={len(track_merged["time"])}')
-
-    '''
-    bounds_lon, bounds_lat = zones['hull_xy'][::2], zones['hull_xy'][1::2]
-    west, east = np.min(bounds_lon), np.max(bounds_lon)
-    south, north = np.min(bounds_lat), np.max(bounds_lat)
-
-    assert north <= 90
-    assert south >= -90
-    if west < -180 or east > 180:
-        print('warning: encountered longitude boundary exceeding (-180, 180) in zone geometry')
-        if west < -180: west = -180
-        if east > 180: east = 180
-    '''
-
-    transits = []
-    transit_nodes = []
-    transit_edges = []
-
-    for rng in segment(track_merged, maxdelta=timedelta(hours=3), minsize=1):
-        mask = filtermask(track_merged, rng, filters, first_val=True)
-        if sum(mask) == 0: 
-            print(f'{track_merged["mmsi"]} results filtered, skipping rng = {rng}')
-            continue
-
-        subset = np.array(rng)[mask]#[c:nc]
-        if len(subset) == 1: continue
-
-        # get subset of zones that intersect with track
-        in_zones = {}
-        for zonerng in range(0, len(subset), 1000):
-            if not len(track_merged['lon'][subset][zonerng:zonerng+1000]) > 1:
-                print('warning: skipping track segment of length 1')
-                continue
-            in_zones.update({ k:v for k,v in zones['geoms'].items() if LineString(zip(track_merged['lon'][subset][zonerng:zonerng+1000], track_merged['lat'][subset][zonerng:zonerng+1000])).intersects(v) })
-
-        #in_zones = { k:v for k,v in zones['geoms'].items() if LineString(zip(track_merged['lon'][subset], track_merged['lat'][subset])).intersects(v) }
-        # from these zones, get zone for individual points
-        zoneID = np.array(
-                list(([k for k,v in in_zones.items() if v.contains(p)] or ['Z0'])[0] 
-                    for p in map(Point, zip(track_merged['lon'][subset], track_merged['lat'][subset]))),
-                dtype=object)
-        #assert not (np.unique(zoneID)[0] == '' and len(np.unique(zoneID)) == 1)
-
-        # append zone context to track rows
-        transit_window = np.vstack((
-                [track_merged['mmsi'] for _ in subset],
-                track_merged['time'][subset],
-                *(np.array([track_merged[col] for _ in range(n)]) for col in colnames if col in track_merged['static']),
-                *(track_merged[col][subset] for col in colnames if col in track_merged['dynamic']),
-                np.append(delta_knots(track_merged, subset), [0]),
-                zoneID,
-                np.array([zones['domain'] for _ in range(n)]),
-            )).T
-
-        #transit_nodes.append((tx, in_zones, zoneID))
-        transits.append(transit_window)
-        transit_nodes.append(set(in_zones.keys()))
-        transit_edges.append(zoneID)
-
-    # concatenate non-transiting segments 
-    i = 0
-    while i < len(transit_nodes)-1:
-        if (len(transit_nodes[i]) == 1 and transit_edges[i][-1] == transit_edges[i+1][0]):
-            transits[i] = np.vstack((transits[i], transits.pop(i+1)))
-            transit_nodes.pop(i)
-            transit_edges[i] = np.append(transit_edges[i], transit_edges.pop(i+1))
-        else:
-            i += 1
-
-    return transits, transit_nodes, transit_edges
-
-
-def network_graph(track_merged, zones, dbpath, colnames, *args):
-    ''' parallel process function for segmenting and geofencing tracks
-        
-        yields merged sets of rows with regions context 
-    '''
-    statrows = []
-    transits, transit_nodes, transit_edges = geofence(track_merged, zones, dbpath, colnames, *args)
-
-    # collect transits between zone boundaries
-    for transit_window, zoneID in zip(transits, transit_edges):
-        setrng = np.array(range(len(track_merged['time'])))
-        intersection = np.array(list(set(np.append(np.append([0], np.where(transit_window[:-1,-2] != transit_window[1:,-2])[0] +1), [len(transit_window)-1]))), dtype=object)
-
-        track_stats = segmentinfo(track_merged, transit_window, src_zone=zoneID[intersection[-2]], domain=zones['domain'])
-
-        # aggregate zone stats at transit nodes using sliding windows
-        for zoneidx, nextzoneidx, thirdzoneidx in zip(intersection[:-2], intersection[1:-1], intersection[2:]):
-            zoneset = setrng[zoneidx : nextzoneidx]
-            nextzoneset = setrng[nextzoneidx : thirdzoneidx]
-            
-            src_zone = zoneID[zoneidx]
-            track_stats = segmentinfo(track_merged, transit_window, src_zone=src_zone, domain=zones['domain'])
-            track_stats['src_stats'] = zone_stats(track_merged, zoneset)
-            track_stats['rcv_zone']  = zoneID[nextzoneidx]
-            track_stats['rcv_stats'] = zone_stats(track_merged, nextzoneset)
-            statrows.append(track_stats.copy())
-
-        zoneset = setrng[intersection[-2]:]
-        track_stats['src_stats'] = zone_stats(track_merged, zoneset)
-        statrows.append(track_stats)
-
-    if len(statrows) == 0: 
-        return 
-
-    with open(filepath, 'ab') as f:
-        for track_stats in statrows:
-            pickle.dump(track_stats, f)
-
-    return 
-
-
-def tmpdir(dbpath):
-    path, dbfile = dbpath.rsplit(os.path.sep, 1)
-    tmpdirpath = os.path.join(path, 'tmp_parsing')
-    if not os.path.isdir(tmpdirpath):
-        os.mkdir(tmpdirpath)
-    return tmpdirpath
 
 
 def merge_layers(rowgen, zones, dbpath):
@@ -284,7 +146,139 @@ def merge_layers(rowgen, zones, dbpath):
     #return merged
 
 
-def concat_layers(merged, zones, dbpath, parallel=False):
+def geofence(track_merged, zones, dbpath, colnames, 
+        maxdelta=timedelta(hours=1)
+        ,
+        filters=[
+            lambda track, rng: [True for _ in rng[:-1]],
+            ]
+        ):
+    '''
+
+    filters = [
+            #lambda track, rng: delta_knots(track, rng) < 50,
+            lambda track, rng: delta_meters(track, rng) < 10000,
+        ]
+
+    '''
+
+    print(f'{track_merged["mmsi"]}\tcount={len(track_merged["time"])}')
+
+    '''
+    bounds_lon, bounds_lat = zones['hull_xy'][::2], zones['hull_xy'][1::2]
+    west, east = np.min(bounds_lon), np.max(bounds_lon)
+    south, north = np.min(bounds_lat), np.max(bounds_lat)
+
+    assert north <= 90
+    assert south >= -90
+    if west < -180 or east > 180:
+        print('warning: encountered longitude boundary exceeding (-180, 180) in zone geometry')
+        if west < -180: west = -180
+        if east > 180: east = 180
+
+    rng = next(segment(track_merged, maxdelta=maxdelta, minsize=1))
+    '''
+
+    transits = []
+    transit_nodes = []
+    transit_edges = []
+
+    for rng in segment(track_merged, maxdelta=maxdelta, minsize=1):
+        mask = filtermask(track_merged, rng, filters, first_val=True)
+        if sum(mask) == 0: 
+            print(f'{track_merged["mmsi"]} mmsi filtered, skipping rng = {rng}')
+            continue
+
+        n = sum(mask)
+        if n <= 1: continue
+        subset = np.array(rng)[mask]  #[c:nc]
+
+        # get subset of zones that intersect with track
+        in_zones = {}
+        for zonerng in range(0, len(subset), 1000):
+            if not len(track_merged['lon'][subset][zonerng:zonerng+1000]) > 1:
+                print('warning: skipping track segment of length 1')
+                continue
+            in_zones.update({ k:v for k,v in zones['geoms'].items() if LineString(zip(track_merged['lon'][subset][zonerng:zonerng+1000], track_merged['lat'][subset][zonerng:zonerng+1000])).intersects(v) })
+
+        # from these zones, get zone for individual points
+        zoneID = np.array(
+                list(([k for k,v in in_zones.items() if v.contains(p)] or ['Z0'])[0] 
+                    for p in map(Point, zip(track_merged['lon'][subset], track_merged['lat'][subset]))),
+                dtype=object)
+
+        # append zone context to track rows
+        transit_window = np.vstack((
+                [track_merged['mmsi'] for _ in subset],
+                track_merged['time'][subset],
+                *(np.array([track_merged[col] for _ in range(n)]) for col in colnames if col in track_merged['static']),
+                *(track_merged[col][subset] for col in colnames if col in track_merged['dynamic']),
+                np.append(delta_knots(track_merged, subset), [0]),
+                zoneID,
+                np.array([zones['domain'] for _ in range(n)]),
+            )).T
+
+        transits.append(transit_window)
+        transit_nodes.append(set(in_zones.keys()))
+        transit_edges.append(zoneID)
+
+    # concatenate non-transiting segments 
+    i = 0
+    while i < len(transit_nodes)-1:
+        if (len(transit_nodes[i]) == 1 and transit_edges[i][-1] == transit_edges[i+1][0]):
+            transits[i] = np.vstack((transits[i], transits.pop(i+1)))
+            transit_nodes.pop(i)
+            transit_edges[i] = np.append(transit_edges[i], transit_edges.pop(i+1))
+        else:
+            i += 1
+
+    return transits, transit_nodes, transit_edges
+
+
+def agg_transit_windows(track_merged, zones, dbpath, colnames, *args):
+    ''' parallel process function for segmenting and geofencing tracks
+        
+        yields merged sets of rows with regions context 
+    '''
+    statrows = []
+    transits, transit_nodes, transit_edges = geofence(track_merged, zones, dbpath, colnames, *args)
+
+    # collect transits between zone boundaries
+    for transit_window, zoneID in zip(transits, transit_edges):
+        setrng = np.array(range(len(track_merged['time'])))
+        intersection = np.array(list(set(np.append(np.append([0], np.where(transit_window[:-1,-2] != transit_window[1:,-2])[0] +1), [len(transit_window)-1]))), dtype=object)
+
+        track_stats = segmentinfo(track_merged, transit_window, src_zone=zoneID[intersection[-2]], domain=zones['domain'])
+
+        # aggregate zone stats at transit nodes using sliding windows
+        for zoneidx, nextzoneidx, thirdzoneidx in zip(intersection[:-2], intersection[1:-1], intersection[2:]):
+            zoneset = setrng[zoneidx : nextzoneidx]
+            assert not len(zoneset) == 0
+            nextzoneset = setrng[nextzoneidx : thirdzoneidx]
+            
+            src_zone = zoneID[zoneidx]
+            track_stats = segmentinfo(track_merged, transit_window, src_zone=src_zone, domain=zones['domain'])
+            track_stats['src_stats'] = zone_stats(track_merged, zoneset)
+            track_stats['rcv_zone']  = zoneID[nextzoneidx]
+            track_stats['rcv_stats'] = zone_stats(track_merged, nextzoneset)
+            statrows.append(track_stats.copy())
+
+        zoneset = setrng[intersection[-2]:]
+        track_stats['src_stats'] = zone_stats(track_merged, zoneset)
+        statrows.append(track_stats)
+
+    if len(statrows) == 0: 
+        return 
+
+    filepath = os.path.join(tmpdir(dbpath), str(track_merged['mmsi']).zfill(9))
+    with open(filepath, 'ab') as f:
+        for track_stats in statrows:
+            pickle.dump(track_stats, f)
+
+    return 
+
+
+def graph(merged, zones, dbpath, parallel=0, *args):
     #merged = merge_layers(rows, zones, dbpath)
 
     colnames = [
@@ -300,11 +294,10 @@ def concat_layers(merged, zones, dbpath, parallel=False):
 
     if not parallel: 
         for mmsiset in merged:
-            network_graph(next(trackgen(mmsiset, colnames=colnames)), zones, dbpath, colnames)
+            agg_transit_windows(next(trackgen(mmsiset, colnames=colnames)), zones, dbpath, colnames, *args)
     else:
-        with Pool(processes=12) as p:
-            # define fcn as network_graph with zones, db context as static args
-            fcn = partial(network_graph(), zones=zones, dbpath=dbpath, colnames=colnames)
+        with Pool(processes=parallel) as p:
+            fcn = partial(agg_transit_windows, zones=zones, dbpath=dbpath, colnames=colnames, *args)
             # map track generator to anonymous fcn for each process in processing pool
             p.imap_unordered(fcn, (next(trackgen(m, colnames=colnames)) for m in merged), chunksize=1)
             p.close()
