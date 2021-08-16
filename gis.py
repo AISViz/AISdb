@@ -15,14 +15,20 @@ def haversine(x1, y1, x2, y2):
     return 6367 * 2 * np.arcsin(np.sqrt(np.sin(dlat/2.)**2 + np.cos(y1r) * np.cos(y2r) * np.sin(dlon/2.)**2)) * 1000
 
 
-def compute_knots(track, rng):#, mask=[True for _ in rng]):
+def delta_meters(track, rng):
+    return np.array(list(map(haversine, track['lon'][rng][:-1], track['lat'][rng][:-1], track['lon'][rng][1:], track['lat'][rng][1:])))
+
+
+def delta_seconds(track, rng):
+    #return = np.array(list(map(timedelta.total_seconds, (track['time'][rng][1:] - track['time'][rng][:-1]))))
+    return = np.array(list((track['time'][rng][1:] - track['time'][rng][:-1]))) * 60
+
+
+def delta_knots(track, rng):#, mask=[True for _ in rng]):
     """
     diff fcn: np.abs(((track['sog'][rng][mask][:-1] + track['sog'][rng][end][1:]) / 2) - knots)
     """
-    meters = np.array(list(map(haversine, track['lon'][rng][:-1], track['lat'][rng][:-1], track['lon'][rng][1:], track['lat'][rng][1:])))
-    #seconds = np.array(list(map(timedelta.total_seconds, (track['time'][rng][1:] - track['time'][rng][:-1]))))
-    seconds = np.array(list((track['time'][rng][1:] - track['time'][rng][:-1]))) * 60
-    return meters / seconds * 1.9438445
+    return delta_meters(track, rng) / delta_seconds(track_rng) * 1.9438445
 
 
 def zones_from_txts(dirpath='../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', domain='east'):
