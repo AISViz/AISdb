@@ -20,15 +20,15 @@ def delta_meters(track, rng):
 
 
 def delta_seconds(track, rng):
-    #return = np.array(list(map(timedelta.total_seconds, (track['time'][rng][1:] - track['time'][rng][:-1]))))
-    return = np.array(list((track['time'][rng][1:] - track['time'][rng][:-1]))) * 60
+    #return np.array(list(map(timedelta.total_seconds, (track['time'][rng][1:] - track['time'][rng][:-1]))))
+    return np.array(list((track['time'][rng][1:] - track['time'][rng][:-1]))) * 60
 
 
 def delta_knots(track, rng):#, mask=[True for _ in rng]):
     """
     diff fcn: np.abs(((track['sog'][rng][mask][:-1] + track['sog'][rng][end][1:]) / 2) - knots)
     """
-    return delta_meters(track, rng) / delta_seconds(track_rng) * 1.9438445
+    return delta_meters(track, rng) / delta_seconds(track, rng) * 1.9438445
 
 
 def zones_from_txts(dirpath='../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', domain='east'):
