@@ -65,7 +65,8 @@ class qrygen(UserDict):
         self.data = kwargs
 
         if 'xy' in self.keys() and not 'x' in self.keys() and not 'y' in self.keys(): 
-            self['x'] = self['xy'][::2]; self['y'] = self['xy'][1::2]
+            self['x'] = self['xy'][::2]
+            self['y'] = self['xy'][1::2]
 
         #if sum(map(lambda t: t in kwargs.keys(), ('start', 'end',))) == 2: 
         if 'start' in self.data.keys() and 'end' in self.data.keys(): 
