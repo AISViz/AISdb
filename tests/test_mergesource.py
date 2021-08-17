@@ -4,6 +4,7 @@ import numpy as np
 import shapely.wkt
 import pickle
 
+
 from database import *
 from shapely.geometry import Polygon, LineString, MultiPoint
 from gis import *
@@ -11,22 +12,27 @@ from gis import *
 from track_gen import *
 from network_graph import *
 
+os.system("taskset -p 0xff %d" % os.getpid())
+from multiprocessing import set_start_method
+set_start_method('forkserver')
+
 
 dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
 dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
 dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
-dbpath = '/meridian/aisdb/eE_202009_test.db'
-dbpath = '/run/media/matt/My Passport/eE_202009_test.db'
+#dbpath = '/meridian/aisdb/eE_202009_test.db'
+#dbpath = '/run/media/matt/My Passport/eE_202009_test.db'
 
 
-zones_east = zones_from_txts('../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', 'east')
-zones_west = zones_from_txts('../scripts/dfo_project/WestCoast_EEZ_Zones_12_8', 'west')
-zones = zones_east
+#zones_east = zones_from_txts_old('../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', 'east')
+#zones_west = zones_from_txts_old('../scripts/dfo_project/WestCoast_EEZ_Zones_12_8', 'west')
+#zones = zones_east
+#zonegeoms = {k:ZoneGeom(k, *v.boundary.coords.xy) for k,v in zones['geoms'].items()}
+zones_dir = '../scripts/dfo_project/EastCoast_EEZ_Zones_12_8'
+shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
+zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
+domain = Domain('east', zonegeoms)
 
-
-#def test_parse_regions():
-    #zones_east = zones_from_txts('../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', 'east')
-    #zones_west = zones_from_txts('../scripts/dfo_project/WestCoast_EEZ_Zones_12_8', 'west')
 
 
 def test_output_allsource():
@@ -62,7 +68,7 @@ def test_output_allsource():
 
     tracks = (next(trackgen(r)) for r in rowgen)
 
-    merged = merge_layers(rowgen, zones, dbpath)
+    merged = merge_layers(rowgen, dbpath)
 
     #graph(merged, zones, dbpath, parallel=True)
 
@@ -74,6 +80,12 @@ def test_network_graph():
     start   = datetime(2018,6,1)
     end     = datetime(2018,7,1)
 
+    filters = [
+                lambda track, rng: delta_meters(track, rng) < 10000,
+                lambda track, rng: delta_knots(track, rng) < 50,
+                lambda track, rng: delta_seconds(track, rng) > 0,
+            ]
+
     # query zones
     '''
     aisdb = dbconn(dbpath)
@@ -82,29 +94,26 @@ def test_network_graph():
     zones = dict(domain='east', geoms={p[0]: pickle.loads(p[1]) for p in cur.fetchall()})
     '''
 
-    from shapely.ops import unary_union
     hull = unary_union(zones['geoms'].values()).convex_hull
     hull_xy = merge(zones['hull'].boundary.coords.xy)
-
-    # query db for points in domain 
     west, east, south, north = np.min(hull_xy[::2]), np.max(hull_xy[::2]), np.min(hull_xy[1::2]), np.max(hull_xy[1::2])
 
+    # query db for points in domain 
     rowgen = qrygen(
-            #xy = merge(canvaspoly.boundary.coords.xy),
             start   = start,
-            #end     = end,
-            end     = start + timedelta(hours=24),
+            end     = end,
+            #end     = start + timedelta(hours=24),
             xmin    = west, 
             xmax    = east, 
             ymin    = south, 
             ymax    = north,
-        ).gen_qry(dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=leftjoin_dynamic_static)
-
+        ).gen_qry(dbpath, callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
     tracks = (next(trackgen(r)) for r in rowgen)
+    merged = merge_layers(rowgen, dbpath)
 
-    merged = merge_layers(rowgen, zones, dbpath)
+    graph(merged, domain, dbpath, parallel=12)
 
-    graph(merged, zones, dbpath, parallel=12)
+    graph(merged, domain, dbpath, parallel=12, filters=filters)
     
 
     ''' step-through
@@ -119,9 +128,18 @@ def test_network_graph():
                 'deadweight_tonnage', 'submerged_hull_m^2',
                 'km_from_shore', 'depth_metres',
             ]
+        kwargs = dict(filters=filters)
+        kwargs = {}
+        parallel=12
 
         track_merged = next(trackgen(next(merged), colnames))
-        track_merged = next(trackgen(merged[4], colnames))
+
+        track_merged = next(trackgen(merged[0], colnames))
+
+
+        track_merged = next(trackgen(next(merged), colnames))
+        while track_merged['mmsi'] < 262006976:
+            track_merged = next(trackgen(next(merged), colnames))
 
     '''
 
