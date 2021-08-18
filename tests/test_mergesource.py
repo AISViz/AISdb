@@ -94,8 +94,8 @@ def test_network_graph():
     zones = dict(domain='east', geoms={p[0]: pickle.loads(p[1]) for p in cur.fetchall()})
     '''
 
-    hull = unary_union(zones['geoms'].values()).convex_hull
-    hull_xy = merge(zones['hull'].boundary.coords.xy)
+    hull = unary_union([v.geometry for v in domain.geoms.values()]).convex_hull
+    hull_xy = merge(hull.boundary.coords.xy)
     west, east, south, north = np.min(hull_xy[::2]), np.max(hull_xy[::2]), np.min(hull_xy[1::2]), np.max(hull_xy[1::2])
 
     # query db for points in domain 

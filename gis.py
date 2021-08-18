@@ -25,7 +25,6 @@ def delta_meters(track, rng):
 
 
 def delta_seconds(track, rng):
-    #return np.array(list(map(timedelta.total_seconds, (track['time'][rng][1:] - track['time'][rng][:-1]))))
     return np.array(list((track['time'][rng][1:] - track['time'][rng][:-1]))) * 60
 
 
@@ -39,6 +38,97 @@ def delta_reported_knots(track, rng):
     return np.abs(((track['sog'][rng][mask][:-1] + track['sog'][rng][end][1:]) / 2) - knots)
 
 
+def dms2dd(d, m, s, ax):
+    ''' convert degrees, minutes, seconds to decimal degrees '''
+    dd = float(d) + float(m)/60 + float(s)/(60*60);
+    if (ax == 'W' or ax == 'S') and dd > 0: dd *= -1
+    return dd
+
+
+def strdms2dd(strdms):
+    '''  convert string representation of degrees, minutes, seconds to decimal deg '''
+    d, m, s, ax = [v for v in strdms.split(' ') if v != '']
+    return dms2dd(
+            float(d.rstrip('°')),
+            float(m.rstrip("'")),
+            float(s.rstrip('"')),
+            ax.upper()
+        )
+
+
+
+class ZoneGeom():
+
+    def __init__(self, name, x, y):
+        self.name = name
+        self.x = np.array(x)
+        self.y = np.array(y)
+        self.geometry = Polygon(zip(x, y))
+        self.centroid = self.geometry.centroid
+        self.maxradius = next(np.max(haversine(self.centroid.x, self.centroid.y, xi, yi) for xi,yi in zip(self.x, self.y)))
+        self.minX, self.maxX = np.min(self.x), np.max(self.x)
+        self.minY, self.maxY = np.min(self.y), np.max(self.y)
+
+    def __gt__(self, xy):
+        return self.geometry.contains(Point(*xy))
+
+
+class ZoneGeomFromTxt(ZoneGeom):
+    ''' constructor class to initialize zone geometry from a text file '''
+
+    def __init__(self, txt):
+        name = txt.rsplit(os.path.sep,1)[1].split('.')[0]
+        with open(txt, 'r') as f: pts = f.read()
+        xy = list(map(float, pts.replace('\n\n', '').replace('\n',',').split(',')[:-1]))
+        super().__init__(name, xy[::2], xy[1::2])
+
+
+class Domain():
+    def __init__(self, name, geoms):
+        #self.data = dict(name=name, geoms=geoms)
+        self.name = name
+        self.geoms = geoms
+        self.bounds = unary_union([g.geometry for g in self.geoms.values()])
+
+    def nearest_polygons_to_point(self, x, y):
+        ''' compute great circle distance for this point to each polygon centroid, 
+            subtracting the maximum polygon radius. 
+            returns all zones with distances less than zero meters, sorted by 
+            nearest first
+        '''
+        dist_to_centroids = {k : haversine(x, y, g.centroid.x, g.centroid.y) - g.maxradius for k,g in self.geoms.items()}
+        return {k:v for k,v in sorted(dist_to_centroids.items(), key=lambda item: item[1]) if v <= 0}
+
+    def point_in_polygon(self, x, y):
+        ''' returns the first polygon that contains the given point. 
+            uses coarse filtering by precomputing distance to centroids
+        '''
+        nearest = self.nearest_polygons_to_point(x, y)
+        for key in nearest.keys():
+            if self.geoms[key] > (x, y):
+                return key
+        return 'Z0'
+
+'''
+
+class SerializedZoneGeom(ZoneGeom):
+
+    def deserialize(self):
+        pass
+        return name, x, y
+
+    def __init__(self, serial):
+        super().__init__(*self.deserialize(serial))
+        
+    def __repr__(self):
+        return self.name, self.geometry.asWkt()
+
+    def binary(self):
+        return self.name, bytes(self.geometry.asWkb())
+'''
+
+
+"""
 def zones_from_txts_old(dirpath='../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', domain='east'):
     from shapely.geometry import Polygon
     from shapely.ops import unary_union
@@ -82,91 +172,4 @@ def parse_zones_from_txts(dbpath, dirpath='../scripts/dfo_project/EastCoast_EEZ_
     #zones['hull_xy'] = merge(zones['hull'].boundary.coords.xy)
     #return zones
     conn.commit()
-
-
-def dms2dd(d, m, s, ax):
-    ''' convert degrees, minutes, seconds to decimal degrees '''
-    dd = float(d) + float(m)/60 + float(s)/(60*60);
-    if (ax == 'W' or ax == 'S') and dd > 0: dd *= -1
-    return dd
-
-
-def strdms2dd(strdms):
-    '''  convert string representation of degrees, minutes, seconds to decimal deg '''
-    d, m, s, ax = [v for v in strdms.split(' ') if v != '']
-    return dms2dd(
-            float(d.rstrip('°')),
-            float(m.rstrip("'")),
-            float(s.rstrip('"')),
-            ax.upper()
-        )
-    
-
-
-
-class ZoneGeom():
-    def __init__(self, name, x, y):
-        self.name = name
-        self.x = np.array(x)
-        self.y = np.array(y)
-        #self.geometry = QgsPolygon(QgsLineString(list(QgsPointXY(xi, yi) for xi, yi in zip(x,y))))
-        self.geometry = Polygon(zip(x, y))
-        #assert self.geometry.isValid()
-        #self.shp_geom = shapely.wkb.loads(bytes(self.geometry.asWkb()))
-        self.centroid = self.geometry.centroid
-        #self.maxradius = next(np.max(haversine(self.centroid.x(), self.centroid.y(), v.x(), v.y()) for v in self.geometry.coordinateSequence()[0][0]))
-        self.maxradius = next(np.max(haversine(self.centroid.x, self.centroid.y, xi, yi) for xi,yi in zip(self.x, self.y)))
-        #minX, maxX, minY, maxY = min(xy[::2]), max(xy[::2]), min(xy[1::2]), max(xy[1::2])
-
-    def in_polygon(self, xi, yi):
-        #return self.geometry.boundingBox().contains(QgsPointXY(xi, yi)) and self.shp_geom.contains(Point(xi, yi))
-        return self.geometry.contains(Point(xi, yi))
-
-
-class ZoneGeomFromTxt(ZoneGeom):
-    def __init__(self, txt):
-        name = txt.rsplit(os.path.sep,1)[1].split('.')[0]
-        with open(txt, 'r') as f: pts = f.read()
-        xy = list(map(float, pts.replace('\n\n', '').replace('\n',',').split(',')[:-1]))
-        super().__init__(name, xy[::2], xy[1::2])
-
-
-class Domain():
-    def __init__(self, name, geoms):
-        #self.data = dict(name=name, geoms=geoms)
-        self.name = name
-        self.geoms = geoms
-        self.bounds = unary_union([g.geometry for g in self.geoms.values()])
-
-    def nearest_polygons_to_point(self, x, y):
-        ''' compute great circle distance for this point to each polygon centroid, 
-            subtracting the maximum polygon radius. 
-            returns all zones with distances less than zero meters
-        '''
-        dist_to_centroids = {k : haversine(x, y, g.centroid.x, g.centroid.y) - g.maxradius for k,g in self.geoms.items()}
-        return {k:v for k,v in sorted(dist_to_centroids.items(), key=lambda item: item[1]) if v <= 0}
-
-    def point_in_polygon(self, x, y):
-        nearest = self.nearest_polygons_to_point(x, y)
-        for key in nearest.keys():
-            if self.geoms[key].in_polygon(x, y):
-                return key
-        return 'Z0'
-
-'''
-
-class SerializedZoneGeom(ZoneGeom):
-
-    def deserialize(self):
-        pass
-        return name, x, y
-
-    def __init__(self, serial):
-        super().__init__(*self.deserialize(serial))
-        
-    def __repr__(self):
-        return self.name, self.geometry.asWkt()
-
-    def binary(self):
-        return self.name, bytes(self.geometry.asWkb())
-'''
+"""

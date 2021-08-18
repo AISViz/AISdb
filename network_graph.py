@@ -63,15 +63,15 @@ zone_stats = lambda track, zoneset: dict(
         day                                 =   epoch_2_dt(track['time'][zoneset][0]).day,
         total_distance_meters               =   np.sum(delta_meters(track, zoneset[[0,-1]])),
         cumulative_distance_meters          =   np.sum(delta_meters(track, zoneset)),
-        velocity_knots_min                  =   np.min(delta_knots(track, zoneset)),
-        velocity_knots_avg                  =   np.average(delta_knots(track, zoneset)),
-        velocity_knots_max                  =   np.max(delta_knots(track, zoneset)),
         min_shore_dist                      =   np.min(track['km_from_shore'][zoneset]), 
         avg_shore_dist                      =   np.average(track['km_from_shore'][zoneset]), 
         max_shore_dist                      =   np.max(track['km_from_shore'][zoneset]), 
         min_depth                           =   np.min(depth_nonnegative(track, zoneset)),
         avg_depth                           =   np.average(depth_nonnegative(track, zoneset)),
         max_depth                           =   np.max(depth_nonnegative(track, zoneset)),
+        velocity_knots_min                  =   np.min(delta_knots(track, zoneset)),
+        velocity_knots_avg                  =   np.average(delta_knots(track, zoneset)),
+        velocity_knots_max                  =   np.max(delta_knots(track, zoneset)),
         minutes_spent_in_zone               =   int((epoch_2_dt(track['time'][zoneset][-1]) - epoch_2_dt(track['time'][zoneset][0])).total_seconds()) / 60,
         minutes_within_10m_5km_shoredist    =   time_in_shoredist_rng(track, zoneset, 0.01, 5),
         minutes_within_30m_20km_shoredist   =   time_in_shoredist_rng(track, zoneset, 0.03, 20),
@@ -175,7 +175,7 @@ def geofence(track_merged, domain, dbpath, colnames,
         mask = filtermask(track_merged, rng, filters, first_val=True)
         n = sum(mask)
         if n <= 1: 
-            print(f'\tskipping rng = {rng}')
+            #print(f'\tskipping rng = {rng}')
             continue
         subset = np.array(rng)[mask] 
 
@@ -208,10 +208,8 @@ def geofence(track_merged, domain, dbpath, colnames,
         else:
             yield transits.pop(0), transit_nodes.pop(0), transit_edges.pop(0)
             #i += 1
-    if len(transit_nodes) > 0:
-        yield transits.pop(0), transit_nodes.pop(0), transit_edges.pop(0)
-    else:
-        print('empty transit nodes')
+    if len(transit_nodes) > 0: yield transits.pop(0), transit_nodes.pop(0), transit_edges.pop(0)
+    #else: print('empty transit nodes')
     assert len(transits) == 0, f'len(transits) = {len(transits)}'
     assert len(transit_nodes) == 0, f'len(transit_nodes) = {len(transit_nodes)}'
     assert len(transit_edges) == 0, f'len(transit_edges) = {len(transit_edges)}'
@@ -221,8 +219,7 @@ def geofence(track_merged, domain, dbpath, colnames,
 
 def agg_transit_windows(track_merged, domain, dbpath, colnames, **kwargs):
     ''' parallel process function '''
-    #transits, transit_nodes, transit_edges = geofence(track_merged, domain, dbpath, colnames, **kwargs)
-    print(f'{track_merged["mmsi"]}\tcount={len(track_merged["time"])}')
+    #print(f'{track_merged["mmsi"]}\tcount={len(track_merged["time"])}')
 
     statrows = []
     # collect transits between zone boundaries
