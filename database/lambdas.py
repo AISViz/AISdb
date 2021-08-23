@@ -35,6 +35,8 @@ boxpoly = lambda x,y: ([min(x), min(x), max(x), max(x), min(x)], [min(y), max(y)
 merge = lambda *arr: np.concatenate(np.array(*arr).T)
 
 valid_mmsi = lambda alias='m123',**_: f'{alias}.mmsi >= 201000000 AND {alias}.mmsi < 776000000'
+has_mmsi = lambda alias, mmsi, **_: f'{alias}.mmsi = {str(mmsi)}'
+in_mmsi = lambda alias, mmsis, **_: f'{alias}.mmsi IN ({", ".join(map(str, mmsis))})'
 
 in_poly_validmmsi = lambda **kwargs: f'{valid_mmsi(**kwargs)} AND {in_poly(**kwargs)}' 
 
@@ -47,6 +49,7 @@ in_time_poly_mmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_poly(**k
 
 in_time_poly = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_poly(**kwargs)}'
 
+
 from database.decoder import dt_2_epoch
 
 
@@ -54,9 +57,15 @@ rtree_in_timerange = lambda **kwargs: f'''
         {kwargs['alias']}.t0 >= {dt_2_epoch(kwargs['start'])} AND 
         {kwargs['alias']}.t1 <= {dt_2_epoch(kwargs['end'])}'''
 
-rtree_valid_mmsi = lambda alias='m123',**_: f'''
+rtree_has_mmsi      = lambda alias, mmsi, **_: f'''
+        {alias}.mmsi0 = {str(mmsi)} '''
+
+rtree_in_mmsi       = lambda alias, mmsis, **_: f'''
+        {alias}.mmsi0 IN ({", ".join(map(str, mmsis))}) '''
+
+rtree_valid_mmsi    = lambda alias='m123', **_: f'''
         {alias}.mmsi0 >= 201000000 AND 
-        {alias}.mmsi1 < 776000000'''
+        {alias}.mmsi1 < 776000000 '''
 
 rtree_in_time_mmsi = lambda **kwargs: f''' 
         {rtree_in_timerange(**kwargs)} AND {rtree_valid_mmsi(**kwargs)}'''

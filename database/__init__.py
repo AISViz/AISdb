@@ -12,4 +12,6 @@ from .lambdas import *
 from .qryfcn import *
 from .qrygen import *
 
+if os.path.isfile(os.path.join(os.path.dirname(__file__), 'config.py')): 
+    from .config import *
 
