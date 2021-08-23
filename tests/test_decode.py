@@ -13,78 +13,36 @@ conn.close()
 """
 
 
+testdbs = os.path.join(os.path.dirname(dbpath), 'testdb') + os.path.sep 
 
-
-def test_parse_24h():
-
-    from database import *
-    dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
-    os.remove(dbpath)
-    dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
-    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
-
-    dt = datetime.now()
-    parallel_decode([filepaths[0]], dbpath)
-    delta =datetime.now() - dt
-    print(f'total parse and insert time: {delta.total_seconds():.2f}s')
-
-
-def test_parse_10d():
-    dbpath = '/run/media/matt/My Passport/june2018-06-0_test2.db'
-    #os.remove(dbpath)
-    dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
-
-    june = np.array(sorted(filenames))[ ['2018-06-0' in filename for filename in sorted(filenames)] ]
-
-    for filename in june:
-        decode_raw_pyais(fpath=os.path.join(dirpath, filename), dbpath=dbpath)
-    
-
-def test_parse_1m():
-    dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
-    #os.remove(dbpath)
-    dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
-
-    june = np.array(sorted(filenames))[ ['2018-06' in filename for filename in sorted(filenames)] ]
-
-    for filename in june:
-        decode_raw_pyais(fpath=os.path.join(dirpath, filename), dbpath=dbpath)
-
-
-def test_parse_1m_eE():
-    dbpath = '/meridian/aisdb/eE_202009_test2.db'
-    #os.remove(dbpath)
-    dirpath, dirnames, filenames = np.array(list(os.walk('/meridian/AIS_archive/meopar/2020/202009'))[0], dtype=object)
-
-    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '.nm4' in f])
-
-    dt = datetime.now()
-    parallel_decode(filepaths, dbpath)
-    delta =datetime.now() - dt
-    print(f'total parse and insert time: {delta.total_seconds():.2f}s')
+if not os.path.isdir(testdbs): 
+    os.mkdir(testdbs)
 
 
 def test_sort_1w():
     from database import *
-    dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
-    #os.remove(dbpath)
+    db = testdbs + 'june2018-06-01_test.db'
+    #os.remove(db)
     dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
     filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
     filepaths = filepaths[0:7]
     dt = datetime.now()
-    parallel_decode(filepaths, dbpath)
+    parallel_decode(filepaths, db)
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
 
 def test_sort_1m():
+
     from database import *
-    dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
-    #os.remove(dbpath)
-    dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
-    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
+    #db= testdbs + '201806.db'
+    db= testdbs + '201910.db'
+    #os.remove(db)
+    dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive/CCG_Terrestrial_AIS_Network/Raw_data/2019'))[0], dtype=object)
+    #filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
+    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2019-10' in f], dtype=object)
     dt = datetime.now()
-    parallel_decode(filepaths, dbpath)
+    parallel_decode(filepaths, db)
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 

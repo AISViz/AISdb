@@ -1,39 +1,28 @@
 from datetime import datetime, timedelta
+
 import numpy as np
-#np.set_printoptions(precision=5, linewidth=80, formatter=dict(datetime=datetime, timedelta=timedelta), floatmode='maxprec', suppress=True)
 import shapely.wkt
 import pickle
-
 
 from database import *
 from shapely.geometry import Polygon, LineString, MultiPoint
 from gis import *
-#from track_viz import *
 from track_gen import *
 from network_graph import *
 
-os.system("taskset -p 0xff %d" % os.getpid())
-from multiprocessing import set_start_method
-set_start_method('forkserver')
+#os.system("taskset -p 0xff %d" % os.getpid())
+#from multiprocessing import set_start_method
+#set_start_method('forkserver')
 
 
-dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
-dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
-dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
-dbpath = 'vacuumed_eE_202009.db'
-#dbpath = '/run/media/matt/My Passport/eE_202009_test.db'
-
-
-#zones_east = zones_from_txts_old('../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', 'east')
-#zones_west = zones_from_txts_old('../scripts/dfo_project/WestCoast_EEZ_Zones_12_8', 'west')
-#zones = zones_east
-#zonegeoms = {k:ZoneGeom(k, *v.boundary.coords.xy) for k,v in zones['geoms'].items()}
-
-zones_dir = '../scripts/dfo_project/EastCoast_EEZ_Zones_12_8'
 shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
 zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
 domain = Domain('east', zonegeoms)
+#hull = unary_union(zones['geoms'].values()).convex_hull
+#hull_xy = merge(zones['hull'].boundary.coords.xy)
 
+start = datetime(2019, 10, 1)
+end = datetime(2019, 11, 1)
 
 
 def test_output_allsource():
@@ -50,21 +39,14 @@ def test_output_allsource():
     #cur.execute('SELECT objname, binary FROM rtree_polygons WHERE domain = "east"')
     #zones = dict(domain='east', geoms={p[0]: pickle.loads(p[1]) for p in cur.fetchall()})
 
-    from shapely.ops import unary_union
-    hull = unary_union(zones['geoms'].values()).convex_hull
-    hull_xy = merge(zones['hull'].boundary.coords.xy)
-
-    # query db for points in domain 
-    west, east, south, north = np.min(hull_xy[::2]), np.max(hull_xy[::2]), np.min(hull_xy[1::2]), np.max(hull_xy[1::2])
-
     rowgen = qrygen(
             #xy = merge(canvaspoly.boundary.coords.xy),
             start   = start,
             end     = end,
-            xmin    = west, 
-            xmax    = east, 
-            ymin    = south, 
-            ymax    = north,
+            xmin    = domain.minX, 
+            xmax    = domain.maxX, 
+            ymin    = domain.minY, 
+            ymax    = domain.maxY,
         ).gen_qry(dbpath, callback=rtree_in_bbox, qryfcn=leftjoin_dynamic_static)
 
     tracks = (next(trackgen(r)) for r in rowgen)
@@ -81,12 +63,6 @@ def test_network_graph():
     start   = datetime(2018,6,1)
     end     = datetime(2018,7,1)
 
-    filters = [
-                lambda track, rng: delta_meters(track, rng) < 9999,
-                lambda track, rng: delta_knots(track, rng) < 50,
-                lambda track, rng: delta_seconds(track, rng) > 0,
-            ]
-
     # query db for points in domain 
     rowgen = qrygen(
             start   = start,
@@ -97,12 +73,11 @@ def test_network_graph():
             ymin    = domain.minY, 
             ymax    = domain.maxY,
         ).gen_qry(dbpath, callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
-    tracks = (next(trackgen(r)) for r in rowgen)
+
+    #tracks = (next(trackgen(r)) for r in rowgen)
     merged = merge_layers(rowgen, dbpath)
 
-    graph(merged, domain, dbpath, parallel=12)
-
-    graph(merged, domain, dbpath, parallel=12, filters=filters)
+    graph(merged, domain, dbpath, parallel=12, apply_filter=False)
     
 
     ''' step-through
@@ -129,6 +104,18 @@ def test_network_graph():
         track_merged = next(trackgen(next(merged), colnames))
         while track_merged['mmsi'] < 262006976:
             track_merged = next(trackgen(next(merged), colnames))
+
+
+        aisdb.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        aisdb.cur.fetchall()
+
+        aisdb.cur.execute("SELECT * from rtree_201910_msg_1_2_3 limit 10")
+        aisdb.cur.execute("SELECT * from static_201910_aggregate limit 10")
+        aisdb.cur.fetchall()
+
+        for rows in merged:
+            if len(np.unique(rows[:,1])) != len(rows[:,1]): break
+        track = next(trackgen(rows))
 
     '''
 
