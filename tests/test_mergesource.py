@@ -20,7 +20,7 @@ set_start_method('forkserver')
 dbpath = '/run/media/matt/My Passport/june2018-06-01_test.db'
 dbpath = '/run/media/matt/My Passport/june2018-06_test3.db'
 dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
-#dbpath = '/meridian/aisdb/eE_202009_test.db'
+dbpath = 'vacuumed_eE_202009.db'
 #dbpath = '/run/media/matt/My Passport/eE_202009_test.db'
 
 
@@ -28,6 +28,7 @@ dbpath = '/run/media/matt/My Passport/201806_test_paralleldecode.db'
 #zones_west = zones_from_txts_old('../scripts/dfo_project/WestCoast_EEZ_Zones_12_8', 'west')
 #zones = zones_east
 #zonegeoms = {k:ZoneGeom(k, *v.boundary.coords.xy) for k,v in zones['geoms'].items()}
+
 zones_dir = '../scripts/dfo_project/EastCoast_EEZ_Zones_12_8'
 shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
 zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
@@ -81,32 +82,20 @@ def test_network_graph():
     end     = datetime(2018,7,1)
 
     filters = [
-                lambda track, rng: delta_meters(track, rng) < 10000,
+                lambda track, rng: delta_meters(track, rng) < 9999,
                 lambda track, rng: delta_knots(track, rng) < 50,
                 lambda track, rng: delta_seconds(track, rng) > 0,
             ]
-
-    # query zones
-    '''
-    aisdb = dbconn(dbpath)
-    conn, cur = aisdb.conn, aisdb.cur
-    cur.execute('SELECT objname, binary FROM rtree_polygons WHERE domain = "east"')
-    zones = dict(domain='east', geoms={p[0]: pickle.loads(p[1]) for p in cur.fetchall()})
-    '''
-
-    hull = unary_union([v.geometry for v in domain.geoms.values()]).convex_hull
-    hull_xy = merge(hull.boundary.coords.xy)
-    west, east, south, north = np.min(hull_xy[::2]), np.max(hull_xy[::2]), np.min(hull_xy[1::2]), np.max(hull_xy[1::2])
 
     # query db for points in domain 
     rowgen = qrygen(
             start   = start,
             end     = end,
             #end     = start + timedelta(hours=24),
-            xmin    = west, 
-            xmax    = east, 
-            ymin    = south, 
-            ymax    = north,
+            xmin    = domain.minX, 
+            xmax    = domain.maxX, 
+            ymin    = domain.minY, 
+            ymax    = domain.maxY,
         ).gen_qry(dbpath, callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
     tracks = (next(trackgen(r)) for r in rowgen)
     merged = merge_layers(rowgen, dbpath)

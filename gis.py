@@ -4,7 +4,6 @@ from collections import UserDict
 from functools import reduce
 
 import numpy as np
-from qgis.core import QgsGeometry, QgsPolygon, QgsLineString, QgsPointXY
 import shapely.wkb
 from shapely.ops import unary_union
 from shapely.geometry import Polygon, Point
@@ -89,6 +88,7 @@ class Domain():
         self.name = name
         self.geoms = geoms
         self.bounds = unary_union([g.geometry for g in self.geoms.values()])
+        self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
 
     def nearest_polygons_to_point(self, x, y):
         ''' compute great circle distance for this point to each polygon centroid, 
