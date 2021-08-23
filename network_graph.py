@@ -110,7 +110,8 @@ def merge_layers(rowgen, dbpath):
 
             # vessel geometry
             uniqueID = {}
-            _ = [uniqueID.update({f'{r[mmsi_column]}_{r[imo_column]}' : {'m' : r[mmsi_column], 'i' : r[imo_column]}}) for r in rows]
+            for r in rows:
+                uniqueID.update({f'{r[mmsi_column]}_{r[imo_column]}' : {'m' : r[mmsi_column], 'i' : r[imo_column]}})
 
             #print('loading marinetraffic vessel data...')
             for uid in uniqueID.values():
@@ -141,15 +142,11 @@ def geofence(track_merged, domain, dbpath, colnames,
         #filters=[
         #    lambda track, rng: [True for _ in rng[:-1]],
         #    ]
+        apply_filter=False
         ):
     ''' generator function to yield intersections between nodes and a vectorized track segments '''
 
-
-    filters = [
-            lambda track, rng: delta_knots(track, rng) < 50,
-            lambda track, rng: delta_meters(track, rng) < 10000,
-            lambda track, rng: delta_seconds(track, rng) > 0,
-        ]
+    
 
     '''
     bounds_lon, bounds_lat = domain['hull_xy'][::2], domain['hull_xy'][1::2]
@@ -172,12 +169,22 @@ def geofence(track_merged, domain, dbpath, colnames,
 
     for rng in segment(track_merged, maxdelta=maxdelta, minsize=1):
         # apply filters
-        mask = filtermask(track_merged, rng, filters, first_val=True)
-        n = sum(mask)
+        if apply_filter:
+            filters = [
+                    lambda track, rng: delta_knots(track, rng) < 50,
+                    lambda track, rng: delta_meters(track, rng) < 10000,
+                    lambda track, rng: delta_seconds(track, rng) > 0,
+                ]
+            mask = filtermask(track_merged, rng, filters, first_val=True)
+            subset = np.array(rng)[mask] 
+        
+        else:
+            subset = np.array(rng)
+
+        n = len(subset)
         if n <= 1: 
             #print(f'\tskipping rng = {rng}')
             continue
-        subset = np.array(rng)[mask] 
 
         zoneID = np.array([domain.point_in_polygon(x, y) for x, y in zip(track_merged['lon'][subset], track_merged['lat'][subset])], dtype=object)
         in_zones = set(zoneID)
