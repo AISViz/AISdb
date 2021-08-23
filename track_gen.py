@@ -13,8 +13,9 @@ def trackgen(
             'cog', 'sog', 'msgtype',
             'imo', 'vessel_name',
             'dim_bow', 'dim_stern', 'dim_port', 'dim_star',
-            'ship_type', 'ship_type_txt',
-        ]) -> dict:
+            'ship_type', 'ship_type_txt', ],
+        deduplicate_timestamps: bool = True,
+        ) -> dict:
     ''' each row contains columns from database: 
             mmsi time lon lat cog sog name type...
         rows must be sorted by first by mmsi, then time
@@ -22,9 +23,13 @@ def trackgen(
         colnames is the name associated with each column type in rows. 
         first two columns must be ['mmsi', 'time']
     '''
-    assert colnames[0] == 'mmsi'
-    assert colnames[1] == 'time'
+    mmsi_col = [i for i,c in zip(range(len(colnames)), colnames) if c.lower() == 'mmsi'][0]
+    time_col = [i for i,c in zip(range(len(colnames)), colnames) if c.lower() == 'time'][0]
 
+    if deduplicate_timestamps:
+        dupe_idx = np.nonzero(rows[:,time_col].astype(int)[:-1] == rows[:,time_col].astype(int)[1:])[0] +1
+        rows = np.delete(rows, dupe_idx, axis=0)
+        
     staticcols = set(colnames) & set([
         'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'dim_stern', 'dim_port', 'dim_star', 
         'mother_ship_mmsi', 'part_number', 'vendor_id', 'model', 'serial', 'imo', 'msgtype',
@@ -33,7 +38,7 @@ def trackgen(
 
     dynamiccols = set(colnames) - staticcols - set(['mmsi', 'time'])
 
-    tracks_idx = np.append(np.append([0], np.nonzero(rows[:,0].astype(int)[1:] != rows[:,0].astype(int)[:-1])[0]+1), len(rows))
+    tracks_idx = np.append(np.append([0], np.nonzero(rows[:,mmsi_col].astype(int)[1:] != rows[:,mmsi_col].astype(int)[:-1])[0]+1), len(rows))
 
     for i in range(len(tracks_idx)-1): 
         #assert len(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]) == len(np.unique(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]))
