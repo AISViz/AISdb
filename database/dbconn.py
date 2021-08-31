@@ -61,7 +61,6 @@ class dbconn():
                 see lambdas.py for more info
             dbtype (string)
                 either 'sqlite3' or 'postgres' depending on which was used
-
     '''
 
     def __init__(self, dbpath=None, postgres=False, timeout=5):

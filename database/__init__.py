@@ -1,7 +1,11 @@
 import os
+#import sys
 import time
 from datetime import datetime, timedelta
 from functools import reduce, partial
+
+#sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#import __init__
 
 import numpy as np
 
@@ -12,6 +16,6 @@ from .lambdas import *
 from .qryfcn import *
 from .qrygen import *
 
-if os.path.isfile(os.path.join(os.path.dirname(__file__), 'config.py')): 
-    from .config import *
+#if os.path.isfile(os.path.join(os.path.dirname(__file__), 'config.py')): 
+#    from .config import *
 
