@@ -17,11 +17,11 @@ Optional for visualizing data:
 
 ```
 import os
-from database import parallel_decode
+from ais.database import parallel_decode
 
 filepaths = os.listdir('/home/matt/ais_raw_NMEA/')    # filepaths to .nm4 message reports (list of strings)
 dbpath = '/home/matt/ais.db'                          # location of where the database file will be stored
-processes = 12                                        # number of parallel process workers to use
+processes = 12                                        # number of processes to run in parallel. set to False to disable paralellizing
 
 parallel_decode(filepaths, dbpath, processes)
 ```
