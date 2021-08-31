@@ -7,9 +7,7 @@ The package can be installed using pip:
   python3 -m pip install git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=ais
   ```
 
-Optional for visualizing data:
-  * qgis (must be in PYTHONPATH)
-
+To enable experimental visualization features, QGIS must also be installed and included in the PYTHONPATH env variable
 
 
 ## Getting Started
