@@ -1,6 +1,8 @@
 Functions and utilities for the purpose of decoding, storing, processing, and visualizing AIS data. 
 
-Install using pip:
+## Install
+
+The package can be installed using pip:
   ```
   python3 -m pip install git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=ais
   ```
