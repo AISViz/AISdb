@@ -17,7 +17,6 @@ To enable experimental visualization features, QGIS must also be installed and i
 
 ```
 import os
-
 import ais
 from ais.database import parallel_decode
 
