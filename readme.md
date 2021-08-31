@@ -1,30 +1,12 @@
 Functions and utilities for the purpose of decoding, storing, accessing, and processing AIS data. 
 
-Setup:
+Install using pip:
   ```
-  #python3 -m pip install --upgrade numpy pysqlite3-binary pyais shapely requests rasterio packaging selenium tqdm
-  virtualenv ais_env --download
-  source ais_env/bin/activate
-  python3 -m pip install -e git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=ais
-
-  unset PYTHONPATH
-  python3 -m pip install -e .
-  python3 -m pip uninstall ais
-  y
+  python3 -m pip install git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=ais
   ```
 
-Requirements:
-  * Python 3
-  * SQLite >= 3.35
-  * NumPy
-  * pyais
-
-Optional:
-  * qgis
-  * Shapely
-  * requests
-  * selenium
-  * rasterio
+Optional for visualizing data:
+  * qgis (must be in PYTHONPATH)
 
 
 
