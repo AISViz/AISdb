@@ -41,8 +41,16 @@ Some points to note when decoding:
   TODO: add documentation  
 
 
-##### Dynamically generating SQL queries from a dictionary of input parameters  
+##### Automatically generate SQL database queries
   TODO: add documentation  
+
+
+##### Compute vessel trajectories
+  TODO: add documentation
+
+
+##### Compute network graph of vessel movements between polygons
+  TODO: add documentation
 
 
 ## Overview of package components
