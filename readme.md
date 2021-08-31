@@ -1,4 +1,4 @@
-Functions and utilities for the purpose of decoding, storing, accessing, and processing AIS data. 
+Functions and utilities for the purpose of decoding, storing, processing, and visualizing AIS data. 
 
 Install using pip:
   ```
