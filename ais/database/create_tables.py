@@ -2,10 +2,11 @@ from collections import Counter
 
 import numpy as np
 
-from database import dbconn
+#from .database import dbconn
+#import dbconn
 
-aisdb = dbconn()
-dbtype = aisdb.dbtype
+#aisdb = dbconn()
+#dbtype = aisdb.dbtype
 #cur = aisdb.conn.cursor()
 
 
@@ -265,13 +266,13 @@ def create_table_msg24(cur, month):
                 serial integer
             );
         ''')
-    if dbtype == 'sqlite3':
-        cur.execute(f''' CREATE INDEX idx_{month}_msg24_mmsi ON 'ais_{month}_msg_24' (mmsi)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg24_time ON 'ais_{month}_msg_24' (time)''')
-    elif dbtype == 'postgres':
-        print('indexes not implemented yet for postgres')
-        pass
-    else: assert False
+    #if dbtype == 'sqlite3':
+    cur.execute(f''' CREATE INDEX idx_{month}_msg24_mmsi ON 'ais_{month}_msg_24' (mmsi)''')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg24_time ON 'ais_{month}_msg_24' (time)''')
+    #elif dbtype == 'postgres':
+    #    print('indexes not implemented yet for postgres')
+    #    pass
+    #else: assert False
 
 
 def aggregate_static_msg5_msg24(dbpath, months_str):
@@ -436,7 +437,7 @@ def create_table_msg123(cur, month):
             )
             --) WITHOUT ROWID;
         ''')
-    if dbtype == 'sqlite3':
+    #if dbtype == 'sqlite3':
         #cur.execute(f''' SELECT AddGeometryColumn('ais_{month}_msg_1_2_3', 'ais_geom', 4326, 'POINT', 'XY') ''')
         #cur.execute(f''' SELECT CreateSpatialIndex('ais_{month}_msg_1_2_3', 'ais_geom') ''')
 
@@ -448,11 +449,11 @@ def create_table_msg123(cur, month):
         #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg123_mmsi_time_lat_lon ON 'ais_{month}_msg_1_2_3' (mmsi, time, longitude, latitude)''')
         #cur.execute(f''' CREATE INDEX idx_{month}_msg123_lonlat ON 'ais_{month}_msg_1_2_3' (longitude, latitude)''')
         #cur.execute(f''' CREATE UNIQUE INDEX idx_msg123_mmsi_time ON 'ais_{month}_msg_1_2_3' (mmsi, time) ''')
-        pass
-    elif dbtype == 'postgres':
-        print('indexes not implemented yet for postgres')
-        pass
-    else: assert False
+    #    pass
+    #elif dbtype == 'postgres':
+    #    print('indexes not implemented yet for postgres')
+    #    pass
+    #else: assert False
 
 
 def build_idx_msg123(cur, month):
@@ -515,11 +516,11 @@ def create_table_msg18(cur, month):
             )
             --) WITHOUT ROWID
         ''')
-    if dbtype == 'sqlite3':
+    #if dbtype == 'sqlite3':
         #cur.execute(f''' SELECT AddGeometryColumn('ais_{month}_msg_18', 'ais_geom', 4326, 'POINT', 'XY') ''')
         #cur.execute(f''' SELECT CreateSpatialIndex('ais_{month}_msg_18', 'ais_geom') ''')
 
-        """
+    """
         from datetime import datetime
         datetime.now()
         #cur.execute(f''' ALTER TABLE 'ais_{month}_msg_18' ADD CONSTRAINT idx_{month}_msg_18_mmsi_time PRIMARY KEY CLUSTERED (mmsi, time) ''')
@@ -536,15 +537,15 @@ def create_table_msg18(cur, month):
         datetime.now()
         cur.execute(f''' VACUUM ''')
         datetime.now()
-        """
+    """
 
         #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg18_mmsi_time_lat_lon ON 'ais_{month}_msg_18' (mmsi, time, longitude, latitude)''')
         #cur.execute(f''' CREATE UNIQUE INDEX idx_msg18_mmsi_time ON 'ais_{month}_msg_18' (mmsi, time) ''')
-        pass
-    elif dbtype == 'postgres':
-        print('indexes not implemented yet for postgres')
-        pass
-    else: assert False
+    #    pass
+    #elif dbtype == 'postgres':
+    #    print('indexes not implemented yet for postgres')
+    #    pass
+    #else: assert False
 
 
 def build_idx_msg18(cur, month):

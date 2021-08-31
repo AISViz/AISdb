@@ -1,4 +1,4 @@
-from setuptools import setup 
+from setuptools import setup, find_packages
 
 setup(name='ais',
       version='0.1',
@@ -9,8 +9,9 @@ setup(name='ais',
       license='GNU General Public License v3.0',
       python_requires='>=3.6',
       packages=[
-          '.', '.database', '.webdata',
+          'ais', 'ais.database', 'ais.webdata', 
         ],
+      #packages=find_packages(exclude=['tests', 'docs', 'output', '__pycache__', 'tonnage.db']),
       install_requires=[
           'numpy',
           'pysqlite3-binary', 

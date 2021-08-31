@@ -2,7 +2,15 @@ Functions and utilities for the purpose of decoding, storing, accessing, and pro
 
 Setup:
   ```
-  python3 -m pip install --upgrade numpy pysqlite3-binary pyais shapely requests rasterio packaging selenium tqdm
+  #python3 -m pip install --upgrade numpy pysqlite3-binary pyais shapely requests rasterio packaging selenium tqdm
+  virtualenv ais_env --download
+  source ais_env/bin/activate
+  python3 -m pip install -e git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=ais
+
+  unset PYTHONPATH
+  python3 -m pip install -e .
+  python3 -m pip uninstall ais
+  y
   ```
 
 Requirements:

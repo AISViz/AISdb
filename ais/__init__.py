@@ -1,8 +1,12 @@
 import os
+import sys
 import shlex
 
+
+sys.path.append(os.path.dirname(__file__))
 pkgname = 'ais'
 cfgfile = os.path.join(os.path.expanduser('~'), '.config', f'{pkgname}.cfg')
+
 
 if os.path.isfile(cfgfile):
 
@@ -32,11 +36,8 @@ else:
 
 #import .track_geom
 
-#import .database
-from database import *
+from .database import *
 #import .gis
-from gis import *
+from .gis import *
 #import .track_gen 
-from track_gen import *
-#from .track_geom import *
-#from .test import *
+from .track_gen import *
