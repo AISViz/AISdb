@@ -33,8 +33,8 @@ zones_dir = os.path.join(data_dir, 'zones') + os.path.sep '''
     ))
 
     exec(default)
-    print(f'''# no config file found, applying default configs:\n\n{printdefault(default)}
-    # to remove this warning, copy and paste this text to {cfgfile}''')
+    print(f'''# no config file found, applying default configs:\n\n{printdefault(default)}\n
+# to remove this warning, copy and paste this text to {cfgfile}''')
 
 #import .track_geom
 
