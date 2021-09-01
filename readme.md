@@ -50,13 +50,46 @@ qry_bounds = qrygen(
 
 rows = qry_bounds.run_qry(
     dbpath    = dbpath, 
-    qryfcn    = leftjoin_dynamic_static
+    qryfcn    = leftjoin_dynamic_static,
     callback  = has_mmsi, 
   )
+
 ```
 In this example, an SQL query will be created so search the database for all records of the vessel with MMSI identifier 316002588 between the date range of Jan 1, 2021 to Jan 2, 2021. 
 The qryfcn 'leftjoin_dynamic_static' is the default query format to scan the database tables, which will merge both the static vessel message reports data as well as dynamic position reports.
-By changing the callback function and qry_bounds parameters, different subsets of the data can be queried, for example, all vessels in the given bounding box within the specified date range.
+By changing the callback function and qry_bounds parameters, different subsets of the data can be queried, for example, all vessels in the given bounding box within the specified date range.  
+
+The resulting SQL code for this example is as follows:
+```
+WITH dynamic_202101 AS (                                   
+    SELECT CAST(m123.mmsi0 AS INT) as mmsi, m123.t0, m123.x0, m123.y0, m123.cog, m123.sog, m123.msgtype
+      FROM rtree_202101_msg_1_2_3 AS m123
+      WHERE m123.mmsi = 316002588
+    UNION                                                  
+    SELECT CAST(m18.mmsi0 AS INT) as mmsi, m18.t0, m18.x0, m18.y0, m18.cog, m18.sog, m18.msgtype
+      FROM rtree_202101_msg_18 AS m18
+      WHERE m18.mmsi = 316002588  
+),                                                         
+static_202101 AS (                                         
+    SELECT mmsi, vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star, imo FROM static_202101_aggregate  
+)                                                          
+SELECT dynamic_202101.mmsi, dynamic_202101.t0, 
+        dynamic_202101.x0, dynamic_202101.y0, 
+        dynamic_202101.cog, dynamic_202101.sog, 
+        dynamic_202101.msgtype, 
+        static_202101.imo, static_202101.vessel_name,
+        static_202101.dim_bow, static_202101.dim_stern, 
+        static_202101.dim_port, static_202101.dim_star,
+        static_202101.ship_type, ref.coarse_type_txt 
+    FROM dynamic_202101                                    
+LEFT JOIN static_202101                                    
+    ON dynamic_202101.mmsi = static_202101.mmsi
+LEFT JOIN coarsetype_ref AS ref 
+    ON (static_202101.ship_type = ref.coarse_type) 
+ORDER BY 1, 2                                              
+```
+
+The results of this automatically generated query will then be stored in the `rows` variable.
 
 
 ##### Compute vessel trajectories
