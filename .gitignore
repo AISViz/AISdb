@@ -4,8 +4,7 @@
 *.db-journal
 *.csv
 tmp/*
-aislib/*
-output/*
+tests/output/*
 !output/scriptoutput.png
 ais/webdata/webdriver*
 *.cookie

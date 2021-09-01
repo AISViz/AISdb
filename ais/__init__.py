@@ -21,6 +21,7 @@ if os.path.isfile(cfgfile):
             exec(cmd)
 
 else:
+
     default = f'''\n
     dbpath = os.path.join(os.path.expanduser('~'), f'{pkgname}.db')
     data_dir = os.path.join(os.path.expanduser('~'), f'{pkgname}') + os.path.sep
@@ -31,8 +32,9 @@ else:
         s.replace('\n\n','').split('\n')
     ))
 
-    print(f'no config file found at {cfgfile}. applying default configs:\n\n{printdefault(default)}')
     exec(default)
+    print(f'''# no config file found, applying default configs:\n\n{printdefault(default)}
+    # to remove this warning, copy and paste this text to {cfgfile}''')
 
 #import .track_geom
 
