@@ -1,6 +1,6 @@
 Functions and utilities for the purpose of decoding, storing, processing, and visualizing AIS data. 
 
-<img src="https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/tests/output/scriptoutput.png" alt="ais tracks - one month in the canadian atlantic" width="600"/>
+<img src="https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/tests/output/scriptoutput.png" alt="ais tracks - one month in the canadian atlantic" width="900"/>
 
 ## Install
 
@@ -48,6 +48,4 @@ Some points to note when decoding:
 ##### Compute network graph of vessel movements between polygons
   TODO: add documentation
 
-
-![ais tracks - one month in the canadian atlantic](https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/tests/output/scriptoutput.png)
 
