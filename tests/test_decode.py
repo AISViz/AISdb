@@ -23,7 +23,8 @@ def test_sort_1w():
     from database import *
     db = testdbs + 'june2018-06-01_test.db'
     #os.remove(db)
-    dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
+    #dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
+    dirpath, dirnames, filenames = np.array(list(os.walk(rawdata_dir))[0], dtype=object)
     filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
     filepaths = filepaths[0:7]
     dt = datetime.now()
@@ -38,9 +39,10 @@ def test_sort_1m():
     #db= testdbs + '201806.db'
     db= testdbs + '201910.db'
     #os.remove(db)
-    dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive/CCG_Terrestrial_AIS_Network/Raw_data/2019'))[0], dtype=object)
+    dirpath, dirnames, filenames = np.array(list(os.walk(rawdata_dir))[0], dtype=object)
     #filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
     filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2019-10' in f], dtype=object)
+    #filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2021-01' in f], dtype=object)
     dt = datetime.now()
     parallel_decode(filepaths, db)
     delta =datetime.now() - dt
