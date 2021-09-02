@@ -1,6 +1,7 @@
 import os
 import zipfile
 from multiprocessing import Pool
+from functools import partial
 
 
 def _fast_unzip(zipf, dirname='.'):
@@ -12,8 +13,9 @@ def _fast_unzip(zipf, dirname='.'):
 
 
 def fast_unzip(zipfilenames, dirname='.', processes=12):
+    fcn = partial(_fast_unzip, dirname=dirname)
     with Pool(processes) as p:
-        p.imap_unordered(_fast_unzip, zipfilenames, [dirname for _ in zipfilenames])
+        p.imap_unordered(fcn, zipfilenames)
         p.close()
         p.join()
 
