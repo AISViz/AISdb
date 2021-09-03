@@ -217,14 +217,14 @@ def create_table_msg5(cur, month):
                 dte boolean,
                 mode smallint
             ) ''')
-    if dbtype == 'sqlite3':
-        cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi ON 'ais_{month}_msg_5' (mmsi)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg5_time ON 'ais_{month}_msg_5' (time)''')
-        cur.execute(f''' CREATE INDEX idx_{month}_msg5_imo  ON 'ais_{month}_msg_5' (imo)''')
-    elif dbtype == 'postgres':
-        print('indexes not implemented yet for postgres')
-        pass
-    else: assert False
+    #if dbtype == 'sqlite3':
+    cur.execute(f''' CREATE INDEX idx_{month}_msg5_mmsi ON 'ais_{month}_msg_5' (mmsi)''')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg5_time ON 'ais_{month}_msg_5' (time)''')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg5_imo  ON 'ais_{month}_msg_5' (imo)''')
+    #elif dbtype == 'postgres':
+    #    print('indexes not implemented yet for postgres')
+    #    pass
+    #else: assert False
 
 
 
