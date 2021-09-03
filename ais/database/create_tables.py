@@ -2,7 +2,7 @@ from collections import Counter
 
 import numpy as np
 
-#from .database import dbconn
+from database import dbconn
 #import dbconn
 
 #aisdb = dbconn()
