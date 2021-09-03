@@ -34,9 +34,9 @@ boxpoly = lambda x,y: ([min(x), min(x), max(x), max(x), min(x)], [min(y), max(y)
 
 merge = lambda *arr: np.concatenate(np.array(*arr).T)
 
-valid_mmsi = lambda alias='m123',**_: f'{alias}.mmsi >= 201000000 AND {alias}.mmsi < 776000000'
-has_mmsi = lambda alias, mmsi, **_: f'{alias}.mmsi = {str(mmsi)}'
-in_mmsi = lambda alias, mmsis, **_: f'{alias}.mmsi IN ({", ".join(map(str, mmsis))})'
+valid_mmsi = lambda alias='m123',**_: f'{alias}.mmsi0 >= 201000000 AND {alias}.mmsi < 776000000'
+has_mmsi = lambda alias, mmsi, **_: f'{alias}.mmsi0 = {str(mmsi)}'
+in_mmsi = lambda alias, mmsis, **_: f'{alias}.mmsi0 IN ({", ".join(map(str, mmsis))})'
 
 in_poly_validmmsi = lambda **kwargs: f'{valid_mmsi(**kwargs)} AND {in_poly(**kwargs)}' 
 
