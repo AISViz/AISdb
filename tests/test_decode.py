@@ -28,7 +28,7 @@ def test_sort_1w():
     filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
     filepaths = filepaths[0:7]
     dt = datetime.now()
-    parallel_decode(filepaths, db)
+    decode_msgs(filepaths, db)
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
@@ -44,7 +44,7 @@ def test_sort_1m():
     filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2019-10' in f], dtype=object)
     #filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2021-01' in f], dtype=object)
     dt = datetime.now()
-    parallel_decode(filepaths, db)
+    decode_msgs(filepaths, db)
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 

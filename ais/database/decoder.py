@@ -228,7 +228,7 @@ def append_file(picklefile, batch):
 
 
 def decode_raw_pyais(fpath, tmpdir):
-    ''' parallel process worker function. see parallel_decode() for usage '''
+    ''' parallel process worker function. see decode_msgs() for usage '''
 
     # if the file was already parsed, skip it
     #path, dbfile = dbpath.rsplit(os.path.sep, 1)
@@ -316,7 +316,7 @@ def decode_raw_pyais(fpath, tmpdir):
     #    parsed.insert_hash(kwargs=dict(fpath=fpath))
 
 
-def parallel_decode(filepaths, dbpath, processes=12):
+def decode_msgs(filepaths, dbpath, processes=12):
     ''' decode NMEA binary message format and store in an SQLite database
 
         messages will be decoded and prepared for insertion in parallel, and 
