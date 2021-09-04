@@ -34,10 +34,10 @@ def binarysearch(arr, search):
     return mid
 
 
-def tmpdir(dbpath):
-    path, dbfile = dbpath.rsplit(os.path.sep, 1)
-    tmpdirpath = os.path.join(path, 'tmp_parsing')
-    if not os.path.isdir(tmpdirpath):
-        os.mkdir(tmpdirpath)
-    return tmpdirpath
+#def tmpdir(dbpath):
+#    path, dbfile = dbpath.rsplit(os.path.sep, 1)
+#    tmpdirpath = os.path.join(path, 'tmp_parsing')
+#    if not os.path.isdir(tmpdirpath):
+#        os.mkdir(tmpdirpath)
+#    return tmpdirpath
 

@@ -17,7 +17,7 @@ from webdata import marinetraffic
 from webdata.marinetraffic import scrape_tonnage
 from gebco import Gebco
 from wsa import wsa
-from proc_util import tmpdir
+#from proc_util import tmpdir
 
 
 
@@ -262,7 +262,7 @@ def agg_transit_windows(track_merged, domain, dbpath, colnames, **kwargs):
     if len(statrows) == 0: 
         return 
 
-    filepath = os.path.join(tmpdir(dbpath), str(track_merged['mmsi']).zfill(9))
+    filepath = os.path.join(tmp_dir, str(track_merged['mmsi']).zfill(9))
     with open(filepath, 'ab') as f:
         for track_stats in statrows:
             pickle.dump(track_stats, f)
@@ -296,7 +296,7 @@ def graph(merged, domain, dbpath, parallel=0, **kwargs):
 
     _ = [colnames.append(col) for col in ['sog_computed', 'zone', 'domain']]
 
-    picklefiles = [fname for fname in sorted(os.listdir(tmpdir(dbpath))) if '_' not in fname]
+    picklefiles = [fname for fname in sorted(os.listdir(tmp_dir)) if '_' not in fname]
 
     rowfromdict = lambda d: ','.join(map(str, [val if not type(val) == dict else ','.join(map(str, val.values())) for val in d.values()]))
 
@@ -309,13 +309,13 @@ def graph(merged, domain, dbpath, parallel=0, **kwargs):
     dirpath, dbfile = dbpath.rsplit(os.path.sep, 1)
     csvfile = dirpath + os.path.sep + 'output.csv'
 
-    with open(os.path.join(tmpdir(dbpath), picklefiles[0]), 'rb') as f0, open(csvfile, 'w') as f1:
+    with open(os.path.join(tmp_dir, picklefiles[0]), 'rb') as f0, open(csvfile, 'w') as f1:
         f1.write(header(pickle.load(f0)))
     with open(csvfile, 'a') as output:
         for picklefile in picklefiles:
             #results = np.ndarray(shape=(0, len(colnames)) )
             results = []
-            with open(os.path.join(tmpdir(dbpath), picklefile), 'rb') as f:
+            with open(os.path.join(tmp_dir, picklefile), 'rb') as f:
                 while True:
                     try:
                         getrow = pickle.load(f)
@@ -326,7 +326,7 @@ def graph(merged, domain, dbpath, parallel=0, **kwargs):
                     #results = np.vstack((results, getrows))
                     results.append(rowfromdict(getrow))
             output.write('\n'.join(results) +'\n')
-            os.remove(os.path.join(tmpdir(dbpath), picklefile))
+            os.remove(os.path.join(tmp_dir, picklefile))
 
     return 
 

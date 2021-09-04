@@ -227,7 +227,8 @@ def append_file(picklefile, batch):
             pickle.dump(rows[keepidx], f)
 
 
-def decode_raw_pyais(fpath, tmpdir):
+#def decode_raw_pyais(fpath, tmpdir):
+def decode_raw_pyais(fpath):
     ''' parallel process worker function. see decode_msgs() for usage '''
 
     # if the file was already parsed, skip it
@@ -244,7 +245,7 @@ def decode_raw_pyais(fpath, tmpdir):
 
     regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(fpath)
     mstr        = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
-    picklefile  = os.path.join(tmpdir, ''.join(fpath[regexdate.start():regexdate.end()].split('-')))
+    picklefile  = os.path.join(tmp_dir, ''.join(fpath[regexdate.start():regexdate.end()].split('-')))
 
     if sum( [os.path.isfile(f'{picklefile}_msg{msgtype}') for msgtype in (1,2,3,5,18,24)] ) >= 6: 
         return
@@ -346,13 +347,14 @@ def decode_msgs(filepaths, dbpath, processes=12):
     '''
 
     # create temporary directory for parsed data
-    path, dbfile = dbpath.rsplit(os.path.sep, 1)
-    tmpdir = os.path.join(path, 'tmp_parsing')
-    if not os.path.isdir(tmpdir): 
-        os.mkdir(tmpdir)
+    #path, dbfile = dbpath.rsplit(os.path.sep, 1)
+    #tmpdir = os.path.join(path, 'tmp_parsing')
+    if not os.path.isdir(tmp_dir): 
+        os.mkdir(tmp_dir)
 
     # decode and serialize
-    proc = partial(decode_raw_pyais, tmpdir=tmpdir)
+    #proc = partial(decode_raw_pyais, tmpdir=tmpdir)
+    proc = partial(decode_raw_pyais)
     
     # parallelize decoding step
     with Pool(processes) as p:
@@ -375,19 +377,19 @@ def decode_msgs(filepaths, dbpath, processes=12):
     months_str = []
 
     # deserialize
-    for picklefile in sorted(os.listdir(tmpdir)):
+    for picklefile in sorted(os.listdir(tmp_dir)):
         msgtype     = picklefile.split('_', 1)[1].rsplit('.', 1)[0]
         regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(picklefile)
         mstr        = picklefile[regexdate.start():regexdate.end()][:-2]
         if mstr not in months_str: months_str.append(mstr)
 
         if msgtype == 'msg11' or msgtype == 'msg27' or msgtype == 'msg19' or msgtype == 'msg4': 
-            os.remove(os.path.join(tmpdir, picklefile))
+            os.remove(os.path.join(tmp_dir, picklefile))
             continue
 
         dt = datetime.now()
 
-        with open(os.path.join(tmpdir, picklefile), 'rb') as f:
+        with open(os.path.join(tmp_dir, picklefile), 'rb') as f:
             while True:
                 try:
                     rows = pickle.load(f)
@@ -400,7 +402,7 @@ def decode_msgs(filepaths, dbpath, processes=12):
 
         delta =datetime.now() - dt
         print(f'insert time {picklefile}:\t{delta.total_seconds():.2f}s')
-        os.remove(os.path.join(tmpdir, picklefile))
+        os.remove(os.path.join(tmp_dir, picklefile))
 
     conn.close()
     # aggregate and index static reports: msg5, msg24
