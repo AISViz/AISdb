@@ -63,33 +63,48 @@ By changing the callback function and qry_bounds parameters, different subsets o
 
 The resulting SQL code for this example is as follows:
 ```
-WITH dynamic_202101 AS ( 
+WITH dynamic_202101 AS (
     SELECT CAST(m123.mmsi0 AS INT) as mmsi, m123.t0, m123.x0, m123.y0, m123.cog, m123.sog, m123.msgtype
       FROM rtree_202101_msg_1_2_3 AS m123
-      WHERE m123.mmsi0 = 316002588
+      WHERE
+        m123.t0 >= 11059200 AND
+        m123.t1 <= 11060640 AND
+        m123.x0 >= -69.50402957994562 AND
+        m123.x1 <= -55.172026729758834 AND
+        m123.y0 >= 43.35715610154772 AND
+        m123.y1 <= 52.01203702301506  AND
+        m123.mmsi0 >= 201000000 AND
+        m123.mmsi1 < 776000000
     UNION
     SELECT CAST(m18.mmsi0 AS INT) as mmsi, m18.t0, m18.x0, m18.y0, m18.cog, m18.sog, m18.msgtype
       FROM rtree_202101_msg_18 AS m18
-      WHERE m18.mmsi0 = 316002588  
+      WHERE
+        m18.t0 >= 11059200 AND
+        m18.t1 <= 11060640 AND
+        m18.x0 >= -69.50402957994562 AND
+        m18.x1 <= -55.172026729758834 AND
+        m18.y0 >= 43.35715610154772 AND
+        m18.y1 <= 52.01203702301506  AND
+        m18.mmsi0 >= 201000000 AND
+        m18.mmsi1 < 776000000
 ),
-static_202101 AS ( 
-    SELECT mmsi, vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star, imo FROM static_202101_aggregate  
+static_202101 AS (
+    SELECT mmsi, vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star, imo FROM static_202101_aggregate
 )
-SELECT dynamic_202101.mmsi, dynamic_202101.t0, 
-        dynamic_202101.x0, dynamic_202101.y0, 
-        dynamic_202101.cog, dynamic_202101.sog, 
-        dynamic_202101.msgtype, 
+SELECT dynamic_202101.mmsi, dynamic_202101.t0,
+        dynamic_202101.x0, dynamic_202101.y0,
+        dynamic_202101.cog, dynamic_202101.sog,
+        dynamic_202101.msgtype,
         static_202101.imo, static_202101.vessel_name,
-        static_202101.dim_bow, static_202101.dim_stern, 
+        static_202101.dim_bow, static_202101.dim_stern,
         static_202101.dim_port, static_202101.dim_star,
-        static_202101.ship_type, ref.coarse_type_txt 
-    FROM dynamic_202101 
+        static_202101.ship_type, ref.coarse_type_txt
+    FROM dynamic_202101
 LEFT JOIN static_202101
     ON dynamic_202101.mmsi = static_202101.mmsi
-LEFT JOIN coarsetype_ref AS ref 
-    ON (static_202101.ship_type = ref.coarse_type) 
+LEFT JOIN coarsetype_ref AS ref
+    ON (static_202101.ship_type = ref.coarse_type)
 ORDER BY 1, 2
-
 ```
 
 And the results of the query, containing columns:
