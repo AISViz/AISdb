@@ -57,9 +57,9 @@ rows = qry_bounds.run_qry(
   )
 
 ```
-In this example, an SQL query will be created so search the database for all records of the vessel with MMSI identifier 316002588 between the date range of Jan 1, 2021 to Jan 2, 2021. 
+In this example, SQL code will be generated to search for all vessels in the approximate area of the Gulf of St Lawrence between 2021-01-10 and 2021-01-11.
 The qryfcn 'leftjoin_dynamic_static' is the default query format to scan the database tables, which will merge both the static vessel message reports data as well as dynamic position reports.
-By changing the callback function and qry_bounds parameters, different subsets of the data can be queried, for example, all vessels in the given bounding box within the specified date range.  
+By changing the callback function and qry_bounds parameters, different subsets of the data can be queried, for example, matching only vessels with a given MMSI identifier.  
 
 The resulting SQL code for this example is as follows:
 ```
