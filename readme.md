@@ -39,25 +39,21 @@ Some preset filter functions are included in ais/database/lambdas.py, however cu
 
 ```
 from datetime import datetime 
-from ais import dbpath, qrygen, leftjoin_dynamic_static, rtree_in_timerange_hasmmsi
-
-#qry_bounds = qrygen(
-#    start     = datetime(2021,1,1),
-#    end       = datetime(2021,1,2),
-#    mmsi      = 316023823,
-#  )
+from ais import dbpath, qrygen, leftjoin_dynamic_static, rtree_in_time_bbox_validmmsi 
 
 qry_bounds = qrygen(
-    start     = datetime(2019,10,1),
-    end       = datetime(2019,10,31),
-    mmsi      = 316023823.0,
+    start     = datetime(2021,1,10),
+    end       = datetime(2021,1,11),
+    ymin      = 43.35715610154772, 
+    xmin      = -69.50402957994562,
+    ymax      = 52.01203702301506, 
+    xmax      = -55.172026729758834,
   )
 
 rows = qry_bounds.run_qry(
     dbpath    = dbpath, 
     qryfcn    = leftjoin_dynamic_static,
-    callback  = rtree_in_timerange_hasmmsi, 
-    #callback  = has_mmsi, 
+    callback  = rtree_in_time_bbox_validmmsi, 
   )
 
 ```
@@ -96,7 +92,45 @@ ORDER BY 1, 2
 
 ```
 
-The results of this automatically generated query will then be stored in the `rows` variable.
+And the results of the query, containing columns:
+mmsi, epoch_minutes, longitude, latitude, cog, sog, msgtype, IMO, vessel_name, bow_length, stern_length, portside_length, starboardside_length, ship_type, ship_type_text
+
+```
+>>> len(rows)
+313750
+
+>>> rows[0:10]
+array([[209008000, 10400023.0, -58.12221908569336, 46.33310317993164,
+        311.70000000000005, 12.0, 1, 9415222, 'LABRADOR', 156, 30, 13,
+        10, 70, 'Cargo ships'],
+       [209008000, 10400026.0, -58.13196563720703, 46.3388557434082,
+        310.40000000000003, 12.1, 1, 9415222, 'LABRADOR', 156, 30, 13,
+        10, 70, 'Cargo ships'],
+       [209008000, 10400027.0, -58.13508605957031, 46.340736389160156,
+        311.20000000000005, 12.1, 1, 9415222, 'LABRADOR', 156, 30, 13,
+        10, 70, 'Cargo ships'],
+       [209008000, 10400028.0, -58.13929748535156, 46.34328079223633,
+        310.6, 12.0, 1, 9415222, 'LABRADOR', 156, 30, 13, 10, 70,
+        'Cargo ships'],
+       [209008000, 10400029.0, -58.143836975097656, 46.345787048339844,
+        307.3, 12.0, 1, 9415222, 'LABRADOR', 156, 30, 13, 10, 70,
+        'Cargo ships'],
+       [209008000, 10400030.0, -58.147064208984375, 46.34745407104492,
+        307.20000000000005, 12.0, 1, 9415222, 'LABRADOR', 156, 30, 13,
+        10, 70, 'Cargo ships'],
+       [209008000, 10400031.0, -58.150150299072266, 46.349159240722656,
+        308.70000000000005, 12.0, 1, 9415222, 'LABRADOR', 156, 30, 13,
+        10, 70, 'Cargo ships'],
+       [209008000, 10400032.0, -58.15460968017578, 46.35163116455078,
+        308.20000000000005, 12.0, 1, 9415222, 'LABRADOR', 156, 30, 13,
+        10, 70, 'Cargo ships'],
+       [209008000, 10400033.0, -58.158470153808594, 46.3536376953125,
+        306.7, 12.0, 1, 9415222, 'LABRADOR', 156, 30, 13, 10, 70,
+        'Cargo ships'],
+       [209008000, 10400034.0, -58.162811279296875, 46.355953216552734,
+        308.0, 12.0, 1, 9415222, 'LABRADOR', 156, 30, 13, 10, 70,
+        'Cargo ships']], dtype=object)
+```
 
 
 ##### Compute vessel trajectories

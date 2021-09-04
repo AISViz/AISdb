@@ -83,8 +83,8 @@ rtree_in_bbox = lambda alias, **kwargs:(f'''
 rtree_in_time_bbox = lambda **kwargs: f''' {rtree_in_timerange(**kwargs)} AND {rtree_in_bbox(**kwargs)} '''
 rtree_in_bbox_time = lambda **kwargs: f''' {rtree_in_bbox(**kwargs)} AND {rtree_in_timerange(**kwargs)} '''
 
-rtree_in_time_bbox_mmsi = lambda **kwargs: f''' {rtree_in_timerange(**kwargs)} AND {rtree_in_bbox(**kwargs)} AND {rtree_valid_mmsi(**kwargs)} '''
-rtree_in_bbox_time_mmsi = lambda **kwargs: f''' {rtree_in_bbox(**kwargs)} AND {rtree_in_timerange(**kwargs)} AND {rtree_valid_mmsi(**kwargs)} '''
+rtree_in_time_bbox_validmmsi = lambda **kwargs: f''' {rtree_in_timerange(**kwargs)} AND {rtree_in_bbox(**kwargs)} AND {rtree_valid_mmsi(**kwargs)} '''
+rtree_in_bbox_time_validmmsi = lambda **kwargs: f''' {rtree_in_bbox(**kwargs)} AND {rtree_in_timerange(**kwargs)} AND {rtree_valid_mmsi(**kwargs)} '''
 
 rtree_in_timerange_hasmmsi = lambda **kwargs: f'{rtree_in_timerange(**kwargs)} AND {rtree_has_mmsi(**kwargs)}'
 rtree_in_timerange_inmmsi = lambda **kwargs: f'{rtree_in_timerange(**kwargs)} AND {rtree_in_mmsi(**kwargs)}'
