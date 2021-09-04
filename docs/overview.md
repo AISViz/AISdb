@@ -26,7 +26,7 @@ ais/
     __init__.py             import statements  
     create_tables.py        SQL database schematics and triggers. used in decoder.py
     dbconn.py               exposes the SQLite DB connection. some postgres code is also included for legacy 
-    decoder.py              parsing .NMEA messages to create an SQL database. See function parallel_decode()
+    decoder.py              parsing .NMEA messages to create an SQL database. See function decode_msgs()
     install_dep.py          will probably be removed in the future. contains code for compiling python from source
     lambdas.py              contains useful one-liners and lambda functions. notably includes DB query callback functions
     qryfcn.py               SQL boilerplate for dynamically creating database queries. used when calling qrygen.py

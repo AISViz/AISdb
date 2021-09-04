@@ -18,13 +18,11 @@ To enable experimental visualization features, QGIS must also be installed and i
 
 
 ```
-from ais import *
+from ais import dbpath, decode_msgs
 
-filepaths = os.listdir('/home/matt/ais_raw_NMEA/')    # filepaths to .nm4 message reports (list of strings)
-dbpath = ais.dbpath                                   # location of where the database file will be stored
-processes = 12                                        # number of processes to run in parallel. set to False to disable paralellizing
+filepaths = ['/home/matt/ais_202101.nm4', '/home/matt/ais_202102.nm4', '.../etc']   # filepaths to raw AIS message data
 
-parallel_decode(filepaths, dbpath, processes)
+decode_msgs(filepaths, dbpath)
 ```
 
 Some points to note when decoding: 
@@ -41,17 +39,25 @@ Some preset filter functions are included in ais/database/lambdas.py, however cu
 
 ```
 from datetime import datetime 
+from ais import dbpath, qrygen, leftjoin_dynamic_static, rtree_in_timerange_hasmmsi
+
+#qry_bounds = qrygen(
+#    start     = datetime(2021,1,1),
+#    end       = datetime(2021,1,2),
+#    mmsi      = 316023823,
+#  )
 
 qry_bounds = qrygen(
-    start     = datetime(2021,1,1),
-    end       = datetime(2021,1,2),
-    mmsi      = 316002588,
+    start     = datetime(2019,10,1),
+    end       = datetime(2019,10,31),
+    mmsi      = 316023823.0,
   )
 
 rows = qry_bounds.run_qry(
     dbpath    = dbpath, 
     qryfcn    = leftjoin_dynamic_static,
-    callback  = has_mmsi, 
+    callback  = rtree_in_timerange_hasmmsi, 
+    #callback  = has_mmsi, 
   )
 
 ```
@@ -61,18 +67,18 @@ By changing the callback function and qry_bounds parameters, different subsets o
 
 The resulting SQL code for this example is as follows:
 ```
-WITH dynamic_202101 AS (                                   
+WITH dynamic_202101 AS ( 
     SELECT CAST(m123.mmsi0 AS INT) as mmsi, m123.t0, m123.x0, m123.y0, m123.cog, m123.sog, m123.msgtype
       FROM rtree_202101_msg_1_2_3 AS m123
-      WHERE m123.mmsi = 316002588
-    UNION                                                  
+      WHERE m123.mmsi0 = 316002588
+    UNION
     SELECT CAST(m18.mmsi0 AS INT) as mmsi, m18.t0, m18.x0, m18.y0, m18.cog, m18.sog, m18.msgtype
       FROM rtree_202101_msg_18 AS m18
-      WHERE m18.mmsi = 316002588  
-),                                                         
-static_202101 AS (                                         
+      WHERE m18.mmsi0 = 316002588  
+),
+static_202101 AS ( 
     SELECT mmsi, vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star, imo FROM static_202101_aggregate  
-)                                                          
+)
 SELECT dynamic_202101.mmsi, dynamic_202101.t0, 
         dynamic_202101.x0, dynamic_202101.y0, 
         dynamic_202101.cog, dynamic_202101.sog, 
@@ -81,12 +87,13 @@ SELECT dynamic_202101.mmsi, dynamic_202101.t0,
         static_202101.dim_bow, static_202101.dim_stern, 
         static_202101.dim_port, static_202101.dim_star,
         static_202101.ship_type, ref.coarse_type_txt 
-    FROM dynamic_202101                                    
-LEFT JOIN static_202101                                    
+    FROM dynamic_202101 
+LEFT JOIN static_202101
     ON dynamic_202101.mmsi = static_202101.mmsi
 LEFT JOIN coarsetype_ref AS ref 
     ON (static_202101.ship_type = ref.coarse_type) 
-ORDER BY 1, 2                                              
+ORDER BY 1, 2
+
 ```
 
 The results of this automatically generated query will then be stored in the `rows` variable.
@@ -109,5 +116,6 @@ If no config file is found, the following defaults will be used:
 dbpath = "$HOME/ais.db"
 data_dir = "$HOME/ais/"             
 zones_dir = "$HOME/ais/zones/"
+tmp_dir = "$HOME/ais/tmp_parsing/"
 ```
 

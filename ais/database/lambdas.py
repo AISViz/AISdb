@@ -34,21 +34,25 @@ boxpoly = lambda x,y: ([min(x), min(x), max(x), max(x), min(x)], [min(y), max(y)
 
 merge = lambda *arr: np.concatenate(np.array(*arr).T)
 
-valid_mmsi = lambda alias='m123',**_: f'{alias}.mmsi0 >= 201000000 AND {alias}.mmsi < 776000000'
-has_mmsi = lambda alias, mmsi, **_: f'{alias}.mmsi0 = {str(mmsi)}'
-in_mmsi = lambda alias, mmsis, **_: f'{alias}.mmsi0 IN ({", ".join(map(str, mmsis))})'
 
-in_poly_validmmsi = lambda **kwargs: f'{valid_mmsi(**kwargs)} AND {in_poly(**kwargs)}' 
+
+# query intermediary tables
+valid_mmsi = lambda alias='m123',**_: f'{alias}.mmsi >= 201000000 AND {alias}.mmsi < 776000000'
+has_mmsi = lambda alias, mmsi, **_: f'{alias}.mmsi = {str(mmsi)}'
+in_mmsi = lambda alias, mmsis, **_: f'{alias}.mmsi IN ({", ".join(map(str, mmsis))})'
 
 in_timerange = lambda **kwargs: f'''{kwargs['alias']}.time BETWEEN date('{kwargs['start'].strftime('%Y-%m-%d')}') AND date('{kwargs['end'].strftime('%Y-%m-%d')}')'''
 
-in_time_mmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'
-
-#in_poly_time_mmsi = lambda **kwargs: f'{in_poly(**kwargs)} AND {in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'
-in_time_poly_mmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_poly(**kwargs)} AND {valid_mmsi(**kwargs)}'
-
 in_time_poly = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_poly(**kwargs)}'
+in_poly_validmmsi = lambda **kwargs: f'{valid_mmsi(**kwargs)} AND {in_poly(**kwargs)}' 
+in_time_poly_validmmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_poly(**kwargs)} AND {valid_mmsi(**kwargs)}'
 
+
+# query rtree table index; same as above, however
+#   mmsi column replaced with mmsi0, mmsi1 columns
+#   time column replaced with t0, t1 columns (as epoch time)
+#   longitude column replaced with x0, x1 columns
+#   latitude column replaced with y0,y1 columns
 
 from database.decoder import dt_2_epoch
 
@@ -58,7 +62,7 @@ rtree_in_timerange = lambda **kwargs: f'''
         {kwargs['alias']}.t1 <= {dt_2_epoch(kwargs['end'])}'''
 
 rtree_has_mmsi      = lambda alias, mmsi, **_: f'''
-        {alias}.mmsi0 = {str(mmsi)} '''
+        {alias}.mmsi0 = {float(mmsi)} '''
 
 rtree_in_mmsi       = lambda alias, mmsis, **_: f'''
         {alias}.mmsi0 IN ({", ".join(map(str, mmsis))}) '''
@@ -82,3 +86,5 @@ rtree_in_bbox_time = lambda **kwargs: f''' {rtree_in_bbox(**kwargs)} AND {rtree_
 rtree_in_time_bbox_mmsi = lambda **kwargs: f''' {rtree_in_timerange(**kwargs)} AND {rtree_in_bbox(**kwargs)} AND {rtree_valid_mmsi(**kwargs)} '''
 rtree_in_bbox_time_mmsi = lambda **kwargs: f''' {rtree_in_bbox(**kwargs)} AND {rtree_in_timerange(**kwargs)} AND {rtree_valid_mmsi(**kwargs)} '''
 
+rtree_in_timerange_hasmmsi = lambda **kwargs: f'{rtree_has_mmsi(**kwargs)} AND {rtree_in_timerange(**kwargs)}'
+rtree_in_timerange_validmmsi = lambda **kwargs: f'{rtree_in_timerange(**kwargs)} AND {rtree_valid_mmsi(**kwargs)}'
