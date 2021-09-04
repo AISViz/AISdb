@@ -25,7 +25,9 @@ else:
     default = f'''\n
 dbpath = os.path.join(os.path.expanduser('~'), f'{pkgname}.db')
 data_dir = os.path.join(os.path.expanduser('~'), f'{pkgname}') + os.path.sep
-zones_dir = os.path.join(data_dir, 'zones') + os.path.sep '''
+tmp_dir = os.path.join(data_dir, 'tmp_parsing') + os.path.sep 
+zones_dir = os.path.join(data_dir, 'zones') + os.path.sep 
+'''
 
     printdefault = lambda s: '\n'.join(map(
         lambda l: l.split('=')[0] + '= "' + eval(l.split('=')[1]) + '"', 
