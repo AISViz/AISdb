@@ -32,8 +32,8 @@ rowgen = qrygen(
         ymax    = domain.maxY,
     ).gen_qry(dbpath, callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
 
-#tracks = (next(trackgen(r)) for r in rowgen)
 merged = merge_layers(rowgen, dbpath)
 
+# TODO: describe how to write custom filters
 network_graph.graph(merged, domain, dbpath, parallel=12, apply_filter=False)
     
