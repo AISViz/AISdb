@@ -3,7 +3,8 @@ import numpy as np
 from gebco import Gebco
 from wsa import wsa
 from shore_dist import shore_dist_gfw
-from webdata.marinetraffic import scrape_tonnage
+from webdata import marinetraffic 
+#from webdata.marinetraffic import scrape_tonnage
 
 
 def merge_layers(rowgen, dbpath):
@@ -28,7 +29,7 @@ def merge_layers(rowgen, dbpath):
 
     # read data layers from disk to merge with AIS
     print('aggregating ais, shore distance, bathymetry, vessel geometry...')
-    with shore_dist_gfw(dbpath=dbpath) as sdist, Gebco(dbpath=dbpath) as bathymetry, scrape_tonnage(dbpath=dbpath) as hullgeom:
+    with shore_dist_gfw(dbpath=dbpath) as sdist, Gebco(dbpath=dbpath) as bathymetry, marinetraffic.scrape_tonnage(dbpath=dbpath) as hullgeom:
 
         for rows in rowgen:
             xy = rows[:,2:4]

@@ -82,15 +82,6 @@ rtree_dynamic = lambda month, callback, kwargs: (f'''
       FROM rtree_{month}_msg_18 AS m18
       WHERE {callback(month=month, alias='m18', **kwargs)} ''')
 
-rtree_dynamic_agg_time = lambda month, callback, kwargs: (f'''
-    SELECT CAST(m123.mmsi0 AS INT) as mmsi, CAST(DISTINCT(m123.t0) AS INT) as t0, m123.x0, m123.y0, m123.cog, m123.sog, m123.msgtype
-      FROM rtree_{month}_msg_1_2_3 AS m123
-      WHERE {callback(month=month, alias='m123', **kwargs)}
-    UNION
-    SELECT CAST(m18.mmsi0 AS INT) as mmsi, m18.t0, m18.x0, m18.y0, m18.cog, m18.sog, 18 as msgtype
-      FROM rtree_{month}_msg_18 AS m18
-      WHERE {callback(month=month, alias='m18', **kwargs)} ''')
-
 
 # see build_views function in qrygen.py 
 static = lambda month, **_: (f'''

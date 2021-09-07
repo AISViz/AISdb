@@ -19,9 +19,6 @@ from database import dbconn
 from index import index
 
 
-#dt_dict = lambda t: dict(year=t.year, month=t.month, day=t.day, hour=t.hour, minute=t.minute, second=t.second)
-
-
 def is_valid_date(year, month, day, hour=0, minute=0, second=0, **_):
     ''' check if a given date is a real date '''
     day_count_for_month = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
@@ -50,28 +47,12 @@ def epoch_2_dt(ep_arr, t0=datetime(2000,1,1,0,0,0), unit='minutes'):
     elif isinstance(ep_arr, (float, int)): return delta(ep_arr, unit=unit)
     else: raise ValueError('input must be integer or array of integers')
 
-    
 
 def insert_msg123(cur, mstr, rows):
     cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_1_2_3" ')
     if not cur.fetchall(): 
         sqlite_create_table_msg123(cur, mstr)
     
-    #rows, stamps = msg123.T
-    #epochs = dt_2_epoch(stamps).astype(float)
-    """
-    tup123 = ((
-        float(r['mmsi']), float(r['mmsi']), e, e, r['lon'], r['lon'], r['lat'], r['lat'], 
-        r['status'].value, r['turn'], r['speed'], r['course'], r['heading'], 
-        r['maneuver'], r['second']
-        )   for r,e in zip(rows, epochs)
-    )
-    cur.executemany(f'INSERT OR IGNORE INTO rtree_{mstr}_msg_1_2_3 '
-                    '(mmsi0, mmsi1, t0, t1, x0, x1, y0, y1, '
-                    'navigational_status, rot, sog, cog, '
-                    'heading, maneuver, utc_second) '
-                    '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', tup123)
-    """
     tup123 = ((
         float(r['mmsi']), r['epoch'], r['type'], r['lon'], r['lat'], 
         int(r['status']), r['turn'], r['speed'], r['course'], r['heading'], 
@@ -102,8 +83,6 @@ def insert_msg5(cur, mstr, rows):
     if not cur.fetchall(): 
         create_table_msg5(cur, mstr)
 
-    #rows, stamps = msg5.T
-    #epochs = dt_2_epoch(stamps).astype(float)
     tup5 = ((
                 r['type'], r['repeat'], int(r['mmsi']), r['ais_version'], r['imo'], r['callsign'], 
                 r['shipname'].rstrip(), r['shiptype'], r['to_bow'], r['to_stern'], r['to_port'], 
@@ -125,25 +104,9 @@ def insert_msg18(cur, mstr, rows):
     if not cur.fetchall(): 
         sqlite_create_table_msg18(cur, mstr)
 
-    #rows, stamps = msg18.T
-    #epochs = dt_2_epoch(stamps).astype(float)
-    """
-    tup18 = ((
-        int(r['mmsi']), int(r['mmsi']), e, e, r['lon'], r['lon'], r['lat'], r['lat'], 
-        r['radio'], #if 'nav_status' in r.keys() else None,
-        r['speed'], r['course'], r['heading'], r['second'],
-        )   for r,e in zip(rows, epochs)
-    )
-    cur.executemany(f'INSERT OR IGNORE INTO rtree_{mstr}_msg_18'
-                    '(mmsi0, mmsi1, t0, t1, x0, x1, y0, y1, '
-                    'navigational_status, sog, cog, '
-                    'heading, utc_second) '
-                    '''VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)''', tup18)
-    """
     tup18 = ((
         int(r['mmsi']), r['epoch'], r['type'], r['lon'], r['lat'], 
         r['radio'] if 'radio' in r.keys() else None,
-        #if 'nav_status' in r.keys() else None,
         r['speed'], r['course'], r['heading'], r['second'],
         ) for r in rows
     )
@@ -170,8 +133,6 @@ def insert_msg24(cur, mstr, rows):
     if not cur.fetchall(): 
         create_table_msg24(cur, mstr)
 
-    #rows, stamps = msg24.T
-    #epochs = dt_2_epoch(stamps).astype(float)
     tup24 = ((
             r['type'], r['repeat'], int(r['mmsi']), r['partno'], 
             r['shipname']           if r['partno'] == 0 else None,
@@ -195,23 +156,6 @@ def insert_msg24(cur, mstr, rows):
     return
 
 
-'''
-def batch_insert(dbpath, batch, mstr):
-
-    aisdb = dbconn(dbpath=dbpath, timeout=30)
-    conn, cur = aisdb.conn, aisdb.cur
-    if [] != batch['msg1']  : insert_msg123(cur, mstr, np.array(batch['msg1']))
-    if [] != batch['msg2']  : insert_msg123(cur, mstr, np.array(batch['msg2']))
-    if [] != batch['msg3']  : insert_msg123(cur, mstr, np.array(batch['msg3']))
-    if [] != batch['msg5']  : insert_msg5(  cur, mstr, np.array(batch['msg5']))
-    if [] != batch['msg18'] : insert_msg18( cur, mstr, np.array(batch['msg18']))
-    if [] != batch['msg19'] : insert_msg18( cur, mstr, np.array(batch['msg19']))
-    if [] != batch['msg24'] : insert_msg24( cur, mstr, np.array(batch['msg24']))
-    conn.commit()
-    conn.close()
-'''
-
-
 def append_file(picklefile, batch):
     ''' appends batch data to a given picklefile. used by decode_raw_pyais '''
     for key in batch.keys():
@@ -223,7 +167,6 @@ def append_file(picklefile, batch):
         keepidx = np.nonzero([x['mmsi']!=y['mmsi'] or x['epoch']!=y['epoch'] for x,y in zip(rows[1:], rows[:-1])])[0]-1
         # write to disk
         with open(f'{picklefile}_{key}', 'ab') as f:
-            #f.write(json.dumps(str(list(rows[keepidx])).replace("'", '').replace('"', '').replace('[', '').replace(']', '')))
             pickle.dump(rows[keepidx], f)
 
 
@@ -232,9 +175,6 @@ def decode_raw_pyais(fpath):
     ''' parallel process worker function. see decode_msgs() for usage '''
 
     # if the file was already parsed, skip it
-    #path, dbfile = dbpath.rsplit(os.path.sep, 1)
-    #tmpdir      = os.path.join(path, 'tmp_parsing')
-    #if not os.path.isdir(tmpdir): os.mkdir(tmpdir)
 
     #with index(storagedir=path, filename=dbfile, bins=False, store=False) as parsed:
     #    if parsed.serialized(kwargs=dict(fpath=fpath)):
@@ -256,8 +196,6 @@ def decode_raw_pyais(fpath):
     t0          = datetime.now()
     batch       = {f'msg{i}' : [] for i in (1, 2, 3, 4, 5, 11, 18, 19, 24, 27)}
     #print(f'{fpath.split(os.path.sep)[-1]}\tprocessing message {n}', end='')
-
-
 
     with open(fpath, 'r') as f:
         for rawmsg in f:
@@ -347,13 +285,10 @@ def decode_msgs(filepaths, dbpath, processes=12):
     '''
 
     # create temporary directory for parsed data
-    #path, dbfile = dbpath.rsplit(os.path.sep, 1)
-    #tmpdir = os.path.join(path, 'tmp_parsing')
     if not os.path.isdir(tmp_dir): 
         os.mkdir(tmp_dir)
 
     # decode and serialize
-    #proc = partial(decode_raw_pyais, tmpdir=tmpdir)
     proc = partial(decode_raw_pyais)
     
     # parallelize decoding step
