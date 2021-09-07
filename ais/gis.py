@@ -55,7 +55,6 @@ def strdms2dd(strdms):
         )
 
 
-
 class ZoneGeom():
 
     def __init__(self, name, x, y):

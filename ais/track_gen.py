@@ -83,6 +83,7 @@ def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
         f.write('\n'.join(map(lambda r: ','.join(map(lambda r: r.replace(',','').replace('#',''), map(str.rstrip, map(str, r)))), rows))+'\n')
 
 
+'''
 def readcsv(pathname='/data/smith6/ais/scripts/output.csv', header=True):
     with open(pathname, 'r') as csvfile: 
         reader = csv.reader(csvfile, delimiter=',')
@@ -91,4 +92,5 @@ def readcsv(pathname='/data/smith6/ais/scripts/output.csv', header=True):
     return np.array([c.astype(t) for c,t in zip(rows.T, 
         [np.uint32, str, str, str, np.float32, np.float32, np.float32, np.float32, np.float32, str, str, str, str, str]
         )], dtype=object).T
+'''
 
