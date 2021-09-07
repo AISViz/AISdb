@@ -8,17 +8,10 @@ from datetime import datetime, timedelta
 import numpy as np
 from shapely.geometry import Point, LineString, Polygon
 
-
 from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain
 from database import dt2monthstr, dbconn, epoch_2_dt
 from track_gen import trackgen, segment, filtermask, writecsv
-from shore_dist import shore_dist_gfw
-from webdata import marinetraffic 
-from webdata.marinetraffic import scrape_tonnage
-from gebco import Gebco
-from wsa import wsa
-#from proc_util import tmpdir
-
+from merge_data import merge_layers
 
 
 # returns absolute value of bathymetric depths with topographic heights converted to 0
@@ -80,61 +73,6 @@ zone_stats = lambda track, zoneset: dict(
 
 
 
-def merge_layers(rowgen, dbpath):
-    ''' generator function to merge AIS row data with shore distance, bathymetry, and geometry databases
-
-        args:
-            rowgen: generator function 
-                yields sets of rows grouped by MMSI sorted by time
-            dbpath: string
-                path to .db file
-
-        yields:
-            sets of rows grouped by MMSI sorted by time with additional columns appended
-
-    """ # set start method in main script
-        import os; from multiprocessing import set_start_method
-        if os.name == 'posix' and __name__ == '__main__': 
-            set_start_method('forkserver')
-    """
-
-    '''
-
-    # read data layers from disk to merge with AIS
-    print('aggregating ais, shore distance, bathymetry, vessel geometry...')
-    with shore_dist_gfw(dbpath=dbpath) as sdist, Gebco(dbpath=dbpath) as bathymetry, marinetraffic.scrape_tonnage(dbpath=dbpath) as hullgeom:
-
-        for rows in rowgen:
-            xy = rows[:,2:4]
-            mmsi_column, imo_column, ship_type_column = 0, 7, 13
-
-            # vessel geometry
-            uniqueID = {}
-            for r in rows:
-                uniqueID.update({f'{r[mmsi_column]}_{r[imo_column]}' : {'m' : r[mmsi_column], 'i' : r[imo_column]}})
-
-            #print('loading marinetraffic vessel data...')
-            for uid in uniqueID.values():
-                ummsi, uimo = uid.values()
-                if uimo != None:
-                    uid['dwt'] = hullgeom.get_tonnage_mmsi_imo(ummsi, uimo)
-                else:
-                    uid['dwt'] = 0
-
-            deadweight_tonnage = np.array([uniqueID[f'{r[mmsi_column]}_{r[imo_column]}']['dwt'] for r in rows ])
-
-            # wetted surface area - regression on tonnage and ship type
-            ship_type = np.logical_or(rows[:,ship_type_column], [0 for _ in range(len(rows))])
-            submerged_hull = np.array([wsa(d, r) for d,r in zip(deadweight_tonnage,ship_type) ])
-
-            # shore distance from cell grid
-            km_from_shore = np.array([sdist.getdist(x, y) for x, y in xy ])
-
-            # seafloor depth from cell grid
-            depth = np.array([bathymetry.getdepth(x, y) for x,y in xy ]) * -1
-
-            yield np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
-
 
 def geofence(track_merged, domain, dbpath, colnames, 
         maxdelta=timedelta(hours=1)
@@ -144,9 +82,7 @@ def geofence(track_merged, domain, dbpath, colnames,
         #    ]
         apply_filter=False
         ):
-    ''' generator function to yield intersections between nodes and a vectorized track segments '''
-
-    
+    ''' generator function yielding transits between nodes and a vectorized track segments '''
 
     '''
     bounds_lon, bounds_lat = domain['hull_xy'][::2], domain['hull_xy'][1::2]
