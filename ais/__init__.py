@@ -67,7 +67,18 @@ from .database.qrygen import qrygen
 
 from .gebco import Gebco
 
-from .gis import *
+from .gis import (
+        haversine,
+        delta_meters,
+        delta_seconds,
+        delta_knots,
+        delta_reported_knots,
+        dms2dd,
+        strdms2dd,
+        Domain,
+        ZoneGeom,
+        ZoneGeomFromTxt,
+    )
 
 from .index import index
 
@@ -85,7 +96,12 @@ from .proc_util import (
 
 from .shore_dist import shore_dist_gfw
 
-from .track_gen import *
+from .track_gen import (
+        trackgen,
+        segment,
+        filtermask,
+        writecsv,
+    )
 
 from .wsa import wsa
 
