@@ -4,6 +4,7 @@ import numpy as np
 import shapely.wkt
 import pickle
 
+from common import *
 from database import *
 from shapely.geometry import Polygon, LineString, MultiPoint
 from gis import *
@@ -18,44 +19,10 @@ from network_graph import *
 shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
 zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
 domain = Domain('east', zonegeoms)
-#hull = unary_union(zones['geoms'].values()).convex_hull
-#hull_xy = merge(zones['hull'].boundary.coords.xy)
-
-start = datetime(2019, 10, 1)
-end = datetime(2019, 11, 1)
 
 
-def test_output_allsource():
-
-    start   = datetime(2020,9,1)
-    end     = datetime(2020,10,1)
-
-    start   = datetime(2018,6,1)
-    end     = datetime(2018,7,1)
-
-    # query zones
-    #aisdb = dbconn(dbpath)
-    #conn, cur = aisdb.conn, aisdb.cur
-    #cur.execute('SELECT objname, binary FROM rtree_polygons WHERE domain = "east"')
-    #zones = dict(domain='east', geoms={p[0]: pickle.loads(p[1]) for p in cur.fetchall()})
-
-    rowgen = qrygen(
-            #xy = merge(canvaspoly.boundary.coords.xy),
-            start   = start,
-            end     = end,
-            xmin    = domain.minX, 
-            xmax    = domain.maxX, 
-            ymin    = domain.minY, 
-            ymax    = domain.maxY,
-        ).gen_qry(dbpath, callback=rtree_in_bbox, qryfcn=leftjoin_dynamic_static)
-
-    tracks = (next(trackgen(r)) for r in rowgen)
-
-    merged = merge_layers(rowgen, dbpath)
-
-    #graph(merged, zones, dbpath, parallel=True)
-
-    return
+start = datetime(2021, 1, 1)
+end = datetime(2021, 1, 4)
 
 
 def test_network_graph():
@@ -72,12 +39,12 @@ def test_network_graph():
             xmax    = domain.maxX, 
             ymin    = domain.minY, 
             ymax    = domain.maxY,
-        ).gen_qry(dbpath, callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
+        ).gen_qry(callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
 
     #tracks = (next(trackgen(r)) for r in rowgen)
-    merged = merge_layers(rowgen, dbpath)
+    merged = merge_layers(rowgen)
 
-    graph(merged, domain, dbpath, parallel=12, apply_filter=False)
+    graph(merged, domain, parallel=24, apply_filter=False)
     
 
     ''' step-through
