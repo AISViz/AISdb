@@ -1,4 +1,7 @@
 import os
+import configparser
+
+
 cfgfile = os.path.join(os.path.expanduser('~'), '.config', 'ais.cfg')
 data_dir = os.path.join(os.path.expanduser('~'), 'ais') + os.path.sep
 if os.path.isfile(cfgfile):

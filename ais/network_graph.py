@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import numpy as np
 from shapely.geometry import Point, LineString, Polygon
 
+from common import *
 from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain
 from database import dt2monthstr, dbconn, epoch_2_dt
 from track_gen import trackgen, segment, filtermask, writecsv
@@ -74,7 +75,7 @@ zone_stats = lambda track, zoneset: dict(
 
 
 
-def geofence(track_merged, domain, dbpath, colnames, 
+def geofence(track_merged, domain, colnames, 
         maxdelta=timedelta(hours=1)
         ,
         #filters=[
@@ -104,7 +105,6 @@ def geofence(track_merged, domain, dbpath, colnames,
     transit_edges = []
 
     for rng in segment(track_merged, maxdelta=maxdelta, minsize=1):
-        # apply filters
         if apply_filter:
             filters = [
                     lambda track, rng: delta_knots(track, rng) < 50,
@@ -160,13 +160,13 @@ def geofence(track_merged, domain, dbpath, colnames,
     #return transits, transit_nodes, transit_edges
 
 
-def agg_transit_windows(track_merged, domain, dbpath, colnames, **kwargs):
+def agg_transit_windows(track_merged, domain, colnames, **kwargs):
     ''' parallel process function '''
     #print(f'{track_merged["mmsi"]}\tcount={len(track_merged["time"])}')
 
     statrows = []
     # collect transits between zone boundaries
-    for transit_window, in_zones, zoneID in geofence(track_merged, domain, dbpath, colnames, **kwargs):
+    for transit_window, in_zones, zoneID in geofence(track_merged, domain, colnames, **kwargs):
         #setrng = np.array(range(len(track_merged['time'])))
         setrng = np.array(range(len(transit_window)))
         intersection = np.append(np.append([0], np.where(transit_window[:-1,-2] != transit_window[1:,-2])[0] +1), [len(transit_window)-1])
@@ -206,7 +206,7 @@ def agg_transit_windows(track_merged, domain, dbpath, colnames, **kwargs):
     return 
 
 
-def graph(merged, domain, dbpath, parallel=0, **kwargs):
+def graph(merged, domain, parallel=0, **kwargs):
     colnames = [
         'mmsi', 'time', 'lon', 'lat', 
         'cog', 'sog', 'msgtype',
@@ -220,10 +220,10 @@ def graph(merged, domain, dbpath, parallel=0, **kwargs):
 
     if not parallel: 
         for mmsiset in merged:
-            agg_transit_windows(next(trackgen(mmsiset, colnames=colnames)), domain, dbpath, colnames, **kwargs)
+            agg_transit_windows(next(trackgen(mmsiset, colnames=colnames)), domain, colnames, **kwargs)
     else:
         with Pool(processes=parallel) as p:
-            fcn = partial(agg_transit_windows, domain=domain, dbpath=dbpath, colnames=colnames, **kwargs)
+            fcn = partial(agg_transit_windows, domain=domain, colnames=colnames, **kwargs)
             # map track generator to anonymous fcn for each process in processing pool
             p.imap_unordered(fcn, (next(trackgen(m, colnames=colnames)) for m in merged), chunksize=1)
             #p.map(fcn, (next(trackgen(m, colnames=colnames)) for m in merged), chunksize=1)
@@ -242,8 +242,7 @@ def graph(merged, domain, dbpath, parallel=0, **kwargs):
         ','.join(['rcv_' + s for s in map(str, [val for val in d['src_stats'].keys() ])]),
         ]) + '\n')
 
-    dirpath, dbfile = dbpath.rsplit(os.path.sep, 1)
-    csvfile = dirpath + os.path.sep + 'output.csv'
+    csvfile = os.path.join(data_dir, 'output.csv')
 
     with open(os.path.join(tmp_dir, picklefiles[0]), 'rb') as f0, open(csvfile, 'w') as f1:
         f1.write(header(pickle.load(f0)))

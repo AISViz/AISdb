@@ -1,20 +1,13 @@
-#if 'driver' in vars(): 
-#    vars()['driver'].close()
-#if 'driver' in globals():
-#    globals()['driver'].close()
-
 import os
 
+from common import *
 from index import index
 from webdata.scraper import *
-
-### TODO: check if driver is already defined in main. if so, exit
 
 
 class scrape_tonnage():
 
-    def __init__(self, dbpath):
-        self.storagedir = os.path.abspath(dbpath).rsplit(os.path.sep, 1)[0]
+    def __init__(self):
         self.filename = 'marinetraffic.db'
         self.driver = None
 
@@ -69,7 +62,7 @@ class scrape_tonnage():
         if not 201000000 <= mmsi < 776000000: return 0
         if not 1000000 <= imo < 9999999: imo = 0
 
-        with index(bins=False, store=True, storagedir=self.storagedir, filename=self.filename) as web:
+        with index(bins=False, store=True, storagedir=data_dir, filename=self.filename) as web:
             tonnage = web(callback=self.tonnage_callback, mmsi=mmsi, imo=imo, seed='dwt marinetraffic.com')[0]
 
         if tonnage == '-': return 0

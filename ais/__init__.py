@@ -1,6 +1,5 @@
 import os
 import sys
-#import shlex
 import configparser
 
 
@@ -14,6 +13,8 @@ data_dir = os.path.join(os.path.expanduser('~'), f'{pkgname}') + os.path.sep
 tmp_dir = os.path.join(data_dir, 'tmp_parsing') + os.path.sep 
 zones_dir = os.path.join(data_dir, 'zones') + os.path.sep 
 rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
+
+printdefault = lambda names, vals, quote='': '\n'.join([f'{n} = {quote}{v}{quote}' for n, v in zip(names, vals)])
 
 if os.path.isfile(cfgfile):
     cfg = configparser.ConfigParser()
@@ -29,13 +30,22 @@ if os.path.isfile(cfgfile):
     rawdata_dir = settings['rawdata_dir']   if 'rawdata_dir' in settings.keys() else zones_dir
 
 else:
-
-    printdefault = lambda names, vals: '\n'.join([f'{n} = {v}' for n, v in zip(names, vals)])
-
     print(f'''no config file found, applying default configs:\n\n{
     printdefault(names=['dbpath', 'data_dir', 'tmp_dir', 'zones_dir',  'rawdata_dir'], 
                  vals=[dbpath, data_dir, tmp_dir, zones_dir,  rawdata_dir])
     }\n\nto remove this warning, copy and paste the above text to {cfgfile} ''')
+
+
+# common imports that should be shared with module subdirectories
+common = printdefault(names=['dbpath', 'data_dir', 'tmp_dir', 'zones_dir',  'rawdata_dir'], 
+                      vals=[dbpath, data_dir, tmp_dir, zones_dir,  rawdata_dir],
+                      quote="'",    
+                      )
+commonpaths = [os.path.join(os.path.dirname(__file__), dirname, 'common.py') for dirname in ['.', 'database', 'webdata']]
+
+for fpath in commonpaths:
+    with open(fpath, 'w') as f:
+        f.write(common)
 
 
 
@@ -104,4 +114,7 @@ from .track_gen import (
     )
 
 from .wsa import wsa
+
+for fpath in commonpaths:
+    os.remove(fpath)
 

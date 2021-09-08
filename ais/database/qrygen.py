@@ -8,6 +8,7 @@ import concurrent.futures
 import numpy as np
 from shapely.geometry import Polygon
 
+from common import *
 import database
 from database.lambdas import *
 from database.qryfcn import *
@@ -108,7 +109,7 @@ class qrygen(UserDict):
     #    return aisdb.cur.fetchall()
 
 
-    def run_qry(self, dbpath, callback, qryfcn):
+    def run_qry(self, callback, qryfcn):
         ''' generates an query using self.crawl(), runs it, then returns the resulting rows '''
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
@@ -133,7 +134,7 @@ class qrygen(UserDict):
                 aisdb.conn.close()
         '''
 
-    def gen_qry(self, dbpath, callback, qryfcn):
+    def gen_qry(self, callback, qryfcn):
         ''' similar to run_qry, but in a generator format for better memory performance. 
             
             yields:

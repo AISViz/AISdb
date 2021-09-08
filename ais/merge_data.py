@@ -1,5 +1,6 @@
 import numpy as np
 
+from common import *
 from gebco import Gebco
 from wsa import wsa
 from shore_dist import shore_dist_gfw
@@ -7,14 +8,12 @@ from webdata import marinetraffic
 #from webdata.marinetraffic import scrape_tonnage
 
 
-def merge_layers(rowgen, dbpath):
+def merge_layers(rowgen):
     ''' generator function to merge AIS row data with shore distance, bathymetry, and geometry databases
 
         args:
             rowgen: generator function 
                 yields sets of rows grouped by MMSI sorted by time
-            dbpath: string
-                path to .db file
 
         yields:
             sets of rows grouped by MMSI sorted by time with additional columns appended
@@ -29,7 +28,7 @@ def merge_layers(rowgen, dbpath):
 
     # read data layers from disk to merge with AIS
     print('aggregating ais, shore distance, bathymetry, vessel geometry...')
-    with shore_dist_gfw(dbpath=dbpath) as sdist, Gebco(dbpath=dbpath) as bathymetry, marinetraffic.scrape_tonnage(dbpath=dbpath) as hullgeom:
+    with shore_dist_gfw() as sdist, Gebco() as bathymetry, marinetraffic.scrape_tonnage() as hullgeom:
 
         for rows in rowgen:
             xy = rows[:,2:4]
