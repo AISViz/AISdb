@@ -34,6 +34,15 @@ rawdata_dir = $HOME/ais/rawdata/
 #### Compute vessel trajectories
   TODO: add documentation
 
+#### Merging data from additional sources
+  TODO: add documentation
+
+#### Scraping the web for additional vessel metadata
+  TODO: add documentation
+
 #### [Compute network graph of vessel movements between polygons](examples/example04_network_graph.py)
+
+#### Render visualizations
+  TODO: add documentation
 
 
