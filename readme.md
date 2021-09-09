@@ -37,7 +37,7 @@ rawdata_dir = $HOME/ais/rawdata/
 #### Merging data from additional sources
   TODO: add documentation
 
-#### Scraping the web for additional vessel metadata
+#### Scraping the web for vessel metadata
   TODO: add documentation
 
 #### [Compute network graph of vessel movements between polygons](examples/example04_network_graph.py)
