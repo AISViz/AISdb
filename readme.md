@@ -45,5 +45,7 @@ rawdata_dir = $HOME/ais/rawdata/
 #### Render visualizations
   TODO: add documentation
 
+## Collecting AIS Data
+
 #### [Setting up your own AIS radio station, and exchanging this data with open source networks](docs/AIS_base_station.md)
 
