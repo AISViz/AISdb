@@ -17,7 +17,7 @@
   - Validate the hardware configuration
     - When connected via USB, The AIS receiver is usually located under /dev/ with a name beginning with ttyACM, for example /dev/ttyACM0. Ensure that a device is present here
     - To test that the receiver is receiving messages, use the command `sudo cat /dev/ttyACM0` to print output received by the device. If all is working as intended, you should see some streams of bytes appearing on the screen.
-    ```
+```
 $ sudo cat /dev/ttyACM0
 !AIVDM,1,1,,A,B4eIh>@0<voAFw6HKAi7swf1lH@s,0*61
 !AIVDM,1,1,,A,14eH4HwvP0sLsMFISQQ@09Vr2<0f,0*7B
@@ -27,7 +27,7 @@ $ sudo cat /dev/ttyACM0
 !AIVDM,1,1,,B,14eI@F@000sLtgjISe<W9S4p0D0f,0*24
 !AIVDM,1,1,,B,B4eHt=@0:voCah6HRP1;?wg5oP06,0*7B
 !AIVDM,1,1,,A,B4eHWD009>oAeDVHIfm87wh7kP06,0*20
-    ```
+```
 
 
 #### Setting up the software
