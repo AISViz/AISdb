@@ -72,6 +72,17 @@ class scrape_tonnage():
     def exit(self):
         self.driver.close()
 
+
+def api_shipsearch_bymmsi(mmsi):
+    '''
+    https://services.marinetraffic.com/api/shipsearch/YOUR-API-KEY/mmsi:value/protocol:value 
+    '''
+    url = f'https://services.marinetraffic.com/api/shipsearch/{YOUR_API_KEY}/mmsi:{mmsi}/protocol:json'
+    requests.get(url)
+    pass
+
+
+
 '''
 import pickle
 # load cookies

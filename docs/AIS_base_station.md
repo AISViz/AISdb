@@ -34,6 +34,3 @@ $ sudo cat /dev/ttyACM0
   - Install AISHub dispatcher on your device, following the [installation instructions on the AISHub website](https://www.aishub.net/ais-dispatcher#linux)
   - Configure your dispatcher to send data to any endpoints as desired, such as [AISHub](https://www.aishub.net/join-us), [VesselFinder](https://stations.vesselfinder.com/become-partner), or [MarineTraffic](https://www.marinetraffic.com/en/p/expand-coverage). Many of these sites will agree to share other AIS data with you in exchange for sending your datastream to them
 
-
-#### Troubleshooting
-  - Permission Denied Error from the dispatcher when trying to access the receiver over serial (USB) connection: If this occurs, ensure the 'ais' user is added to any groups that may be necessary to read data from serial USB devies, such as uucp or dialout. If this still fails after a reboot, you can try giving ownership of the serial device to the AIS user. 

@@ -14,6 +14,7 @@ import pyais
 from pyais import FileReaderStream
 assert version.parse(pyais.__version__) >= version.parse('1.6.1')
 
+from common import *
 from database.create_tables import *
 from database import dbconn
 from index import index
@@ -202,7 +203,7 @@ def decode_raw_pyais(fpath):
             line = splitmsg(rawmsg)
 
             # check if receiver recorded timestamp. if not, skip the message
-            if len(line) > 1 and 'c:' in line[1]:
+            if len(line) > 2 and 'c:' in line[1]:
                 stamp, payload = line[1], line[2]
             else:
                 skipped +=1
@@ -292,8 +293,13 @@ def decode_msgs(filepaths, dbpath, processes=12):
     proc = partial(decode_raw_pyais)
     
     # parallelize decoding step
-    with Pool(processes) as p:
-        list(p.imap_unordered(proc, filepaths))
+    if processes:
+        with Pool(processes) as p:
+            list(p.imap_unordered(proc, filepaths))
+    else:
+        for fpath in filepaths:
+            print(fpath)
+            proc(fpath)
 
     insertfcn = {
             'msg1' : insert_msg123,
