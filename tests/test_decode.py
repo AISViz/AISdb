@@ -40,9 +40,9 @@ def test_sort_1m():
     dirpath, dirnames, filenames = np.array(list(os.walk(rawdata_dir))[0], dtype=object)
     #filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
     filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2019-09' in f], dtype=object)
-    #filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2021-01' in f], dtype=object)
+    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2021-01' in f and '.nm4' in f], dtype=object)
     dt = datetime.now()
-    decode_msgs(filepaths, db, processes=0)
+    decode_msgs(filepaths, db, processes=32)
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
