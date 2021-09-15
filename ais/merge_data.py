@@ -1,6 +1,7 @@
 import numpy as np
 
 from common import *
+from track_gen import trackgen
 from gebco import Gebco
 from wsa import wsa
 from shore_dist import shore_dist_gfw
@@ -23,8 +24,17 @@ def merge_layers(rowgen):
         if os.name == 'posix' and __name__ == '__main__': 
             set_start_method('forkserver')
     """
-
     '''
+
+    colnames = [ 
+            'mmsi', 'time', 'lon', 'lat',
+            'cog', 'sog', 'msgtype',
+            'imo', 'vessel_name',
+            'dim_bow', 'dim_stern', 'dim_port', 'dim_star',
+            'ship_type', 'ship_type_txt', 
+            'deadweight_tonnage', 'submerged_hull_m^2',
+            'km_from_shore', 'depth_metres',
+        ]
 
     # read data layers from disk to merge with AIS
     print('aggregating ais, shore distance, bathymetry, vessel geometry...')
@@ -59,5 +69,7 @@ def merge_layers(rowgen):
             # seafloor depth from cell grid
             depth = np.array([bathymetry.getdepth(x, y) for x,y in xy ]) * -1
 
-            yield np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
+            #yield np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
+            merged_rows = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
+            yield next(trackgen(merged_rows, colnames=colnames))
 

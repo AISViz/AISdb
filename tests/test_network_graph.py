@@ -23,7 +23,7 @@ domain = Domain('east', zonegeoms)
 
 
 start = datetime(2021, 1, 1)
-end = datetime(2021, 1, 4)
+end = datetime(2021, 1, 14)
 
 start = datetime(2019,9,1)
 end = datetime(2019,10,1)
@@ -47,9 +47,8 @@ def test_network_graph():
     #tracks = (next(trackgen(r)) for r in rowgen)
     merged = merge_layers(rowgen)
 
-    merged = list(merged)
-
-    graph(merged, domain, parallel=12, apply_filter=False)
+    #graph(merged, domain, parallel=0, apply_filter=False)
+    graph(merged, domain, parallel=60)
     
 
     ''' step-through
@@ -179,6 +178,8 @@ if False:  # testing
 """
 db query 1 month: 41 min
 
+maxdelta = timedelta(hours=1)
+
 filters=[lambda track, rng: [True for _ in rng[:-1]]]
 
 filters = [
@@ -188,13 +189,16 @@ filters = [
 ]
 
 for mmsirows in merged:
-    #if mmsirows[0][0] == 244300992: 
-    track_merged = next(trackgen(mmsirows, colnames=colnames))
-    list(geofence(track_merged, domain, colnames, 
-        filters=[lambda track, rng: [True for _ in rng[:-1]]]
-        ))
-
+    if mmsirows[0][0] == 316001408: 
+        track_merged = next(trackgen(mmsirows, colnames=colnames))
         break
+
+aggregator = agg_transits_per_segment(track_merged, filters)
+transit_window, in_zones, zoneID = next(aggregator)
+
+geofence(track_merged, domain, colnames, filters=None, maxdelta=timedelta(hours=1))
+
+geofence_test2(track_merged, domain)
 
     backup_track_merged = track_merged.copy()
 
