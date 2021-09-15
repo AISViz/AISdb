@@ -126,10 +126,12 @@ def geofence(track_merged, domain, colnames, filters, maxdelta=timedelta(hours=1
             if len(transits[i]) == 1:
                 print(f'''skipping track segment with single message within a {
                         int(maxdelta.total_seconds()*2//60)
-                    }-minute period    mmsi: {
+                    }-minute period\tmmsi: {
                         transits[i][0][0] 
-                    }    time: {
+                    }\ttime: {
                         epoch_2_dt(transits[i][0][1]).strftime('%Y-%m-%d %H:%M')
+                    }\tzone: {
+                        transits[i][0]
                     }''')
                 _,_,_ = transits.pop(i), transit_nodes.pop(i), transit_edges.pop(i)
                 continue
