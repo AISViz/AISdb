@@ -66,6 +66,10 @@ class ZoneGeom():
         self.maxradius = next(np.max(haversine(self.centroid.x, self.centroid.y, xi, yi) for xi,yi in zip(self.x, self.y)))
         self.minX, self.maxX = np.min(self.x), np.max(self.x)
         self.minY, self.maxY = np.min(self.y), np.max(self.y)
+        if not (self.minX >= -180 and self.maxX <= 180):
+            print(f'warning: zone {self.name} boundary exceeds longitudes -180..180')
+        if not (self.minY <= 90 and self.maxY >= -90): 
+            print(f'warning: zone {self.name} boundary exceeds latitudes -90..90')
 
     def __gt__(self, xy):
         return self.geometry.contains(Point(*xy))
