@@ -19,11 +19,14 @@ from network_graph import *
 shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
 zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
 domain = Domain('east', zonegeoms)
+# TODO: hashmap lookup for existing geoms ?? // database integration with Domain class
 
 
 start = datetime(2021, 1, 1)
 end = datetime(2021, 1, 4)
 
+start = datetime(2019,9,1)
+end = datetime(2019,10,1)
 
 def test_network_graph():
 
@@ -44,7 +47,9 @@ def test_network_graph():
     #tracks = (next(trackgen(r)) for r in rowgen)
     merged = merge_layers(rowgen)
 
-    graph(merged, domain, parallel=24, apply_filter=False)
+    merged = list(merged)
+
+    graph(merged, domain, parallel=12, apply_filter=False)
     
 
     ''' step-through
@@ -174,16 +179,29 @@ if False:  # testing
 """
 db query 1 month: 41 min
 
-script start:       3:40pm
-processing start:   4:21pm
-processing end:     crash 5:30pm  on mmsi 316008896
+filters=[lambda track, rng: [True for _ in rng[:-1]]]
+
+filters = [
+    lambda track, rng: delta_knots(track, rng) < 50,
+    lambda track, rng: delta_meters(track, rng) < 10000,
+    lambda track, rng: delta_seconds(track, rng) > 0,
+]
 
 for mmsirows in merged:
-    if mmsirows[0][0] == 316008896: 
-        track = next(trackgen(mmsirows, colnames=colnames))
+    #if mmsirows[0][0] == 244300992: 
+    track_merged = next(trackgen(mmsirows, colnames=colnames))
+    list(geofence(track_merged, domain, colnames, 
+        filters=[lambda track, rng: [True for _ in rng[:-1]]]
+        ))
+
         break
 
-rng = list(segment(track, maxdelta=timedelta(hours=3), minsize=1))[2]
+    backup_track_merged = track_merged.copy()
 
+maxdelta = timedelta(hours=1)
+
+mmsirows = next(merged)
+track_merged = next(trackgen(mmsirows, colnames=colnames))
+list(geofence(track_merged, domain, colnames, filters=filters))
 
 """

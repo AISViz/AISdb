@@ -75,7 +75,7 @@ def filtermask(track, rng, filters, first_val=False):
     '''
     mask = reduce(np.logical_and, map(lambda f: f(track, rng), filters))
     #return np.logical_and(np.append([True], mask), np.append(mask, [True]))
-    return np.append([first_val], mask)
+    return np.append([first_val], mask).astype(bool)
 
 
 def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
