@@ -59,7 +59,7 @@ class scrape_tonnage():
 
 
     def get_tonnage_mmsi_imo(self, mmsi, imo):
-        if not 201000000 <= mmsi < 776000000: return 0
+        #if not 201000000 <= mmsi < 776000000: return 0
         if not 1000000 <= imo < 9999999: imo = 0
 
         with index(bins=False, store=True, storagedir=data_dir, filename=self.filename) as web:
