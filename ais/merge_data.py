@@ -5,7 +5,6 @@ from track_gen import trackgen
 from gebco import Gebco
 from wsa import wsa
 from shore_dist import shore_dist_gfw
-from webdata import marinetraffic 
 #from webdata.marinetraffic import scrape_tonnage
 
 
@@ -25,6 +24,7 @@ def merge_layers(rowgen):
             set_start_method('forkserver')
     """
     '''
+    from webdata import marinetraffic 
 
     colnames = [ 
             'mmsi', 'time', 'lon', 'lat',

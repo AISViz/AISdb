@@ -36,85 +36,95 @@ else:
     }\n\nto remove this warning, copy and paste the above text to {cfgfile} ''')
 
 
-# common imports that should be shared with module subdirectories
-common = printdefault(names=['dbpath', 'data_dir', 'tmp_dir', 'zones_dir',  'rawdata_dir'], 
-                      vals=[dbpath, data_dir, tmp_dir, zones_dir,  rawdata_dir],
-                      quote="'",    
-                      )
-commonpaths = [os.path.join(os.path.dirname(__file__), dirname, 'common.py') for dirname in ['.', 'database', 'webdata']]
-
-for fpath in commonpaths:
-    with open(fpath, 'w') as f:
-        f.write(common)
 
 
+class import_handler():
+    
+    def __init__(self):
+        # common imports that should be shared with module subdirectories
+        self.commonpaths = [os.path.join(os.path.dirname(__file__), dirname, 'common.py') for dirname in ['.', 'database', 'webdata']]
 
-from .database.create_tables import (
-        sqlite_create_table_msg18,
-        sqlite_create_table_msg123,
-        sqlite_create_table_polygons,
-        create_table_msg5,
-        create_table_msg24,
-        create_table_msg27,
-        aggregate_static_msg5_msg24,
-    )
+    def __enter__(self):
+        common = printdefault(
+                names=['dbpath', 'data_dir', 'tmp_dir', 'zones_dir', 'rawdata_dir'], 
+                vals=[  dbpath,   data_dir,   tmp_dir,   zones_dir,   rawdata_dir],
+                quote="'",    
+              )
+        for fpath in self.commonpaths:
+            with open(fpath, 'w') as f:
+                f.write(common)
 
-from .database.dbconn import (
-        dbconn
-    )
+    def __exit__(self, exc_type, exc_value, tb):
+        for fpath in self.commonpaths:
+            os.remove(fpath)
 
-from .database.decoder import (
-        decode_msgs,
-        dt_2_epoch,
-        epoch_2_dt,
-    )
 
-from .database import lambdas
+with import_handler() as importconfigs:
 
-from .database import qryfcn
+    from .database.create_tables import (
+            sqlite_create_table_msg18,
+            sqlite_create_table_msg123,
+            sqlite_create_table_polygons,
+            create_table_msg5,
+            create_table_msg24,
+            create_table_msg27,
+            aggregate_static_msg5_msg24,
+        )
 
-from .database.qrygen import qrygen
+    from .database.dbconn import (
+            dbconn
+        )
 
-from .gebco import Gebco
+    from .database.decoder import (
+            decode_msgs,
+            dt_2_epoch,
+            epoch_2_dt,
+        )
 
-from .gis import (
-        haversine,
-        delta_meters,
-        delta_seconds,
-        delta_knots,
-        delta_reported_knots,
-        dms2dd,
-        strdms2dd,
-        Domain,
-        ZoneGeom,
-        ZoneGeomFromTxt,
-    )
+    from .database import lambdas
 
-from .index import index
+    from .database import qryfcn
 
-from .interp import (
-        interp_time,
-    )
+    from .database.qrygen import qrygen
 
-from .merge_data import merge_layers
+    from .gebco import Gebco
 
-from .network_graph import graph as network_graph
+    from .gis import (
+            haversine,
+            delta_meters,
+            delta_seconds,
+            delta_knots,
+            delta_reported_knots,
+            dms2dd,
+            strdms2dd,
+            Domain,
+            ZoneGeom,
+            ZoneGeomFromTxt,
+        )
 
-from .proc_util import (
-        fast_unzip,
-    )
+    from .index import index
 
-from .shore_dist import shore_dist_gfw
+    from .interp import (
+            interp_time,
+        )
 
-from .track_gen import (
-        trackgen,
-        segment,
-        filtermask,
-        writecsv,
-    )
+    from .merge_data import merge_layers
 
-from .wsa import wsa
+    from .network_graph import graph as network_graph
 
-for fpath in commonpaths:
-    os.remove(fpath)
+    from .proc_util import (
+            fast_unzip,
+        )
+
+    from .shore_dist import shore_dist_gfw
+
+    from .track_gen import (
+            trackgen,
+            segment,
+            filtermask,
+            writecsv,
+        )
+
+    from .wsa import wsa
+
 
