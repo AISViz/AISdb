@@ -1,28 +1,51 @@
-Tools and utilities for processing AIS data
+Functions and utilities for the purpose of decoding, storing, processing, and visualizing AIS data. 
 
-Setup:
+<img src="https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/tests/output/scriptoutput.png" alt="ais tracks - one month in the canadian atlantic" width="900"/>
+
+## Install
+
+The package can be installed using pip:
   ```
-  python3 -m pip install --upgrade numpy pysqlite3-binary pyais shapely requests rasterio packaging selenium tqdm
+  python3 -m pip install git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=ais
   ```
 
-Requirements:
-  * Python 3
-  * SQLite >= 3.35
-  * NumPy
-  * pyais
-
-Optional:
-  * qgis
-  * Shapely
-  * requests
-  * selenium
-  * rasterio
+To enable experimental visualization features, QGIS must also be installed and included in the PYTHONPATH env variable
 
 
+## Configuring
 
-![ais tracks - one month in the canadian atlantic](https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/output/scriptoutput.png)
+A config file can be used to specify storage location for the database as well as directory paths for where to look for additional data.
+The package will look for configs in the file `$HOME/.config/ais.cfg`, where $HOME is the user's home directory.
+If no config file is found, the following defaults will be used:
+```
+dbpath = $HOME/ais.db
+data_dir = $HOME/ais/             
+zones_dir = $HOME/ais/zones/
+tmp_dir = $HOME/ais/tmp_parsing/
+rawdata_dir = $HOME/ais/rawdata/
+```
 
+## Getting started: code examples
 
-Acknowledgement:
-  * Database schema has been adapted from the postgres data model developed by Casey Hilliard
+#### [Parsing raw NMEA messages into a database](examples/example01_create_db_from_rawmsgs.py)
+
+#### [Automatically generate SQL database queries](examples/example02_query_the_database.py)
+
+#### Compute vessel trajectories
+  TODO: add documentation
+
+#### Merging data from additional sources
+  TODO: add documentation
+
+#### Scraping the web for vessel metadata
+  TODO: add documentation
+
+#### [Compute network graph of vessel movements between polygons](examples/example04_network_graph.py)
+
+#### Render visualizations
+  TODO: add documentation
+
+## Collecting AIS Data
+
+#### [Setting up an AIS radio station, and exchanging data with other networks](docs/AIS_base_station.md)
 

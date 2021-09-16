@@ -1,13 +1,12 @@
 *__pycache__*
 *.swp
-database/libs/*
 *.db
 *.db-journal
 *.csv
 tmp/*
-aislib/*
-output/*
+tests/output/*
 !output/scriptoutput.png
-webdata/webdriver*
+ais/webdata/webdriver*
 *.cookie
 *.log
+*.egg-info

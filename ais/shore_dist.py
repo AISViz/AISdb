@@ -1,6 +1,8 @@
 import os
 import rasterio 
 
+from common import *
+
 class shore_dist_gfw():
     '''
     the raster data file used here can be downloaded from:
@@ -9,12 +11,9 @@ class shore_dist_gfw():
     TODO: copy file download script from gebco.py
     '''
 
-    def __init__(self, dbpath):
-        self.dirname, pathfile = dbpath.rsplit(os.path.sep, 1)
-
     # load raster into memory
     def __enter__(self, rasterfile=f'distance-from-port-v20201104.tiff'):
-        rasterpath = f'{self.dirname}{os.path.sep}{rasterfile}'
+        rasterpath = f'{data_dir}{os.path.sep}{rasterfile}'
         assert os.path.isfile(rasterpath)
         self.dataset = rasterio.open(rasterpath)
         self.band1 = self.dataset.read(1)

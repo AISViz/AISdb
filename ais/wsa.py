@@ -47,7 +47,7 @@ def wsa(dwt, ship_type, **_):
 
 
 
-if __name__ == '__main__':
+if False:
     # testing 
 
     from database import *

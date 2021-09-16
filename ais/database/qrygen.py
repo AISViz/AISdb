@@ -8,6 +8,7 @@ import concurrent.futures
 import numpy as np
 from shapely.geometry import Polygon
 
+from common import *
 import database
 from database.lambdas import *
 from database.qryfcn import *
@@ -65,7 +66,8 @@ class qrygen(UserDict):
         self.data = kwargs
 
         if 'xy' in self.keys() and not 'x' in self.keys() and not 'y' in self.keys(): 
-            self['x'] = self['xy'][::2]; self['y'] = self['xy'][1::2]
+            self['x'] = self['xy'][::2]
+            self['y'] = self['xy'][1::2]
 
         #if sum(map(lambda t: t in kwargs.keys(), ('start', 'end',))) == 2: 
         if 'start' in self.data.keys() and 'end' in self.data.keys(): 
@@ -107,7 +109,8 @@ class qrygen(UserDict):
     #    return aisdb.cur.fetchall()
 
 
-    def run_qry(self, dbpath, callback, qryfcn):
+    def run_qry(self, callback, qryfcn):
+        ''' generates an query using self.crawl(), runs it, then returns the resulting rows '''
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
 
@@ -131,7 +134,13 @@ class qrygen(UserDict):
                 aisdb.conn.close()
         '''
 
-    def gen_qry(self, dbpath, callback, qryfcn):
+    def gen_qry(self, callback, qryfcn):
+        ''' similar to run_qry, but in a generator format for better memory performance. 
+            
+            yields:
+                a set (numpy array) of rows for each unique MMSI
+                rowsets are sorted by time
+        '''
         # create query to crawl db
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
@@ -146,7 +155,7 @@ class qrygen(UserDict):
         # get 100k rows at a time, yield sets of rows for each unique MMSI
         mmsi_rows = None
         #while len(res := np.array(aisdb.cur.fetchmany(100000))) > 0: 
-        res = np.array(aisdb.cur.fetchmany(100000))
+        res = np.array(aisdb.cur.fetchmany(10**5))
         while len(res) > 0: 
             if not isinstance(mmsi_rows, np.ndarray):
                 mmsi_rows = res
@@ -156,7 +165,7 @@ class qrygen(UserDict):
                 ummsi_idx = np.where(mmsi_rows[:,0] != mmsi_rows[0,0])[0][0]
                 yield mmsi_rows[0:ummsi_idx]
                 mmsi_rows = mmsi_rows[ummsi_idx:]
-            res = np.array(aisdb.cur.fetchmany(100000))
+            res = np.array(aisdb.cur.fetchmany(10**5))
         yield mmsi_rows
 
 
