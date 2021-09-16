@@ -1,8 +1,7 @@
 import os
 from multiprocessing import Pool#, set_start_method
 import pickle
-import time
-from functools import partial, reduce
+from functools import partial
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -11,8 +10,7 @@ from shapely.geometry import Point, LineString, Polygon
 from common import *
 from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain
 from database import dt2monthstr, dbconn, epoch_2_dt
-from track_gen import trackgen, segment, filtermask, writecsv
-from merge_data import merge_layers
+from track_gen import trackgen, segment#, filtermask, writecsv
 
 
 # returns absolute value of bathymetric depths with topographic heights converted to 0
