@@ -3,7 +3,6 @@ from multiprocessing import Pool#, set_start_method
 import pickle
 from functools import partial, reduce
 from datetime import datetime, timedelta
-import time
 
 import numpy as np
 from shapely.geometry import Point, LineString, Polygon
@@ -147,8 +146,6 @@ def graph(merged, domain, parallel=0, filters=[lambda rowdict: False]):
             p.close()
             p.join()
 
-    time.sleep(5)
-
     picklefiles = [os.path.join(tmp_dir, fname) for fname in sorted(os.listdir(tmp_dir)) if '_' not in fname]
     outputfile = os.path.join(data_dir, 'output.csv')
 
@@ -168,9 +165,9 @@ def graph(merged, domain, parallel=0, filters=[lambda rowdict: False]):
                         break
                     except Exception as e:
                         raise e
-                    if not reduce(np.logical_and, [f(getrow) for f in filters]):
+                    if not reduce(np.logical_or, [f(getrow) for f in filters]):
                         results.append(','.join(map(str, getrow.values())))
+            os.remove(picklefile)
             if len(results) == 0: continue
             output.write('\n'.join(results) + '\n')
-            os.remove(picklefile)
 
