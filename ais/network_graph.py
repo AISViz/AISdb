@@ -1,8 +1,9 @@
 import os
 from multiprocessing import Pool#, set_start_method
 import pickle
-from functools import partial
+from functools import partial, reduce
 from datetime import datetime, timedelta
+import time
 
 import numpy as np
 from shapely.geometry import Point, LineString, Polygon
@@ -10,7 +11,7 @@ from shapely.geometry import Point, LineString, Polygon
 from common import *
 from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain
 from database import dt2monthstr, dbconn, epoch_2_dt
-from track_gen import trackgen, segment#, filtermask, writecsv
+from track_gen import trackgen, segment
 
 
 # returns absolute value of bathymetric depths with topographic heights converted to 0
@@ -50,17 +51,17 @@ transitinfo = lambda track, zoneset: dict(
         year                                =   epoch_2_dt(track['time'][zoneset][0]).year,
         month                               =   epoch_2_dt(track['time'][zoneset][0]).month,
         day                                 =   epoch_2_dt(track['time'][zoneset][0]).day,
-        total_distance_meters               =   np.sum(delta_meters(track, zoneset[[0,-1]])),
-        cumulative_distance_meters          =   np.sum(delta_meters(track, zoneset)),
-        min_shore_dist                      =   np.min(track['km_from_shore'][zoneset]), 
-        avg_shore_dist                      =   np.average(track['km_from_shore'][zoneset]), 
-        max_shore_dist                      =   np.max(track['km_from_shore'][zoneset]), 
-        min_depth                           =   np.min(depth_nonnegative(track, zoneset)),
-        avg_depth                           =   np.average(depth_nonnegative(track, zoneset)),
-        max_depth                           =   np.max(depth_nonnegative(track, zoneset)),
-        velocity_knots_min                  =   np.min(delta_knots(track, zoneset)) if len(zoneset) > 1 else 'NULL',
-        velocity_knots_avg                  =   np.average(delta_knots(track, zoneset)) if len(zoneset) > 1 else 'NULL',
-        velocity_knots_max                  =   np.max(delta_knots(track, zoneset)) if len(zoneset) > 1 else 'NULL',
+        total_distance_meters               =   np.sum(delta_meters(track, zoneset[[0,-1]])).astype(int),
+        cumulative_distance_meters          =   np.sum(delta_meters(track, zoneset)).astype(int),
+        min_shore_dist                      =   f"{np.min(track['km_from_shore'][zoneset]):.2f}", 
+        avg_shore_dist                      =   f"{np.average(track['km_from_shore'][zoneset]):.2f}", 
+        max_shore_dist                      =   f"{np.max(track['km_from_shore'][zoneset]):.2f}", 
+        min_depth                           =   f"{np.min(depth_nonnegative(track, zoneset)):.2f}",
+        avg_depth                           =   f"{np.average(depth_nonnegative(track, zoneset)):.2f}",
+        max_depth                           =   f"{np.max(depth_nonnegative(track, zoneset)):.2f}",
+        velocity_knots_min                  =   f"{np.min(delta_knots(track, zoneset)):.2f}" if len(zoneset) > 1 else 'NULL',
+        velocity_knots_avg                  =   f"{np.average(delta_knots(track, zoneset)):.2f}" if len(zoneset) > 1 else 'NULL',
+        velocity_knots_max                  =   f"{np.max(delta_knots(track, zoneset)):.2f}" if len(zoneset) > 1 else 'NULL',
         minutes_spent_in_zone               =   int((epoch_2_dt(track['time'][zoneset][-1]) - epoch_2_dt(track['time'][zoneset][0])).total_seconds()) / 60 if len(zoneset) > 1 else 'NULL',
         minutes_within_10m_5km_shoredist    =   time_in_shoredist_rng(track, zoneset, 0.01, 5),
         minutes_within_30m_20km_shoredist   =   time_in_shoredist_rng(track, zoneset, 0.03, 20),
@@ -112,7 +113,7 @@ def geofence(track_merged, domain):
     return
 
 
-def graph(merged, domain, parallel=0):
+def graph(merged, domain, parallel=0, filters=[lambda rowdict: False]):
     ''' perform geofencing on vessel trajectories, then concatenate aggregated 
         transit statistics between nodes (zones) to create network edges from 
         vessel trajectories
@@ -146,10 +147,12 @@ def graph(merged, domain, parallel=0):
             p.close()
             p.join()
 
+    time.sleep(5)
+
     picklefiles = [os.path.join(tmp_dir, fname) for fname in sorted(os.listdir(tmp_dir)) if '_' not in fname]
     outputfile = os.path.join(data_dir, 'output.csv')
 
-    with open(outputfile, 'a') as output:
+    with open(outputfile, 'w') as output:
 
         with open(picklefiles[0], 'rb') as f0:
             getrow = pickle.load(f0)
@@ -165,7 +168,9 @@ def graph(merged, domain, parallel=0):
                         break
                     except Exception as e:
                         raise e
-                    results.append(','.join(map(str, getrow.values())))
-            output.write('\n'.join(results) +'\n')
-            os.remove(os.path.join(tmp_dir, picklefile))
+                    if not reduce(np.logical_and, [f(getrow) for f in filters]):
+                        results.append(','.join(map(str, getrow.values())))
+            if len(results) == 0: continue
+            output.write('\n'.join(results) + '\n')
+            os.remove(picklefile)
 
