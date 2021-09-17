@@ -132,7 +132,20 @@ def graph(merged, domain, parallel=0, filters=[lambda rowdict: False]):
             parallel: integer
                 number of processes to compute geofencing in parallel.
                 if set to 0 or False, no parallelization will be used
+            filters: list of callables
+                each callable function should accept a dictionary describing a 
+                network edge as input. if any of the callables return True, 
+                the edge will be filtered from the output rows. see staticinfo()
+                and transitinfo() above for more info on network edge dict keys
+                
+                for example, to filter all rows where the max speed exceeds 50 
+                knots, and filter non-transiting vessels from zone Z0:
 
+                >>> filters = [
+                    lambda rowdict: rowdict['velocity_knots_max'] == 'NULL' or float(rowdict['velocity_knots_max']) > 50,
+                    lambda rowdict: rowdict['src_zone'] == 'Z0' and rowdict['rcv_zone'] == 'NULL'
+                ]
+                
         returns: None
     '''
     
