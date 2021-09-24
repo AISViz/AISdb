@@ -25,7 +25,6 @@ domain = Domain('east', zonegeoms)
 start = datetime(2021, 1, 1)
 end = datetime(2021, 1, 14)
 
-end = datetime(2021, 1, 7)
 
 start = datetime(2019,9,1)
 end = datetime(2019,10,1)
@@ -46,16 +45,13 @@ def test_network_graph():
             ymax    = domain.maxY,
         ).gen_qry(callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
 
-    #tracks = (next(trackgen(r)) for r in rowgen)
-    merged = merge_layers(rowgen)
-
     filters = [
             lambda rowdict: rowdict['velocity_knots_max'] == 'NULL' or float(rowdict['velocity_knots_max']) > 50,
             lambda rowdict: rowdict['src_zone'] == 'Z0' and rowdict['rcv_zone'] == 'NULL'
         ]
 
-    #graph(merged, domain, parallel=0, apply_filter=False)
-    graph(merged, domain, parallel=32, filters=filters)
+    graph(merge_layers(rowgen), domain, parallel=32)
+    graph(merge_layers(rowgen), domain, parallel=32, filters=filters)
     
 
     ''' step-through
