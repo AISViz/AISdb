@@ -92,23 +92,26 @@ def geofence(track_merged, domain):
     track_merged['in_zone'] = np.array([domain.point_in_polygon(x, y) for x, y in zip(track_merged['lon'], track_merged['lat'])], dtype=object)
     transits = np.where(track_merged['in_zone'][:-1] != track_merged['in_zone'][1:])[0] +1
 
-    filepath = os.path.join(tmp_dir, str(track_merged['mmsi']).zfill(9))
+    if 'cluster_label' in track_merged.keys():
+        filepath = os.path.join(tmp_dir, str(track_merged['mmsi']).zfill(9)) + '-' + str(track_merged['cluster_label']).zfill(2)
+    else:
+        filepath = os.path.join(tmp_dir, str(track_merged['mmsi']).zfill(9))
     with open(filepath, 'ab') as f:
 
-        if len(transits) == 0: 
-            rng = np.array(range(len(track_merged['in_zone'])))
-            track_stats = staticinfo(track_merged, domain)
-            track_stats.update(transitinfo(track_merged, rng))
-            track_stats['rcv_zone'] = 'NULL'
-            track_stats['transit_nodes'] = track_stats['src_zone']
-            pickle.dump(track_stats, f)
-            return 
-
+        i = 0
         for i in range(len(transits)-1):
             rng = np.array(range(transits[i], transits[i+1]+1))
             track_stats = staticinfo(track_merged, domain)
             track_stats.update(transitinfo(track_merged, rng))
             pickle.dump(track_stats, f)
+
+        rng = np.array(range(i, len(track_merged['in_zone'])))
+        track_stats = staticinfo(track_merged, domain)
+        track_stats.update(transitinfo(track_merged, rng))
+        track_stats['rcv_zone'] = 'NULL'
+        track_stats['transit_nodes'] = track_stats['src_zone']
+        pickle.dump(track_stats, f)
+
     return
 
 

@@ -9,6 +9,7 @@ from database import *
 from shapely.geometry import Polygon, LineString, MultiPoint
 from gis import *
 from track_gen import *
+from image_segmentation import *
 from network_graph import *
 
 #os.system("taskset -p 0xff %d" % os.getpid())
@@ -50,8 +51,10 @@ def test_network_graph():
             lambda rowdict: rowdict['src_zone'] == 'Z0' and rowdict['rcv_zone'] == 'NULL'
         ]
 
-    graph(merge_layers(rowgen), domain, parallel=32)
-    graph(merge_layers(rowgen), domain, parallel=32, filters=filters)
+    merged = merge_layers(rowgen)
+
+    graph(cluster_duplicate_mmsis(merged), domain, parallel=12)
+    graph(cluster_duplicate_mmsis(merged), domain, parallel=12, filters=filters)
     
 
     ''' step-through

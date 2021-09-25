@@ -1,17 +1,8 @@
-''' https://en.wikipedia.org/wiki/Image_segmentation#Clustering_methods 
-    https://geoffboeing.com/2014/08/clustering-to-reduce-spatial-data-set-size/
-
-'''
-
+from gis import delta_knots 
 
 import numpy as np
 from sklearn.cluster import DBSCAN
-from shapely.geometry
 
-great_circle = lambda xx, yy : haversine(x[0], y[0], x[1], y[1])  # metres
-
-
-assert track_dicts
 
 def flag(track):
 
@@ -27,28 +18,33 @@ def flag(track):
     return False
 
 
-def cluster_duplicate_mmsis(track_dicts):
+def cluster_duplicate_mmsis(track_dicts, max_cluster_dist_km=75, flagfcn=flag):
 
-    tracks = iter(track_dicts)
+    #tracks = iter(track_dicts)
 
-    for track in tracks:
-        if not flag(track):
+    for track in track_dicts:
+        if not flagfcn(track):
             yield track
-
         else:
-            
-            elapsed = (track['time'][-1] - track['time'][0]) * 60
-            max_km = (50 * (elapsed * 1.943844 )) / 1000
-            epsilon = (max_km / 6367) # km per radian
-
+            # set epsilon to 50km clustering distance and convert coords to radian
+            # 50km chosen relative to the smallest radius of network graph node polygons
+            # 6367km == earth circumference
+            epsilon = max_cluster_dist_km / 6367
             yx = np.vstack((list(map(np.deg2rad, track['lat'])), list(map(np.deg2rad, track['lon'])))).T
-            db = DBSCAN(eps=epsilon, min_samples=1, algorithm='ball_tree', metric='haversine').fit(yx)
-            labels = db.labels_
-            len(set(labels))
 
+            # cluster using great circle distance as metric
+            clusters = DBSCAN(eps=epsilon, min_samples=1, algorithm='ball_tree', metric='haversine').fit(yx)
 
-    pass
-
-
-
+            # yield track subsets assigned to cluster labels
+            for l in set(clusters.labels_):
+                mask = clusters.labels_ == l
+                yield dict(
+                        mmsi=track['mmsi'],
+                        time=track['time'][mask],
+                        cluster_label=l,
+                        static=track['static'].union(set(['cluster_label'])),
+                        dynamic=track['dynamic'].union(set(['sog_computed'])),
+                        **{k:track[k] for k in track['static']},
+                        **{k:track[k][mask] for k in track['dynamic']},
+                    )
 

@@ -31,9 +31,9 @@ def trackgen(
         rows = np.delete(rows, dupe_idx, axis=0)
         
     staticcols = set(colnames) & set([
-        'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'dim_stern', 'dim_port', 'dim_star', 
-        'mother_ship_mmsi', 'part_number', 'vendor_id', 'model', 'serial', 'imo', 'msgtype',
-        'deadweight_tonnage', 'submerged_hull_m^2',
+        'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'dim_stern', 
+        'dim_port', 'dim_star', 'mother_ship_mmsi', 'part_number', 'vendor_id',
+        'model', 'serial', 'imo', 'deadweight_tonnage', 'submerged_hull_m^2',
     ])
 
     dynamiccols = set(colnames) - staticcols - set(['mmsi', 'time'])

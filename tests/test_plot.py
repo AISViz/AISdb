@@ -5,6 +5,11 @@ import numpy as np
 import shapely.wkt
 from shapely.geometry import Polygon, LineString, MultiPoint
 
+
+#import sys
+#sys.path.append('/usr/share/qgis/python')
+
+
 from database import *
 from gis import *
 from track_viz import TrackViz
