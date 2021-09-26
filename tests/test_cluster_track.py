@@ -48,6 +48,7 @@ test_cluster_duplicate_mmsi(track_dicts):
 
     with open('tests/output/clustertest', 'rb') as f:
         track_dicts = pickle.load(f)
+    merged=track_dicts
 
 
 

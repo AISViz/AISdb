@@ -256,7 +256,7 @@ class TrackViz(QMainWindow):
 
     def add_feature_point(self, geom, ident, color=None, opacity=None):
         if color is None: color = (colorhash(ident),)
-        assert geom.type.upper() == 'MULTIPOINT'
+        assert geom.type.upper() == 'MULTIPOINT' or geom.type.upper() == 'GEOMETRYCOLLECTION'
         r = customQgsMultiPoint(self.canvas)
         pts = [self.xform.transform(QgsPointXY(xy.x, xy.y)) for xy in geom]
         qgeom = QgsGeometry.fromMultiPointXY(pts)

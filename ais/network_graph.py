@@ -11,6 +11,7 @@ from common import *
 from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain
 from database import dt2monthstr, dbconn, epoch_2_dt
 from track_gen import trackgen, segment
+from clustering import segment_tracks_dbscan
 
 
 # returns absolute value of bathymetric depths with topographic heights converted to 0
@@ -31,6 +32,7 @@ time_in_shoredist_rng = lambda track, subset, dist0=0.01, dist1=5: (
 staticinfo = lambda track, domain: dict(
         mmsi                                =   track['mmsi'],
         imo                                 =   track['imo'] or '',
+        cluster_label                       =   track['cluster_label'] if 'cluster_label' in track.keys() else '',
         vessel_name                         =   track['vessel_name'] or '',
         vessel_type                         =   track['ship_type_txt'] or '',
         domainname                          =   domain.name,
@@ -68,7 +70,7 @@ transitinfo = lambda track, zoneset: dict(
     )
 
 
-def geofence(track_merged, domain):
+def geofence(track_merged_nosegments, domain):
     ''' compute points-in-polygons for every positional report in a vessel 
         trajectory. at each track position where the zone changes, a transit 
         index is recorded, and trajectory statistics are aggregated for this
@@ -89,28 +91,28 @@ def geofence(track_merged, domain):
         returns: None
     '''
 
-    track_merged['in_zone'] = np.array([domain.point_in_polygon(x, y) for x, y in zip(track_merged['lon'], track_merged['lat'])], dtype=object)
-    transits = np.where(track_merged['in_zone'][:-1] != track_merged['in_zone'][1:])[0] +1
+    filepath = os.path.join(tmp_dir, str(track_merged_nosegments['mmsi']).zfill(9))
 
-    if 'cluster_label' in track_merged.keys():
-        filepath = os.path.join(tmp_dir, str(track_merged['mmsi']).zfill(9)) + '-' + str(track_merged['cluster_label']).zfill(2)
-    else:
-        filepath = os.path.join(tmp_dir, str(track_merged['mmsi']).zfill(9))
     with open(filepath, 'ab') as f:
 
-        i = 0
-        for i in range(len(transits)-1):
-            rng = np.array(range(transits[i], transits[i+1]+1))
+        for track_merged in segment_tracks_dbscan([track_merged_nosegments], max_cluster_dist_km=50):
+
+            track_merged['in_zone'] = np.array([domain.point_in_polygon(x, y) for x, y in zip(track_merged['lon'], track_merged['lat'])], dtype=object)
+            transits = np.where(track_merged['in_zone'][:-1] != track_merged['in_zone'][1:])[0] +1
+
+            for i in range(len(transits)-1):
+                rng = np.array(range(transits[i], transits[i+1]+1))
+                track_stats = staticinfo(track_merged, domain)
+                track_stats.update(transitinfo(track_merged, rng))
+                pickle.dump(track_stats, f)
+
+            i0 = transits[-1] if len(transits) >= 1 else 0
+            rng = np.array(range(i0, len(track_merged['in_zone'])))
             track_stats = staticinfo(track_merged, domain)
             track_stats.update(transitinfo(track_merged, rng))
+            track_stats['rcv_zone'] = 'NULL'
+            track_stats['transit_nodes'] = track_stats['src_zone']
             pickle.dump(track_stats, f)
-
-        rng = np.array(range(i, len(track_merged['in_zone'])))
-        track_stats = staticinfo(track_merged, domain)
-        track_stats.update(transitinfo(track_merged, rng))
-        track_stats['rcv_zone'] = 'NULL'
-        track_stats['transit_nodes'] = track_stats['src_zone']
-        pickle.dump(track_stats, f)
 
     return
 
