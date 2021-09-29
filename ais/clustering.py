@@ -46,7 +46,7 @@ def segment_tracks_dbscan(track_dicts, max_cluster_dist_km=50, flagfcn=flag):
             # set epsilon to clustering distance, convert coords to radian, cluster with haversine metric
             epsilon = max_cluster_dist_km / 6367  # 6367km == earth circumference 
             yx = np.vstack((list(map(np.deg2rad, track['lat'])), list(map(np.deg2rad, track['lon'])))).T
-            clusters = DBSCAN(eps=epsilon, min_samples=1, algorithm='ball_tree', metric='haversine').fit(yx)
+            clusters = DBSCAN(eps=epsilon, min_samples=1, algorithm='brute', metric='haversine').fit(yx)
 
             # yield track subsets assigned to cluster labels
             for l in set(clusters.labels_):
@@ -54,11 +54,11 @@ def segment_tracks_dbscan(track_dicts, max_cluster_dist_km=50, flagfcn=flag):
                 mask = clusters.labels_ == l
 
                 clustered = dict(
-                        mmsi=track['mmsi'],
-                        time=track['time'][mask],
-                        cluster_label=l,
-                        static=track['static'].union(set(['cluster_label'])),
-                        dynamic=track['dynamic'],
+                        mmsi            = track['mmsi'],
+                        time            = track['time'][mask],
+                        cluster_label   = l,
+                        static          = track['static'].union(set(['cluster_label'])),
+                        dynamic         = track['dynamic'],
                         **{k:track[k] for k in track['static'] - set(['cluster_label'])},
                         **{k:track[k][mask] for k in track['dynamic']},
                     )
