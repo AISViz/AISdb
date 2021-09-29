@@ -63,6 +63,19 @@ def segment(track: dict, maxdelta: timedelta, minsize: int) -> filter:
     return filter(lambda seg: len(seg) >= minsize, list(map(range, splits_idx(track)[:-1], splits_idx(track)[1:])))
 
 
+def segment_tracks_timesplits(tracks, maxdelta=timedelta(hours=1), minsize=1):
+    for track in tracks:
+        for rng in segment(track, maxdelta, minsize):
+            yield dict(
+                    mmsi = track['mmsi'],
+                    time = track['time'][rng],
+                    static = track['static'],
+                    dynamic = track['dynamic'],
+                    **{k:track[k] for k in track['static']},
+                    **{k:track[k][rng] for k in track['dynamic']},
+                )
+
+
 def filtermask(track, rng, filters, first_val=False):
     '''
     from .gis import compute_knots

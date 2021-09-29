@@ -12,7 +12,7 @@ from track_viz import TrackViz
 from database.lambdas import *
 from database.qryfcn import leftjoin_dynamic_static
 from merge_data import merge_layers
-from image_segmentation import * 
+from clustering import * 
 
 assert track_dicts
 
@@ -80,10 +80,12 @@ test_cluster_duplicate_mmsi(track_dicts):
     # test the clustering for this track
     linegeom = LineString(zip(track['lon'], track['lat']))
     viz.add_feature_polyline(linegeom, ident=track['mmsi'], color=(255,0,0,128))
-    for cluster in cluster_duplicate_mmsis([track], max_cluster_dist_km=50):
+    for cluster in segment_tracks_dbscan(segment_tracks_timesplits([track]), max_cluster_dist_km=50):
+        if len(cluster['time']) == 1: continue
         ptgeom = MultiPoint([Point(x,y) for x,y in zip(cluster['lon'], cluster['lat'])])
-        viz.add_feature_point(ptgeom, ident=cluster['cluster_label']*100)
-
+        viz.add_feature_point(ptgeom, ident=cluster['cluster_label']*100 if cluster['cluster_label']!=None else None)
+        linegeom = LineString(zip(cluster['lon'], cluster['lat']))
+        viz.add_feature_polyline(linegeom, ident=cluster['mmsi'], color=(30,30,255,255))
 
     viz.clear_points()
     viz.clear_lines()

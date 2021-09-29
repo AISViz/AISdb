@@ -6,15 +6,15 @@ set_start_method('forkserver')
 
 import numpy as np
 import shapely.wkt
+from shapely.geometry import Polygon, LineString, MultiPoint
 import pickle
 
 from common import *
+from network_graph import *
+#from clustering import *
 from database import *
-from shapely.geometry import Polygon, LineString, MultiPoint
 from gis import *
 from track_gen import *
-from image_segmentation import *
-from network_graph import *
 
 
 
@@ -56,8 +56,8 @@ def test_network_graph():
             lambda rowdict: rowdict['minutes_spent_in_zone'] == 'NULL' or rowdict['minutes_spent_in_zone'] <= 1,
         ]
 
-    with import_handler() as importconfigs:
-        graph(merged, domain, parallel=12, filters=filters)
+    #with import_handler() as importconfigs:
+    graph(merged, domain, parallel=12, filters=filters)
     
 
     ''' step-through

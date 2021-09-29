@@ -40,13 +40,14 @@ def segment_tracks_dbscan(track_dicts, max_cluster_dist_km=50, flagfcn=flag):
         if len(track['time']) == 1: continue
 
         if not flagfcn(track):
+            track['cluster_label'] = None
             yield track
 
         else:
             # set epsilon to clustering distance, convert coords to radian, cluster with haversine metric
             epsilon = max_cluster_dist_km / 6367  # 6367km == earth circumference 
             yx = np.vstack((list(map(np.deg2rad, track['lat'])), list(map(np.deg2rad, track['lon'])))).T
-            clusters = DBSCAN(eps=epsilon, min_samples=1, algorithm='brute', metric='haversine').fit(yx)
+            clusters = DBSCAN(eps=epsilon, min_samples=1, algorithm='ball_tree', metric='haversine').fit(yx)
 
             # yield track subsets assigned to cluster labels
             for l in set(clusters.labels_):

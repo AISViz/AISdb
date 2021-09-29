@@ -10,7 +10,7 @@ from shapely.geometry import Point, LineString, Polygon
 from common import *
 from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain
 from database import dt2monthstr, dbconn, epoch_2_dt
-from track_gen import trackgen, segment
+from track_gen import trackgen, segment, segment_tracks_timesplits
 from clustering import segment_tracks_dbscan
 
 
@@ -95,7 +95,7 @@ def geofence(track_merged_nosegments, domain):
 
     with open(filepath, 'ab') as f:
 
-        for track_merged in segment_tracks_dbscan([track_merged_nosegments], max_cluster_dist_km=50):
+        for track_merged in segment_tracks_dbscan(segment_tracks_timesplits([track_merged_nosegments]), max_cluster_dist_km=50):
 
             track_merged['in_zone'] = np.array([domain.point_in_polygon(x, y) for x, y in zip(track_merged['lon'], track_merged['lat'])], dtype=object)
             transits = np.where(track_merged['in_zone'][:-1] != track_merged['in_zone'][1:])[0] +1
