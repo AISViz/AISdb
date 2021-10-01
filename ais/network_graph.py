@@ -60,6 +60,7 @@ transitinfo = lambda track, zoneset: dict(
         min_depth                           =   f"{np.min(depth_nonnegative(track, zoneset)):.2f}",
         avg_depth                           =   f"{np.average(depth_nonnegative(track, zoneset)):.2f}",
         max_depth                           =   f"{np.max(depth_nonnegative(track, zoneset)):.2f}",
+        avg_avg_depth_border_cells          =   f"{np.average(track['depth_border_cells_average'])}",
         velocity_knots_min                  =   f"{np.min(delta_knots(track, zoneset)):.2f}" if len(zoneset) > 1 else 'NULL',
         velocity_knots_avg                  =   f"{np.average(delta_knots(track, zoneset)):.2f}" if len(zoneset) > 1 else 'NULL',
         velocity_knots_max                  =   f"{np.max(delta_knots(track, zoneset)):.2f}" if len(zoneset) > 1 else 'NULL',

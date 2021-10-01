@@ -33,7 +33,7 @@ def merge_layers(rowgen):
             'dim_bow', 'dim_stern', 'dim_port', 'dim_star',
             'ship_type', 'ship_type_txt', 
             'deadweight_tonnage', 'submerged_hull_m^2',
-            'km_from_shore', 'depth_metres',
+            'km_from_shore', 'depth_metres', 'depth_border_cells_average',
         ]
 
     # read data layers from disk to merge with AIS
@@ -69,7 +69,11 @@ def merge_layers(rowgen):
             # seafloor depth from cell grid
             depth = np.array([bathymetry.getdepth(x, y) for x,y in xy ]) * -1
 
+            # seafloor depth from nonnegative border cells
+            bordercellsdepth = np.array([bathymetry.getdepth_cellborders_nonnegative_avg(x, y) for x,y in xy])
+
             #yield np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
-            merged_rows = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
+            merged_rows = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth, bordercellsdepth)).T))
+
             yield next(trackgen(merged_rows, colnames=colnames))
 
