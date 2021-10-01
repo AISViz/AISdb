@@ -1,19 +1,21 @@
 from datetime import datetime, timedelta
 
+os.system("taskset -p 0xfff %d" % os.getpid())
+from multiprocessing import set_start_method
+set_start_method('forkserver')
+
 import numpy as np
 import shapely.wkt
+from shapely.geometry import Polygon, LineString, MultiPoint
 import pickle
 
 from common import *
+from network_graph import *
+#from clustering import *
 from database import *
-from shapely.geometry import Polygon, LineString, MultiPoint
 from gis import *
 from track_gen import *
-from network_graph import *
 
-#os.system("taskset -p 0xff %d" % os.getpid())
-#from multiprocessing import set_start_method
-#set_start_method('forkserver')
 
 
 shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
@@ -28,10 +30,8 @@ end = datetime(2021, 1, 14)
 start = datetime(2019,9,1)
 end = datetime(2019,10,1)
 
-def test_network_graph():
 
-    start   = datetime(2018,6,1)
-    end     = datetime(2018,7,1)
+def test_network_graph():
 
     # query db for points in domain 
     rowgen = qrygen(
@@ -44,11 +44,20 @@ def test_network_graph():
             ymax    = domain.maxY,
         ).gen_qry(callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
 
-    #tracks = (next(trackgen(r)) for r in rowgen)
     merged = merge_layers(rowgen)
 
-    #graph(merged, domain, parallel=0, apply_filter=False)
-    graph(merged, domain, parallel=60)
+
+    with open('tests/output/clustertest', 'rb') as f:
+        merged = pickle.load(f)
+
+    filters = [
+            #lambda rowdict: rowdict['velocity_knots_max'] == 'NULL' or float(rowdict['velocity_knots_max']) > 50,
+            lambda rowdict: rowdict['src_zone'] == 'Z0' and rowdict['rcv_zone'] == 'NULL',
+            lambda rowdict: rowdict['minutes_spent_in_zone'] == 'NULL' or rowdict['minutes_spent_in_zone'] <= 1,
+        ]
+
+    #with import_handler() as importconfigs:
+    graph(merged, domain, parallel=12, filters=filters)
     
 
     ''' step-through
@@ -105,7 +114,7 @@ if False:  # testing
             pickle.dump(row, f)
         
     rowgen = []
-    with open('output/testrows', 'rb') as f:
+    with open('tests/output/testrows', 'rb') as f:
         while True:
             try:
                 rows = pickle.load(f)
@@ -114,7 +123,7 @@ if False:  # testing
             rowgen.append(rows)
 
     merged = []
-    with open('output/mergedrows', 'rb') as f:
+    with open('tests/output/mergedrows', 'rb') as f:
         while True:
             try:
                 rows = pickle.load(f)

@@ -31,9 +31,9 @@ def trackgen(
         rows = np.delete(rows, dupe_idx, axis=0)
         
     staticcols = set(colnames) & set([
-        'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'dim_stern', 'dim_port', 'dim_star', 
-        'mother_ship_mmsi', 'part_number', 'vendor_id', 'model', 'serial', 'imo', 'msgtype',
-        'deadweight_tonnage', 'submerged_hull_m^2',
+        'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'dim_stern', 
+        'dim_port', 'dim_star', 'mother_ship_mmsi', 'part_number', 'vendor_id',
+        'model', 'serial', 'imo', 'deadweight_tonnage', 'submerged_hull_m^2',
     ])
 
     dynamiccols = set(colnames) - staticcols - set(['mmsi', 'time'])
@@ -61,6 +61,19 @@ def trackgen(
 def segment(track: dict, maxdelta: timedelta, minsize: int) -> filter:
     splits_idx = lambda track: np.append(np.append([0], np.nonzero(track['time'][1:] - track['time'][:-1] >= maxdelta.total_seconds() / 60 )[0]+1), [len(track['time'])])
     return filter(lambda seg: len(seg) >= minsize, list(map(range, splits_idx(track)[:-1], splits_idx(track)[1:])))
+
+
+def segment_tracks_timesplits(tracks, maxdelta=timedelta(hours=1), minsize=1):
+    for track in tracks:
+        for rng in segment(track, maxdelta, minsize):
+            yield dict(
+                    mmsi = track['mmsi'],
+                    time = track['time'][rng],
+                    static = track['static'],
+                    dynamic = track['dynamic'],
+                    **{k:track[k] for k in track['static']},
+                    **{k:track[k][rng] for k in track['dynamic']},
+                )
 
 
 def filtermask(track, rng, filters, first_val=False):

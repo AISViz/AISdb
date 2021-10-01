@@ -110,7 +110,7 @@ with import_handler() as importconfigs:
 
     from .merge_data import merge_layers
 
-    from .network_graph import graph as network_graph
+    from .network_graph import graph
 
     from .proc_util import (
             fast_unzip,

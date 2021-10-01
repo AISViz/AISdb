@@ -1,10 +1,12 @@
 import os
 import zipfile
 
-from common import *
 import requests
 from tqdm import tqdm
 import rasterio
+import numpy as np
+
+from common import *
 
 
 class Gebco():
@@ -55,6 +57,7 @@ class Gebco():
 
 
     def getdepth(self, lon, lat):
+        ''' get grid cell elevation value for given coordinate. negative values are below sealevel '''
         for filepath, bounds in self.rasterfiles.items():
             if bounds['w'] <= lon <=  bounds['e'] and bounds['s'] <= lat <= bounds['n']: 
                 if not 'band1' in bounds.keys(): 
@@ -63,4 +66,24 @@ class Gebco():
                 ixlon, ixlat = bounds['dataset'].index(lon, lat)
                 return bounds['band1'][ixlon-1,ixlat-1]
 
+
+    def getdepth_cellborders_nonnegative_avg(self, lon, lat):
+        ''' get the average depth of surrounding grid cells from the given coordinate
+            the absolute value of depths below sea level will be averaged 
+        ''' 
+
+        for filepath, bounds in self.rasterfiles.items():
+            if bounds['w'] <= lon <=  bounds['e'] and bounds['s'] <= lat <= bounds['n']: 
+                if not 'band1' in bounds.keys(): 
+                    bounds.update({'dataset': rasterio.open(os.path.join(data_dir, filepath))})
+                    bounds.update({'band1': bounds['dataset'].read(1)})
+
+                ixlon, ixlat = bounds['dataset'].index(lon, lat)
+                depths = np.array([ bounds['band1'][xlon-1,xlat-1] for xlon in range(ixlon-1, ixlon+2) for xlat in range(ixlat-1, ixlat+2) if not (xlon==ixlon and xlat==ixlat)])
+                mask = depths < 0
+
+                if sum(mask) == 0: 
+                    return 0
+
+                return np.average(depths[mask] * -1)
 

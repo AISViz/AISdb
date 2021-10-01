@@ -22,6 +22,7 @@ setup(name='ais',
           'packaging', 
           'selenium', 
           'tqdm',
+          'scikit-learn',
         ],
      )
 
