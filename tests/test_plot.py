@@ -13,6 +13,8 @@ from shapely.geometry import Polygon, LineString, MultiPoint
 from database import *
 from gis import *
 from track_viz import TrackViz
+from track_gen import segment_tracks_timesplits
+from clustering import *
 
 
 shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
@@ -45,7 +47,7 @@ def test_plot_matches_mmsi():
     identifiers = []
     trackfeatures = []
     ptfeatures = []
-    for track in trackgen(rows):
+    for track in trackgen([rows]):
         rng = range(0, len(track['lon']))
         mask = filtermask(track, rng, filters=filters, first_val=track['lon'][rng][0] > -180)
         print(f'{track["mmsi"]} {rng=}:\tfiltered ', len(rng) - sum(mask),'/', len(rng))
@@ -64,6 +66,7 @@ def test_plot_matches_mmsi():
     
 
 def test_plot_domain():
+
     for txt, geom in list(domain.geoms.items()):
         viz.add_feature_polyline(geom.geometry, ident=txt, opacity=0.3, color=(200, 200, 200))
 
@@ -113,7 +116,7 @@ def test_plot_smallboundary():
     identifiers = []
     trackfeatures = []
     ptfeatures = []
-    for track in trackgen(rows, ):#colnames=['mmsi', 'time', 'lon', 'lat', 'cog', 'sog']):
+    for track in trackgen([rows], ):#colnames=['mmsi', 'time', 'lon', 'lat', 'cog', 'sog']):
         rng = range(0, len(track['lon']))
         mask = filtermask(track, rng, filters)
         if track['lon'][rng][0] <= -180: mask[0] = False
@@ -142,6 +145,31 @@ def test_plot_smallboundary():
     rows[rows[:,0] == 316002048]
     '''
 
+def test_coverage_aishub():
+    '''
+
+    '''
+    viz = TrackViz()
+
+    start = datetime.now() - timedelta(hours=48)
+    end = datetime.now()
+    rowgen = qrygen(
+            #xy = merge(canvaspoly.boundary.coords.xy),
+            start   = start,
+            end     = end,
+        ).gen_qry(callback=rtree_in_timerange_validmmsi, qryfcn=leftjoin_dynamic_static, dbpath=dbpath) 
+    #merged = merge_layers(rowgen)
+    merged = trackgen(rowgen)
+    timesplits = segment_tracks_timesplits(merged, maxdelta=timedelta(hours=2))
+    #timesplits = segment_tracks_timesplits((next(trackgen(r) for r in rowgen)), maxdelta=timedelta(hours=2))
+
+    #for cluster in (next(trackgen(r)) for r in rowgen):
+    for cluster in segment_tracks_dbscan(timesplits, max_cluster_dist_km=1):
+        if len(cluster['time']) <= 1: continue
+        linegeom = LineString(zip(cluster['lon'], cluster['lat']))
+        viz.add_feature_polyline(linegeom, ident=cluster['mmsi'])
+
+    viz.clear_lines()
 
 def test_cluster_stopped():
     import hdbscan
@@ -172,7 +200,7 @@ def test_cluster_stopped():
     # generate track lines
     cluster_x = []
     cluster_y = []
-    for track in trackgen(rows, ):#colnames=['mmsi', 'time', 'lon', 'lat', 'cog', 'sog']):
+    for track in trackgen([rows], ):#colnames=['mmsi', 'time', 'lon', 'lat', 'cog', 'sog']):
         rng = range(0, len(track['lon']))
         mask = filtermask(track, rng, filters)
         if track['lon'][rng][0] <= -180: mask[0] = False
@@ -254,7 +282,8 @@ filters = [
 identifiers = []
 trackfeatures = []
 ptfeatures = []
-for track in trackgen(rows, ):#colnames=['mmsi', 'time', 'lon', 'lat', 'cog', 'sog']):
+
+for track in merged :
     rng = range(0, len(track['lon']))
     mask = filtermask(track, rng, filters)
     if track['lon'][rng][0] <= -180: mask[0] = False
@@ -280,7 +309,7 @@ for ft, ident in zip(trackfeatures, identifiers):
     ident=identifiers[i]
     viz.add_feature_polyline(ft, ident)
 
-for track in trackgen(rows):#, colnames=colnames):
+for track in trackgen([rows]):#, colnames=colnames):
     #if track['mmsi'] == 316001312:
     if track['mmsi'] == 316002048:
         break
