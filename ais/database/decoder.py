@@ -33,7 +33,7 @@ def is_valid_date(year, month, day, hour=0, minute=0, second=0, **_):
             and 0 <= second <= 59)
 
 
-def dt_2_epoch(dt_arr, t0=datetime(2000,1,1,0,0,0)):
+def dt_2_epoch(dt_arr, t0=datetime(1970,1,1,0,0,0)):
     ''' convert datetime.datetime to epoch minutes '''
     delta = lambda dt: (dt - t0).total_seconds() // 60
     if isinstance(dt_arr, (list, np.ndarray)): return np.array(list(map(int, map(delta, dt_arr))))
@@ -41,7 +41,7 @@ def dt_2_epoch(dt_arr, t0=datetime(2000,1,1,0,0,0)):
     else: raise ValueError('input must be datetime or array of datetimes')
 
 
-def epoch_2_dt(ep_arr, t0=datetime(2000,1,1,0,0,0), unit='minutes'):
+def epoch_2_dt(ep_arr, t0=datetime(1970,1,1,0,0,0), unit='minutes'):
     ''' convert epoch minutes to datetime.datetime '''
     delta = lambda ep, unit: t0 + timedelta(**{f'{unit}' : ep})
     if isinstance(ep_arr, (list, np.ndarray)): return np.array(list(map(partial(delta, unit=unit), ep_arr)))
@@ -285,6 +285,16 @@ def decode_msgs(filepaths, dbpath, processes=12):
             None
     '''
 
+    # skip filepaths which were already inserted into the database
+    dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
+    with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
+        for i in range(len(filepaths)-1, -1, -1):
+            if dbindex.serialized(seed=os.path.abspath(filepaths[i])): 
+                skipfile = filepaths.pop(i)
+                logging.debug(f'skipping {skipfile}')
+            else:
+                logging.debug(f'preparing {filepaths[i]}')
+
     # create temporary directory for parsed data
     if not os.path.isdir(tmp_dir): 
         os.mkdir(tmp_dir)
@@ -346,6 +356,11 @@ def decode_msgs(filepaths, dbpath, processes=12):
         os.remove(os.path.join(tmp_dir, picklefile))
 
     conn.close()
+
+    with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
+        for fpath in filepaths:
+            dbindex.insert_hash(seed=os.path.abspath(fpath))
+
     # aggregate and index static reports: msg5, msg24
     aggregate_static_msg5_msg24(dbpath, months_str)
 
