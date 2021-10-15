@@ -10,13 +10,15 @@ from common import rawdata_dir
 unix_origin = datetime(1970, 1, 1)
 
 
-class _AISMessageStream():
+class _AISMessageStreamReader():
+    ''' read binary AIS message stream from TCP socket and log messages to rawdata_dir '''
 
     def __init__(self):
         self.enabled = True
         self.s = None
 
     def __enter__(self):
+        # TODO: read host address and port number from config file
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(('data.aishub.net', 5185))
 
@@ -34,6 +36,9 @@ class _AISMessageStream():
                 os.rename(msgfile, msgfile[:-4])
                 msgfile = tmpfilepath()
 
+            # TODO: preserve last portion of first and first portion of last 
+            # messages from s.recv() call, attempt to reassemble messages from 
+            # in between calls
             with open(msgfile, 'ab') as nm4:
                 epoch = str(int((datetime.utcnow() - unix_origin).total_seconds()))
                 prefix = b'\\c:' + bytes(epoch, encoding='utf-8') + b',\\'
@@ -50,6 +55,7 @@ class _AISMessageStream():
 
 
 class _AISDatabaseBuilder():
+    ''' periodically check the rawdata_dir folder for new .nm4 files, and add them to the database '''
 
     def __init__(self, dbpath=dbpath, processes=0):
         self.dbpath = dbpath
@@ -66,11 +72,12 @@ class _AISDatabaseBuilder():
             time.sleep(10)
 
 
-class AISMessageStream():
+class MessageLogger():
+    ''' extends upon _AISMessageStreamReader() and _AISDatabaseBuilder() to run them in separate threads in parallel '''
 
     def run(self, dbpath=dbpath, processes=0):
         try:
-            self.msgtarget = _AISMessageStream()
+            self.msgtarget = _AISMessageStreamReader()
             self.msgthread = threading.Thread(target=self.msgtarget, name='AIS_messages_thread')
             self.msgthread.start()
 
@@ -100,7 +107,7 @@ class AISMessageStream():
 
 
 '''
-agent = AISMessageStream()
+agent = MessageLogger()
 agent.run(processes=6)
 
 agent.stop()
