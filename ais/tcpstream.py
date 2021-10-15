@@ -77,6 +77,12 @@ class AISMessageStream():
             self.buildtarget = _AISDatabaseBuilder(dbpath, processes)
             self.dbthread = threading.Thread(target=self.buildtarget, name='database_thread')
             self.dbthread.start()
+
+            # this will cause program to block until database operations complete
+            while input('type "stop" to terminate message logging\n') != 'stop':
+                pass
+            self.stop()
+
         except KeyboardInterrupt as err:
             print('caught KeyboardInterrupt, shutting down gracefully... press again to force shutdown')
             self.stop()
@@ -87,7 +93,7 @@ class AISMessageStream():
         self.msgtarget.enabled = False
         self.dbthread.enabled = False
 
-        print('stopping message logs... please wait for database operations to finish')
+        print('stopping message logging... please wait for database operations to finish')
 
         self.msgthread.join()
         self.dbthread.join()
