@@ -295,6 +295,9 @@ def decode_msgs(filepaths, dbpath, processes=12):
             else:
                 logging.debug(f'preparing {filepaths[i]}')
 
+    if len(filepaths) == 0: 
+        return
+
     # create temporary directory for parsed data
     if not os.path.isdir(tmp_dir): 
         os.mkdir(tmp_dir)
