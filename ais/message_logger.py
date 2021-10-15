@@ -98,7 +98,7 @@ class MessageLogger():
 
     def stop(self):
         self.msgtarget.enabled = False
-        self.dbthread.enabled = False
+        self.buildtarget.enabled = False
 
         print('stopping message logging... please wait for database operations to finish')
 
