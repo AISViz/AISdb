@@ -6,11 +6,6 @@ import time
 
 from common import rawdata_dir
 
-'''
-\c:1516593316,C:625,s:Q-HavreStPierre*7A\!AIVDM,1,1,9,B,14eIOF0000sO9a8Lgm6Ew:6P1TKL,0*1C
-splitmsg    = lambda rawmsg: rawmsg.split('\\')
-parsetime   = lambda comment: dt_2_epoch(datetime.fromtimestamp(int(comment.split('c:')[1].split(',')[0].split('*')[0])))
-'''
 
 unix_origin = datetime(1970, 1, 1)
 
@@ -103,10 +98,4 @@ agent = AISMessageStream()
 agent.run(processes=6)
 
 agent.stop()
-
-
-filepaths = sorted([os.path.join(rawdata_dir, f) for f in os.listdir(rawdata_dir) if '.nm4' in f])
-filepaths=filepaths[-1:]
-
-decode_msgs(filepaths, dbpath=dbpath, processes=0)
 '''
