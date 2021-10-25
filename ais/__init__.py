@@ -14,6 +14,9 @@ tmp_dir = os.path.join(data_dir, 'tmp_parsing') + os.path.sep
 zones_dir = os.path.join(data_dir, 'zones') + os.path.sep 
 rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
 
+host_addr = 'localhost'
+host_port = 9999
+
 printdefault = lambda names, vals, quote='': '\n'.join([f'{n} = {quote}{v}{quote}' for n, v in zip(names, vals)])
 
 if os.path.isfile(cfgfile):
@@ -32,8 +35,11 @@ if os.path.isfile(cfgfile):
 
     streamcfg = dict(cfg['STREAM'])
 
-    host_addr = streamcfg['host_addr']      if 'host_addr'   in streamcfg.keys() else 'localhost'
-    host_port = streamcfg['host_port']      if 'host_port'   in streamcfg.keys() else '9999'
+    host_addr = streamcfg['host_addr']      if 'host_addr'   in streamcfg.keys() else host_addr
+    host_port = streamcfg['host_port']      if 'host_port'   in streamcfg.keys() else host_port
+
+    assert host_port.isnumeric(), 'host_port must be an integer value'
+    host_port = int(host_port)
 
 else:
     print(f'''no config file found, applying default configs:\n\n{
