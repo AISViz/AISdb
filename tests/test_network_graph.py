@@ -76,14 +76,14 @@ def test_network_graph():
         kwargs = {}
         parallel=12
 
-        track_merged = next(trackgen(next(merged), colnames))
+        track_merged = next(trackgen(merged, colnames))
 
-        track_merged = next(trackgen(merged[0], colnames))
+        track_merged = next(trackgen([merged[0]], colnames))
 
 
-        track_merged = next(trackgen(next(merged), colnames))
+        track_merged = next(trackgen(merged, colnames))
         while track_merged['mmsi'] < 262006976:
-            track_merged = next(trackgen(next(merged), colnames))
+            track_merged = next(trackgen(merged, colnames))
 
 
         aisdb.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
@@ -95,7 +95,7 @@ def test_network_graph():
 
         for rows in merged:
             if len(np.unique(rows[:,1])) != len(rows[:,1]): break
-        track = next(trackgen(rows))
+        # track = next(trackgen(rows))
 
     '''
 
@@ -155,7 +155,7 @@ if False:  # testing
     # step into loops
     track = tracks[0]
 
-    gen = trackgen(rows, colnames=colnames[0:rows.shape[1]])
+    gen = trackgen([rows], colnames=colnames[0:rows.shape[1]])
     for track in gen:
 
     gen = trackgen(merged, colnames=colnames[0:merged.shape[1]])

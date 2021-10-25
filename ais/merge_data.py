@@ -74,6 +74,7 @@ def merge_layers(rowgen):
 
             #yield np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
             merged_rows = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth, bordercellsdepth)).T))
+            #merged_rows = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
 
-            yield next(trackgen(merged_rows, colnames=colnames))
+            yield trackgen(merged_rows, colnames=colnames)
 

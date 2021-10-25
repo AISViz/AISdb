@@ -45,7 +45,7 @@ def explode_month(kwargs, csvfile, keepraw=True):
     '''
     qrows_month, res, mstr, cols = kwargs['qrows_month'], kwargs['res'], kwargs['mstr'], kwargs['cols']
     print(f'exploding rowdata from {mstr}...')
-    tracks = { t['mmsi'] : t for t in trackgen(res) }
+    tracks = { t['mmsi'] : t for t in trackgen([res]) }
 
     raw = np.ndarray(shape=(0, len(cols['keepcols']) + 8), dtype=object)
     out = np.ndarray(shape=(0, len(cols['keepcols']) + 9), dtype=object)

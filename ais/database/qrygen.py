@@ -109,7 +109,7 @@ class qrygen(UserDict):
     #    return aisdb.cur.fetchall()
 
 
-    def run_qry(self, callback, qryfcn):
+    def run_qry(self, callback, qryfcn, dbpath=dbpath):
         ''' generates an query using self.crawl(), runs it, then returns the resulting rows '''
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
@@ -134,7 +134,7 @@ class qrygen(UserDict):
                 aisdb.conn.close()
         '''
 
-    def gen_qry(self, callback, qryfcn):
+    def gen_qry(self, callback, qryfcn, dbpath=dbpath):
         ''' similar to run_qry, but in a generator format for better memory performance. 
             
             yields:
