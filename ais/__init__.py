@@ -19,7 +19,8 @@ printdefault = lambda names, vals, quote='': '\n'.join([f'{n} = {quote}{v}{quote
 if os.path.isfile(cfgfile):
     cfg = configparser.ConfigParser()
     with open(cfgfile, 'r') as f:
-        cfg.read_string('[DEFAULT]\n' + f.read())
+        #cfg.read_string('[DEFAULT]\n' + f.read())
+        cfg.read_string(f.read())
 
     settings = dict(cfg['DEFAULT'])
 
@@ -27,7 +28,12 @@ if os.path.isfile(cfgfile):
     data_dir = settings['data_dir']         if 'data_dir'    in settings.keys() else data_dir
     tmp_dir = settings['tmp_dir']           if 'tmp_dir'     in settings.keys() else tmp_dir
     zones_dir = settings['zones_dir']       if 'zones_dir'   in settings.keys() else zones_dir
-    rawdata_dir = settings['rawdata_dir']   if 'rawdata_dir' in settings.keys() else zones_dir
+    rawdata_dir = settings['rawdata_dir']   if 'rawdata_dir' in settings.keys() else rawdata_dir
+
+    streamcfg = dict(cfg['STREAM'])
+
+    host_addr = streamcfg['host_addr']      if 'host_addr'   in streamcfg.keys() else 'localhost'
+    host_port = streamcfg['host_port']      if 'host_port'   in streamcfg.keys() else '9999'
 
 else:
     print(f'''no config file found, applying default configs:\n\n{
@@ -46,8 +52,8 @@ class import_handler():
 
     def __enter__(self):
         common = printdefault(
-                names=['dbpath', 'data_dir', 'tmp_dir', 'zones_dir', 'rawdata_dir'], 
-                vals=[  dbpath,   data_dir,   tmp_dir,   zones_dir,   rawdata_dir],
+                names=['dbpath', 'data_dir', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'host_addr', 'host_port'], 
+                vals=[  dbpath,   data_dir,   tmp_dir,   zones_dir,   rawdata_dir,   host_addr,   host_port ],
                 quote="'",    
               )
         for fpath in self.commonpaths:

@@ -4,7 +4,7 @@ import threading
 from datetime import datetime
 import time
 
-from common import rawdata_dir
+from common import rawdata_dir, host_addr, host_port
 
 
 unix_origin = datetime(1970, 1, 1)
@@ -20,7 +20,7 @@ class _AISMessageStreamReader():
     def __enter__(self):
         # TODO: read host address and port number from config file
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect(('data.aishub.net', 5185))
+        self.s.connect((host_addr, host_port))
 
     def __call__(self):
 
