@@ -87,7 +87,7 @@ class index():
         assert not self.inmemory, 'feature not yet implemented'  
         return self
 
-    def __call__(self, *, callback,  **passkwargs):  # https://docs.python.org/3/whatsnew/3.8.html
+    def __call__(self, *, callback,  **passkwargs):
         return list(self.__call_generator__(callback=callback, **passkwargs))
 
     def __call_generator__(self, *, callback, **passkwargs):

@@ -79,7 +79,7 @@ class Gebco():
                     bounds.update({'band1': bounds['dataset'].read(1)})
 
                 ixlon, ixlat = bounds['dataset'].index(lon, lat)
-                depths = np.array([ bounds['band1'][xlon-1,xlat-1] for xlon in range(ixlon-1, ixlon+2) for xlat in range(ixlat-1, ixlat+2) if not (xlon==ixlon and xlat==ixlat)])
+                depths = np.array([ bounds['band1'][xlon-1,xlat-1] for xlon in range(ixlon-1, np.min(21600, ixlon+2)) for xlat in range(ixlat-1, ixlat+2) if not (xlon==ixlon and xlat==ixlat)])
                 mask = depths < 0
 
                 if sum(mask) == 0: 

@@ -7,7 +7,8 @@ from database import epoch_2_dt
 import numpy as np
 
 def trackgen(
-        rows: np.ndarray,
+        #rows: np.ndarray,
+        rowgen: iter, 
         colnames: list = [
             'mmsi', 'time', 'lon', 'lat',
             'cog', 'sog', 'msgtype',
@@ -26,32 +27,34 @@ def trackgen(
     mmsi_col = [i for i,c in zip(range(len(colnames)), colnames) if c.lower() == 'mmsi'][0]
     time_col = [i for i,c in zip(range(len(colnames)), colnames) if c.lower() == 'time'][0]
 
-    if deduplicate_timestamps:
-        dupe_idx = np.nonzero(rows[:,time_col].astype(int)[:-1] == rows[:,time_col].astype(int)[1:])[0] +1
-        rows = np.delete(rows, dupe_idx, axis=0)
-        
-    staticcols = set(colnames) & set([
-        'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'dim_stern', 
-        'dim_port', 'dim_star', 'mother_ship_mmsi', 'part_number', 'vendor_id',
-        'model', 'serial', 'imo', 'deadweight_tonnage', 'submerged_hull_m^2',
-    ])
+    for rows in rowgen:
 
-    dynamiccols = set(colnames) - staticcols - set(['mmsi', 'time'])
+        if deduplicate_timestamps:
+            dupe_idx = np.nonzero(rows[:,time_col].astype(int)[:-1] == rows[:,time_col].astype(int)[1:])[0] +1
+            rows = np.delete(rows, dupe_idx, axis=0)
+            
+        staticcols = set(colnames) & set([
+            'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'dim_stern', 
+            'dim_port', 'dim_star', 'mother_ship_mmsi', 'part_number', 'vendor_id',
+            'model', 'serial', 'imo', 'deadweight_tonnage', 'submerged_hull_m^2',
+        ])
 
-    tracks_idx = np.append(np.append([0], np.nonzero(rows[:,mmsi_col].astype(int)[1:] != rows[:,mmsi_col].astype(int)[:-1])[0]+1), len(rows))
+        dynamiccols = set(colnames) - staticcols - set(['mmsi', 'time'])
 
-    for i in range(len(tracks_idx)-1): 
-        #assert len(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]) == len(np.unique(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]))
-        yield dict(
-            mmsi    =   int(rows[tracks_idx[i]][0]),
-            time    =   rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
-            static  =   staticcols,
-            dynamic =   dynamiccols,
-            **{ n   :   (rows[tracks_idx[i]][c] or 0) 
-                    for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in staticcols},
-            **{ n   :   rows[tracks_idx[i]:tracks_idx[i+1]].T[c] 
-                    for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in dynamiccols},
-        )
+        tracks_idx = np.append(np.append([0], np.nonzero(rows[:,mmsi_col].astype(int)[1:] != rows[:,mmsi_col].astype(int)[:-1])[0]+1), len(rows))
+
+        for i in range(len(tracks_idx)-1): 
+            #assert len(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]) == len(np.unique(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]))
+            yield dict(
+                mmsi    =   int(rows[tracks_idx[i]][0]),
+                time    =   rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
+                static  =   staticcols,
+                dynamic =   dynamiccols,
+                **{ n   :   (rows[tracks_idx[i]][c] or 0) 
+                        for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in staticcols},
+                **{ n   :   rows[tracks_idx[i]:tracks_idx[i+1]].T[c] 
+                        for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in dynamiccols},
+            )
 
 
 #def segment(track: dict, maxdelta: timedelta, minsize: int) -> filter:
