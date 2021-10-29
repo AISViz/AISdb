@@ -35,13 +35,18 @@ if os.path.isfile(cfgfile):
     zones_dir = settings['zones_dir']       if 'zones_dir'   in settings.keys() else zones_dir
     rawdata_dir = settings['rawdata_dir']   if 'rawdata_dir' in settings.keys() else rawdata_dir
 
-    streamcfg = dict(cfg['STREAM'])
+    try:
+        streamcfg = dict(cfg['STREAM'])
+    except KeyError as err:
+        print('warning: couldn\'t find [STREAM] configs in config file, defaulting to localhost:9999')
+        streamcfg = {}
 
     host_addr = streamcfg['host_addr']      if 'host_addr'   in streamcfg.keys() else host_addr
     host_port = streamcfg['host_port']      if 'host_port'   in streamcfg.keys() else host_port
 
-    assert host_port.isnumeric(), 'host_port must be an integer value'
-    host_port = int(host_port)
+    if isinstance(host_port, str):
+        assert host_port.isnumeric(), 'host_port must be an integer value'
+        host_port = int(host_port)
 
 else:
     print(f'''no config file found, applying default configs:\n\n{
