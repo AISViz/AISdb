@@ -21,9 +21,11 @@ printdefault = lambda names, vals, quote='': '\n'.join([f'{n} = {quote}{v}{quote
 
 if os.path.isfile(cfgfile):
     cfg = configparser.ConfigParser()
-    with open(cfgfile, 'r') as f:
-        #cfg.read_string('[DEFAULT]\n' + f.read())
-        cfg.read_string(f.read())
+    try:
+        cfg.read(cfgfile)
+    except configparser.Error as err:
+        print(f'could not read the configuration file!\n')#{err.message}\n')
+        raise err.with_traceback(None)
 
     settings = dict(cfg['DEFAULT'])
 
