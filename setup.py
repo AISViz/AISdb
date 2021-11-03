@@ -12,6 +12,10 @@ setup(name='ais',
           'ais', 'ais.database', 'ais.webdata', 
         ],
       #packages=find_packages(exclude=['tests', 'docs', 'output', '__pycache__', 'tonnage.db']),
+      setup_requires=[
+          #'setuptools',
+          'wheel',
+        ],
       install_requires=[
           'numpy',
           'pysqlite3-binary', 

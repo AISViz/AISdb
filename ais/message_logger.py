@@ -87,7 +87,7 @@ class MessageLogger():
 
             # this will cause program to block until database operations complete
             while input('type "stop" to terminate message logging\n') != 'stop':
-                pass
+                print(end='', flush=True)
             self.stop()
 
         except KeyboardInterrupt as err:

@@ -1,5 +1,7 @@
 import os
 
+from common import dbpath
+
 
 def create_table_coarsetype(cur):
     ''' create a table to describe integer vessel type as a human-readable string
@@ -63,7 +65,7 @@ class dbconn():
                 either 'sqlite3' or 'postgres' depending on which was used
     '''
 
-    def __init__(self, dbpath=None, postgres=False, timeout=5):
+    def __init__(self, dbpath=dbpath, postgres=False, timeout=5):
         if postgres or os.environ.get('POSTGRESDB'):
             import psycopg2 
             import psycopg2.extras
@@ -97,20 +99,21 @@ class dbconn():
                 #newdb = not os.path.isfile(dbpath)
                 self.conn = sqlite3.connect(dbpath, timeout=timeout, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
                 self.cur = self.conn.cursor()
-                #self.cur.execute('PRAGMA journal_mode=WAL')
-                #j = self.cur.fetchall()
-                #assert j == [('wal',)], f'journal mode: {j}'
-                #self.conn.commit()
+                self.cur.execute('PRAGMA journal_mode=WAL')
+                j = self.cur.fetchall()
+                assert j == [('wal',)], f'journal mode: {j}'
+                self.conn.commit()
 
-                #self.conn.enable_load_extension(True)
-                #self.cur.execute('SELECT load_extension("mod_spatialite.so")')
+                self.conn.execute('PRAGMA synchronous=0')
+                self.conn.execute('PRAGMA threads=8')
+                self.conn.execute('PRAGMA temp_store=2')
+                self.conn.execute('PRAGMA page_size=8192')
+                self.conn.execute('PRAGMA cache_size=-10000')
+                self.conn.commit()
+
                 self.cur.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="coarsetype_ref";')
                 if not self.cur.fetchall():
                     create_table_coarsetype(self.cur)
                 #    self.cur.execute('SELECT InitSpatialMetaDataFull(1)')
                 self.conn.commit()
-                #self.cur.execute('PRAGMA page_size=8192')
-                #self.cur.execute('PRAGMA temp_store=2')
-                #self.cur.execute('PRAGMA cache_size=10000')
-                #self.cur.execute('PRAGMA synchronous=0')
 

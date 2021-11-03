@@ -1,6 +1,13 @@
+<img src="https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/tests/output/scriptoutput.png" alt="ais tracks - one month in the canadian atlantic" width="900"/>
+
+## Description  
 Functions and utilities for the purpose of decoding, storing, processing, and visualizing AIS data. 
 
-<img src="https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/tests/output/scriptoutput.png" alt="ais tracks - one month in the canadian atlantic" width="900"/>
+
+## What is AIS?
+Wikipedia: https://en.wikipedia.org/wiki/Automatic_identification_system  
+Description of protocol and AIS message types: https://gpsd.gitlab.io/gpsd/AIVDM.html  
+
 
 ## Install
 
@@ -32,25 +39,25 @@ host_port = 9999
 
 ## Getting started: code examples
 
-#### [Parsing raw NMEA messages into a database](examples/example01_create_db_from_rawmsgs.py)
+1. [Parsing raw NMEA messages into a database](examples/example01_create_db_from_rawmsgs.py)
 
-#### [Automatically generate SQL database queries](examples/example02_query_the_database.py)
+2. [Automatically generate SQL database queries](examples/example02_query_the_database.py)
 
-#### Compute vessel trajectories
+3. Compute vessel trajectories  
   TODO: add documentation
 
-#### Merging data from additional sources
+4. Merging data from additional sources  
   TODO: add documentation
 
-#### Scraping the web for vessel metadata
+5. Scraping the web for vessel metadata  
   TODO: add documentation
 
-#### [Compute network graph of vessel movements between polygons](examples/example04_network_graph.py)
+6. [Compute network graph of vessel movements between polygons](examples/example04_network_graph.py)
 
-#### Render visualizations
+7. Render visualizations  
   TODO: add documentation
 
 ## Collecting AIS Data
 
-#### [Setting up an AIS radio station, and exchanging data with other networks](docs/AIS_base_station.md)
+1. [Setting up an AIS radio station, and exchanging data with other networks](docs/AIS_base_station.md)
 

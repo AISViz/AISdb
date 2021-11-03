@@ -10,6 +10,11 @@ from gis import *
 from track_gen import *
 
 
+shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
+zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]}
+domain = Domain('east', zonegeoms)
+
+
 #canvaspoly = viz.poly_from_coords()  # select map coordinates with the cursor
 canvaspoly = shapely.wkt.loads( 'POLYGON ((-61.51747881355931 46.25069648888631, -62.00013241525424 46.13520233725761, -62.19676906779659 45.77895246569407, -61.8452065677966 45.27803122330256, -61.56514830508475 45.10586058602501, -60.99907309322032 45.05537064981205, -60.71305614406779 45.20670660550304, -60.46875 45.56660601402942, -60.85010593220338 45.86615507310925, -61.13016419491525 45.92006919377324, -61.51747881355931 46.25069648888631))')
 
@@ -28,7 +33,7 @@ def test_query_smallboundary_statictables():
     rows = qrygen(
             start=start,
             end=end,
-        ).run_qry(dbpath=dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=static) 
+        ).run_qry(dbpath=dbpath, callback=rtree_in_bbox_time_validmmsi, qryfcn=static) 
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
 
@@ -39,19 +44,20 @@ def test_query_smallboundary_dynamictables():
     end     = datetime(2018,6,2)
 
     # dynamic: msg 123 union 18
-    dt = datetime.now()
     rows = qrygen(
-            xy = merge(canvaspoly.boundary.coords.xy),
+            #xy = merge(canvaspoly.boundary.coords.xy),
             start=start,
             end=end,
-            xmin    = min(poly_xy[0]), 
-            xmax    = max(poly_xy[0]), 
-            ymin    = min(poly_xy[1]), 
-            ymax    = max(poly_xy[1]),
-        ).run_qry(dbpath=dbpath, callback=rtree_in_bbox_time_mmsi, qryfcn=rtree_dynamic) 
+            xmin    = domain.minX,
+            xmax    = domain.maxX, 
+            ymin    = domain.minY, 
+            ymax    = domain.maxY,
+        ).gen_qry(dbpath=dbpath, callback=rtree_in_bbox_time_validmmsi, qryfcn=rtree_dynamic) 
+
+    dt = datetime.now()
+    next(rows)
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
-
 
 def test_query_smallboundary_join_static_dynamic_rtree_in_bbox_mmsi_time():
 
@@ -61,7 +67,7 @@ def test_query_smallboundary_join_static_dynamic_rtree_in_bbox_mmsi_time():
 
     dt = datetime.now()
     rows = qrygen(
-            xy = merge(canvaspoly.boundary.coords.xy),
+            #xy = merge(canvaspoly.boundary.coords.xy),
             start   = start,
             end     = end,
             xmin    = min(poly_xy[0]), 
