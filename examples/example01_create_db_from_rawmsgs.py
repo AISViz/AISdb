@@ -1,7 +1,7 @@
 '''
 Some points to note when decoding: 
   - Only position reports (messages 1, 2, 3, 18, 19) and static vessel reports (messages 5, 24) will be kept. All other messages are discarded.
-  - Temporal resolution will be reduced to one message per MMSI per minute. The first occurring message will be kept.
+  - Temporal resolution will be reduced to one message per MMSI per minute to reduce the database size and improve performance. The first occurring message will be kept.
 '''
 
 
