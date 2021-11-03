@@ -50,9 +50,9 @@ def epoch_2_dt(ep_arr, t0=datetime(1970,1,1,0,0,0), unit='minutes'):
 
 
 def insert_msg123(cur, mstr, rows):
-    cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_1_2_3" ')
-    if not cur.fetchall(): 
-        sqlite_create_table_msg123(cur, mstr)
+    #cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_1_2_3" ')
+    #if not cur.fetchall(): 
+    #    sqlite_create_table_msg123(cur, mstr)
     
     tup123 = ((
         float(r['mmsi']), r['epoch'], r['type'], r['lon'], r['lat'], 
@@ -80,9 +80,9 @@ def insert_msg123(cur, mstr, rows):
 
 
 def insert_msg5(cur, mstr, rows):
-    cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_{mstr}_msg_5" ')
-    if not cur.fetchall(): 
-        create_table_msg5(cur, mstr)
+    #cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_{mstr}_msg_5" ')
+    #if not cur.fetchall(): 
+    #    create_table_msg5(cur, mstr)
 
     tup5 = ((
                 r['type'], r['repeat'], int(r['mmsi']), r['ais_version'], r['imo'], r['callsign'], 
@@ -101,9 +101,9 @@ def insert_msg5(cur, mstr, rows):
 
 
 def insert_msg18(cur, mstr, rows):
-    cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_18" ')
-    if not cur.fetchall(): 
-        sqlite_create_table_msg18(cur, mstr)
+    #cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_18" ')
+    #if not cur.fetchall(): 
+    #    sqlite_create_table_msg18(cur, mstr)
 
     tup18 = ((
         int(r['mmsi']), r['epoch'], r['type'], r['lon'], r['lat'], 
@@ -130,9 +130,9 @@ def insert_msg18(cur, mstr, rows):
 
 
 def insert_msg24(cur, mstr, rows):
-    cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_{mstr}_msg_24" ')
-    if not cur.fetchall(): 
-        create_table_msg24(cur, mstr)
+    #cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_{mstr}_msg_24" ')
+    #if not cur.fetchall(): 
+    #    create_table_msg24(cur, mstr)
 
     tup24 = ((
             r['type'], r['repeat'], int(r['mmsi']), r['partno'], 
@@ -188,7 +188,7 @@ def decode_raw_pyais(fpath):
     mstr        = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
     picklefile  = os.path.join(tmp_dir, ''.join(fpath[regexdate.start():regexdate.end()].split('-')))
 
-    if sum( [os.path.isfile(f'{picklefile}_msg{msgtype}') for msgtype in (1,2,3,5,18,24)] ) >= 6: 
+    if sum( [os.path.isfile(f'{picklefile}_msg{msgtype:02}') for msgtype in (1,2,3,5,18,24)] ) >= 6: 
         return
 
     n           = 0
@@ -324,6 +324,16 @@ def decode_msgs(filepaths, dbpath, processes=12):
             'msg24' : insert_msg24,
             #'msg27' : insert_msg123,
         }
+    createfcn = {
+            'msg1' : sqlite_create_table_msg123,
+            #'msg2' : sqlite_create_table_msg123,
+            #'msg3' : sqlite_create_table_msg123,
+            'msg5' : create_table_msg5,
+            'msg18' : sqlite_create_table_msg18,
+            #'msg19' : ,
+            'msg24' : create_table_msg24,
+            #'msg27' : insert_msg123,
+        }
 
     aisdb = dbconn(dbpath=dbpath)
     conn, cur = aisdb.conn, aisdb.cur
@@ -340,6 +350,10 @@ def decode_msgs(filepaths, dbpath, processes=12):
         if msgtype == 'msg11' or msgtype == 'msg27' or msgtype == 'msg19' or msgtype == 'msg4': 
             os.remove(os.path.join(tmp_dir, picklefile))
             continue
+
+        cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_{mstr}_msg_{int(msgtype[3:])}" ')
+        if not cur.fetchall(): 
+            for fcn in createfcn.values(): fcn(cur, mstr)
 
         dt = datetime.now()
 
