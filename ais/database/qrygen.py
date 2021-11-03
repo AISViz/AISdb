@@ -15,6 +15,9 @@ from database.qryfcn import *
 from database.dbconn import dbconn
 
 
+aisdb = dbconn(dbpath)
+
+
 class qrygen(UserDict):
     '''  convert dictionary key:val pairs to SQL query code
 
@@ -114,14 +117,14 @@ class qrygen(UserDict):
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
 
-        aisdb = dbconn(dbpath)
+        #aisdb = dbconn(dbpath)
         aisdb.cur.execute(qry)
         res = aisdb.cur.fetchall()
         aisdb.conn.close()
         return np.array(res) 
         '''
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            aisdb = dbconn(dbpath)
+            #aisdb = dbconn(dbpath)
             future = executor.submit(self.qry_thread, dbpath=dbpath, qry=qry)
             try:
                 res = future.result()
@@ -146,7 +149,7 @@ class qrygen(UserDict):
         print(qry)
 
         # initialize db, run query
-        aisdb = dbconn(dbpath)
+        #aisdb = dbconn(dbpath)
         dt = datetime.now()
         aisdb.cur.execute(qry)
         delta =datetime.now() - dt

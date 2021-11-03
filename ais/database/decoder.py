@@ -343,6 +343,7 @@ def decode_msgs(filepaths, dbpath, processes=12):
 
         dt = datetime.now()
 
+        cur.execute('BEGIN EXCLUSIVE TRANSACTION')
         with open(os.path.join(tmp_dir, picklefile), 'rb') as f:
             while True:
                 try:
@@ -352,6 +353,7 @@ def decode_msgs(filepaths, dbpath, processes=12):
                 except Exception as e:
                     raise e
                 insertfcn[msgtype](cur, mstr, rows)
+        cur.execute('COMMIT TRANSACTION')
         conn.commit()
 
         delta =datetime.now() - dt
