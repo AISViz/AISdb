@@ -22,7 +22,7 @@ rtree_{month}_msg_1_2_3
 rtree_{month}_msg_18
 ```
 
-Static tables are also included for storing data not directly derived from AIS message reports.
+Additional tables are also included for storing data not directly derived from AIS message reports.
 
 ``` SQL
 rtree_polygons 
