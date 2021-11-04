@@ -98,11 +98,6 @@ class dbconn():
             if dbpath is not None:
                 #newdb = not os.path.isfile(dbpath)
                 self.conn = sqlite3.connect(dbpath, timeout=timeout, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
-                self.cur = self.conn.cursor()
-                self.cur.execute('PRAGMA journal_mode=WAL')
-                j = self.cur.fetchall()
-                assert j == [('wal',)], f'journal mode: {j}'
-                self.conn.commit()
 
                 self.conn.execute('PRAGMA synchronous=0')
                 self.conn.execute('PRAGMA threads=8')
@@ -111,9 +106,9 @@ class dbconn():
                 self.conn.execute('PRAGMA cache_size=-10000')
                 self.conn.commit()
 
+                self.cur = self.conn.cursor()
                 self.cur.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="coarsetype_ref";')
                 if not self.cur.fetchall():
                     create_table_coarsetype(self.cur)
-                #    self.cur.execute('SELECT InitSpatialMetaDataFull(1)')
                 self.conn.commit()
 

@@ -32,12 +32,9 @@ def sqlite_create_table_msg123(cur, month):
                 id, 
                 --mmsi integer NOT NULL,
                 mmsi0, mmsi1,
-                --"time" timestamp without time zone NOT NULL,
-                t0, t1,
-                --longitude double precision,
-                x0, x1,
-                --latitude double precision,
-                y0, y1,
+                t0, t1, --timestamp as epoch-minutes 
+                x0, x1, --longitude 
+                y0, y1, --latitude
                 --+millisecond smallint,
                 +msgtype integer,
                 +navigational_status smallint,
