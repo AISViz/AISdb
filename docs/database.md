@@ -1,8 +1,5 @@
 ## SQL Database
 
-<img src="./db_schema.png" alt="schema"/>
-
-
 #### Table Naming
 
 When loading data into the database, messages will be sorted into SQL tables determined by the message type and month. 
@@ -44,3 +41,11 @@ If custom indexes are required for specific manual queries, these should be defi
 
 Timestamps are stored as epoch-minutes in the database.
 For convenience, import the `dt_2_epoch` and `epoch_2_dt` functions for conversion between datetime format when querying the database manually.    
+
+
+#### Schema 
+
+See [create_tables.py](../ais/database/create_tables.py) to see the SQL code used to create the database tables. This is represented approximately in the below diagram
+
+<img src="./db_schema.png" alt="schema"/>
+
