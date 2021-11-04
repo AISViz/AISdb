@@ -2,14 +2,14 @@ import os
 from datetime import timedelta
 from collections import UserDict
 from functools import reduce
+import json
 
 import numpy as np
 import shapely.wkb
 from shapely.ops import unary_union
 from shapely.geometry import Polygon, Point
 
-from database import merge, boxpoly
-from track_gen import trackgen, segment, filtermask, writecsv
+from index import index
 
 
 def haversine(x1, y1, x2, y2):
@@ -86,12 +86,41 @@ class ZoneGeomFromTxt(ZoneGeom):
 
 
 class Domain():
-    def __init__(self, name, geoms):
+    ''' collection of ZoneGeom objects, with additional computed statistics such as zone set boundary coordinates
+
+        args:
+            name: string
+                name to describe collection of ZoneGeom objects
+            geoms: list
+                collection of ZoneGeom objects
+            cache: boolean
+                if True, Domains will be cached as binary in the database. 
+                A hash of Domain.name will be used as the primary key
+
+    '''
+
+    def __init__(self, name=None, geoms=[], cache=True, clearcache=False):
         #self.data = dict(name=name, geoms=geoms)
-        self.name = name
-        self.geoms = geoms
-        self.bounds = unary_union([g.geometry for g in self.geoms.values()])
-        self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
+        if cache: 
+            self.name = name
+            self.geoms = geoms
+
+            with index(bins=False, store=True) as domaincache:
+                if clearcache:
+                    seed = f'{self.init_boundary.__module__}.{self.init_boundary.__name__}:{json.dumps({"name":self.name}, default=str, sort_keys=True)}'
+                    domaincache.drop_hash(seed=seed)
+                self.bounds = domaincache(callback=self.init_boundary, name=self.name)[0]
+
+            self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
+
+        else:
+            self.name = name
+            self.geoms = geoms
+            self.bounds = self.init_boundary(name=name)
+            self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
+
+    def init_boundary(self, name):
+        return unary_union([g.geometry for g in self.geoms.values()])
 
     def nearest_polygons_to_point(self, x, y):
         ''' compute great circle distance for this point to each polygon centroid, 
