@@ -8,30 +8,37 @@ pkgname = 'ais'
 cfgfile = os.path.join(os.path.expanduser('~'), '.config', f'{pkgname}.cfg')
 
 
+# default config values
 data_dir = os.path.join(os.path.expanduser('~'), f'{pkgname}') + os.path.sep
 dbpath = os.path.join(data_dir, f'{pkgname}.db')
 tmp_dir = os.path.join(data_dir, 'tmp_parsing') + os.path.sep 
 zones_dir = os.path.join(data_dir, 'zones') + os.path.sep 
 rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
-
 host_addr = 'localhost'
 host_port = 9999
 
-cfgnames = ['dbpath', 'data_dir', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'host_addr', 'host_port']
+
+# common imports that should be shared with module subdirectories
+commondirs = ['.', 'database', 'webdata']
+cfgnames = ['data_dir', 'dbpath', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'host_addr', 'host_port']
+
 printdefault = lambda cfgnames, quote='': '\n'.join([f'{c} = {quote}{eval(c)}{quote}' for c in cfgnames])
 
 
-
+# read config file
 if os.path.isfile(cfgfile):
-    # read config file
+
     cfg = configparser.ConfigParser()
     try:
         with open(cfgfile, 'r') as f:
             cfg.read_string('[DEFAULT]\n' + f.read())
+        if len(list(cfg.keys())) > 1: 
+            raise KeyError('Error in config file: wrong number of sections')
     except configparser.Error as err:
-        print(f'could not read the configuration file!\n')#{err.message}\n')
+        print(f'could not read the configuration file!\n')
         raise err.with_traceback(None)
     settings = dict(cfg['DEFAULT'])
+
 
     # initialize config settings as variables
     for setting in cfgnames:
@@ -47,6 +54,7 @@ else:
             printdefault(cfgnames)
             }\n\nto remove this warning, copy and paste the above text to {cfgfile} ''')
 
+    # create default dirs if they dont exist
     os.path.isdir(data_dir) or os.mkdir(data_dir)
     os.path.isdir(tmp_dir) or os.mkdir(tmp_dir)
     os.path.isdir(zones_dir) or os.mkdir(zones_dir)
@@ -57,12 +65,10 @@ else:
 class import_handler():
     
     def __init__(self):
-        # common imports that should be shared with module subdirectories
-        self.commonpaths = [os.path.join(os.path.dirname(__file__), dirname, 'common.py') for dirname in ['.', 'database', 'webdata']]
+        self.commonpaths = [os.path.join(os.path.dirname(__file__), dirname, 'common.py') for dirname in commondirs]
 
     def __enter__(self):
         common = printdefault(cfgnames, quote="'")
-
         for fpath in self.commonpaths:
             with open(fpath, 'w') as f:
                 f.write(common)
