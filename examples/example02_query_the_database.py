@@ -20,11 +20,20 @@ qry_bounds = qrygen(
     xmax      = -55.172026729758834,
   )
 
+# to return all rows as an array
 rows = qry_bounds.run_qry(
     dbpath    = dbpath, 
     qryfcn    = leftjoin_dynamic_static,
     callback  = rtree_in_time_bbox_validmmsi, 
   )
+
+# or alternatively, create a row generator yielding arrays of rows per unique MMSI
+rowgen = qry_bounds.gen_qry(
+    dbpath    = dbpath, 
+    qryfcn    = leftjoin_dynamic_static,
+    callback  = rtree_in_time_bbox_validmmsi, 
+  )
+rows = next(rowgen)
 
 '''
 In this example, SQL code will be generated to search for all vessels in the approximate area of the Gulf of St Lawrence between 2021-01-10 and 2021-01-11.
