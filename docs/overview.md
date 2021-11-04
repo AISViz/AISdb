@@ -1,11 +1,3 @@
-## Overview
-A more in-depth description of package components for SQL programmers and package contributors
-
-  
-### Table naming conventions
-  TODO: add documentation  
-
-
 ### Overview of package components
 
 <pre>
