@@ -23,7 +23,7 @@ To enable experimental visualization features, QGIS must also be installed and i
 
 A config file can be used to specify storage location for the database as well as directory paths for where to look for additional data.
 The package will look for configs in the file `$HOME/.config/ais.cfg`, where $HOME is the user's home directory.
-If no config file is found, the following defaults will be used:
+If no config file is found, the following defaults will be used
 ```
 [DEFAULT]
 dbpath = $HOME/ais.db
@@ -39,7 +39,7 @@ host_port = 9999
 
 ## Getting started: code examples
 
-1. [Parsing raw NMEA messages into a database](examples/example01_create_db_from_rawmsgs.py)
+1. [Parsing raw format messages into a database](examples/example01_create_db_from_rawmsgs.py)
 
 2. [Automatically generate SQL database queries](examples/example02_query_the_database.py)
 
@@ -60,4 +60,14 @@ host_port = 9999
 ## Collecting AIS Data
 
 1. [Setting up an AIS radio station, and exchanging data with other networks](docs/AIS_base_station.md)
+
+
+
+## How it Works
+
+Greater detail on package functionality for developers, contributors, and AIS analysts
+
+1. [Summary of package contents](docs/overview.md)
+
+2. [SQL Database Schematics](docs/database.md)
 
