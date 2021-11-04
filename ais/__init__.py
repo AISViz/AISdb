@@ -8,8 +8,8 @@ pkgname = 'ais'
 cfgfile = os.path.join(os.path.expanduser('~'), '.config', f'{pkgname}.cfg')
 
 
-dbpath = os.path.join(os.path.expanduser('~'), f'{pkgname}.db')
 data_dir = os.path.join(os.path.expanduser('~'), f'{pkgname}') + os.path.sep
+dbpath = os.path.join(data_dir, f'{pkgname}.db')
 tmp_dir = os.path.join(data_dir, 'tmp_parsing') + os.path.sep 
 zones_dir = os.path.join(data_dir, 'zones') + os.path.sep 
 rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
@@ -17,43 +17,40 @@ rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
 host_addr = 'localhost'
 host_port = 9999
 
-printdefault = lambda names, vals, quote='': '\n'.join([f'{n} = {quote}{v}{quote}' for n, v in zip(names, vals)])
+cfgnames = ['dbpath', 'data_dir', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'host_addr', 'host_port']
+printdefault = lambda cfgnames, quote='': '\n'.join([f'{c} = {quote}{eval(c)}{quote}' for c in cfgnames])
+
+
 
 if os.path.isfile(cfgfile):
+    # read config file
     cfg = configparser.ConfigParser()
     try:
-        cfg.read(cfgfile)
+        with open(cfgfile, 'r') as f:
+            cfg.read_string('[DEFAULT]\n' + f.read())
     except configparser.Error as err:
         print(f'could not read the configuration file!\n')#{err.message}\n')
         raise err.with_traceback(None)
-
     settings = dict(cfg['DEFAULT'])
 
-    dbpath = settings['dbpath']             if 'dbpath'      in settings.keys() else dbpath
-    data_dir = settings['data_dir']         if 'data_dir'    in settings.keys() else data_dir
-    tmp_dir = settings['tmp_dir']           if 'tmp_dir'     in settings.keys() else tmp_dir
-    zones_dir = settings['zones_dir']       if 'zones_dir'   in settings.keys() else zones_dir
-    rawdata_dir = settings['rawdata_dir']   if 'rawdata_dir' in settings.keys() else rawdata_dir
+    # initialize config settings as variables
+    for setting in cfgnames:
+        exec(f'''{setting} = settings['{setting}'] if {setting} in settings.keys() else {setting}''')
 
-    try:
-        streamcfg = dict(cfg['STREAM'])
-    except KeyError as err:
-        print('warning: couldn\'t find [STREAM] configs in config file, defaulting to localhost:9999')
-        streamcfg = {}
-
-    host_addr = streamcfg['host_addr']      if 'host_addr'   in streamcfg.keys() else host_addr
-    host_port = streamcfg['host_port']      if 'host_port'   in streamcfg.keys() else host_port
-
+    # convert port string to integer
     if isinstance(host_port, str):
-        assert host_port.isnumeric(), 'host_port must be an integer value'
+        assert host_port.isnumeric() and float(host_port) % 1 == 0, 'host_port must be an integer value'
         host_port = int(host_port)
 
 else:
     print(f'''no config file found, applying default configs:\n\n{
-    printdefault(names=['dbpath', 'data_dir', 'tmp_dir', 'zones_dir',  'rawdata_dir'], 
-                 vals=[dbpath, data_dir, tmp_dir, zones_dir,  rawdata_dir])
-    }\n\nto remove this warning, copy and paste the above text to {cfgfile} ''')
+            printdefault(cfgnames)
+            }\n\nto remove this warning, copy and paste the above text to {cfgfile} ''')
 
+    os.path.isdir(data_dir) or os.mkdir(data_dir)
+    os.path.isdir(tmp_dir) or os.mkdir(tmp_dir)
+    os.path.isdir(zones_dir) or os.mkdir(zones_dir)
+    os.path.isdir(rawdata_dir) or os.mkdir(rawdata_dir)
 
 
 
@@ -64,11 +61,8 @@ class import_handler():
         self.commonpaths = [os.path.join(os.path.dirname(__file__), dirname, 'common.py') for dirname in ['.', 'database', 'webdata']]
 
     def __enter__(self):
-        common = printdefault(
-                names=['dbpath', 'data_dir', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'host_addr', 'host_port'], 
-                vals=[  dbpath,   data_dir,   tmp_dir,   zones_dir,   rawdata_dir,   host_addr,   host_port ],
-                quote="'",    
-              )
+        common = printdefault(cfgnames, quote="'")
+
         for fpath in self.commonpaths:
             with open(fpath, 'w') as f:
                 f.write(common)

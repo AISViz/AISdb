@@ -25,14 +25,12 @@ A config file can be used to specify storage location for the database as well a
 The package will look for configs in the file `$HOME/.config/ais.cfg`, where $HOME is the user's home directory.
 If no config file is found, the following defaults will be used
 ```
-[DEFAULT]
 dbpath = $HOME/ais.db
 data_dir = $HOME/ais/             
 zones_dir = $HOME/ais/zones/
 tmp_dir = $HOME/ais/tmp_parsing/
 rawdata_dir = $HOME/ais/rawdata/
 
-[STREAM]
 host_addr = localhost
 host_port = 9999
 ```
