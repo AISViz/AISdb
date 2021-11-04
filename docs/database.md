@@ -10,6 +10,7 @@ ais_{month}_msg_1_2_3
 ais_{month}_msg_18
 ais_{month}_msg_5
 ais_{month}_msg_24
+static_{month}_aggregate
 ```
 
 Virtual tables will also be created from the position reports tables using INSERT triggers.
