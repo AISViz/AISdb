@@ -1,5 +1,8 @@
 from datetime import datetime 
-from ais import dbpath, qrygen, leftjoin_dynamic_static, rtree_in_time_bbox_validmmsi 
+
+from ais import dbpath, qrygen
+from ais.database.qryfcn import leftjoin_dynamic_static
+from ais.database.lambdas import rtree_in_time_bbox_validmmsi
 
 
 '''
