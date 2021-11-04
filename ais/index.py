@@ -117,6 +117,12 @@ class index():
             db = con.cursor()
             db.execute('UPDATE hashmap SET bytes = ? WHERE hash = ?', (pickle.dumps(obj), self.hash_dict(kwargs, seed)))
 
+    def drop_hash(self, kwargs={}, seed=''):
+        logging.debug(f'DROP HASH {self.hash_dict(kwargs, seed)}\nseed = {seed }\nBIN: kwargs = {kwargs}')
+        with sqlite3.connect(self.storage) as con:
+            db = con.cursor()
+            db.execute('DELETE FROM hashmap WHERE hash = ?', (self.hash_dict(kwargs, seed), ))
+
     def serialized(self, kwargs={}, seed=''):
         """ returns binary object or True if hash exists in database, else False """
         with sqlite3.connect(self.storage) as con:
