@@ -21,10 +21,13 @@ rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
 host_addr = 'localhost'
 host_port = 9999
 
-
 # common imports that should be shared with module subdirectories
 commondirs = ['.', 'database', 'webdata']
 cfgnames = ['data_dir', 'dbpath', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'host_addr', 'host_port']
+
+# legacy support
+table_prefix = 'ais_'
+legacy_cfg = ['table_prefix']
 
 printdefault = lambda cfgnames, quote='': '\n'.join([f'{c} = {quote}{eval(c)}{quote}' for c in cfgnames])
 
@@ -42,7 +45,6 @@ if os.path.isfile(cfgfile):
         print(f'could not read the configuration file!\n')
         raise err.with_traceback(None)
     settings = dict(cfg['DEFAULT'])
-
 
     # initialize config settings as variables
     for setting in cfgnames:
@@ -72,7 +74,7 @@ class import_handler():
         self.commonpaths = [os.path.join(os.path.dirname(__file__), dirname, 'common.py') for dirname in commondirs]
 
     def __enter__(self):
-        common = printdefault(cfgnames, quote="'")
+        common = printdefault(cfgnames + legacy_cfg, quote="'")
         for fpath in self.commonpaths:
             with open(fpath, 'w') as f:
                 f.write(common)
