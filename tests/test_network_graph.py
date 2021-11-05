@@ -1,8 +1,10 @@
+from ais import *
+
 from datetime import datetime, timedelta
 
-os.system("taskset -p 0xfff %d" % os.getpid())
-from multiprocessing import set_start_method
-set_start_method('forkserver')
+#os.system("taskset -p 0xfff %d" % os.getpid())
+#from multiprocessing import set_start_method
+#set_start_method('forkserver')
 
 import numpy as np
 import shapely.wkt
@@ -24,11 +26,8 @@ domain = Domain('east', zonegeoms)
 # TODO: hashmap lookup for existing geoms ?? // database integration with Domain class
 
 
-start = datetime(2021, 1, 1)
-end = datetime(2021, 1, 14)
-
-start = datetime(2019,9,1)
-end = datetime(2019,10,1)
+start = datetime(2020,6,1)
+end = datetime(2021,10,1)
 
 
 def test_network_graph():
@@ -42,9 +41,40 @@ def test_network_graph():
             xmax    = domain.maxX, 
             ymin    = domain.minY, 
             ymax    = domain.maxY,
-        ).gen_qry(callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
-
+        #).gen_qry(callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
+        ).gen_qry(callback=rtree_in_validmmsi_bbox, qryfcn=rtree_minified)
     merged = merge_layers(rowgen)
+
+    '''
+
+    test = list(next(merged))
+    geofence(test, domain)
+
+    with open('tests/output/merged_year', 'wb') as f:
+        for row in merged:
+            pickle.dump(row, f)
+        
+    merged = []
+    with open('tests/output/merged_year', 'rb') as f:
+        while True:
+            try:
+                rows = pickle.load(f)
+            except EOFError as e:
+                break
+            merged.append(rows)
+
+    def picklegen(fpath):
+        with open(fpath, 'rb') as f:
+            while True:
+                try:
+                    #rows = pickle.load(f)
+                    yield pickle.load(f)
+                except EOFError as e:
+                    break
+    merged = picklegen('tests/output/merged_year')
+
+    '''
+
 
 
     with open('tests/output/clustertest', 'rb') as f:
@@ -57,7 +87,8 @@ def test_network_graph():
         ]
 
     #with import_handler() as importconfigs:
-    graph(merged, domain, parallel=12, filters=filters)
+    graph(merged, domain, parallel=0, filters=filters)
+    graph(merged, domain, parallel=32, filters=filters)
     
 
     ''' step-through

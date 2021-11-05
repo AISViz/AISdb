@@ -58,6 +58,14 @@ def test_query_smallboundary_dynamictables():
     next(rows)
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
+    '''
+    #with open('tests/output/rowgentest_month', 'wb') as f:
+    #    pickle.dump(list(rows), f)
+
+    with open('tests/output/rowgentest_month', 'rb') as f:
+        rowgen = pickle.load(f)
+
+    '''
 
 def test_query_smallboundary_join_static_dynamic_rtree_in_bbox_mmsi_time():
 
