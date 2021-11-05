@@ -96,16 +96,19 @@ class Domain():
             cache: boolean
                 if True, Domains will be cached as binary in the database. 
                 A hash of Domain.name will be used as the primary key
+            clearcache: boolean
+                if True, the contents of the cache will be cleared before storing
+                new values in the cache
 
     '''
 
     def __init__(self, name=None, geoms=[], cache=True, clearcache=False):
-        #self.data = dict(name=name, geoms=geoms)
+        self.name = name
+        self.geoms = geoms
         if cache: 
-            self.name = name
-            self.geoms = geoms
-
-            with index(bins=False, store=True) as domaincache:
+            # check cache for domain hash
+            dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
+            with index(bins=False, store=True, storagedir=dbdir, filename=dbname) as domaincache:
                 if clearcache:
                     seed = f'{self.init_boundary.__module__}.{self.init_boundary.__name__}:{json.dumps({"name":self.name}, default=str, sort_keys=True)}'
                     domaincache.drop_hash(seed=seed)
@@ -114,8 +117,6 @@ class Domain():
             self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
 
         else:
-            self.name = name
-            self.geoms = geoms
             self.bounds = self.init_boundary(name=name)
             self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
 
