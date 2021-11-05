@@ -110,7 +110,8 @@ class Domain():
             dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
             with index(bins=False, store=True, storagedir=dbdir, filename=dbname) as domaincache:
                 if clearcache:
-                    seed = f'{self.init_boundary.__module__}.{self.init_boundary.__name__}:{json.dumps({"name":self.name}, default=str, sort_keys=True)}'
+                    #seed = f'{self.init_boundary.__module__}.{self.init_boundary.__name__}:{json.dumps({"name":self.name}, default=str, sort_keys=True)}'
+                    seed = domaincache.hash_seed(callback=self.init_boundary, passkwargs={"name":self.name})
                     domaincache.drop_hash(seed=seed)
                 self.bounds = domaincache(callback=self.init_boundary, name=self.name)[0]
 
