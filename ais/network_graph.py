@@ -92,12 +92,12 @@ def geofence(track_merged_nosegments, domain):
         returns: None
     '''
 
-    filepath = os.path.join(tmp_dir, str(track_merged_nosegments['mmsi']).zfill(9))
 
-    with open(filepath, 'ab') as f:
 
-        for track_merged in segment_tracks_dbscan(segment_tracks_timesplits([track_merged_nosegments]), max_cluster_dist_km=50):
+    for track_merged in segment_tracks_dbscan(segment_tracks_timesplits(track_merged_nosegments), max_cluster_dist_km=50):
+        filepath = os.path.join(tmp_dir, str(track_merged['mmsi']).zfill(9))
 
+        with open(filepath, 'ab') as f:
             track_merged['in_zone'] = np.array([domain.point_in_polygon(x, y) for x, y in zip(track_merged['lon'], track_merged['lat'])], dtype=object)
             transits = np.where(track_merged['in_zone'][:-1] != track_merged['in_zone'][1:])[0] +1
 
@@ -161,12 +161,14 @@ def graph(merged, domain, parallel=0, filters=[lambda rowdict: False]):
     else:
         with Pool(processes=parallel) as p:
             fcn = partial(geofence, domain=domain)
-            p.imap_unordered(fcn, merged, chunksize=1)
+            #p.map(fcn, (list(m) for m in merged), chunksize=1)  # better tracebacks for debug
+            p.imap_unordered(fcn, (list(m) for m in merged), chunksize=1)
             p.close()
             p.join()
 
-    picklefiles = [os.path.join(tmp_dir, fname) for fname in sorted(os.listdir(tmp_dir)) if '_' not in fname]
     outputfile = os.path.join(data_dir, 'output.csv')
+    picklefiles = [os.path.join(tmp_dir, fname) for fname in sorted(os.listdir(tmp_dir)) if '_' not in fname]
+    assert len(picklefiles) > 0, 'failed to geofence any data... try running again with parallel=0'
 
     with open(outputfile, 'w') as output:
 
