@@ -72,9 +72,19 @@ def merge_layers(rowgen):
             # seafloor depth from nonnegative border cells
             bordercellsdepth = np.array([bathymetry.getdepth_cellborders_nonnegative_avg(x, y) for x,y in xy])
 
-            #yield np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
             merged_rows = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth, bordercellsdepth)).T))
-            #merged_rows = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
 
-            yield trackgen(merged_rows, colnames=colnames)
+            yield trackgen([merged_rows], colnames=colnames)
+
+            
+            '''
+            # validate the generator is complete
+            try:
+                assert next(gen) == None
+            except StopIteration:
+                pass
+            except Exception as err:
+                raise err
+            '''
+
 
