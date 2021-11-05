@@ -1,8 +1,10 @@
+import os
+import logging
 
-
-import socket
 prefix = 'ais_'
-if socket.gethostname() == 'BIGDATA1': prefix = 'ais_s_'  # legacy database
+if os.environ.get('POSTGRESDB'): 
+    prefix = 'ais_s_'  # legacy database
+    logging.warning('WARNING: using non-standard table name prefix')
 
 msg123union18join5 = lambda month, callback, kwargs: (f'''
 SELECT m123.mmsi, m123.time, m123.longitude, m123.latitude, m123.cog, m123.sog, m5.vessel_name, ref.coarse_type_txt

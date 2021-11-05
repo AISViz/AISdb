@@ -96,7 +96,7 @@ class qrygen(UserDict):
         ''' returns an SQL query to crawl the database 
             query generated using given query function, parameters stored in self, and a callback function 
         '''
-        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 2'
+        return '\nUNION '.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 2'
 
 
     def crawl_unordered(self, callback, qryfcn=msg123union18join5):
@@ -106,18 +106,11 @@ class qrygen(UserDict):
         return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months']))
 
 
-    #def qry_thread(self, dbpath, qry):
-    #    aisdb = dbconn(dbpath)
-    #    aisdb.cur.execute(qry)
-    #    return aisdb.cur.fetchall()
-
-
     def run_qry(self, callback, qryfcn, dbpath=dbpath):
         ''' generates an query using self.crawl(), runs it, then returns the resulting rows '''
         qry = self.crawl(callback=callback, qryfcn=qryfcn)
         print(qry)
 
-        #aisdb = dbconn(dbpath)
         aisdb.cur.execute(qry)
         res = aisdb.cur.fetchall()
         aisdb.conn.close()
@@ -136,6 +129,7 @@ class qrygen(UserDict):
             finally:
                 aisdb.conn.close()
         '''
+
 
     def gen_qry(self, callback, qryfcn, dbpath=dbpath):
         ''' similar to run_qry, but in a generator format for better memory performance. 
@@ -170,7 +164,6 @@ class qrygen(UserDict):
                 mmsi_rows = mmsi_rows[ummsi_idx:]
             res = np.array(aisdb.cur.fetchmany(10**5))
         yield mmsi_rows
-
 
         print('done')
 
