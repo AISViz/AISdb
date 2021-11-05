@@ -5,6 +5,7 @@ from functools import partial
 
 
 def _fast_unzip(zipf, dirname='.'):
+    ''' parallel process worker for fast_unzip() '''
     exists = set(sorted(os.listdir(dirname)))
     with zipfile.ZipFile(zipf, 'r') as zip_ref:
         contents = set(zip_ref.namelist())
@@ -13,6 +14,9 @@ def _fast_unzip(zipf, dirname='.'):
 
 
 def fast_unzip(zipfilenames, dirname='.', processes=12):
+    ''' unzip many files in parallel 
+        any existing unzipped files in the target directory will be skipped
+    '''
     fcn = partial(_fast_unzip, dirname=dirname)
     with Pool(processes) as p:
         p.imap_unordered(fcn, zipfilenames)
