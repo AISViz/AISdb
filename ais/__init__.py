@@ -20,10 +20,11 @@ zones_dir = os.path.join(data_dir, 'zones') + os.path.sep
 rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
 host_addr = 'localhost'
 host_port = 9999
+output_dir = os.path.join(data_dir, 'scriptoutput') + os.path.sep
 
 # common imports that should be shared with module subdirectories
 commondirs = ['.', 'database', 'webdata']
-cfgnames = ['data_dir', 'dbpath', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'host_addr', 'host_port']
+cfgnames = ['data_dir', 'dbpath', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'output_dir', 'host_addr', 'host_port']
 
 # legacy support
 table_prefix = 'ais_'
@@ -60,11 +61,13 @@ else:
             printdefault(cfgnames)
             }\n\nto remove this warning, copy and paste the above text to {cfgfile} ''')
 
-    # create default dirs if they dont exist
-    os.path.isdir(data_dir) or os.mkdir(data_dir)
-    os.path.isdir(tmp_dir) or os.mkdir(tmp_dir)
-    os.path.isdir(zones_dir) or os.mkdir(zones_dir)
-    os.path.isdir(rawdata_dir) or os.mkdir(rawdata_dir)
+
+# create default dirs if they dont exist
+os.path.isdir(data_dir) or os.mkdir(data_dir)
+os.path.isdir(tmp_dir) or os.mkdir(tmp_dir)
+os.path.isdir(zones_dir) or os.mkdir(zones_dir)
+os.path.isdir(rawdata_dir) or os.mkdir(rawdata_dir)
+os.path.isdir(output_dir) or os.mkdir(output_dir)
 
 
 

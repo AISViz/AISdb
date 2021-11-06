@@ -30,6 +30,7 @@ data_dir = $HOME/ais/
 zones_dir = $HOME/ais/zones/
 tmp_dir = $HOME/ais/tmp_parsing/
 rawdata_dir = $HOME/ais/rawdata/
+output_dir = $HOME/ais/scriptoutput/
 
 host_addr = localhost
 host_port = 9999
