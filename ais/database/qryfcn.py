@@ -55,13 +55,9 @@ cte_crawl = lambda months, callback, **kwargs: (
         + ','.join([cte_declarations(month=month, callback=callback, kwargs=kwargs) for month in months])
         + '\n' 
         + '\nUNION'.join([cte_selects(month=month) for month in months])
-        + 'ORDER BY 1, 2'
+        + '\nORDER BY 1, 2'
     )
 
-
-#qry['callback'] = rtree_in_validmmsi_bbox
-#test = cte_crawl(**qry)
-#print(test)
 
 
 

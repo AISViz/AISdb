@@ -12,9 +12,10 @@ from shapely.geometry import Polygon, LineString, MultiPoint
 import pickle
 
 from common import *
-from network_graph import *
-#from clustering import *
-from database import *
+from network_graph import graph
+from database.qryfcn import cte_crawl
+from database.qrygen import qrygen
+from database.lambdas import *
 from gis import *
 from track_gen import *
 
@@ -33,7 +34,7 @@ end = datetime(2021,10,1)
 def test_network_graph():
 
     # query db for points in domain 
-    rowgen = qrygen(
+    qry = qrygen(
             start   = start,
             end     = end,
             #end     = start + timedelta(hours=24),
@@ -41,21 +42,24 @@ def test_network_graph():
             xmax    = domain.maxX, 
             ymin    = domain.minY, 
             ymax    = domain.maxY,
+            callback = rtree_in_validmmsi_bbox,
         #).gen_qry(callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
-        ).gen_qry(callback=rtree_in_validmmsi_bbox, qryfcn=rtree_minified)
+        #).gen_qry(callback=rtree_in_validmmsi_bbox, qryfcn=rtree_minified)
+        )
+    
+    rowgen=qry.gen_qry(fcn=cte_crawl, dbpath=dbpath)
     merged = merge_layers(rowgen)
 
     '''
 
-    test = list(next(merged))
-    geofence(test, domain)
+    fpath = os.path.join(output_dir, 'rowgen_year.pickle')
 
-    with open('tests/output/merged_year', 'wb') as f:
-        for row in merged:
-            pickle.dump(row, f)
+    #with open(fpath, 'wb') as f:
+    #    for row in rowgen:
+    #        pickle.dump(row, f)
         
     merged = []
-    with open('tests/output/merged_year', 'rb') as f:
+    with open(fpath, 'rb') as f:
         while True:
             try:
                 rows = pickle.load(f)
@@ -71,6 +75,7 @@ def test_network_graph():
                     yield pickle.load(f)
                 except EOFError as e:
                     break
+
     merged = picklegen('tests/output/merged_year')
 
     '''

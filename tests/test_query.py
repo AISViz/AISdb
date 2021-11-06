@@ -33,7 +33,8 @@ def test_query_smallboundary_statictables():
     rows = qrygen(
             start=start,
             end=end,
-        ).run_qry(dbpath=dbpath, callback=rtree_in_bbox_time_validmmsi, qryfcn=static) 
+        )
+    .run_qry(dbpath=dbpath, callback=rtree_in_bbox_time_validmmsi, qryfcn=static) 
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
 
@@ -135,3 +136,23 @@ def test_drop_intermediate_tables():
     cur.execute(qry)
 
 
+if False:
+    
+    from ais.database.test_qrygen import qrygen
+    from ais.database.lambdas import rtree_in_validmmsi_bbox
+    from ais.database import dt2monthstr
+
+    start = datetime(2020,9,1)
+    end = datetime(2020,11,1)
+    qry = qrygen(
+            start   = start,
+            end     = end,
+            #end     = start + timedelta(hours=24),
+            xmin    = domain.minX, 
+            xmax    = domain.maxX, 
+            ymin    = domain.minY, 
+            ymax    = domain.maxY,
+            callback = rtree_in_validmmsi_bbox,
+        #).gen_qry(callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
+        #).gen_qry(callback=rtree_in_validmmsi_bbox, qryfcn=rtree_minified)
+        )
