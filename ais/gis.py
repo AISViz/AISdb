@@ -9,6 +9,7 @@ import shapely.wkb
 from shapely.ops import unary_union
 from shapely.geometry import Polygon, Point
 
+from common import dbpath
 from index import index
 
 
