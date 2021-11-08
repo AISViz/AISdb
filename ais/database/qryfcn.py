@@ -19,21 +19,21 @@ rtree_dynamic = lambda month, callback, kwargs: (f'''
       WHERE {callback(month=month, alias='m18', **kwargs)} ''')
 
 
-# query aggregate static vessel data from monthly aggregate tables
+# query static vessel data from monthly aggregate tables
 static = lambda month, **_: (f'''
     SELECT mmsi, vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star, imo FROM static_{month}_aggregate ''')
 
 
 # declare common table expressions for use in SQL 'WITH' statements
-cte_declarations = lambda month, callback, kwargs: (f'''
+aliases = lambda month, callback, kwargs: (f'''
 dynamic_{month} AS ( {rtree_dynamic(month, callback, kwargs)} 
 ),
 static_{month} AS ( {static(month)} 
 )''')
 
 
-# common table expression SELECT statements to be concatenated (UNION)
-cte_selects = lambda month: (f'''
+# common table expression SELECT statements for concatenation with UNION
+leftjoin = lambda month: (f'''
 SELECT dynamic_{month}.mmsi, dynamic_{month}.t0, 
             dynamic_{month}.x0, dynamic_{month}.y0, 
             dynamic_{month}.cog, dynamic_{month}.sog, 
@@ -50,11 +50,11 @@ SELECT dynamic_{month}.mmsi, dynamic_{month}.t0,
 
 
 # iterate over monthly tables to create an SQL query spanning desired time range
-cte_crawl = lambda months, callback, **kwargs: (
+crawl = lambda months, callback, **kwargs: (
         'WITH'
-        + ','.join([cte_declarations(month=month, callback=callback, kwargs=kwargs) for month in months])
+        + ','.join([aliases(month=month, callback=callback, kwargs=kwargs) for month in months])
         + '\n' 
-        + '\nUNION'.join([cte_selects(month=month) for month in months])
+        + '\nUNION'.join([leftjoin(month=month) for month in months])
         + '\nORDER BY 1, 2'
     )
 
