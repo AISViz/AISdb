@@ -71,7 +71,36 @@ transitinfo = lambda track, zoneset: dict(
     )
 
 
-def geofence(track_merged_nosegments, domain):
+fence = lambda track, domain: np.array([domain.point_in_polygon(x, y) for x, y in zip(track['lon'], track['lat'])], dtype=object)
+
+
+def concat_tracks_no_movement(tracks, domain):
+
+    concatenated = next(tracks)
+    concatenated['in_zone'] = fence(concatenated, domain)
+
+    for track in tracks:
+        track['in_zone'] = fence(track, domain)
+        if (        concatenated['mmsi']                == track['mmsi'] 
+                and concatenated['cluster_label']       == track['cluster_label']
+                and len(set(concatenated['in_zone']))   == 1 
+                and set(concatenated['in_zone'])        == set(track['in_zone'])):
+            concatenated = dict(
+                    static = concatenated['static'],
+                    dynamic = set(concatenated['dynamic']).union(set(['in_zone'])),
+                    in_zone = np.append(concatenated['in_zone'], track['in_zone']),
+                    **{k:track[k] for k in concatenated['static']},
+                    **{k:np.append(concatenated[k], track[k]) for k in concatenated['dynamic'] if k != 'in_zone'},
+                )
+        else:
+            yield concatenated
+            concatenated = track
+
+    yield concatenated
+
+
+
+def geofence(merged_set, domain, max_cluster_dist_km=50, maxdelta=timedelta(hours=2)):
     ''' compute points-in-polygons for every positional report in a vessel 
         trajectory. at each track position where the zone changes, a transit 
         index is recorded, and trajectory statistics are aggregated for this
@@ -92,25 +121,27 @@ def geofence(track_merged_nosegments, domain):
         returns: None
     '''
 
+    timesplit = partial(segment_tracks_timesplits,  maxdelta=maxdelta)
+    distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=max_cluster_dist_km)
+    concat    = partial(concat_tracks_no_movement,  domain=domain)
 
+    for track in concat(distsplit(timesplit([merged_set]))):
 
-    for track_merged in segment_tracks_dbscan(segment_tracks_timesplits(track_merged_nosegments), max_cluster_dist_km=50):
-        filepath = os.path.join(tmp_dir, str(track_merged['mmsi']).zfill(9))
+        filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
 
         with open(filepath, 'ab') as f:
-            track_merged['in_zone'] = np.array([domain.point_in_polygon(x, y) for x, y in zip(track_merged['lon'], track_merged['lat'])], dtype=object)
-            transits = np.where(track_merged['in_zone'][:-1] != track_merged['in_zone'][1:])[0] +1
+            transits = np.where(track['in_zone'][:-1] != track['in_zone'][1:])[0] +1
 
             for i in range(len(transits)-1):
                 rng = np.array(range(transits[i], transits[i+1]+1))
-                track_stats = staticinfo(track_merged, domain)
-                track_stats.update(transitinfo(track_merged, rng))
+                track_stats = staticinfo(track, domain)
+                track_stats.update(transitinfo(track, rng))
                 pickle.dump(track_stats, f)
 
             i0 = transits[-1] if len(transits) >= 1 else 0
-            rng = np.array(range(i0, len(track_merged['in_zone'])))
-            track_stats = staticinfo(track_merged, domain)
-            track_stats.update(transitinfo(track_merged, rng))
+            rng = np.array(range(i0, len(track['in_zone'])))
+            track_stats = staticinfo(track, domain)
+            track_stats.update(transitinfo(track, rng))
             track_stats['rcv_zone'] = 'NULL'
             track_stats['transit_nodes'] = track_stats['src_zone']
             pickle.dump(track_stats, f)
@@ -162,11 +193,11 @@ def graph(merged, domain, parallel=0, filters=[lambda rowdict: False]):
         with Pool(processes=parallel) as p:
             fcn = partial(geofence, domain=domain)
             #p.map(fcn, (list(m) for m in merged), chunksize=1)  # better tracebacks for debug
-            p.imap_unordered(fcn, (list(m) for m in merged), chunksize=1)
+            p.imap_unordered(fcn, merged, chunksize=1)
             p.close()
             p.join()
 
-    outputfile = os.path.join(data_dir, 'output.csv')
+    outputfile = os.path.join(output_dir, 'output.csv')
     picklefiles = [os.path.join(tmp_dir, fname) for fname in sorted(os.listdir(tmp_dir)) if '_' not in fname]
     assert len(picklefiles) > 0, 'failed to geofence any data... try running again with parallel=0'
 

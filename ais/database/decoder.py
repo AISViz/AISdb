@@ -67,15 +67,8 @@ def insert_msg123(cur, mstr, rows):
                     navigational_status, rot, sog, cog, 
                     heading, maneuver, utc_second) 
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?) 
-                    --ON CONFLICT (mmsi, time) 
-                    --DO NOTHING
-                    --WHERE NOT EXISTS ( 
-                    --SELECT * FROM rtree_{mstr}_msg_1_2_3 AS rtree
-                    --    WHERE rtree.mmsi0 = CAST(mmsi AS FLOAT)
-                    --    AND rtree.t0 = CAST(time AS FLOAT)
-                    --) 
-                    '''
-                    , tup123)
+                    ''', 
+                    tup123)
     return
 
 
@@ -117,15 +110,8 @@ def insert_msg18(cur, mstr, rows):
                     navigational_status, sog, cog, 
                     heading, utc_second) 
                     VALUES (?,?,?,?,?,?,?,?,?,?) 
-                    --ON CONFLICT (mmsi, time) 
-                    --DO NOTHING
-                    --WHERE NOT EXISTS ( 
-                    --SELECT FROM rtree_{mstr}_msg_18 AS rtree
-                    --    WHERE rtree.mmsi0 = CAST(mmsi AS FLOAT)
-                    --    AND rtree.t0 = CAST(time AS FLOAT)
-                    --) 
-                    '''
-                    , tup18)
+                    ''', 
+                    tup18)
     return
 
 
@@ -165,10 +151,11 @@ def append_file(picklefile, batch):
         # skip empty rows
         if len(rows) == 0: continue
         # skip duplicate epoch-minute timestamps for each mmsi
-        keepidx = np.nonzero([x['mmsi']!=y['mmsi'] or x['epoch']!=y['epoch'] for x,y in zip(rows[1:], rows[:-1])])[0]-1
+        #skipidx = np.nonzero([x['mmsi']==y['mmsi'] and x['epoch']==y['epoch'] for x,y in zip(rows[1:], rows[:-1])])[0]-1
+        skipidx = np.nonzero([x['mmsi']==y['mmsi'] and x['epoch']==y['epoch'] for x,y in zip(rows[1:], rows[:-1])])[0]
         # write to disk
         with open(f'{picklefile}_{key}', 'ab') as f:
-            pickle.dump(rows[keepidx], f)
+            pickle.dump(rows[~skipidx], f)
 
 
 #def decode_raw_pyais(fpath, tmpdir):

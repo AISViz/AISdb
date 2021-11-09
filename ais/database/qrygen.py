@@ -9,7 +9,7 @@ import numpy as np
 from shapely.geometry import Polygon
 
 from common import dbpath
-from database.qryfcn import cte_crawl
+from database.qryfcn import crawl
 from database.dbconn import dbconn
 from database.lambdas import dt2monthstr
 
@@ -49,10 +49,10 @@ class qrygen(UserDict):
     #        query generated using given query function, parameters stored in self, and a callback function 
     #    '''
     #    #return '\nUNION '.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 2'
-    #    return cte_crawl(**self)
+    #    return crawl(**self)
 
 
-    def run_qry(self, fcn=cte_crawl, dbpath=dbpath):
+    def run_qry(self, fcn=crawl, dbpath=dbpath):
         ''' generates an query using self.crawl(), runs it, then returns the resulting rows '''
         #qry = self.crawl(callback=callback, qryfcn=qryfcn)
         qry = fcn(**self)
@@ -79,19 +79,19 @@ class qrygen(UserDict):
         '''
 
 
-    def gen_qry(self, fcn=cte_crawl, dbpath=dbpath):
-        ''' similar to run_qry, but in a generator format for better memory performance. 
+    def gen_qry(self, fcn=crawl, dbpath=dbpath):
+        ''' similar to run_qry, but in a generator format for better memory performance
             
             yields:
                 a set (numpy array) of rows for each unique MMSI
                 rowsets are sorted by time
         '''
         # create query to crawl db
-        #qry = self.crawl(callback=callback, qryfcn=qryfcn)
         qry = fcn(**self)
-        print(qry)
 
         # initialize db, run query
+        print(qry)
+        print('\nquerying the database...')
         aisdb = dbconn(dbpath)
         dt = datetime.now()
         aisdb.cur.execute(qry)
@@ -100,18 +100,22 @@ class qrygen(UserDict):
 
         # get 100k rows at a time, yield sets of rows for each unique MMSI
         mmsi_rows = None
-        #while len(res := np.array(aisdb.cur.fetchmany(100000))) > 0: 
-        res = np.array(aisdb.cur.fetchmany(10**5))
-        while len(res) > 0: 
-            if not isinstance(mmsi_rows, np.ndarray):
-                mmsi_rows = res
+        while len(res := aisdb.cur.fetchmany(10**5)) > 0:
+            if mmsi_rows is None:
+                mmsi_rows = np.array(res, dtype=object)
             else:
                 mmsi_rows = np.vstack((mmsi_rows, res))
-            while len(np.unique(mmsi_rows[:,0])) > 1:
+
+            print(f'{mmsi_rows[0][0]}', end='\r')
+
+            while len(mmsi_rows) > 1 and mmsi_rows[0][0] != mmsi_rows[-1][0]:
+                if not isinstance(mmsi_rows[0][0], (float, int)):
+                    print(f'error: MMSI not an integer! {mmsi_rows[0]}')
+                    breakpoint()
                 ummsi_idx = np.where(mmsi_rows[:,0] != mmsi_rows[0,0])[0][0]
                 yield mmsi_rows[0:ummsi_idx]
                 mmsi_rows = mmsi_rows[ummsi_idx:]
-            res = np.array(aisdb.cur.fetchmany(10**5))
+
         yield mmsi_rows
 
-        print('done')
+        print('\ndone')

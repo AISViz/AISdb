@@ -21,39 +21,46 @@ def trackgen(
             mmsi time lon lat cog sog name type...
         rows must be sorted by first by mmsi, then time
 
-        colnames is the name associated with each column type in rows. 
+        colnames is a description of each column in rows. 
         first two columns must be ['mmsi', 'time']
     '''
     mmsi_col = [i for i,c in zip(range(len(colnames)), colnames) if c.lower() == 'mmsi'][0]
     time_col = [i for i,c in zip(range(len(colnames)), colnames) if c.lower() == 'time'][0]
 
+    staticcols = set(colnames) & set([
+        'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'dim_stern', 
+        'dim_port', 'dim_star', 'mother_ship_mmsi', 'part_number', 'vendor_id',
+        'model', 'serial', 'imo', 
+        #'deadweight_tonnage', 'submerged_hull_m^2',
+    ])
+
+    dynamiccols = set(colnames) - staticcols  # - set(['mmsi', 'time'])
+
     for rows in rowgen:
 
         if deduplicate_timestamps:
-            dupe_idx = np.nonzero(rows[:,time_col].astype(int)[:-1] == rows[:,time_col].astype(int)[1:])[0] +1
+            dupe_idx = np.append([False], np.logical_and(
+                    rows[:,time_col].astype(int)[:-1] == rows[:,time_col].astype(int)[1:],
+                    rows[:,mmsi_col].astype(int)[:-1] == rows[:,mmsi_col].astype(int)[1:]
+                ))
             rows = np.delete(rows, dupe_idx, axis=0)
-            
-        staticcols = set(colnames) & set([
-            'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'dim_stern', 
-            'dim_port', 'dim_star', 'mother_ship_mmsi', 'part_number', 'vendor_id',
-            'model', 'serial', 'imo', 'deadweight_tonnage', 'submerged_hull_m^2',
-        ])
-
-        dynamiccols = set(colnames) - staticcols - set(['mmsi', 'time'])
+           
 
         tracks_idx = np.append(np.append([0], np.nonzero(rows[:,mmsi_col].astype(int)[1:] != rows[:,mmsi_col].astype(int)[:-1])[0]+1), len(rows))
 
         for i in range(len(tracks_idx)-1): 
             #assert len(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]) == len(np.unique(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]))
             yield dict(
-                mmsi    =   int(rows[tracks_idx[i]][0]),
-                time    =   rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
+                #mmsi    =   int(rows[tracks_idx[i]][0]),
+                #time    =   rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
                 static  =   staticcols,
                 dynamic =   dynamiccols,
-                **{ n   :   (rows[tracks_idx[i]][c] or 0) 
-                        for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in staticcols},
+                **
+                { n   :   (rows[tracks_idx[i]][c] or 0) 
+                        for c,n in zip(range(len(colnames)), colnames) if n in staticcols} 
+                ,
                 **{ n   :   rows[tracks_idx[i]:tracks_idx[i+1]].T[c] 
-                        for c,n in zip(range(2, len(colnames)), colnames[2:]) if n in dynamiccols},
+                        for c,n in zip(range(len(colnames)), colnames) if n in dynamiccols},
             )
 
 
@@ -66,12 +73,10 @@ def segment(track: dict, maxdelta: timedelta, minsize: int) -> filter:
     return filter(lambda seg: len(seg) >= minsize, list(map(range, splits_idx(track)[:-1], splits_idx(track)[1:])))
 
 
-def segment_tracks_timesplits(tracks, maxdelta=timedelta(hours=1), minsize=1):
+def segment_tracks_timesplits(tracks, maxdelta=timedelta(hours=2), minsize=1):
     for track in tracks:
         for rng in segment(track, maxdelta, minsize):
             yield dict(
-                    mmsi = track['mmsi'],
-                    time = track['time'][rng],
                     static = track['static'],
                     dynamic = track['dynamic'],
                     **{k:track[k] for k in track['static']},

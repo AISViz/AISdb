@@ -62,7 +62,7 @@ rtree_in_timerange = lambda **kwargs: f'''
         {kwargs['alias']}.t1 <= {dt_2_epoch(kwargs['end'])}'''
 
 rtree_has_mmsi      = lambda alias, mmsi, **_: f'''
-        {alias}.mmsi0 = {str(mmsi)} '''
+        CAST({alias}.mmsi0 AS INT) = {mmsi} '''
 
 rtree_in_mmsi       = lambda alias, mmsis, **_: f'''
         {alias}.mmsi0 IN ({", ".join(map(str, mmsis))}) '''
@@ -90,3 +90,8 @@ rtree_in_bbox_time_validmmsi = lambda **kwargs: f''' {rtree_in_bbox(**kwargs)} A
 rtree_in_timerange_hasmmsi = lambda **kwargs: f'{rtree_in_timerange(**kwargs)} AND {rtree_has_mmsi(**kwargs)}'
 rtree_in_timerange_inmmsi = lambda **kwargs: f'{rtree_in_timerange(**kwargs)} AND {rtree_in_mmsi(**kwargs)}'
 rtree_in_timerange_validmmsi = lambda **kwargs: f'{rtree_in_timerange(**kwargs)} AND {rtree_valid_mmsi(**kwargs)}'
+
+rtree_in_time_bbox_hasmmsi = lambda **kwargs: f'''
+        {rtree_in_timerange(**kwargs)} AND 
+        {rtree_in_bbox(**kwargs)} AND 
+        {rtree_has_mmsi(**kwargs)}'''

@@ -1,13 +1,6 @@
 from database.qryfcn_legacy import *
 
 
-'''
-some boilerplate for dynamically generating SQL queries.
-callback functions should return a string to further filter returned rows,
-see examples in lambdas.py for more info
-'''
-
-
 # query a union of position reports using rtree indexes
 rtree_dynamic = lambda month, callback, kwargs: (f'''
     SELECT CAST(m123.mmsi0 AS INT) as mmsi, m123.t0, m123.x0, m123.y0, m123.cog, m123.sog, m123.msgtype
@@ -57,7 +50,5 @@ crawl = lambda months, callback, **kwargs: (
         + '\nUNION'.join([leftjoin(month=month) for month in months])
         + '\nORDER BY 1, 2'
     )
-
-
 
 

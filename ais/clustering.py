@@ -39,8 +39,10 @@ def segment_tracks_dbscan(track_dicts, max_cluster_dist_km=50, flagfcn=flag):
 
         if len(track['time']) == 1: continue
 
+        track['static'] = set(track['static']).union(set(['cluster_label']))
+
         if not flagfcn(track):
-            track['cluster_label'] = None
+            track['cluster_label'] = -1 
             yield track
 
         else:
@@ -54,17 +56,14 @@ def segment_tracks_dbscan(track_dicts, max_cluster_dist_km=50, flagfcn=flag):
 
                 mask = clusters.labels_ == l
 
-                clustered = dict(
-                        mmsi            = track['mmsi'],
-                        time            = track['time'][mask],
+                yield dict(
                         cluster_label   = l,
-                        static          = track['static'].union(set(['cluster_label'])),
+                        static          = track['static'],
                         dynamic         = track['dynamic'],
-                        **{k:track[k] for k in track['static'] - set(['cluster_label'])},
+                        **{k:track[k] for k in track['static'] if k != 'cluster_label' },
                         **{k:track[k][mask] for k in track['dynamic']},
                     )
 
-                yield clustered
 
 
 
