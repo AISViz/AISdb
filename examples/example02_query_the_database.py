@@ -25,10 +25,10 @@ qry = qrygen(
 print(crawl(**qry))
 
 # to return all rows as an array
-rows = qry_bounds.run_qry(fcn=crawl, dbpath=dbpath)
+rows = qry.run_qry(fcn=crawl, dbpath=dbpath)
 
 # or alternatively, create a row generator yielding arrays of rows per unique MMSI
-rowgen = qry_bounds.gen_qry(fcn=crawl, dbpath=dbpath)
+rowgen = qry.gen_qry(fcn=crawl, dbpath=dbpath)
 rows = next(rowgen)
 
 '''
