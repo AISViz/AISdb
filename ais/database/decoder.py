@@ -293,9 +293,12 @@ def decode_msgs(filepaths, dbpath, processes=12):
     proc = partial(decode_raw_pyais)
     
     # parallelize decoding step
+    print(f'decoding messages... processed results will be placed in {tmp_dir} before database insert')
     if processes:
         with Pool(processes) as p:
             list(p.imap_unordered(proc, filepaths))
+            p.close()
+            p.join()
     else:
         for fpath in filepaths:
             print(fpath)
@@ -317,9 +320,7 @@ def decode_msgs(filepaths, dbpath, processes=12):
             #'msg3' : sqlite_create_table_msg123,
             'msg5' : create_table_msg5,
             'msg18' : sqlite_create_table_msg18,
-            #'msg19' : ,
             'msg24' : create_table_msg24,
-            #'msg27' : insert_msg123,
         }
 
     aisdb = dbconn(dbpath=dbpath)
@@ -328,6 +329,7 @@ def decode_msgs(filepaths, dbpath, processes=12):
     months_str = []
 
     # deserialize
+    print('deserializing decoded data and performing DB insert...')
     for picklefile in sorted(os.listdir(tmp_dir)):
         msgtype     = picklefile.split('_', 1)[1].rsplit('.', 1)[0]
         regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(picklefile)
@@ -340,6 +342,7 @@ def decode_msgs(filepaths, dbpath, processes=12):
 
         cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_{mstr}_msg_{int(msgtype[3:])}" ')
         if not cur.fetchall(): 
+            print(f'creating database tables for month {mstr}...')
             for fcn in createfcn.values(): fcn(cur, mstr)
 
         dt = datetime.now()
