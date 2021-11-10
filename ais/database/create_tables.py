@@ -28,7 +28,7 @@ def sqlite_create_table_polygons(cur):
 def sqlite_create_table_msg123(cur, month):
     ''' sqlite schema using rtree virtual table as an index '''
     cur.execute(f'''
-            CREATE VIRTUAL TABLE rtree_{month}_msg_1_2_3 USING rtree(
+            CREATE VIRTUAL TABLE IF NOT EXISTS rtree_{month}_msg_1_2_3 USING rtree(
                 id, 
                 --mmsi integer NOT NULL,
                 mmsi0, mmsi1,
@@ -47,7 +47,7 @@ def sqlite_create_table_msg123(cur, month):
             );
         ''')
     cur.execute(f'''
-            CREATE TABLE ais_{month}_msg_1_2_3 (
+            CREATE TABLE IF NOT EXISTS ais_{month}_msg_1_2_3 (
                 --id INTEGER NOT NULL,
                 mmsi integer NOT NULL,
                 --"time" timestamp without time zone NOT NULL,
@@ -102,7 +102,7 @@ def sqlite_create_table_msg18(cur, month):
     the idea is to use it as a covering index with faster bounding-box search
     '''
     cur.execute(f'''
-            CREATE VIRTUAL TABLE rtree_{month}_msg_18 USING rtree(
+            CREATE VIRTUAL TABLE IF NOT EXISTS rtree_{month}_msg_18 USING rtree(
                 id, 
                 mmsi0, mmsi1,
                 t0, t1,
@@ -122,7 +122,7 @@ def sqlite_create_table_msg18(cur, month):
         ''')
 
     cur.execute(f'''
-            CREATE TABLE ais_{month}_msg_18 (
+            CREATE TABLE IF NOT EXISTS ais_{month}_msg_18 (
                 --id INTEGER NOT NULL,
                 mmsi integer NOT NULL,
                 --"time" timestamp without time zone NOT NULL,
@@ -174,7 +174,7 @@ def sqlite_create_table_msg18(cur, month):
 
 def create_table_msg5(cur, month):
     cur.execute(f'''
-            CREATE TABLE ais_{month}_msg_5 (
+            CREATE TABLE IF NOT EXISTS ais_{month}_msg_5 (
                 --id INTEGER PRIMARY KEY AUTOINCREMENT,
                 --unq_id_prefix character varying(11),
                 --lineno integer,
@@ -227,7 +227,7 @@ def create_table_msg5(cur, month):
 
 def create_table_msg24(cur, month):
     cur.execute(f'''
-            CREATE TABLE ais_{month}_msg_24 (
+            CREATE TABLE IF NOT EXISTS ais_{month}_msg_24 (
                 --id INTEGER PRIMARY KEY AUTOINCREMENT,
                 --unq_id_prefix character varying(11),
                 --lineno integer,
@@ -334,7 +334,7 @@ def aggregate_static_msg5_msg24(dbpath, months_str):
         skip_nommsi = skip_nommsi[skip_nommsi[:,0] != None]
 
         cur.execute(f''' 
-            CREATE TABLE static_{month}_aggregate (
+            CREATE TABLE IF NOT EXISTS static_{month}_aggregate (
                 mmsi INTEGER PRIMARY KEY, 
                 vessel_name TEXT,
                 ship_type INTEGER,
@@ -351,7 +351,7 @@ def aggregate_static_msg5_msg24(dbpath, months_str):
 
 def create_table_msg27(cur, month):
     cur.execute(f'''
-            CREATE TABLE ais_{month}_msg_27 (
+            CREATE TABLE IF NOT EXISTS ais_{month}_msg_27 (
                 --id INTEGER PRIMARY KEY AUTOINCREMENT,
                 --unq_id_prefix character varying(11),
                 --lineno integer,
@@ -397,7 +397,7 @@ def create_table_msg27(cur, month):
 def create_table_msg123(cur, month):
     ''' postgres schema '''
     cur.execute(f'''
-            CREATE TABLE ais_{month}_msg_1_2_3 (
+            CREATE TABLE IF NOT EXISTS ais_{month}_msg_1_2_3 (
                 --id INTEGER PRIMARY KEY AUTOINCREMENT,
                 --unq_id_prefix character varying(11),
                 --lineno integer,
@@ -471,7 +471,7 @@ def build_idx_msg123(cur, month):
 
 def create_table_msg18(cur, month):
     cur.execute(f'''
-            CREATE TABLE ais_{month}_msg_18 (
+            CREATE TABLE IF NOT EXISTS ais_{month}_msg_18 (
                 --id INTEGER PRIMARY KEY AUTOINCREMENT,
                 --unq_id_prefix character varying(11),
                 --lineno integer,

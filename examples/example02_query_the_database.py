@@ -1,91 +1,42 @@
 from datetime import datetime 
 
 from ais import dbpath, qrygen
-from ais.database.qryfcn import leftjoin_dynamic_static
+from ais.database.qryfcn import crawl
 from ais.database.lambdas import rtree_in_time_bbox_validmmsi
 
 
 '''
 The qrygen() class can be used to generate SQL query code when given a set of input boundaries (in the form of a dictionary), as well as additional SQL filters. 
-Some preset filter functions are included in ais/database/lambdas.py, however custom filter functions can be written as well.
+Some preset filter functions are included in ais/database/lambdas.py, however custom filter functions can be written as well. In this example, rtree_in_time_bbox_validmmsi() is used to apply SQL filters at query time
 '''
 
 
-qry_bounds = qrygen(
+qry = qrygen(
     start     = datetime(2021,1,10),
     end       = datetime(2021,1,11),
     ymin      = 43.35715610154772, 
     xmin      = -69.50402957994562,
     ymax      = 52.01203702301506, 
     xmax      = -55.172026729758834,
+    callback  = rtree_in_time_bbox_validmmsi, 
   )
+
+# to view the SQL code that will be executed
+print(crawl(**qry))
 
 # to return all rows as an array
-rows = qry_bounds.run_qry(
-    dbpath    = dbpath, 
-    qryfcn    = leftjoin_dynamic_static,
-    callback  = rtree_in_time_bbox_validmmsi, 
-  )
+rows = qry_bounds.run_qry(fcn=crawl, dbpath=dbpath)
 
 # or alternatively, create a row generator yielding arrays of rows per unique MMSI
-rowgen = qry_bounds.gen_qry(
-    dbpath    = dbpath, 
-    qryfcn    = leftjoin_dynamic_static,
-    callback  = rtree_in_time_bbox_validmmsi, 
-  )
+rowgen = qry_bounds.gen_qry(fcn=crawl, dbpath=dbpath)
 rows = next(rowgen)
 
 '''
-In this example, SQL code will be generated to search for all vessels in the approximate area of the Gulf of St Lawrence between 2021-01-10 and 2021-01-11.
-The qryfcn 'leftjoin_dynamic_static' is the default query format to scan the database tables, which will merge both the static vessel message reports data as well as dynamic position reports.
+Here SQL code is generated to search for all vessels in the approximate area of the Gulf of St Lawrence between 2021-01-10 and 2021-01-11.
+The qryfcn crawl() is the default query format to scan the database tables, which will merge both the static vessel message reports data as well as dynamic position reports and perform a union over monthly tables.
 By changing the callback function and qry_bounds parameters, different subsets of the data can be queried, for example, matching only vessels with a given MMSI identifier.  
 
-The resulting SQL code for this example is as follows:
-
-```
-WITH dynamic_202101 AS (
-    SELECT CAST(m123.mmsi0 AS INT) as mmsi, m123.t0, m123.x0, m123.y0, m123.cog, m123.sog, m123.msgtype
-      FROM rtree_202101_msg_1_2_3 AS m123
-      WHERE
-        m123.t0 >= 11059200 AND
-        m123.t1 <= 11060640 AND
-        m123.x0 >= -69.50402957994562 AND
-        m123.x1 <= -55.172026729758834 AND
-        m123.y0 >= 43.35715610154772 AND
-        m123.y1 <= 52.01203702301506  AND
-        m123.mmsi0 >= 201000000 AND
-        m123.mmsi1 < 776000000
-    UNION
-    SELECT CAST(m18.mmsi0 AS INT) as mmsi, m18.t0, m18.x0, m18.y0, m18.cog, m18.sog, m18.msgtype
-      FROM rtree_202101_msg_18 AS m18
-      WHERE
-        m18.t0 >= 11059200 AND
-        m18.t1 <= 11060640 AND
-        m18.x0 >= -69.50402957994562 AND
-        m18.x1 <= -55.172026729758834 AND
-        m18.y0 >= 43.35715610154772 AND
-        m18.y1 <= 52.01203702301506  AND
-        m18.mmsi0 >= 201000000 AND
-        m18.mmsi1 < 776000000
-),
-static_202101 AS (
-    SELECT mmsi, vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star, imo FROM static_202101_aggregate
-)
-SELECT dynamic_202101.mmsi, dynamic_202101.t0,
-        dynamic_202101.x0, dynamic_202101.y0,
-        dynamic_202101.cog, dynamic_202101.sog,
-        dynamic_202101.msgtype,
-        static_202101.imo, static_202101.vessel_name,
-        static_202101.dim_bow, static_202101.dim_stern,
-        static_202101.dim_port, static_202101.dim_star,
-        static_202101.ship_type, ref.coarse_type_txt
-    FROM dynamic_202101
-LEFT JOIN static_202101
-    ON dynamic_202101.mmsi = static_202101.mmsi
-LEFT JOIN coarsetype_ref AS ref
-    ON (static_202101.ship_type = ref.coarse_type)
-ORDER BY 1, 2
-```
+A custom query function or callback function can also be written in place of the defaults if different SQL behaviour is desired.
 
 And the results of the query, containing columns:
 mmsi, epoch_minutes, longitude, latitude, cog, sog, msgtype, IMO, vessel_name, bow_length, stern_length, portside_length, starboardside_length, ship_type, ship_type_text
