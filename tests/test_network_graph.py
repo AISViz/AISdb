@@ -1,10 +1,12 @@
+#os.system("taskset -c 0-11 -p %d" % os.getpid())
+#from multiprocessing import set_start_method
+#set_start_method('forkserver')
+from multiprocessing import Pool, Queue
+
 from ais import *
 
 from datetime import datetime, timedelta
 
-#os.system("taskset -p 0xfff %d" % os.getpid())
-#from multiprocessing import set_start_method
-#set_start_method('forkserver')
 
 import numpy as np
 import shapely.wkt
@@ -13,11 +15,12 @@ import pickle
 
 from common import *
 from network_graph import graph
-from database.qryfcn import cte_crawl
+from database.qryfcn import crawl
 from database.qrygen import qrygen
 from database.lambdas import *
 from gis import *
 from track_gen import *
+from merge_data import merge_layers
 
 
 
@@ -29,12 +32,14 @@ domain = Domain('east', zonegeoms)
 
 start = datetime(2020,6,1)
 end = datetime(2021,10,1)
+#start = datetime(2020,7,1)
+#end = datetime(2020,8,1)
 
 
 def test_network_graph():
 
     # query db for points in domain 
-    qry = qrygen(
+    args = qrygen(
             start   = start,
             end     = end,
             #end     = start + timedelta(hours=24),
@@ -43,30 +48,20 @@ def test_network_graph():
             ymin    = domain.minY, 
             ymax    = domain.maxY,
             callback = rtree_in_validmmsi_bbox,
-        #).gen_qry(callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
-        #).gen_qry(callback=rtree_in_validmmsi_bbox, qryfcn=rtree_minified)
+            #callback = rtree_in_time_bbox_hasmmsi,
+            #mmsi=258084000,
         )
-    
-    rowgen=qry.gen_qry(fcn=cte_crawl, dbpath=dbpath)
-    merged = merge_layers(rowgen)
+    rowgen=args.gen_qry(fcn=crawl, dbpath=dbpath)
+    #merged = merge_layers(rowgen)
 
     '''
 
-    fpath = os.path.join(output_dir, 'rowgen_year.pickle')
+    fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
 
     #with open(fpath, 'wb') as f:
     #    for row in rowgen:
     #        pickle.dump(row, f)
         
-    merged = []
-    with open(fpath, 'rb') as f:
-        while True:
-            try:
-                rows = pickle.load(f)
-            except EOFError as e:
-                break
-            merged.append(rows)
-
     def picklegen(fpath):
         with open(fpath, 'rb') as f:
             while True:
@@ -76,10 +71,55 @@ def test_network_graph():
                 except EOFError as e:
                     break
 
-    merged = picklegen('tests/output/merged_year')
-
     '''
 
+    #merged = list(merge_layers(rowgen))
+
+    #next(merged)
+
+    from functools import partial
+    from ais.merge_data import merge_layers_parallel
+    from ais.network_graph import concat_tracks_no_movement
+    from ais.clustering import segment_tracks_dbscan
+    from ais.track_gen import segment_tracks_timesplits
+    from ais.network_graph import geofence
+    import time
+
+    timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
+    distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
+    jointrack = partial(concat_tracks_no_movement,  domain=domain)
+    serialize = partial(geofence,                   domain=domain)
+
+    #callback = lambda rowset: serialize(concat(distsplit(timesplit([rowset]))))
+    callback = lambda tracks: serialize(jointrack(distsplit(timesplit(tracks))))
+    callback = lambda rowgen: jointrack(distsplit(timesplit(list(merge_layers(trackgen(rowgen))))))
+
+    time.asctime()
+    rowgen = picklegen(fpath)
+    test = next(callback(rowgen))
+    time.asctime()
+
+    tracks = trackgen(picklegen(fpath))
+    callback_single(merge_layers(rowgen))
+    merge_layers_parallel(rowgen, callback_single, processes=4)
+
+    aggregate_output(filename='output.csv', filters=filters)
+
+
+    testgen = timesplit(merged) 
+    testgen = distsplit(timesplit(merged))
+    testgen = geofence(concat(distsplit(timesplit(merged))))
+
+    testgen = geofence(concat(distsplit(timesplit(merged))), domain=domain,)
+
+    '''
+    testgen = map(timesplit, tracks)
+
+
+    cleaned = map(concat, map(distsplit, map(timesplit, tracks)))
+    tracksets = list(next(cleaned))
+    track = tracksets[0]
+    '''
 
 
     with open('tests/output/clustertest', 'rb') as f:
@@ -91,9 +131,11 @@ def test_network_graph():
             lambda rowdict: rowdict['minutes_spent_in_zone'] == 'NULL' or rowdict['minutes_spent_in_zone'] <= 1,
         ]
 
+    merge_layers_parallel(rowgen, callback
+
     #with import_handler() as importconfigs:
-    graph(merged, domain, parallel=0, filters=filters)
-    graph(merged, domain, parallel=32, filters=filters)
+    graph(callback(rowgen), domain, parallel=0)
+    graph(callback(trackgen), domain, parallel=12)
     
 
     ''' step-through

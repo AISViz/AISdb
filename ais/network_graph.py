@@ -60,7 +60,7 @@ transitinfo = lambda track, zoneset: dict(
         min_depth                           =   f"{np.min(depth_nonnegative(track, zoneset)):.2f}",
         avg_depth                           =   f"{np.average(depth_nonnegative(track, zoneset)):.2f}",
         max_depth                           =   f"{np.max(depth_nonnegative(track, zoneset)):.2f}",
-        avg_avg_depth_border_cells          =   f"{np.average(track['depth_border_cells_average'])}",
+        #avg_avg_depth_border_cells          =   f"{np.average(track['depth_border_cells_average'])}",
         velocity_knots_min                  =   f"{np.min(delta_knots(track, zoneset)):.2f}" if len(zoneset) > 1 else 'NULL',
         velocity_knots_avg                  =   f"{np.average(delta_knots(track, zoneset)):.2f}" if len(zoneset) > 1 else 'NULL',
         velocity_knots_max                  =   f"{np.max(delta_knots(track, zoneset)):.2f}" if len(zoneset) > 1 else 'NULL',
@@ -81,10 +81,10 @@ def concat_tracks_no_movement(tracks, domain):
 
     for track in tracks:
         track['in_zone'] = fence(track, domain)
-        if (        concatenated['mmsi']                == track['mmsi'] 
-                and concatenated['cluster_label']       == track['cluster_label']
-                and len(set(concatenated['in_zone']))   == 1 
-                and set(concatenated['in_zone'])        == set(track['in_zone'])):
+        if (        concatenated['mmsi']                ==          track['mmsi'] 
+                and concatenated['cluster_label']       == -1  ==   track['cluster_label']
+                and len(set(concatenated['in_zone']))   ==          1 
+                and set(concatenated['in_zone'])        ==          set(track['in_zone'])):
             concatenated = dict(
                     static = concatenated['static'],
                     dynamic = set(concatenated['dynamic']).union(set(['in_zone'])),
@@ -100,7 +100,7 @@ def concat_tracks_no_movement(tracks, domain):
 
 
 
-def geofence(merged_set, domain, max_cluster_dist_km=50, maxdelta=timedelta(hours=2)):
+def geofence(tracks, domain):#, max_cluster_dist_km=50, maxdelta=timedelta(hours=2)):
     ''' compute points-in-polygons for every positional report in a vessel 
         trajectory. at each track position where the zone changes, a transit 
         index is recorded, and trajectory statistics are aggregated for this
@@ -111,7 +111,7 @@ def geofence(merged_set, domain, max_cluster_dist_km=50, maxdelta=timedelta(hour
         deserialization and concatenation of results
         
         args:
-            track_merged: dict
+            tracks: dict
                 dictionary of vessel trajectory data, as output by 
                 ais.track_gen.trackgen() or its wrapper functions
             domain: ais.gis.Domain() class object
@@ -121,11 +121,13 @@ def geofence(merged_set, domain, max_cluster_dist_km=50, maxdelta=timedelta(hour
         returns: None
     '''
 
-    timesplit = partial(segment_tracks_timesplits,  maxdelta=maxdelta)
-    distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=max_cluster_dist_km)
-    concat    = partial(concat_tracks_no_movement,  domain=domain)
+    #timesplit = partial(segment_tracks_timesplits,  maxdelta=maxdelta)
+    #distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=max_cluster_dist_km)
+    #concat    = partial(concat_tracks_no_movement,  domain=domain)
 
-    for track in concat(distsplit(timesplit([merged_set]))):
+    #for track in concat(distsplit(timesplit([merged_set]))):
+
+    for track in tracks:
 
         filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
 
@@ -149,55 +151,25 @@ def geofence(merged_set, domain, max_cluster_dist_km=50, maxdelta=timedelta(hour
     return
 
 
-def graph(merged, domain, parallel=0, filters=[lambda rowdict: False]):
-    ''' perform geofencing on vessel trajectories, then concatenate aggregated 
-        transit statistics between nodes (zones) to create network edges from 
-        vessel trajectories
+def aggregate_output(filename='output.csv', filters=[lambda row: False]):
+    ''' concatenate serialized output from geofence()
 
-        this function will call geofence() for each trajectory in parallel, 
-        outputting serialized results to the tmp_dir directory. after 
-        deserialization, the temporary files are removed, and output will be 
-        written to 'output.csv' inside the data_dir directory
+        filters: list of callables
+            each callable function should accept a dictionary describing a 
+            network edge as input. if any of the callables return True, 
+            the edge will be filtered from the output rows. see staticinfo()
+            and transitinfo() above for more info on network edge dict keys
+            
+            for example, to filter all rows where the max speed exceeds 50 
+            knots, and filter non-transiting vessels from zone Z0:
 
-        args:
-            merged: ais.track_gen.trackgen() trajectory iterator (or one of its wrapper functions)
-                intended to be used with the ais.merge_data.merge_layers() 
-                wrapper, but should work with any of the wrappers
-            domain: ais.gis.Domain() class object
-                collection of zones defined as polygons, these will
-                be used as nodes in the network graph
-            parallel: integer
-                number of processes to compute geofencing in parallel.
-                if set to 0 or False, no parallelization will be used
-            filters: list of callables
-                each callable function should accept a dictionary describing a 
-                network edge as input. if any of the callables return True, 
-                the edge will be filtered from the output rows. see staticinfo()
-                and transitinfo() above for more info on network edge dict keys
-                
-                for example, to filter all rows where the max speed exceeds 50 
-                knots, and filter non-transiting vessels from zone Z0:
-
-                >>> filters = [
-                    lambda rowdict: rowdict['velocity_knots_max'] == 'NULL' or float(rowdict['velocity_knots_max']) > 50,
-                    lambda rowdict: rowdict['src_zone'] == 'Z0' and rowdict['rcv_zone'] == 'NULL'
-                ]
-                
-        returns: None
+            >>> filters = [
+                lambda row: row['velocity_knots_max'] == 'NULL' or float(row['velocity_knots_max']) > 50,
+                lambda row: row['src_zone'] == 'Z0' and row['rcv_zone'] == 'NULL'
+            ]
     '''
     
-    if not parallel: 
-        for track_merged in merged:
-            geofence(track_merged, domain=domain)
-    else:
-        with Pool(processes=parallel) as p:
-            fcn = partial(geofence, domain=domain)
-            #p.map(fcn, (list(m) for m in merged), chunksize=1)  # better tracebacks for debug
-            p.imap_unordered(fcn, merged, chunksize=1)
-            p.close()
-            p.join()
-
-    outputfile = os.path.join(output_dir, 'output.csv')
+    outputfile = os.path.join(output_dir, filename)
     picklefiles = [os.path.join(tmp_dir, fname) for fname in sorted(os.listdir(tmp_dir)) if '_' not in fname]
     assert len(picklefiles) > 0, 'failed to geofence any data... try running again with parallel=0'
 
@@ -222,4 +194,42 @@ def graph(merged, domain, parallel=0, filters=[lambda rowdict: False]):
             os.remove(picklefile)
             if len(results) == 0: continue
             output.write('\n'.join(results) + '\n')
+
+
+def graph(tracks, domain, parallel=0):
+    ''' perform geofencing on vessel trajectories, then concatenate aggregated 
+        transit statistics between nodes (zones) to create network edges from 
+        vessel trajectories
+
+        this function will call geofence() for each trajectory in parallel, 
+        outputting serialized results to the tmp_dir directory. after 
+        deserialization, the temporary files are removed, and output will be 
+        written to 'output.csv' inside the data_dir directory
+
+        args:
+            tracks: ais.track_gen.trackgen() trajectory iterator (or one of its wrapper functions)
+                intended to be used with the ais.merge_data.merge_layers() 
+                wrapper, but should work with any of the wrappers
+            domain: ais.gis.Domain() class object
+                collection of zones defined as polygons, these will
+                be used as nodes in the network graph
+            parallel: integer
+                number of processes to compute geofencing in parallel.
+                if set to 0 or False, no parallelization will be used
+                
+        returns: None
+    '''
+    
+    if not parallel: 
+        for track in tracks:
+            geofence(track, domain=domain)
+    else:
+        with Pool(processes=parallel) as p:
+            fcn = partial(geofence, domain=domain)
+            #p.map(fcn, (list(m) for m in tracks), chunksize=1)  # better tracebacks for debug
+            p.imap_unordered(fcn, tracks, chunksize=1)
+            p.close()
+            p.join()
+
+    aggregate_output()
 

@@ -7,7 +7,6 @@ from database import epoch_2_dt
 import numpy as np
 
 def trackgen(
-        #rows: np.ndarray,
         rowgen: iter, 
         colnames: list = [
             'mmsi', 'time', 'lon', 'lat',
@@ -40,8 +39,8 @@ def trackgen(
 
         if deduplicate_timestamps:
             dupe_idx = np.append([False], np.logical_and(
-                    rows[:,time_col].astype(int)[:-1] == rows[:,time_col].astype(int)[1:],
-                    rows[:,mmsi_col].astype(int)[:-1] == rows[:,mmsi_col].astype(int)[1:]
+                    rows[:,time_col].astype(float).astype(int)[:-1] == rows[:,time_col].astype(float).astype(int)[1:],
+                    rows[:,mmsi_col].astype(float).astype(int)[:-1] == rows[:,mmsi_col].astype(float).astype(int)[1:]
                 ))
             rows = np.delete(rows, dupe_idx, axis=0)
            
@@ -51,14 +50,10 @@ def trackgen(
         for i in range(len(tracks_idx)-1): 
             #assert len(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]) == len(np.unique(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]))
             yield dict(
-                #mmsi    =   int(rows[tracks_idx[i]][0]),
-                #time    =   rows[tracks_idx[i]:tracks_idx[i+1]].T[1],
                 static  =   staticcols,
                 dynamic =   dynamiccols,
-                **
-                { n   :   (rows[tracks_idx[i]][c] or 0) 
-                        for c,n in zip(range(len(colnames)), colnames) if n in staticcols} 
-                ,
+                **{ n   :   (rows[tracks_idx[i]][c] or 0) 
+                        for c,n in zip(range(len(colnames)), colnames) if n in staticcols},
                 **{ n   :   rows[tracks_idx[i]:tracks_idx[i+1]].T[c] 
                         for c,n in zip(range(len(colnames)), colnames) if n in dynamiccols},
             )
@@ -69,6 +64,7 @@ def trackgen(
 #    return filter(lambda seg: len(seg) >= minsize, list(map(range, splits_idx(track)[:-1], splits_idx(track)[1:])))
 
 def segment(track: dict, maxdelta: timedelta, minsize: int) -> filter:
+    assert isinstance(track, dict), f'wrong track type {type(track)}:\n{trackl}'
     splits_idx = lambda track: np.append(np.append([0], np.nonzero(track['time'][1:] - track['time'][:-1] >= maxdelta.total_seconds() / 60 )[0]+1), [len(track['time'])])
     return filter(lambda seg: len(seg) >= minsize, list(map(range, splits_idx(track)[:-1], splits_idx(track)[1:])))
 
