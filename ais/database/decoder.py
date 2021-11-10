@@ -293,7 +293,7 @@ def decode_msgs(filepaths, dbpath, processes=12):
     proc = partial(decode_raw_pyais)
     
     # parallelize decoding step
-    print(f'decoding messages... processed results will be placed in {tmp_dir} before database insert')
+    print(f'decoding messages... results will be placed temporarily in {tmp_dir} until database insert')
     if processes:
         with Pool(processes) as p:
             list(p.imap_unordered(proc, filepaths))
