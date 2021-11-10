@@ -6,7 +6,7 @@ Functions and utilities for the purpose of decoding, storing, processing, and vi
 
 ## What is AIS?
 Wikipedia: https://en.wikipedia.org/wiki/Automatic_identification_system  
-Description of protocol and AIS message types: https://gpsd.gitlab.io/gpsd/AIVDM.html  
+Description of message types: https://arundaleais.github.io/docs/ais/ais_message_types.html  
 
 
 ## Install
