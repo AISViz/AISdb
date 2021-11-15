@@ -172,16 +172,11 @@ def segment_tracks_encode_greatcircledistance(tracks, distance_meters=50000):
         pathways = []
         segments_idx = np.nonzero(np.array(list(map(haversine, track['lon'][:-1], track['lat'][:-1], track['lon'][1:], track['lat'][1:]))) > distance_meters)[0]
         for i in range(len(segments_idx)-1):
-            pathdistance = []
-            for pathway in pathways:
-                # distance metric: average haversine distance to last 3 points in pathway
-                pathdistance.append(np.average([haversine(track['lon'][0], track['lat'][0], lon, lat) 
-                                                for lon, lat in zip(pathway['lon'][-3:], pathway['lat'][-3:])]
-                    ))
-                #pathdistance.append(haversine(track['lon'][0], track['lat'][0], pathway['lon'][-1], pathway['lat'][-1]))
-
+            pathdistance = np.array([np.average([haversine(track['lon'][0], track['lat'][0], lon, lat) 
+                                                 for lon, lat in zip(pathway['lon'][-3:], pathway['lat'][-3:])]
+                                    ) for pathway in pathways])
             # if all distances to pathway ends exceed the threshold, create new pathway
-            if sum(np.array(pathdistance) < distance_meters) == 0:
+            if sum(pathdistance <= distance_meters) == 0:
                 pathways.append(dict(
                         **{k:track[k] for k in track['static'] },
                         **{k:track[k][: segments_idx[i+1] - segments_idx[i]] for k in track['dynamic']},

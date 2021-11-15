@@ -19,7 +19,7 @@ end = datetime(2021,10,1)
 
 
 # pipeline test input config
-enable_cprofile = False
+enable_cprofile =False
 fpaths = sorted([os.path.join(tmp_dir, 'db_qry', f) for f in os.listdir(os.path.join(tmp_dir, 'db_qry')) if f[:2] == '__'])
 fpath = '/meridian/aisdb/tmp_parsing/db_qry/__316001088'
 
@@ -96,9 +96,18 @@ def test_segment_tracks_timesplits_haversine():
         """, sort='tottime')
 
 def test_segment_tracks_timesplits_concat_haversine_concat():
-    distsplit_test = partial(segment_tracks_encode_greatcircledistance, distance_meters=50000)
+    '''
+    track = next(timesplit(trackgen(deserialize([fpath]))))
+    track = next(split_len(timesplit(trackgen(deserialize([fpath])))))
+    track = next(geofenced(split_len(timesplit(trackgen(deserialize([fpath]))))))
+    testgen = distsplit_test([track])
+    test = next(testgen)
+    printfcn(test)
+    '''
+    split_len = partial(concat_tracks,              max_track_length=10000)
+    distsplit_test = partial(segment_tracks_encode_greatcircledistance, distance_meters=300000)
     if not enable_cprofile:
-        for track in split_len(distsplit_test(split_len(geofenced(timesplit(trackgen(deserialize([fpath]))))))):
+        for track in split_len(distsplit_test(geofenced(split_len(timesplit(trackgen(deserialize([fpath]))))))):
             printfcn(track)
     else:
         cProfile.run("""
