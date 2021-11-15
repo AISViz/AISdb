@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from database.dbconn import dbconn
-from database import epoch_2_dt
+#from database import epoch_2_dt
+from gis import epoch_2_dt, dt_2_epoch
 
 '''
 the following code block will set implementation-specific lambdas according to 
@@ -54,7 +55,6 @@ in_time_poly_validmmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_pol
 #   longitude column replaced with x0, x1 columns
 #   latitude column replaced with y0,y1 columns
 
-from database.decoder import dt_2_epoch
 
 
 rtree_in_timerange = lambda **kwargs: f''' 

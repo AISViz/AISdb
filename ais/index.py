@@ -259,5 +259,5 @@ if __name__ == '__main__':
 
     # and again, but this time in parallel
     with parallelindex(pool=10, **kwargs) as scheduler: 
-        scheduler(callback=parallelized_callback, newargument='yerp')
+        scheduler(callback=parallelized_callback, newargument='test')
 

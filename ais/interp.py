@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from track_gen import segment
+from track_gen import segment_rng
 
 
 def interp_time(tracks, start, stop, step=timedelta(minutes=10), maxdelta=timedelta(hours=3), minsize=3):
@@ -53,5 +53,5 @@ def interp_time(tracks, start, stop, step=timedelta(minutes=10), maxdelta=timede
                         ) 
                     for rng in segments ], 
         }
-    for track in tracks: yield interpfcn(track, list(segment(track, maxdelta, minsize)))
+    for track in tracks: yield interpfcn(track, list(segment_rng(track, maxdelta, minsize)))
 

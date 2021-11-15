@@ -14,7 +14,7 @@ gen = explode_month(*next(getrows(qryfcn,rows_months,months_str), cols, csvfile)
 """
 if __name__ == '__main__':
     for track in trackgen(rows):
-        for rng in segment(track, maxdelta=timedelta(hours=2), minsize=3):
+        for rng in segment_rng(track, maxdelta=timedelta(hours=2), minsize=3):
             mask = filtermask(track, rng)
             sog_haversine = compute_knots(track, rng)
             print(f'{track["mmsi"]}  rng: {rng}  sog vs haversine avg diff: '
@@ -70,7 +70,7 @@ def explode_month(kwargs, csvfile, keepraw=True):
                     track['sog'],
                 )).T
             ))
-        for rng in segment(track, timedelta(days=7), minsize=1):
+        for rng in segment_rng(track, timedelta(days=7), minsize=1):
             mask2 = filtermask(track, rng, filters=[lambda track, rng: compute_knots(track, rng) < 50])
             n2 = sum(mask2)
             out = np.vstack((out, 

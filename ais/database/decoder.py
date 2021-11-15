@@ -33,22 +33,6 @@ def is_valid_date(year, month, day, hour=0, minute=0, second=0, **_):
             and 0 <= second <= 59)
 
 
-def dt_2_epoch(dt_arr, t0=datetime(1970,1,1,0,0,0)):
-    ''' convert datetime.datetime to epoch minutes '''
-    delta = lambda dt: (dt - t0).total_seconds() // 60
-    if isinstance(dt_arr, (list, np.ndarray)): return np.array(list(map(int, map(delta, dt_arr))))
-    elif isinstance(dt_arr, (datetime)): return int(delta(dt_arr))
-    else: raise ValueError('input must be datetime or array of datetimes')
-
-
-def epoch_2_dt(ep_arr, t0=datetime(1970,1,1,0,0,0), unit='minutes'):
-    ''' convert epoch minutes to datetime.datetime '''
-    delta = lambda ep, unit: t0 + timedelta(**{f'{unit}' : ep})
-    if isinstance(ep_arr, (list, np.ndarray)): return np.array(list(map(partial(delta, unit=unit), ep_arr)))
-    elif isinstance(ep_arr, (float, int)): return delta(ep_arr, unit=unit)
-    else: raise ValueError('input must be integer or array of integers')
-
-
 def insert_msg123(cur, mstr, rows):
     #cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_1_2_3" ')
     #if not cur.fetchall(): 
@@ -152,7 +136,8 @@ def append_file(picklefile, batch):
         if len(rows) == 0: continue
         # skip duplicate epoch-minute timestamps for each mmsi
         #skipidx = np.nonzero([x['mmsi']==y['mmsi'] and x['epoch']==y['epoch'] for x,y in zip(rows[1:], rows[:-1])])[0]-1
-        skipidx = np.nonzero([x['mmsi']==y['mmsi'] 
+        skipidx = np.nonzero([
+                x['mmsi']==y['mmsi'] 
             and x['type'] == y['type']
             and x['epoch'] == y['epoch'] 
             for x,y in zip(rows[1:], rows[:-1])])[0]
@@ -179,8 +164,8 @@ def decode_raw_pyais(fpath):
     mstr        = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
     picklefile  = os.path.join(tmp_dir, ''.join(fpath[regexdate.start():regexdate.end()].split('-')))
 
-    if sum( [os.path.isfile(f'{picklefile}_msg{msgtype:02}') for msgtype in (1,2,3,5,18,24)] ) >= 6: 
-        return
+    #if sum( [os.path.isfile(f'{picklefile}_msg{msgtype:02}') for msgtype in (1,2,3,5,18,24)] ) >= 6: 
+    #    return
 
     n           = 0
     skipped     = 0

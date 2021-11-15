@@ -3,15 +3,17 @@ from multiprocessing import Pool#, set_start_method
 import pickle
 from functools import partial, reduce
 from datetime import datetime, timedelta
+#import asyncio
 
 import numpy as np
 from shapely.geometry import Point, LineString, Polygon
 
 from common import *
-from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain
-from database import dt2monthstr, dbconn, epoch_2_dt
-from track_gen import trackgen, segment, segment_tracks_timesplits
-from clustering import segment_tracks_dbscan
+from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain, epoch_2_dt
+#from proc_util import epoch_2_dt
+#from proc_util import *
+from track_gen import segment_rng, trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks
+from merge_data import merge_tracks_hullgeom, merge_tracks_shoredist, merge_tracks_bathymetry
 
 
 # returns absolute value of bathymetric depths with topographic heights converted to 0
@@ -20,7 +22,7 @@ depth_nonnegative = lambda track, zoneset: np.array([d if d >= 0 else 0 for d in
 
 # returns minutes spent within kilometers range from shore
 time_in_shoredist_rng = lambda track, subset, dist0=0.01, dist1=5: (
-    sum(map(len, segment(
+    sum(map(len, segment_rng(
         {'time': track['time'][subset][[dist0 <= d <= dist1 for d in track['km_from_shore'][subset]]]}, 
         maxdelta=timedelta(minutes=1), 
         minsize=1
@@ -29,13 +31,14 @@ time_in_shoredist_rng = lambda track, subset, dist0=0.01, dist1=5: (
 
 
 # categorical vessel data
-staticinfo = lambda track, domain: dict(
+#staticinfo = lambda track, domain: dict(
+staticinfo = lambda track: dict(
         mmsi                                =   track['mmsi'],
         imo                                 =   track['imo'] or '',
         cluster_label                       =   track['cluster_label'] if 'cluster_label' in track.keys() else '',
         vessel_name                         =   track['vessel_name'] or '',
         vessel_type                         =   track['ship_type_txt'] or '',
-        domainname                          =   domain.name,
+        #domainname                          =   domain.name,
         vessel_length                       =   (track['dim_bow'] + track['dim_stern']) or '',
         hull_submerged_surface_area         =   track['submerged_hull_m^2'] or '',
         #ballast                             =   None,
@@ -47,6 +50,7 @@ transitinfo = lambda track, zoneset: dict(
         src_zone                            =   track['in_zone'][zoneset][0],
         rcv_zone                            =   track['in_zone'][zoneset][-1],
         transit_nodes                       =   f"{track['in_zone'][zoneset][0]}_{track['in_zone'][zoneset][-1]}",
+        num_datapoints                      =   len(track['time'][zoneset]),
         first_seen_in_zone                  =   epoch_2_dt(track['time'][zoneset][0]).strftime('%Y-%m-%d %H:%M UTC'),
         last_seen_in_zone                   =   epoch_2_dt(track['time'][zoneset][-1]).strftime('%Y-%m-%d %H:%M UTC'),
         year                                =   epoch_2_dt(track['time'][zoneset][0]).year,
@@ -71,38 +75,9 @@ transitinfo = lambda track, zoneset: dict(
     )
 
 
-fence = lambda track, domain: np.array([domain.point_in_polygon(x, y) for x, y in zip(track['lon'], track['lat'])], dtype=object)
 
-
-def concat_tracks_no_movement(tracks, domain):
-
-    concatenated = next(tracks)
-    concatenated['in_zone'] = fence(concatenated, domain)
-
-    for track in tracks:
-        track['in_zone'] = fence(track, domain)
-        if (        concatenated['mmsi']                ==          track['mmsi'] 
-                and concatenated['cluster_label']       == -1  ==   track['cluster_label']
-                and len(set(concatenated['in_zone']))   ==          1 
-                and set(concatenated['in_zone'])        ==          set(track['in_zone'])):
-            concatenated = dict(
-                    static = concatenated['static'],
-                    dynamic = set(concatenated['dynamic']).union(set(['in_zone'])),
-                    in_zone = np.append(concatenated['in_zone'], track['in_zone']),
-                    **{k:track[k] for k in concatenated['static']},
-                    **{k:np.append(concatenated[k], track[k]) for k in concatenated['dynamic'] if k != 'in_zone'},
-                )
-        else:
-            yield concatenated
-            concatenated = track
-
-    yield concatenated
-
-
-
-def geofence(tracks, domain):#, max_cluster_dist_km=50, maxdelta=timedelta(hours=2)):
-    ''' compute points-in-polygons for every positional report in a vessel 
-        trajectory. at each track position where the zone changes, a transit 
+def serialize_network_edge(tracks, domain, staticinfo=staticinfo, transitinfo=transitinfo):
+    ''' at each track position where the zone changes, a transit 
         index is recorded, and trajectory statistics are aggregated for this
         index range using staticinfo() and transitinfo()
         
@@ -114,41 +89,36 @@ def geofence(tracks, domain):#, max_cluster_dist_km=50, maxdelta=timedelta(hours
             tracks: dict
                 dictionary of vessel trajectory data, as output by 
                 ais.track_gen.trackgen() or its wrapper functions
-            domain: ais.gis.Domain() class object
-                collection of zones defined as polygons, these will
-                be used as nodes in the network graph
 
         returns: None
     '''
 
-    #timesplit = partial(segment_tracks_timesplits,  maxdelta=maxdelta)
-    #distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=max_cluster_dist_km)
-    #concat    = partial(concat_tracks_no_movement,  domain=domain)
-
-    #for track in concat(distsplit(timesplit([merged_set]))):
-
     for track in tracks:
-
         filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
+        if not 'in_zone' in track.keys():
+            get_zones = fence([track], domain=domain)
+            track = next(get_zones)
+            assert list(get_zones) == []
 
         with open(filepath, 'ab') as f:
             transits = np.where(track['in_zone'][:-1] != track['in_zone'][1:])[0] +1
 
             for i in range(len(transits)-1):
                 rng = np.array(range(transits[i], transits[i+1]+1))
-                track_stats = staticinfo(track, domain)
+                track_stats = staticinfo(track)
                 track_stats.update(transitinfo(track, rng))
                 pickle.dump(track_stats, f)
 
             i0 = transits[-1] if len(transits) >= 1 else 0
             rng = np.array(range(i0, len(track['in_zone'])))
-            track_stats = staticinfo(track, domain)
+            track_stats = staticinfo(track)
             track_stats.update(transitinfo(track, rng))
             track_stats['rcv_zone'] = 'NULL'
             track_stats['transit_nodes'] = track_stats['src_zone']
             pickle.dump(track_stats, f)
 
-    return
+        yield 
+
 
 
 def aggregate_output(filename='output.csv', filters=[lambda row: False]):
@@ -195,41 +165,5 @@ def aggregate_output(filename='output.csv', filters=[lambda row: False]):
             if len(results) == 0: continue
             output.write('\n'.join(results) + '\n')
 
-
-def graph(tracks, domain, parallel=0):
-    ''' perform geofencing on vessel trajectories, then concatenate aggregated 
-        transit statistics between nodes (zones) to create network edges from 
-        vessel trajectories
-
-        this function will call geofence() for each trajectory in parallel, 
-        outputting serialized results to the tmp_dir directory. after 
-        deserialization, the temporary files are removed, and output will be 
-        written to 'output.csv' inside the data_dir directory
-
-        args:
-            tracks: ais.track_gen.trackgen() trajectory iterator (or one of its wrapper functions)
-                intended to be used with the ais.merge_data.merge_layers() 
-                wrapper, but should work with any of the wrappers
-            domain: ais.gis.Domain() class object
-                collection of zones defined as polygons, these will
-                be used as nodes in the network graph
-            parallel: integer
-                number of processes to compute geofencing in parallel.
-                if set to 0 or False, no parallelization will be used
-                
-        returns: None
-    '''
-    
-    if not parallel: 
-        for track in tracks:
-            geofence(track, domain=domain)
-    else:
-        with Pool(processes=parallel) as p:
-            fcn = partial(geofence, domain=domain)
-            #p.map(fcn, (list(m) for m in tracks), chunksize=1)  # better tracebacks for debug
-            p.imap_unordered(fcn, tracks, chunksize=1)
-            p.close()
-            p.join()
-
-    aggregate_output()
+    #aggregate_output()
 

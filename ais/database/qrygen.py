@@ -4,6 +4,7 @@ from functools import partial
 from datetime import datetime
 #import threading
 import concurrent.futures
+import asyncio
 
 import numpy as np
 from shapely.geometry import Polygon
@@ -79,7 +80,7 @@ class qrygen(UserDict):
         '''
 
 
-    def gen_qry(self, fcn=crawl, dbpath=dbpath):
+    async def gen_qry(self, fcn=crawl, dbpath=dbpath):
         ''' similar to run_qry, but in a generator format for better memory performance
             
             yields:

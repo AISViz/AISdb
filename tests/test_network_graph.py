@@ -1,39 +1,37 @@
+import os
+#import pyopencl as cl
+
+#os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
+#os.environ['PYOPENCL_CTX'] = '1'
+
+os.environ["OMP_NUM_THREADS"] = '1'
+os.environ["OPENBLAS_NUM_THREADS"] = '1'
+os.environ["MKL_NUM_THREADS"] = '1'
+os.environ["VECLIB_MAXIMUM_THREADS"] = '1'
+os.environ["NUMEXPR_NUM_THREADS"] = '1'
+
 #os.system("taskset -c 0-11 -p %d" % os.getpid())
-#from multiprocessing import set_start_method
-#set_start_method('forkserver')
+from multiprocessing import set_start_method
+set_start_method('forkserver')
 from multiprocessing import Pool, Queue
-
-from ais import *
-
 from datetime import datetime, timedelta
-
+from functools import partial
+import pickle
+import time
+import cProfile
 
 import numpy as np
-import shapely.wkt
-from shapely.geometry import Polygon, LineString, MultiPoint
-import pickle
 
-from common import *
-from network_graph import graph
-from database.qryfcn import crawl
-from database.qrygen import qrygen
-from database.lambdas import *
-from gis import *
-from track_gen import *
-from merge_data import merge_layers
+from ais import *
+from ais.gis import Domain, ZoneGeomFromTxt
+from ais.track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks
+from ais.network_graph import serialize_network_edge
+from ais.merge_data import merge_tracks_hullgeom, merge_tracks_shoredist, merge_tracks_bathymetry
 
 
 
-shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
-zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
-domain = Domain('east', zonegeoms)
-# TODO: hashmap lookup for existing geoms ?? // database integration with Domain class
 
 
-start = datetime(2020,6,1)
-end = datetime(2021,10,1)
-#start = datetime(2020,7,1)
-#end = datetime(2020,8,1)
 
 
 def test_network_graph():
@@ -52,15 +50,13 @@ def test_network_graph():
             #mmsi=258084000,
         )
     rowgen=args.gen_qry(fcn=crawl, dbpath=dbpath)
-    #merged = merge_layers(rowgen)
-
-    '''
 
     fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
 
     #with open(fpath, 'wb') as f:
     #    for row in rowgen:
     #        pickle.dump(row, f)
+
         
     def picklegen(fpath):
         with open(fpath, 'rb') as f:
@@ -71,72 +67,89 @@ def test_network_graph():
                 except EOFError as e:
                     break
 
-    '''
+    async def getval(gen):
+        async for val in gen:
+            print(val)
+
+    gen = picklegen(fpath)
+    getval(gen).send(None)
+
 
     #merged = list(merge_layers(rowgen))
 
     #next(merged)
 
-    from functools import partial
-    from ais.merge_data import merge_layers_parallel
-    from ais.network_graph import concat_tracks_no_movement
-    from ais.clustering import segment_tracks_dbscan
-    from ais.track_gen import segment_tracks_timesplits
-    from ais.network_graph import geofence
-    import time
+    timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
+    distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
+    geofenced = partial(fence_tracks,               domain=domain)
+    serialize = partial(serialize_network_edge,     domain=domain)
+
+    rowgen = picklegen(fpath)
+    gen = trackgen(rowgen)
+    cProfile.run('test = gen.__anext__().send(None)', sort='tottime')
+
+
+
 
     timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
     distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
-    jointrack = partial(concat_tracks_no_movement,  domain=domain)
-    serialize = partial(geofence,                   domain=domain)
+    geofenced = partial(fence_tracks,               domain=domain)
+    serialize = partial(serialize_network_edge,     domain=domain)
 
-    #callback = lambda rowset: serialize(concat(distsplit(timesplit([rowset]))))
-    callback = lambda tracks: serialize(jointrack(distsplit(timesplit(tracks))))
-    callback = lambda rowgen: jointrack(distsplit(timesplit(list(merge_layers(trackgen(rowgen))))))
-
-    time.asctime()
     rowgen = picklegen(fpath)
-    test = next(callback(rowgen))
-    time.asctime()
+    pipeline = serialize(merge_tracks_bathymetry(merge_tracks_shoredist(merge_tracks_hullgeom(geofenced(distsplit(timesplit(trackgen(rowgen))))))))
+    
+    rowgen = picklegen(fpath)
+    async def run(pipeline):
+        try:
+            #run_parallel(piped)
+            #pipeline.send(None)
+            return await pipeline
+        except StopIteration as err:
+            return err.value
 
-    tracks = trackgen(picklegen(fpath))
-    callback_single(merge_layers(rowgen))
-    merge_layers_parallel(rowgen, callback_single, processes=4)
+    test = run(rowgen)
+    loop = asyncio.get_event_loop()
+    loop.call_soon_threadsafe()
+    loop.run_in_executor()
 
-    aggregate_output(filename='output.csv', filters=filters)
+    future = asyncio.run_coroutine_threadsafe(run(pipeline), loop)
 
-
-    testgen = timesplit(merged) 
-    testgen = distsplit(timesplit(merged))
-    testgen = geofence(concat(distsplit(timesplit(merged))))
-
-    testgen = geofence(concat(distsplit(timesplit(merged))), domain=domain,)
-
-    '''
-    testgen = map(timesplit, tracks)
-
-
-    cleaned = map(concat, map(distsplit, map(timesplit, tracks)))
-    tracksets = list(next(cleaned))
-    track = tracksets[0]
-    '''
+    while True:
+        test = loop.run_until_complete(rowgen.__anext__())
+        print(test[0][0])
+        pipeline = serialize(merge_tracks_bathymetry(merge_tracks_shoredist(merge_tracks_hullgeom(geofenced(distsplit(timesplit(trackgen([test]))))))))
 
 
-    with open('tests/output/clustertest', 'rb') as f:
-        merged = pickle.load(f)
+    cProfile.run('test = next(scheduler)', sort='tottime')
+    processor = concat_tracks(distsplit(timesplit(geofenced(trackgen(rowgen)))))
+
+    #rowgen = picklegen(fpath)
+    #processor = serialize(merge_tracks_bathymetry(merge_tracks_shoredist(merge_tracks_hullgeom(concat_tracks(geofenced(distsplit(timesplit(trackgen(rowgen)))))))))
+    #test = next(processor)
+
+
+    #rowgen = picklegen(fpath)
+    #test = next(processor(rowgen))
+    from tests.importtest import run_parallel, domain
+
+    rowgen = picklegen(fpath)
+    with Pool(processes=8) as p:
+        #results = p.map(run_parallel, rowgen)
+        multiple_results = [p.apply_async(run_parallel, piped) for piped in picklegen(fpath)]
+        print([res.get(timeout=1) for res in multiple_results])
+        print('close')
+        p.close()
+        p.join()
 
     filters = [
             #lambda rowdict: rowdict['velocity_knots_max'] == 'NULL' or float(rowdict['velocity_knots_max']) > 50,
             lambda rowdict: rowdict['src_zone'] == 'Z0' and rowdict['rcv_zone'] == 'NULL',
             lambda rowdict: rowdict['minutes_spent_in_zone'] == 'NULL' or rowdict['minutes_spent_in_zone'] <= 1,
         ]
+    aggregate_output(filters=filters)
 
-    merge_layers_parallel(rowgen, callback
 
-    #with import_handler() as importconfigs:
-    graph(callback(rowgen), domain, parallel=0)
-    graph(callback(trackgen), domain, parallel=12)
-    
 
     ''' step-through
         

@@ -1,5 +1,5 @@
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from collections import UserDict
 from functools import reduce
 import json
@@ -11,6 +11,22 @@ from shapely.geometry import Polygon, Point
 
 from common import dbpath
 from index import index
+
+
+def dt_2_epoch(dt_arr, t0=datetime(1970,1,1,0,0,0)):
+    ''' convert datetime.datetime to epoch minutes '''
+    delta = lambda dt: (dt - t0).total_seconds() // 60
+    if isinstance(dt_arr, (list, np.ndarray)): return np.array(list(map(int, map(delta, dt_arr))))
+    elif isinstance(dt_arr, (datetime)): return int(delta(dt_arr))
+    else: raise ValueError('input must be datetime or array of datetimes')
+
+
+def epoch_2_dt(ep_arr, t0=datetime(1970,1,1,0,0,0), unit='minutes'):
+    ''' convert epoch minutes to datetime.datetime '''
+    delta = lambda ep, unit: t0 + timedelta(**{f'{unit}' : ep})
+    if isinstance(ep_arr, (list, np.ndarray)): return np.array(list(map(partial(delta, unit=unit), ep_arr)))
+    elif isinstance(ep_arr, (float, int)): return delta(ep_arr, unit=unit)
+    else: raise ValueError('input must be integer or array of integers')
 
 
 def haversine(x1, y1, x2, y2):
@@ -63,8 +79,8 @@ class ZoneGeom():
         self.x = np.array(x)
         self.y = np.array(y)
         self.geometry = Polygon(zip(x, y))
-        self.centroid = self.geometry.centroid
-        self.maxradius = next(np.max(haversine(self.centroid.x, self.centroid.y, xi, yi) for xi,yi in zip(self.x, self.y)))
+        self.centroid = (self.geometry.centroid.x, self.geometry.centroid.y)
+        self.maxradius = next(np.max(haversine(*self.centroid, *xy) for xy in zip(self.x, self.y)))
         self.minX, self.maxX = np.min(self.x), np.max(self.x)
         self.minY, self.maxY = np.min(self.y), np.max(self.y)
         if not (self.minX >= -180 and self.maxX <= 180):
@@ -73,7 +89,9 @@ class ZoneGeom():
             print(f'warning: zone {self.name} boundary exceeds latitudes -90..90')
 
     def __gt__(self, xy):
-        return self.geometry.contains(Point(*xy))
+        return (    self.minX <= xy[0] <= self.maxX
+                and self.minY <= xy[1] <= self.maxY
+                and self.geometry.contains(Point(*xy)))
 
 
 class ZoneGeomFromTxt(ZoneGeom):
@@ -130,7 +148,10 @@ class Domain():
             returns all zones with distances less than zero meters, sorted by 
             nearest first
         '''
-        dist_to_centroids = {k : haversine(x, y, g.centroid.x, g.centroid.y) - g.maxradius for k,g in self.geoms.items()}
+        #dist_to_centroids = {k : haversine(x, y, *g.centroid) - g.maxradius for k,g in self.geoms.items()}
+        dist_to_centroids = {}
+        for k,g in self.geoms.items():
+            dist_to_centroids.update({k : haversine(x, y, *g.centroid) - g.maxradius})
         return {k:v for k,v in sorted(dist_to_centroids.items(), key=lambda item: item[1]) if v <= 0}
 
     def point_in_polygon(self, x, y):
@@ -138,7 +159,7 @@ class Domain():
             uses coarse filtering by precomputing distance to centroids
         '''
         nearest = self.nearest_polygons_to_point(x, y)
-        for key in nearest.keys():
+        for key,val in nearest.items():
             if self.geoms[key] > (x, y):
                 return key
         return 'Z0'
