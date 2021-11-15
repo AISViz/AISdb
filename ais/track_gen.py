@@ -29,7 +29,7 @@ def filtermask(track, rng, filters, first_val=False):
 def flag(track):
     ''' returns True if any computed speed deltas exceed 50 knots ''' 
 
-    if len(track['time']) == 1: 
+    if track['time'].size == 1: 
         return False
 
     if np.max(delta_knots(track, range(len(track['time'])))) > 50:
@@ -43,7 +43,7 @@ def flag(track):
 #    return filter(lambda seg: len(seg) >= minsize, list(map(range, splits_idx(track)[:-1], splits_idx(track)[1:])))
 def segment_rng(track: dict, maxdelta: timedelta, minsize: int) -> filter:
     assert isinstance(track, dict), f'wrong track type {type(track)}:\n{track}'
-    splits_idx = lambda track: np.append(np.append([0], np.nonzero(track['time'][1:] - track['time'][:-1] >= maxdelta.total_seconds() / 60 )[0]+1), [len(track['time'])])
+    splits_idx = lambda track: np.append(np.append([0], np.nonzero(track['time'][1:] - track['time'][:-1] >= maxdelta.total_seconds() / 60 )[0]+1), [track['time'].size])
     return filter(lambda seg: len(seg) >= minsize, list(map(range, splits_idx(track)[:-1], splits_idx(track)[1:])))
 
 
@@ -88,7 +88,7 @@ def trackgen(
             rows = np.delete(rows, dupe_idx, axis=0)
            
 
-        tracks_idx = np.append(np.append([0], np.nonzero(rows[:,mmsi_col].astype(int)[1:] != rows[:,mmsi_col].astype(int)[:-1])[0]+1), len(rows))
+        tracks_idx = np.append(np.append([0], np.nonzero(rows[:,mmsi_col].astype(int)[1:] != rows[:,mmsi_col].astype(int)[:-1])[0]+1), rows.size)
 
         for i in range(len(tracks_idx)-1): 
             #assert len(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]) == len(np.unique(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]))
@@ -168,59 +168,60 @@ def segment_tracks_dbscan(tracks, max_cluster_dist_km=50, flagfcn=flag):
 def segment_tracks_encode_greatcircledistance(tracks, distance_meters=50000):
     ''' if the distance between two consecutive points in the track exceeds 
         given threshold, the track will be segmented '''
+    score_fcn = lambda xy1,xy2,t1,t2,distance_meters=distance_meters: (distance_meters / haversine(*xy1, *xy2)) / (np.abs(t2-t1)  )
+    score_idx = lambda scores: np.where(scores == np.max(scores))[0][0]
     for track in tracks:
         pathways = []
-        segments_idx = np.nonzero(np.array(list(map(haversine, track['lon'][:-1], track['lat'][:-1], track['lon'][1:], track['lat'][1:]))) > distance_meters)[0]
-        for i in range(len(segments_idx)-1):
-            pathdistance = np.array([np.average([haversine(track['lon'][0], track['lat'][0], lon, lat) 
-                                                 for lon, lat in zip(pathway['lon'][-3:], pathway['lat'][-3:])]
-                                    ) for pathway in pathways])
-            # if all distances to pathway ends exceed the threshold, create new pathway
-            if sum(pathdistance <= distance_meters) == 0:
-                pathways.append(dict(
-                        **{k:track[k] for k in track['static'] },
-                        **{k:track[k][: segments_idx[i+1] - segments_idx[i]] for k in track['dynamic']},
-                        static          = track['static'],
-                        dynamic         = track['dynamic'],
-                    ))
-                track = dict(
-                        **{k:track[k] for k in track['static'] },
-                        **{k:track[k][segments_idx[i+1] - segments_idx[i] :] for k in track['dynamic']},
-                        static          = track['static'],
-                        dynamic         = track['dynamic'],
-                    )
+        segments_idx = np.nonzero(np.array(list(map(haversine, track['lon'][:-1], track['lat'][:-1], track['lon'][1:], track['lat'][1:]))) > distance_meters)[0]+1
+        #segments_idx = np.where(delta_knots(track, range(track['time'].size)) > 50)[0]+1
+        for i in range(segments_idx.size-1):
+            scores = np.array([score_fcn(
+                        xy1=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]), 
+                        xy2=(pathway['lon'][-1], pathway['lat'][-1]),
+                        t1=track['time'][0],
+                        t2=pathway['time'][-1],
+                    ) for pathway in pathways  ], dtype=float)
 
-            # otherwise, determine pathway priority by lowest haversine distance
-            else :  
-                nearest = np.where(np.array(pathdistance) == np.min(pathdistance))[0][0]
-                pathways[nearest] = dict(
-                        **{k:track[k] for k in track['static'] },
-                        **{k:np.append(pathways[nearest][k], track[k][:segments_idx[i+1]-segments_idx[i]]) for k in track['dynamic']},
-                        static          = track['static'],
-                        dynamic         = track['dynamic'],
+            highscore = scores[np.where(scores == np.max(scores))[0][0]] if scores.size > 0 else 0
 
-                    )
-                track = dict(
+            if (highscore > .0001
+                    and haversine(pathways[score_idx(scores)]['lon'][-1], pathways[score_idx(scores)]['lat'][-1], 
+                                  track['lon'][segments_idx[i]],  track['lat'][segments_idx[i]]
+                                 ) <= distance_meters):
+                pathways[score_idx(scores)] = dict(
                         **{k:track[k] for k in track['static'] },
-                        **{k:track[k][segments_idx[i+1] - segments_idx[i] :] for k in track['dynamic']},
+                        **{k:np.append(pathways[score_idx(scores)][k], track[k][segments_idx[i] : segments_idx[i+1]]) for k in track['dynamic']},
                         static          = track['static'],
                         dynamic         = track['dynamic'],
                     )
+            else: 
+                pathways.append(
+                        dict(
+                        **{k:track[k] for k in track['static'] },
+                        **{k:track[k][segments_idx[i] : segments_idx[i+1]] for k in track['dynamic']},
+                        static          = track['static'],
+                        dynamic         = track['dynamic'],
+                    ).copy())
 
         for pathway, cluster_label in zip(pathways, range(len(pathways))):
             pathway['cluster_label'] = cluster_label
             pathway['static'] = set(pathway['static']).union({'cluster_label'})
+            #for i in range(pathway['time'].size-1):
+            #    assert pathway['time'][i] < pathway['time'][i+1]
             yield pathway
+
 
 
 def concat_tracks(
         tracks, 
         callback=lambda concatenated, track: (
-            concatenated['mmsi']                    ==          track['mmsi'] 
-            and (concatenated['cluster_label']      == -1  ==   track['cluster_label'] 
-                if 'cluster_label' in concatenated.keys() else True)
-            and len(set(concatenated['in_zone']))   ==          1 
-            and set(concatenated['in_zone'])        ==          set(track['in_zone'])
+            concatenated['mmsi']  ==   track['mmsi'] 
+            and (concatenated['cluster_label']  == -1  ==   track['cluster_label'] 
+                    if 'cluster_label' in concatenated.keys() else True)
+            and (len(set(concatenated['in_zone']))  ==  1  
+                    if 'in_zone' in concatenated.keys() else True)
+            and (set(concatenated['in_zone'])  ==  set(track['in_zone'])
+                    if 'in_zone' in concatenated.keys() else True)
         ),
         max_track_length=10000,
     ):
@@ -241,7 +242,7 @@ def concat_tracks(
 
     for track in tracks:
         # apply upper limit to track size to improve memory performance in worst-case scenario
-        while (len(concatenated['time']) > max_track_length):
+        while (concatenated['time'].size > max_track_length):
             yield dict(
                     **{k:track[k] for k in concatenated['static']},
                     **{k:concatenated[k][:max_track_length] for k in concatenated['dynamic']},

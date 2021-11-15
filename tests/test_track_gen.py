@@ -21,7 +21,7 @@ end = datetime(2021,10,1)
 # pipeline test input config
 enable_cprofile =False
 fpaths = sorted([os.path.join(tmp_dir, 'db_qry', f) for f in os.listdir(os.path.join(tmp_dir, 'db_qry')) if f[:2] == '__'])
-fpath = '/meridian/aisdb/tmp_parsing/db_qry/__316001088'
+fpath = os.path.join(tmp_dir, 'db_qry', '__316001088')
 
 # pipeline processing config
 timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
@@ -45,7 +45,7 @@ def printfcn(track):
     print(f'''mmsi={track['mmsi']}\
   start={epoch_2_dt(track['time'][0]) }\
   delta_minutes={int(track['time'][-1]-track['time'][0]): 6}\
-  track_length={len(track['time']): 4}\
+  track_length={len(track['time']): 6}\
   {(f'  cluster_label={track["cluster_label"]: 3}'
                             if 'cluster_label' in track.keys() else ''
   )}{('  frequency='    +str(track['hourly_transits_avg']) + 'tx/hr' 
@@ -54,9 +54,6 @@ def printfcn(track):
                             if 'in_zone' in track.keys() else ''
   )}''')
 
-  #)}{('  frequency='    +str(sum(np.nonzero(track['in_zone'][1:] != track['in_zone'][:-1])[0])  
-  #                          /  ((track['time'][-1]-track['time'][0]) or 1 / 60)) 
-  #                          if 'in_zone' in track.keys() else ''
 
 def test_fpath_exists():
     assert os.path.isfile(fpath), f'{fpath = }'
@@ -72,101 +69,119 @@ def test_generate_track_dictionary():
         print(track['mmsi'])
 
 def test_segment_tracks_timesplits():
+    timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
     for track in timesplit(trackgen(deserialize([fpath]))):
         printfcn(track)
 
-def test_segment_tracks_timesplits_dbscan():
-    if not enable_cprofile:
-        for track in distsplit(timesplit(trackgen(deserialize([fpath])))):
-            printfcn(track)
-    else:
-        cProfile.run("""
-            printfcn(track)
-        """, sort='tottime')
+def test_segment_tracks_concat_timesplits():
+    max_track_length=10000
+    split_len = partial(concat_tracks, max_track_length=max_track_length)
+    for track in split_len(timesplit(trackgen(deserialize([fpath])))):
+        printfcn(track)
+        assert track['time'].size <= max_track_length
 
-def test_segment_tracks_timesplits_haversine():
-    distsplit_test = partial(segment_tracks_encode_greatcircledistance, distance_meters=50000)
-    if not enable_cprofile:
-        for track in distsplit_test(timesplit(trackgen(deserialize([fpath])))):
-            printfcn(track)
-    else:
-        cProfile.run("""
-        for track in distsplit_test(timesplit(trackgen(deserialize([fpath])))):
-            printfcn(track)
-        """, sort='tottime')
-
-def test_segment_tracks_timesplits_concat_haversine_concat():
+def test_segment_tracks_timesplits_concat_haversine():
     '''
-    track = next(timesplit(trackgen(deserialize([fpath]))))
-    track = next(split_len(timesplit(trackgen(deserialize([fpath])))))
-    track = next(geofenced(split_len(timesplit(trackgen(deserialize([fpath]))))))
+
+    split_len = partial(concat_tracks,              max_track_length=10000)
+    distsplit_test = partial(segment_tracks_encode_greatcircledistance, distance_meters=15000, max_timesplit_minutes=120)
+    #track = next(timesplit(trackgen(deserialize([fpath]))))
+    #track = next(split_len(timesplit(trackgen(deserialize([fpath])))))
+    #testinput = geofenced(split_len(timesplit(trackgen(deserialize([fpath])))))
+    testinput = split_len(timesplit(trackgen(deserialize([fpath]))))
+    #testinput = geofenced(split_len(trackgen(deserialize([fpath]))))
+    track = next(testinput)
+    track['time'].size
+
+    from ais.track_viz import TrackViz
+    from shapely.geometry import LineString
+    viz = TrackViz()
+
+    linegeom = LineString(zip(track['lon'], track['lat']))
+    viz.add_feature_polyline(linegeom, ident=str(testtrack['mmsi']), color=(255, 0, 0, 128))
+
+    viz.clearfeatures()
+    distsplit_test = partial(segment_tracks_encode_greatcircledistance, distance_meters=125000)
+    #distsplit_test = partial(segment_tracks_dbscan, max_cluster_dist_km=50)
+    n = 0
     testgen = distsplit_test([track])
-    test = next(testgen)
-    printfcn(test)
+    for testtrack in testgen:
+        if len(testtrack['time']) == 1: continue
+        printfcn(testtrack)
+        linegeom = LineString(zip(testtrack['lon'], testtrack['lat']))
+        viz.add_feature_polyline(linegeom, ident=str(testtrack['mmsi'])+str(n))
+        n += 1
+        #if n >= 1: break
+        
+
+
+    for i in range(len(segments_idx)-1):
+        print(i, segments_idx[i], track['lon'][segments_idx[i]:segments_idx[i+1]], track['lat'][segments_idx[i]:segments_idx[i+1]])
+        if i > 20: break
+
     '''
     split_len = partial(concat_tracks,              max_track_length=10000)
-    distsplit_test = partial(segment_tracks_encode_greatcircledistance, distance_meters=300000)
+    distsplit_test = partial(segment_tracks_encode_greatcircledistance, distance_meters=125000)
     if not enable_cprofile:
-        for track in split_len(distsplit_test(geofenced(split_len(timesplit(trackgen(deserialize([fpath]))))))):
+        for track in distsplit_test(split_len(timesplit(trackgen(deserialize([fpath]))))):
             printfcn(track)
     else:
         cProfile.run("""
-        for track in split_len(distsplit_test(split_len(timesplit(trackgen(deserialize([fpath])))))):
-            printfcn(track)
-        """, sort='tottime')
-
-def test_geofencing_segment_tracks_timesplits_dbscan():
-    if not enable_cprofile:
-        for track in geofenced(distsplit(timesplit(trackgen(deserialize([fpath]))))):
-            printfcn(track)
-    else:
-        cProfile.run("""
-        for track in geofenced(distsplit(timesplit(trackgen(deserialize([fpath]))))):
+        for track in distsplit_test(split_len(timesplit(trackgen(deserialize([fpath]))))):
             printfcn(track)
         """, sort='tottime')
 
 
-def test_concat_geofencing_segment_tracks_timesplits_dbscan():
+def test_segment_tracks_timesplits_concat_dbscan():
     if not enable_cprofile:
-        for track in split_len(distsplit(split_len(geofenced(timesplit(trackgen(deserialize([fpath]))))))):
-            printfcn(track)
-
-    else:
-        cProfile.run("""
-        for track in split_len(distsplit(split_len(geofenced(timesplit(trackgen(deserialize([fpath]))))))):
-            printfcn(track)
-        """, sort='tottime')
-
-def test_frequencyfilter_concat_geofencing_segment_tracks_timesplits_dbscan():
-    if not enable_cprofile:
-        for track in filtering(tracks_transit_frequency(split_len(distsplit(split_len(geofenced(timesplit(trackgen(deserialize([fpath]))))))))):
+        for track in distsplit(split_len(timesplit(trackgen(deserialize([fpath]))))):
             printfcn(track)
     else:
         cProfile.run("""
-        for track in filtering(tracks_transit_frequency(split_len(distsplit(split_len(geofenced(timesplit(trackgen(deserialize([fpath]))))))))):
             printfcn(track)
         """, sort='tottime')
+
 
 '''
-python -m pytest tests/test_track_gen.py -xs --db monitoring.db; 
+rm monitoring.db; python -m pytest tests/test_track_gen.py -xs -k haversine --db monitoring.db 
+
 sqlite3 -line monitoring.db 'select ITEM, KERNEL_TIME, CPU_USAGE, MEM_USAGE FROM  test_metrics ORDER BY ITEM_START_TIME DESC LIMIT 11;'
 
-sqlite3 monitoring.db
+       ITEM = test_segment_tracks_timesplits_concat_dbscan
+KERNEL_TIME = 2.57
+  CPU_USAGE = 0.98128723502848
+  MEM_USAGE = 11363.85546875
 
-sqlite> 
-	select ITEM, KERNEL_TIME, CPU_USAGE, MEM_USAGE FROM  test_metrics ORDER BY ITEM_START_TIME DESC LIMIT 11;
+       ITEM = test_segment_tracks_timesplits_concat_haversine
+KERNEL_TIME = 0.08
+  CPU_USAGE = 0.986064429464637
+  MEM_USAGE = 313.953125
 
-test_frequencyfilter_concat_geofencing_segment_tracks_timesplits_dbscan|8.2|0.997883308316579|7523.12890625
-test_concat_geofencing_segment_tracks_timesplits_dbscan|7.7|0.998035443409595|7521.45703125
-test_geofencing_segment_tracks_timesplits_dbscan|18.41|0.998161077821614|17089.18359375
-test_segment_tracks_timesplits_dbscan|15.19|0.999731417796535|17172.54296875
-test_segment_tracks_timesplits|0.199999999999999|0.975612950207259|346.2578125
-test_generate_track_dictionary|0.23|0.991500440572578|336.67578125
-test_can_read_fpath_array|0.220000000000001|0.995004864911067|336.671875
-test_fpath_exists|0.0199999999999996|1.20611236678801|91.7421875
-test_segment_tracks_timesplits|0.19|0.97752798260189|357.23828125
-test_generate_track_dictionary|0.220000000000001|0.992400962008736|336.83203125
-test_can_read_fpath_array|0.26|0.979679320669917|336.82421875
+       ITEM = test_segment_tracks_concat_timesplits
+KERNEL_TIME = 0.08
+  CPU_USAGE = 0.970889591936379
+  MEM_USAGE = 300.94140625
+
+       ITEM = test_segment_tracks_timesplits
+KERNEL_TIME = 0.07
+  CPU_USAGE = 0.956743566713713
+  MEM_USAGE = 321.796875
+
+       ITEM = test_generate_track_dictionary
+KERNEL_TIME = 0.06
+  CPU_USAGE = 0.932201872814649
+  MEM_USAGE = 276.02734375
+
+       ITEM = test_can_read_fpath_array
+KERNEL_TIME = 0.07
+  CPU_USAGE = 1.01452262577264
+  MEM_USAGE = 313.390625
+
+       ITEM = test_fpath_exists
+KERNEL_TIME = 0.0
+  CPU_USAGE = 0.0
+  MEM_USAGE = 90.62109375
+
 '''
 
 #from proc_util import cpu_bound
