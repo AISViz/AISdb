@@ -9,7 +9,7 @@ import numpy as np
 
 from network_graph import serialize_network_edge
 from merge_data import merge_layers
-from track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks
+from track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks, segment_tracks_encode_greatcircledistance
 
 def _fast_unzip(zipf, dirname='.'):
     ''' parallel process worker for fast_unzip() '''
@@ -78,88 +78,23 @@ def deserialize(fpaths):
 
 
 
-def blocking_io(tracks, domain):
-    serialize = partial(serialize_network_edge,     domain=domain)
-    for x in serialize(merge_layers(
-        #trackgen(deserialize([fpath]))
-        tracks
-        )):
+def blocking_io(fpath, domain):
+    for x in merge_layers(trackgen(deserialize_generator(fpath))):
         yield x
 
-def cpu_bound(fpath, domain):
-    #return serialize(geofenced(distsplit(timesplit([track]))))
-    #for fpath in fpaths:
+def cpu_bound(track, domain):
     timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
-    distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
+    #distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
+    distsplit = partial(segment_tracks_encode_greatcircledistance, distance_meters=125000)
     geofenced = partial(fence_tracks,               domain=domain)
-    for track in geofenced(concat_tracks(distsplit(timesplit(
-        #merge_tracks_bathymetry(merge_tracks_shoredist(merge_tracks_hullgeom(trackgen(deserialize(
-            trackgen(deserialize([fpath]))
-            #tracks
-        #    )))))
-        )))):
-        yield track
+    split_len = partial(concat_tracks,              max_track_length=10000)
+    serialize = partial(serialize_network_edge,     domain=domain)
+    print(track['mmsi'], end='\r')
+    list(serialize(geofenced(distsplit(split_len(timesplit([track]))))))
+    return
 
 
-
-### testing
-if False:
-    from multiprocessing import Queue, Pool
-    import time
-
-
-    def queue_generator(q):
-        yield q
-
-
-    def queue_iterator(q):
-        while q.empty():
-            time.sleep(1)
-            print('sleeping...')
-        while not q.empty():
-            yield q.get(timeout=10)
-
-
-    def wrapper(q,):
-        callback(merge_layers(queue_iterator(q)))
-
-                
-    def merge_layers_parallel(rowgen, callback, processes=8):
-        '''
-        rowgen yields a set of rows for each MMSI, sorted by time
-
-        example callback:
-
-            ```
-            from functools import partial
-
-            from ais.track_gen import segment_tracks_timesplits
-            from ais.clustering import segment_tracks_dbscan
-            from ais.network_graph import concat_tracks_no_movement
-
-            timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
-            distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
-            concat    = partial(concat_tracks_no_movement,  domain=domain)
-
-            callback = lambda rowgen: concat(distsplit(timesplit(merged)))
-            ```
-        '''
-        assert False
-        q = Queue()
-
-        with Pool(processes=processes) as p:
-            #p.imap_unordered(callback, queue_generator(q), chunksize=1)
-            p.map(wrapper, queue_generator(q), chunksize=1)
-            p.close()
-            for rowset in rowgen:
-                while q.size() > processes:
-                    time.sleep(0.1) 
-                q.put(rowset, block=True, timeout=10)
-
-            p.join()
-
-
-def graph(fpaths, domain, parallel=0):
+def graph(fpath, domain, parallel=0):
     ''' perform geofencing on vessel trajectories, then concatenate aggregated 
         transit statistics between nodes (zones) to create network edges from 
         vessel trajectories
@@ -181,21 +116,33 @@ def graph(fpaths, domain, parallel=0):
                 
         returns: None
     '''
-    
+    '''
+    filtering = partial(filter_tracks,              filter_callback=lambda track: (
+                                                    len(track['time']) <= 2 
+                                                    #or track['hourly_transits_avg'] > 6
+                                                    or set(track['in_zone']) == {'Z0'}
+                                                    or np.max(delta_knots(track, np.array(range(len(track['time']))))) > 50
+                                                    ),
+                                                    logging_callback=lambda track: (
+                                                    #track['hourly_transits_avg'] > 6 or 
+                                                    not (len(track['time']) > 1
+                                                    and np.max(delta_knots(track, np.array(range(len(track['time']))))) > 50)
+                                                    ),)
+    '''
     if not parallel: 
-        for fpath in fpaths:
+        #for fpath in fpaths:
             #geofence(track, domain=domain)
-            print(fpath)
-            for track in blocking_io(cpu_bound(fpath, domain), domain):
-                print(track)
+        for track in blocking_io(fpath, domain):
+            cpu_bound(track, domain=domain)
+
     else:
         with Pool(processes=parallel) as p:
             #fcn = partial(geofence, domain=domain)
             #p.map(fcn, (list(m) for m in tracks), chunksize=1)  # better tracebacks for debug
             fcn = partial(cpu_bound, domain=domain)
-            results = p.imap_unordered(fcn, tracks, chunksize=1)
-            print(results[0])
-            print(results)
+            p.imap_unordered(fcn, (tr for tr in blocking_io(fpath, domain=domain)), chunksize=1)
+            #print(results[0])
+            #print(list(results))
             p.close()
             p.join()
 

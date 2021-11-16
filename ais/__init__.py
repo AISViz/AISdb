@@ -21,10 +21,14 @@ rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
 host_addr = 'localhost'
 host_port = 9999
 output_dir = os.path.join(data_dir, 'scriptoutput') + os.path.sep
+marinetraffic_VD02_key = ''
 
 # common imports that should be shared with module subdirectories
 commondirs = ['.', 'database', 'webdata']
-cfgnames = ['data_dir', 'dbpath', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'output_dir', 'host_addr', 'host_port']
+cfgnames = ['data_dir', 'dbpath', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'output_dir', 
+            'host_addr', 'host_port', 
+            'marinetraffic_VD02_key',
+           ]
 
 # legacy support
 table_prefix = 'ais_'
@@ -63,11 +67,16 @@ else:
 
 
 # create default dirs if they dont exist
-os.path.isdir(data_dir) or os.mkdir(data_dir)
-os.path.isdir(tmp_dir) or os.mkdir(tmp_dir)
-os.path.isdir(zones_dir) or os.mkdir(zones_dir)
-os.path.isdir(rawdata_dir) or os.mkdir(rawdata_dir)
-os.path.isdir(output_dir) or os.mkdir(output_dir)
+if not os.path.isdir(data_dir): 
+    os.mkdir(data_dir)
+if not os.path.isdir(tmp_dir):
+    os.mkdir(tmp_dir)
+if not os.path.isdir(zones_dir):
+    os.mkdir(zones_dir)
+if not os.path.isdir(rawdata_dir):
+    os.mkdir(rawdata_dir)
+if not os.path.isdir(output_dir):
+    os.mkdir(output_dir)
 
 
 
@@ -105,8 +114,6 @@ with import_handler() as importconfigs:
 
     from .database.decoder import (
             decode_msgs,
-            #dt_2_epoch,
-            #epoch_2_dt,
         )
 
     from .database import lambdas
@@ -148,8 +155,6 @@ with import_handler() as importconfigs:
     from .network_graph import serialize_network_edge
 
     from .proc_util import (
-            #dt_2_epoch,
-            #epoch_2_dt,
             fast_unzip,
             writecsv,
         )

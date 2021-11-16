@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta
 import cProfile
+from functools import partial
 
 from ais import zones_dir, output_dir, dbpath, tmp_dir
 from ais.gis import Domain, ZoneGeomFromTxt, epoch_2_dt
@@ -37,8 +38,8 @@ filtering = partial(filter_tracks,              filter_callback=lambda track: (
                                                 logging_callback=lambda track: (
                                                     track['hourly_transits_avg'] > 6 
                                                     or not (len(track['time']) > 1 
-                                                        and np.max(delta_knots(track, np.array(range(len(track['time']))))) > 50) 
-                                                ),)
+                                                        and np.max(delta_knots(track, np.array(range(len(track['time']))))) > 50)
+                                                )) 
 
 
 def printfcn(track): 
@@ -140,6 +141,16 @@ def test_segment_tracks_timesplits_concat_dbscan():
         cProfile.run("""
             printfcn(track)
         """, sort='tottime')
+
+def test_full_pipeline_sequential():
+    fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
+    assert os.path.isfile(fpath)
+    graph(fpath, domain, parallel=0)
+
+def test_full_pipeline_parallel():
+    fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
+    assert os.path.isfile(fpath)
+    graph(fpath, domain, parallel=12)
 
 
 '''
