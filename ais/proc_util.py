@@ -89,7 +89,7 @@ def cpu_bound(track, domain):
     geofenced = partial(fence_tracks,               domain=domain)
     split_len = partial(concat_tracks,              max_track_length=10000)
     serialize = partial(serialize_network_edge,     domain=domain)
-    print(track['mmsi'], end='\r')
+    print('processing mmsi', track['mmsi'], end='\r')
     list(serialize(geofenced(distsplit(split_len(timesplit([track]))))))
     return
 
@@ -134,6 +134,7 @@ def graph(fpath, domain, parallel=0):
             #geofence(track, domain=domain)
         for track in blocking_io(fpath, domain):
             cpu_bound(track, domain=domain)
+        print()
 
     else:
         with Pool(processes=parallel) as p:
@@ -145,4 +146,5 @@ def graph(fpath, domain, parallel=0):
             #print(list(results))
             p.close()
             p.join()
+        print()
 

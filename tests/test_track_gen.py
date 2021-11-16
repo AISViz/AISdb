@@ -8,6 +8,7 @@ from ais.gis import Domain, ZoneGeomFromTxt, epoch_2_dt
 #from ais.proc_util import graph
 from ais.proc_util import *
 from ais.track_gen import *
+from ais.network_graph import aggregate_output
 
 
 # load polygons geometry into Domain object
@@ -146,14 +147,35 @@ def test_full_pipeline_sequential():
     fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
     assert os.path.isfile(fpath)
     graph(fpath, domain, parallel=0)
+    filters = [
+        lambda rowdict: rowdict['src_zone'] == '000' and rowdict['rcv_zone'] == 'NULL',
+        lambda rowdict: rowdict['minutes_spent_in_zone'] == 'NULL' or rowdict['minutes_spent_in_zone'] <= 1,
+    ]
+    aggregate_output(filename='output_encodedsegments_testsequential.csv', filters=filters, delete=False)
 
 def test_full_pipeline_parallel():
+    '''
+    sort -k8g,8 -k9g,9 -k1,1 -k15,15 -t',' <(tail -n +2 output_encodedsegments_testparallel.csv) > testoutput.csv && head -n 1 output_encodedsegments_testparallel.csv > sorted.csv && cat testoutput.csv >> sorted.csv && rm testoutput.csv
+    '''
     fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
     assert os.path.isfile(fpath)
     graph(fpath, domain, parallel=12)
+    filters = [
+        lambda rowdict: rowdict['src_zone'] == '000' and rowdict['rcv_zone'] == 'NULL',
+        lambda rowdict: rowdict['minutes_spent_in_zone'] == 'NULL' or rowdict['minutes_spent_in_zone'] <= 1,
+    ]
+    aggregate_output(filename='output_encodedsegments_testparallel.csv', filters=filters, delete=False)
 
 
 '''
+
+    filters = [
+        lambda rowdict: rowdict['src_zone'] == '000' and rowdict['rcv_zone'] == 'NULL',
+        lambda rowdict: rowdict['minutes_spent_in_zone'] == 'NULL' or rowdict['minutes_spent_in_zone'] <= 1,
+    ]
+    aggregate_output(filename='output_encodedsegments.csv', filters=filters, delete=False)
+
+
 rm monitoring.db; python -m pytest tests/test_track_gen.py -xs -k haversine --db monitoring.db 
 
 sqlite3 -line monitoring.db 'select ITEM, KERNEL_TIME, CPU_USAGE, MEM_USAGE FROM  test_metrics ORDER BY ITEM_START_TIME DESC LIMIT 11;'

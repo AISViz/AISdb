@@ -47,8 +47,8 @@ staticinfo = lambda track: dict(
 
 # collect aggregated statistics on vessel positional data 
 transitinfo = lambda track, zoneset: dict(
-        src_zone                            =   track['in_zone'][zoneset][0],
-        rcv_zone                            =   track['in_zone'][zoneset][-1],
+        src_zone                            =   f"{int(track['in_zone'][zoneset][0][1:]):03}",
+        rcv_zone                            =   f"{int(track['in_zone'][zoneset][-1][1:]):03}",
         transit_nodes                       =   f"{track['in_zone'][zoneset][0]}_{track['in_zone'][zoneset][-1]}",
         num_datapoints                      =   len(track['time'][zoneset]),
         first_seen_in_zone                  =   epoch_2_dt(track['time'][zoneset][0]).strftime('%Y-%m-%d %H:%M UTC'),
@@ -121,7 +121,7 @@ def serialize_network_edge(tracks, domain, staticinfo=staticinfo, transitinfo=tr
 
 
 
-def aggregate_output(filename='output.csv', filters=[lambda row: False]):
+def aggregate_output(filename='output.csv', filters=[lambda row: False], delete=True):
     ''' concatenate serialized output from geofence()
 
         filters: list of callables
@@ -161,9 +161,7 @@ def aggregate_output(filename='output.csv', filters=[lambda row: False]):
                         raise e
                     if not reduce(np.logical_or, [f(getrow) for f in filters]):
                         results.append(','.join(map(str, getrow.values())))
-            os.remove(picklefile)
+            if delete: os.remove(picklefile)
             if len(results) == 0: continue
             output.write('\n'.join(results) + '\n')
-
-    #aggregate_output()
 
