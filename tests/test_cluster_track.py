@@ -47,9 +47,13 @@ test_cluster_duplicate_mmsi(track_dicts):
     #    assert track_dicts != []
     #    pickle.dump(track_dicts, f)
 
-    with open('tests/output/clustertest', 'rb') as f:
-        track_dicts = pickle.load(f)
-    merged=track_dicts
+    fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
+    distsplit = partial(segment_tracks_encode_greatcircledistance, distance_meters=125000)
+    merged = distsplit(split_len(timesplit(trackgen(deserialize_generator(fpath)))))
+
+    #with open('tests/output/clustertest', 'rb') as f:
+    #    track_dicts = pickle.load(f)
+    #merged=track_dicts
 
 
 
@@ -81,22 +85,29 @@ test_cluster_duplicate_mmsi(track_dicts):
         pass
     print(track['mmsi'])
 
+
     # test the clustering for this track
+    viz.clear_lines()
     n = 0
-    linegeom = LineString(zip(track['lon'], track['lat']))
-    viz.add_feature_polyline(linegeom, ident=track['mmsi'], color=(255,0,0,128))
-    for cluster in segment_tracks_dbscan(segment_tracks_timesplits([track], maxdelta=timedelta(hours=2)), max_cluster_dist_km=50):
+    showpts = False
+    #linegeom = LineString(zip(track['lon'], track['lat']))
+    #viz.add_feature_polyline(linegeom, ident=track['mmsi'], color=(255,0,0,128))
+    for cluster in tracks:
         if len(cluster['time']) == 1: continue
-        ptgeom = MultiPoint([Point(x,y) for x,y in zip(cluster['lon'], cluster['lat'])])
-        #viz.add_feature_point(ptgeom, ident=cluster['cluster_label']*100 if cluster['cluster_label']!=None else None)
-        #viz.add_feature_point(ptgeom, ident=str(cluster['mmsi']) + str(cluster['cluster_label']))
-        viz.add_feature_point(ptgeom, ident=str((n+100)*100))
+        print(cluster['mmsi'], end='\r')
+        if showpts:
+            ptgeom = MultiPoint([Point(x,y) for x,y in zip(cluster['lon'], cluster['lat'])])
+            viz.add_feature_point(ptgeom, ident=str((n+100)*100))
         linegeom = LineString(zip(cluster['lon'], cluster['lat']))
-        viz.add_feature_polyline(linegeom, ident=cluster['mmsi'], color=(30,30,255,255))
+        viz.add_feature_polyline(linegeom, ident=cluster['mmsi'])  #cluster['mmsi']#, #color=(30,30,255,255))
         n += 1
+        if n > 1000: break
 
 
     viz.clearfeatures()
+
+    viz.clear_lines()
+    viz.clear_points()
 
 
     viz = TrackViz()
