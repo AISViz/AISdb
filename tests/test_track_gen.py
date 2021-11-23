@@ -26,8 +26,9 @@ fpaths = sorted([os.path.join(tmp_dir, 'db_qry', f) for f in os.listdir(os.path.
 fpath = os.path.join(tmp_dir, 'db_qry', '__316001088')
 
 # pipeline processing config
-timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
-distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
+timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=6))
+#distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
+distsplit = partial(segment_tracks_encode_greatcircledistance, distance_meters=125000, delta_knots_threshold=30)
 geofenced = partial(fence_tracks,               domain=domain)
 split_len = partial(concat_tracks,              max_track_length=10000)
 filtering = partial(filter_tracks,              filter_callback=lambda track: (
@@ -159,12 +160,12 @@ def test_full_pipeline_parallel():
     '''
     fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
     assert os.path.isfile(fpath)
-    graph(fpath, domain, parallel=12)
+    graph(fpath, domain, parallel=20)
     filters = [
         lambda rowdict: rowdict['src_zone'] == '000' and rowdict['rcv_zone'] == 'NULL',
-        lambda rowdict: rowdict['minutes_spent_in_zone'] == 'NULL' or rowdict['minutes_spent_in_zone'] <= 1,
+        #lambda rowdict: rowdict['minutes_spent_in_zone'] == 'NULL' or rowdict['minutes_spent_in_zone'] <= 1,
     ]
-    aggregate_output(filename='output_encodedsegments_testparallel.csv', filters=filters, delete=False)
+    aggregate_output(filename='output_timedelta6hrs_speeddelta30knots.csv', filters=filters, delete=True)
 
 
 '''

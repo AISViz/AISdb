@@ -78,23 +78,23 @@ def deserialize(fpaths):
 
 
 
-def blocking_io(fpath, domain):
+def graph_blocking_io(fpath, domain):
     for x in merge_layers(trackgen(deserialize_generator(fpath))):
         yield x
 
-def cpu_bound(track, domain):
-    timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
-    #distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
-    distsplit = partial(segment_tracks_encode_greatcircledistance, distance_meters=125000)
+def graph_cpu_bound(track, domain, cutdistance, maxdistance, cuttime, minscore=0.0000001):
+    timesplit = partial(segment_tracks_timesplits, maxdelta=cuttime)
+    distsplit = partial(segment_tracks_encode_greatcircledistance, cutdistance=cutdistance, maxdistance=maxdistance, cuttime=cuttime, minscore=minscore)
     geofenced = partial(fence_tracks,               domain=domain)
-    split_len = partial(concat_tracks,              max_track_length=10000)
+    #split_len = partial(concat_tracks,              max_track_length=10000)
     serialize = partial(serialize_network_edge,     domain=domain)
     print('processing mmsi', track['mmsi'], end='\r')
-    list(serialize(geofenced(distsplit(split_len(timesplit([track]))))))
+    #list(serialize(geofenced(split_len(distsplit(timesplit([track]))))))
+    list(serialize(geofenced(distsplit(timesplit([track])))))
     return
 
 
-def graph(fpath, domain, parallel=0):
+def graph(fpath, domain, parallel=0, cutdistance=5000, maxdistance=200000, cuttime=timedelta(hours=24), minscore=0.0000001):
     ''' perform geofencing on vessel trajectories, then concatenate aggregated 
         transit statistics between nodes (zones) to create network edges from 
         vessel trajectories
@@ -116,34 +116,15 @@ def graph(fpath, domain, parallel=0):
                 
         returns: None
     '''
-    '''
-    filtering = partial(filter_tracks,              filter_callback=lambda track: (
-                                                    len(track['time']) <= 2 
-                                                    #or track['hourly_transits_avg'] > 6
-                                                    or set(track['in_zone']) == {'Z0'}
-                                                    or np.max(delta_knots(track, np.array(range(len(track['time']))))) > 50
-                                                    ),
-                                                    logging_callback=lambda track: (
-                                                    #track['hourly_transits_avg'] > 6 or 
-                                                    not (len(track['time']) > 1
-                                                    and np.max(delta_knots(track, np.array(range(len(track['time']))))) > 50)
-                                                    ),)
-    '''
     if not parallel: 
-        #for fpath in fpaths:
-            #geofence(track, domain=domain)
-        for track in blocking_io(fpath, domain):
-            cpu_bound(track, domain=domain)
+        for track in graph_blocking_io(fpath, domain):
+            graph_cpu_bound(track, domain=domain, cutdistance=cutdistance, maxdistance=maxdistance, cuttime=cuttime, minscore=minscore)
         print()
 
     else:
         with Pool(processes=parallel) as p:
-            #fcn = partial(geofence, domain=domain)
-            #p.map(fcn, (list(m) for m in tracks), chunksize=1)  # better tracebacks for debug
-            fcn = partial(cpu_bound, domain=domain)
-            p.imap_unordered(fcn, (tr for tr in blocking_io(fpath, domain=domain)), chunksize=1)
-            #print(results[0])
-            #print(list(results))
+            fcn = partial(graph_cpu_bound, domain=domain, cutdistance=cutdistance, maxdistance=maxdistance, cuttime=cuttime, minscore=minscore)
+            p.imap_unordered(fcn, (tr for tr in graph_blocking_io(fpath, domain=domain)), chunksize=1)
             p.close()
             p.join()
         print()

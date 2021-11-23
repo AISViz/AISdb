@@ -73,12 +73,12 @@ def merge_layers(tracks):
             track['depth_metres'] = np.array([bathymetry.getdepth(x, y) for x,y in zip(track['lon'], track['lat']) ]) * -1
 
             # seafloor depth from nonnegative border cells
-            #track['depth_border_cells_average'] = np.array([bathymetry.getdepth_cellborders_nonnegative_avg(x, y) for x,y in zip(track['lon'], track['lat'])])
+            track['depth_border_cells_average'] = np.array([bathymetry.getdepth_cellborders_nonnegative_avg(x, y) for x,y in zip(track['lon'], track['lat'])])
 
             # update indices
             track['static'] = set(track['static']).union(set(['submerged_hull_m^2', 'deadweight_tonnage']))
-            #track['dynamic'] = set(track['dynamic']).union(set(['km_from_shore', 'depth_metres', 'depth_border_cells_average']))
-            track['dynamic'] = set(track['dynamic']).union(set(['km_from_shore', 'depth_metres']))
+            track['dynamic'] = set(track['dynamic']).union(set(['km_from_shore', 'depth_metres', 'depth_border_cells_average']))
+            #track['dynamic'] = set(track['dynamic']).union(set(['km_from_shore', 'depth_metres']))
 
             yield track
 

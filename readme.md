@@ -42,7 +42,7 @@ host_port = 9999
 
 2. [Automatically generate SQL database queries](examples/example02_query_the_database.py)
 
-3. Compute vessel trajectories  
+3. Compute vessel trajectories 
   TODO: add documentation
 
 4. Merging data from additional sources  

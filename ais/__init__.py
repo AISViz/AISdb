@@ -67,16 +67,23 @@ else:
 
 
 # create default dirs if they dont exist
-if not os.path.isdir(data_dir): 
-    os.mkdir(data_dir)
-if not os.path.isdir(tmp_dir):
-    os.mkdir(tmp_dir)
-if not os.path.isdir(zones_dir):
-    os.mkdir(zones_dir)
-if not os.path.isdir(rawdata_dir):
-    os.mkdir(rawdata_dir)
-if not os.path.isdir(output_dir):
-    os.mkdir(output_dir)
+try:
+    if not os.path.isdir(data_dir): 
+        os.mkdir(data_dir)
+    if not os.path.isdir(tmp_dir):
+        os.mkdir(tmp_dir)
+    if not os.path.isdir(zones_dir):
+        os.mkdir(zones_dir)
+    if not os.path.isdir(rawdata_dir):
+        os.mkdir(rawdata_dir)
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+except FileNotFoundError as err:
+    raise FileNotFoundError(f'Could not access {err.filename}! Ensure path exists and has valid permissions')
+except PermissionError as err:
+    raise PermissionError(f'Could not access {err.filename}! Ensure path exists and has valid permissions')
+except Exception as err:
+    raise err
 
 
 
