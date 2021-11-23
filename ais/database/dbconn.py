@@ -1,6 +1,6 @@
 import os
 
-from common import dbpath
+from common import dbpath, table_prefix
 
 
 def create_table_coarsetype(cur):
@@ -76,7 +76,8 @@ class dbconn():
             self.conn, self.cur = conn, cur
             self.lambdas = dict(
                 in_poly     = lambda poly,alias='m123',**_: f'ST_Contains(\n    ST_GeomFromText(\'{poly}\'),\n    ST_MakePoint({alias}.longitude, {alias}.latitude)\n  )',
-                in_radius   = lambda *,x,y,radius,**_: f'ST_DWithin(Geography(m123.ais_geom), Geography(ST_MakePoint({x}, {y})), {radius})',
+                in_radius   = lambda *,x,y,radius,alias='m123',**_: f'ST_DWithin(Geography({alias}.ais_geom), Geography(ST_MakePoint({x}, {y})), {radius})'
+                ,
                 in_radius_time  = lambda *,x,y,radius,alias='m123',**kwargs: f'ST_DWithin(Geography({alias}.ais_geom), Geography(ST_MakePoint({x}, {y})), {radius}) AND {alias}.time BETWEEN \'{kwargs["start"].strftime("%Y-%m-%d %H:%M:%S")}\'::date AND \'{kwargs["end"].strftime("%Y-%m-%d %H:%M:%S")}\'::date',
                 in_bbox     = lambda south, north, west, east,**_:    f'ais_geom && ST_MakeEnvelope({west},{south},{east},{north})',
             )
@@ -98,11 +99,6 @@ class dbconn():
             if dbpath is not None:
                 #newdb = not os.path.isfile(dbpath)
                 self.conn = sqlite3.connect(dbpath, timeout=timeout, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
-                self.cur = self.conn.cursor()
-                self.cur.execute('PRAGMA journal_mode=WAL')
-                j = self.cur.fetchall()
-                assert j == [('wal',)], f'journal mode: {j}'
-                self.conn.commit()
 
                 self.conn.execute('PRAGMA synchronous=0')
                 self.conn.execute('PRAGMA threads=8')
@@ -111,9 +107,9 @@ class dbconn():
                 self.conn.execute('PRAGMA cache_size=-10000')
                 self.conn.commit()
 
+                self.cur = self.conn.cursor()
                 self.cur.execute('SELECT name FROM sqlite_master WHERE type="table" AND name="coarsetype_ref";')
                 if not self.cur.fetchall():
                     create_table_coarsetype(self.cur)
-                #    self.cur.execute('SELECT InitSpatialMetaDataFull(1)')
                 self.conn.commit()
 

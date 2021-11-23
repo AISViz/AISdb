@@ -14,3 +14,7 @@ filepaths = ['/home/matt/ais_202101.nm4', '/home/matt/ais_202102.nm4', '.../etc'
 
 decode_msgs(filepaths, dbpath)
 
+# decoding can be sped up by processing each file in a new process
+# number of maximum processes specified as follows:
+decode_msgs(filepaths, dbpath=dbpath, processes=12)
+

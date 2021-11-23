@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from database.dbconn import dbconn
-from database import epoch_2_dt
+#from database import epoch_2_dt
+from gis import epoch_2_dt, dt_2_epoch
 
 '''
 the following code block will set implementation-specific lambdas according to 
@@ -54,7 +55,6 @@ in_time_poly_validmmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_pol
 #   longitude column replaced with x0, x1 columns
 #   latitude column replaced with y0,y1 columns
 
-from database.decoder import dt_2_epoch
 
 
 rtree_in_timerange = lambda **kwargs: f''' 
@@ -62,7 +62,7 @@ rtree_in_timerange = lambda **kwargs: f'''
         {kwargs['alias']}.t1 <= {dt_2_epoch(kwargs['end'])}'''
 
 rtree_has_mmsi      = lambda alias, mmsi, **_: f'''
-        {alias}.mmsi0 = {str(mmsi)} '''
+        CAST({alias}.mmsi0 AS INT) = {mmsi} '''
 
 rtree_in_mmsi       = lambda alias, mmsis, **_: f'''
         {alias}.mmsi0 IN ({", ".join(map(str, mmsis))}) '''
@@ -82,6 +82,7 @@ rtree_in_bbox = lambda alias, **kwargs:(f'''
 
 rtree_in_time_bbox = lambda **kwargs: f''' {rtree_in_timerange(**kwargs)} AND {rtree_in_bbox(**kwargs)} '''
 rtree_in_bbox_time = lambda **kwargs: f''' {rtree_in_bbox(**kwargs)} AND {rtree_in_timerange(**kwargs)} '''
+rtree_in_validmmsi_bbox = lambda **kwargs: f''' {rtree_valid_mmsi(**kwargs)} AND {rtree_in_bbox(**kwargs)} '''
 
 rtree_in_time_bbox_validmmsi = lambda **kwargs: f''' {rtree_in_timerange(**kwargs)} AND {rtree_in_bbox(**kwargs)} AND {rtree_valid_mmsi(**kwargs)} '''
 rtree_in_bbox_time_validmmsi = lambda **kwargs: f''' {rtree_in_bbox(**kwargs)} AND {rtree_in_timerange(**kwargs)} AND {rtree_valid_mmsi(**kwargs)} '''
@@ -89,3 +90,8 @@ rtree_in_bbox_time_validmmsi = lambda **kwargs: f''' {rtree_in_bbox(**kwargs)} A
 rtree_in_timerange_hasmmsi = lambda **kwargs: f'{rtree_in_timerange(**kwargs)} AND {rtree_has_mmsi(**kwargs)}'
 rtree_in_timerange_inmmsi = lambda **kwargs: f'{rtree_in_timerange(**kwargs)} AND {rtree_in_mmsi(**kwargs)}'
 rtree_in_timerange_validmmsi = lambda **kwargs: f'{rtree_in_timerange(**kwargs)} AND {rtree_valid_mmsi(**kwargs)}'
+
+rtree_in_time_bbox_hasmmsi = lambda **kwargs: f'''
+        {rtree_in_timerange(**kwargs)} AND 
+        {rtree_in_bbox(**kwargs)} AND 
+        {rtree_has_mmsi(**kwargs)}'''

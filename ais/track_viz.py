@@ -5,8 +5,10 @@ https://gis.stackexchange.com/questions/245840/wait-for-canvas-to-finish-renderi
 '''
 
 import os
-#import sys
 from hashlib import sha256
+from datetime import datetime, timedelta
+from functools import partial
+from multiprocessing import Pool
 
 #from qgis.core import QgsApplication, QgsProject, QgsRasterLayer, QgsPrintLayout, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMapSettings, QgsPointXY, QgsGeometry, QgsWkbTypes, QgsTask, QgsVectorLayer, QgsField, QgsFeature, QgsMapRendererCustomPainterJob, QgsSymbol, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsLineSymbol
 from qgis.core import *
@@ -18,9 +20,12 @@ from qgis.PyQt.QtWidgets import QMainWindow, QWidget, QLabel, QFrame, QStatusBar
 import numpy as np
 import shapely.ops
 import shapely.wkt
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import LineString, Polygon, MultiPoint, Point
 
+from common import output_dir
 from gis import haversine
+from proc_util import deserialize_generator
+from track_gen import *
 
 
 colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
@@ -69,6 +74,19 @@ class toolScaleCoord(toolCoord):
         scale = haversine(*xfr(ext.xMinimum(), ext.yMinimum()), *xfr(ext.xMaximum(), ext.yMaximum())) / 1000
         self.statbar.showMessage(f'center: lat {xy[1]:.6f}  lon {xy[0]:.6f}    scale: {int(scale - (scale % 1))}km')
 
+    def getCurrentScale(self):
+        ext = self.canvas.extent()
+        xfr = self.xform.transform
+        xy = xfr(ext.center())
+        scale = haversine(*xfr(ext.xMinimum(), ext.yMinimum()), *xfr(ext.xMaximum(), ext.yMaximum())) / 1000
+        return int(scale - (scale % 1))
+
+    def getCurrentCenter(self):
+        ext = self.canvas.extent()
+        xfr = self.xform.transform
+        xy = xfr(ext.center())
+        return tuple(xy)
+
 
 class customQgsMultiPoint(QgsRubberBand):
     def __init__(self, canvas):
@@ -77,10 +95,11 @@ class customQgsMultiPoint(QgsRubberBand):
 
 
 class TrackViz(QMainWindow):
-    assert os.path.isfile('/usr/bin/qgis'), 'couldnt find qgis in path'
     
 
     def __init__(self):
+        assert os.path.isfile('/usr/bin/qgis'), 'couldnt find qgis in path'
+        assert os.path.isdir(os.path.join(output_dir, 'png/')), f'couldnt find {output_dir}{os.path.sep}png{os.path.sep}'
         # initialize qt app
         #self.app = QApplication(sys.argv)
         QgsApplication.setPrefixPath('/usr', True)
@@ -144,7 +163,7 @@ class TrackViz(QMainWindow):
     def init_ui(self):
         ''' add some tools to the visualization window '''
         # pan
-        self.actionPan = QAction('pan', self)
+        self.actionPan = QAction('Pan', self)
         self.actionPan.setCheckable(True)
         self.actionPan.triggered.connect(self.pan)
         self.toolbar.addAction(self.actionPan)
@@ -171,11 +190,11 @@ class TrackViz(QMainWindow):
         self.statusBar().showMessage('')
         self.toolcoord = toolCoord(self.canvas, self.statusBar(), self.project)
         self.toolscalecoord = toolScaleCoord(self.canvas, self.statusBar(), self.project)
-        self.actionCoord = QAction('locate coordinates', self)
+        self.actionCoord = QAction('Locate Coordinates', self)
         self.actionCoord.setCheckable(True)
         self.actionCoord.triggered.connect(self.get_coord)
         self.toolbar.addAction(self.actionCoord)
-        self.actionClearCoord = QAction('clear markers', self)
+        self.actionClearCoord = QAction('Clear Markers', self)
         self.actionClearCoord.triggered.connect(self.clear_coord)
         self.toolbar.addAction(self.actionClearCoord)
         self.canvas.setMapTool(self.toolscalecoord)
@@ -239,6 +258,13 @@ class TrackViz(QMainWindow):
         self.clear_coord()
         return geom
 
+    def set_canvas_boundary(self, xmin=-180, ymin=-90, xmax=180, ymax=90):
+        #ext1 = self.canvas.extent()
+        xy1 = self.xform.transform(QgsPointXY(xmin, ymin))
+        xy2 = self.xform.transform(QgsPointXY(xmax, ymax))
+        ext = QgsRectangle(xy1.x(), xy1.y(), xy2.x(), xy2.y())
+        self.canvas.setExtent(ext)
+        self.canvas.refresh()
 
     def split_feature_over_meridian(self, meridian, geom):
         adjust = lambda x: ((np.array(x) + 180) % 360) - 180  
@@ -473,10 +499,13 @@ class TrackViz(QMainWindow):
         render = QgsMapRendererParallelJob(self.settings)
         def finished():
             img = render.renderedImage()
-            img.save(f'output{os.path.sep}{fname}', 'png')
+            imgpath = os.path.join(output_dir, 'png', fname)
+            img.save(imgpath, 'png')
         render.finished.connect(finished)
         render.start()
         render.waitForFinished()
+
+        self.canvas.setLayers([self.basemap_lyr])
 
         '''
         #image = QImage(QSize(w,h), QImage.Format_RGB32)
@@ -537,6 +566,46 @@ class TrackViz(QMainWindow):
         #self.app.deleteLater()
         self.qgs.exitQgis()
         self.close()
+
+
+def serialize_geomwkb(tracks):
+    wkbdir = os.path.join(output_dir, 'wkb/')
+    if not os.path.isdir(wkbdir): 
+        os.mkdir(wkbdir)
+
+    for track in tracks:
+        if len(track['time']) == 1:
+            geom = MultiPoint([Point(x,y,t) for x,y,t in zip(track['lon'], track['lat'], track['time'])])
+        else:
+            geom = LineString(zip(track['lon'], track['lat'], track['time']))
+        fname = os.path.join(wkbdir, f'mmsi={track["mmsi"]}_epoch={int(track["time"][0])}-{int(track["time"][-1])}_{geom.type}.wkb')
+        with open(fname, 'wb') as f:
+            f.write(geom.wkb)
+
+    return
+
+
+def blocking_io(fpath):
+    for x in trackgen(deserialize_generator(fpath)):
+        yield x
+
+def cpu_bound(track, domain, cutdistance, maxdistance, cuttime, minscore):
+    timesplit = partial(segment_tracks_timesplits,  maxdelta=cuttime)
+    distsplit = partial(segment_tracks_encode_greatcircledistance, cutdistance=cutdistance, maxdistance=maxdistance, cuttime=cuttime, minscore=minscore)
+    geofenced = partial(fence_tracks,               domain=domain)
+    split_len = partial(concat_tracks,              max_track_length=10000)
+    print('processing mmsi', track['mmsi'], end='\r')
+    serialize_geomwkb(split_len(distsplit(timesplit([track]))))
+    return
+
+
+def serialize_geoms(tracks, domain, processes, cutdistance=5000, maxdistance=125000, cuttime=timedelta(hours=6), minscore=0.0001):
+    with Pool(processes=processes) as p:
+        fcn = partial(cpu_bound, domain=domain, cutdistance=cutdistance, maxdistance=maxdistance, cuttime=cuttime, minscore=minscore)
+        p.imap_unordered(fcn, tracks, chunksize=1)
+        p.close()
+        p.join()
+    print()
 
 '''
     def layer_from_feature_old(self, geomwkt, ident, color=None, opacity=None, nosplit=False):

@@ -1,40 +1,43 @@
-from datetime import datetime, timedelta
+import os
+#import pyopencl as cl
 
-os.system("taskset -p 0xfff %d" % os.getpid())
+#os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
+#os.environ['PYOPENCL_CTX'] = '1'
+
+os.environ["OMP_NUM_THREADS"] = '1'
+os.environ["OPENBLAS_NUM_THREADS"] = '1'
+os.environ["MKL_NUM_THREADS"] = '1'
+os.environ["VECLIB_MAXIMUM_THREADS"] = '1'
+os.environ["NUMEXPR_NUM_THREADS"] = '1'
+
+#os.system("taskset -c 0-11 -p %d" % os.getpid())
 from multiprocessing import set_start_method
 set_start_method('forkserver')
+from multiprocessing import Pool, Queue
+from datetime import datetime, timedelta
+from functools import partial
+import pickle
+import time
+import cProfile
 
 import numpy as np
-import shapely.wkt
-from shapely.geometry import Polygon, LineString, MultiPoint
-import pickle
 
-from common import *
-from network_graph import *
-#from clustering import *
-from database import *
-from gis import *
-from track_gen import *
+from ais import *
+from ais.gis import Domain, ZoneGeomFromTxt
+from ais.track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks
+from ais.network_graph import serialize_network_edge
+from ais.merge_data import merge_tracks_hullgeom, merge_tracks_shoredist, merge_tracks_bathymetry
 
 
 
-shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
-zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
-domain = Domain('east', zonegeoms)
-# TODO: hashmap lookup for existing geoms ?? // database integration with Domain class
 
 
-start = datetime(2021, 1, 1)
-end = datetime(2021, 1, 14)
-
-start = datetime(2019,9,1)
-end = datetime(2019,10,1)
 
 
 def test_network_graph():
 
     # query db for points in domain 
-    rowgen = qrygen(
+    args = qrygen(
             start   = start,
             end     = end,
             #end     = start + timedelta(hours=24),
@@ -42,23 +45,111 @@ def test_network_graph():
             xmax    = domain.maxX, 
             ymin    = domain.minY, 
             ymax    = domain.maxY,
-        ).gen_qry(callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
+            callback = rtree_in_validmmsi_bbox,
+            #callback = rtree_in_time_bbox_hasmmsi,
+            #mmsi=258084000,
+        )
+    rowgen=args.gen_qry(fcn=crawl, dbpath=dbpath)
 
-    merged = merge_layers(rowgen)
+    fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
+
+    #with open(fpath, 'wb') as f:
+    #    for row in rowgen:
+    #        pickle.dump(row, f)
+
+        
+    def picklegen(fpath):
+        with open(fpath, 'rb') as f:
+            while True:
+                try:
+                    #rows = pickle.load(f)
+                    yield pickle.load(f)
+                except EOFError as e:
+                    break
+
+    async def getval(gen):
+        async for val in gen:
+            print(val)
+
+    gen = picklegen(fpath)
+    getval(gen).send(None)
 
 
-    with open('tests/output/clustertest', 'rb') as f:
-        merged = pickle.load(f)
+    #merged = list(merge_layers(rowgen))
+
+    #next(merged)
+
+    timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
+    distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
+    geofenced = partial(fence_tracks,               domain=domain)
+    serialize = partial(serialize_network_edge,     domain=domain)
+
+    rowgen = picklegen(fpath)
+    gen = trackgen(rowgen)
+    cProfile.run('test = gen.__anext__().send(None)', sort='tottime')
+
+
+
+
+    timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=2))
+    distsplit = partial(segment_tracks_dbscan,      max_cluster_dist_km=50)
+    geofenced = partial(fence_tracks,               domain=domain)
+    serialize = partial(serialize_network_edge,     domain=domain)
+
+    rowgen = picklegen(fpath)
+    pipeline = serialize(merge_tracks_bathymetry(merge_tracks_shoredist(merge_tracks_hullgeom(geofenced(distsplit(timesplit(trackgen(rowgen))))))))
+    
+    rowgen = picklegen(fpath)
+    async def run(pipeline):
+        try:
+            #run_parallel(piped)
+            #pipeline.send(None)
+            return await pipeline
+        except StopIteration as err:
+            return err.value
+
+    test = run(rowgen)
+    loop = asyncio.get_event_loop()
+    loop.call_soon_threadsafe()
+    loop.run_in_executor()
+
+    future = asyncio.run_coroutine_threadsafe(run(pipeline), loop)
+
+    while True:
+        test = loop.run_until_complete(rowgen.__anext__())
+        print(test[0][0])
+        pipeline = serialize(merge_tracks_bathymetry(merge_tracks_shoredist(merge_tracks_hullgeom(geofenced(distsplit(timesplit(trackgen([test]))))))))
+
+
+    cProfile.run('test = next(scheduler)', sort='tottime')
+    processor = concat_tracks(distsplit(timesplit(geofenced(trackgen(rowgen)))))
+
+    #rowgen = picklegen(fpath)
+    #processor = serialize(merge_tracks_bathymetry(merge_tracks_shoredist(merge_tracks_hullgeom(concat_tracks(geofenced(distsplit(timesplit(trackgen(rowgen)))))))))
+    #test = next(processor)
+
+
+    #rowgen = picklegen(fpath)
+    #test = next(processor(rowgen))
+    from tests.importtest import run_parallel, domain
+
+    rowgen = picklegen(fpath)
+    with Pool(processes=8) as p:
+        #results = p.map(run_parallel, rowgen)
+        multiple_results = [p.apply_async(run_parallel, piped) for piped in picklegen(fpath)]
+        print([res.get(timeout=1) for res in multiple_results])
+        print('close')
+        p.close()
+        p.join()
 
     filters = [
             #lambda rowdict: rowdict['velocity_knots_max'] == 'NULL' or float(rowdict['velocity_knots_max']) > 50,
             lambda rowdict: rowdict['src_zone'] == 'Z0' and rowdict['rcv_zone'] == 'NULL',
             lambda rowdict: rowdict['minutes_spent_in_zone'] == 'NULL' or rowdict['minutes_spent_in_zone'] <= 1,
         ]
+    aggregate_output(filters=filters)
 
-    #with import_handler() as importconfigs:
-    graph(merged, domain, parallel=12, filters=filters)
-    
+
 
     ''' step-through
         

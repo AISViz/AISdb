@@ -64,7 +64,7 @@ class Gebco():
                     bounds.update({'dataset': rasterio.open(os.path.join(data_dir, filepath))})
                     bounds.update({'band1': bounds['dataset'].read(1)})
                 ixlon, ixlat = bounds['dataset'].index(lon, lat)
-                return bounds['band1'][ixlon-1,ixlat-1]
+                return bounds['band1'][ixlon-1 , ixlat-1 ]
 
 
     def getdepth_cellborders_nonnegative_avg(self, lon, lat):
@@ -79,7 +79,12 @@ class Gebco():
                     bounds.update({'band1': bounds['dataset'].read(1)})
 
                 ixlon, ixlat = bounds['dataset'].index(lon, lat)
-                depths = np.array([ bounds['band1'][xlon-1,xlat-1] for xlon in range(ixlon-1, np.min(21600, ixlon+2)) for xlat in range(ixlat-1, ixlat+2) if not (xlon==ixlon and xlat==ixlat)])
+                depths = np.array([ bounds['band1'][xlon-1, xlat-1] 
+                    for xlon in range(ixlon-1, ixlon+2) 
+                    for xlat in range(ixlat-1, ixlat+2) 
+                    if (xlon!=ixlon and xlat!=ixlat) 
+                    and (0 <= xlon <= bounds['dataset'].width) 
+                    and (0 <= xlat <= bounds['dataset'].height)])
                 mask = depths < 0
 
                 if sum(mask) == 0: 
@@ -87,3 +92,9 @@ class Gebco():
 
                 return np.average(depths[mask] * -1)
 
+
+'''
+with Gebco() as bathymetry:
+    bathymetry.getdepth_cellborders_nonnegative_avg(lon=-63.3, lat=44.5)
+
+'''

@@ -1,3 +1,5 @@
+#import asyncio
+
 import numpy as np
 
 from common import *
@@ -5,76 +7,78 @@ from track_gen import trackgen
 from gebco import Gebco
 from wsa import wsa
 from shore_dist import shore_dist_gfw
-#from webdata.marinetraffic import scrape_tonnage
+from webdata import marinetraffic
 
 
-def merge_layers(rowgen):
+def merge_tracks_shoredist(tracks):
+    with shore_dist_gfw() as sdist:
+        for track in tracks:
+            track['km_from_shore'] = np.array([sdist.getdist(x, y) for x, y in zip(track['lon'], track['lat']) ])
+            track['dynamic'] = set(track['dynamic']).union(set(['km_from_shore']))
+            yield track
+
+def merge_tracks_bathymetry(tracks):
+    with Gebco() as bathymetry:
+        for track in tracks:
+            track['depth_metres'] = np.array([bathymetry.getdepth(x, y) for x,y in zip(track['lon'], track['lat']) ]) * -1
+            track['dynamic'] = set(track['dynamic']).union(set(['depth_metres']))
+            yield track
+
+def merge_tracks_hullgeom(tracks):
+    with marinetraffic.scrape_tonnage() as hullgeom:
+        for track in tracks:
+            track['deadweight_tonnage'] = hullgeom.get_tonnage_mmsi_imo(track['mmsi'], track['imo'] or 0)
+            track['submerged_hull_m^2'] = wsa(track['deadweight_tonnage'], track['ship_type'] or 0)
+            track['static'] = set(track['static']).union(set(['submerged_hull_m^2', 'deadweight_tonnage']))
+            yield track
+
+
+def merge_layers(tracks):
     ''' generator function to merge AIS row data with shore distance, bathymetry, and geometry databases
 
+        same as above functions, but all combined in one
+
         args:
-            rowgen: generator function 
-                yields sets of rows grouped by MMSI sorted by time
+            tracks: dictionary generator 
+                yields track dictionary objects
 
         yields:
             sets of rows grouped by MMSI sorted by time with additional columns appended
 
-    """ # set start method in main script
-        import os; from multiprocessing import set_start_method
-        if os.name == 'posix' and __name__ == '__main__': 
-            set_start_method('forkserver')
-    """
+        # set start method in main script
+        #import os; from multiprocessing import set_start_method
+        #if os.name == 'posix' and __name__ == '__main__': 
+        #    set_start_method('forkserver')
+    
     '''
-    from webdata import marinetraffic 
-
-    colnames = [ 
-            'mmsi', 'time', 'lon', 'lat',
-            'cog', 'sog', 'msgtype',
-            'imo', 'vessel_name',
-            'dim_bow', 'dim_stern', 'dim_port', 'dim_star',
-            'ship_type', 'ship_type_txt', 
-            'deadweight_tonnage', 'submerged_hull_m^2',
-            'km_from_shore', 'depth_metres', 'depth_border_cells_average',
-        ]
+    #from webdata import marinetraffic 
 
     # read data layers from disk to merge with AIS
     print('aggregating ais, shore distance, bathymetry, vessel geometry...')
     with shore_dist_gfw() as sdist, Gebco() as bathymetry, marinetraffic.scrape_tonnage() as hullgeom:
 
-        for rows in rowgen:
-            xy = rows[:,2:4]
-            mmsi_column, imo_column, ship_type_column = 0, 7, 13
+        #for rows in list(rowgen):
+        for track in tracks:
 
-            # vessel geometry
-            uniqueID = {}
-            for r in rows:
-                uniqueID.update({f'{r[mmsi_column]}_{r[imo_column]}' : {'m' : r[mmsi_column], 'i' : r[imo_column]}})
-
-            #print('loading marinetraffic vessel data...')
-            for uid in uniqueID.values():
-                ummsi, uimo = uid.values()
-                if uimo != None:
-                    uid['dwt'] = hullgeom.get_tonnage_mmsi_imo(ummsi, uimo)
-                else:
-                    uid['dwt'] = 0
-
-            deadweight_tonnage = np.array([uniqueID[f'{r[mmsi_column]}_{r[imo_column]}']['dwt'] for r in rows ])
+            # vessel tonnage from marinetraffic.com
+            track['deadweight_tonnage'] = hullgeom.get_tonnage_mmsi_imo(track['mmsi'], track['imo'] or 0)
 
             # wetted surface area - regression on tonnage and ship type
-            ship_type = np.logical_or(rows[:,ship_type_column], [0 for _ in range(len(rows))])
-            submerged_hull = np.array([wsa(d, r) for d,r in zip(deadweight_tonnage,ship_type) ])
+            track['submerged_hull_m^2'] = wsa(track['deadweight_tonnage'], track['ship_type'] or 0)
 
             # shore distance from cell grid
-            km_from_shore = np.array([sdist.getdist(x, y) for x, y in xy ])
+            track['km_from_shore'] = np.array([sdist.getdist(x, y) for x, y in zip(track['lon'], track['lat']) ])
 
             # seafloor depth from cell grid
-            depth = np.array([bathymetry.getdepth(x, y) for x,y in xy ]) * -1
+            track['depth_metres'] = np.array([bathymetry.getdepth(x, y) for x,y in zip(track['lon'], track['lat']) ]) * -1
 
             # seafloor depth from nonnegative border cells
-            bordercellsdepth = np.array([bathymetry.getdepth_cellborders_nonnegative_avg(x, y) for x,y in xy])
+            track['depth_border_cells_average'] = np.array([bathymetry.getdepth_cellborders_nonnegative_avg(x, y) for x,y in zip(track['lon'], track['lat'])])
 
-            #yield np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
-            merged_rows = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth, bordercellsdepth)).T))
-            #merged_rows = np.hstack((rows, np.vstack((deadweight_tonnage, submerged_hull, km_from_shore, depth)).T))
+            # update indices
+            track['static'] = set(track['static']).union(set(['submerged_hull_m^2', 'deadweight_tonnage']))
+            track['dynamic'] = set(track['dynamic']).union(set(['km_from_shore', 'depth_metres', 'depth_border_cells_average']))
+            #track['dynamic'] = set(track['dynamic']).union(set(['km_from_shore', 'depth_metres']))
 
-            yield trackgen(merged_rows, colnames=colnames)
+            yield track
 

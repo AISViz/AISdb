@@ -3,15 +3,17 @@ from multiprocessing import Pool#, set_start_method
 import pickle
 from functools import partial, reduce
 from datetime import datetime, timedelta
+#import asyncio
 
 import numpy as np
 from shapely.geometry import Point, LineString, Polygon
 
 from common import *
-from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain
-from database import dt2monthstr, dbconn, epoch_2_dt
-from track_gen import trackgen, segment, segment_tracks_timesplits
-from clustering import segment_tracks_dbscan
+from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain, epoch_2_dt
+#from proc_util import epoch_2_dt
+#from proc_util import *
+from track_gen import segment_rng, trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks
+from merge_data import merge_tracks_hullgeom, merge_tracks_shoredist, merge_tracks_bathymetry
 
 
 # returns absolute value of bathymetric depths with topographic heights converted to 0
@@ -20,7 +22,7 @@ depth_nonnegative = lambda track, zoneset: np.array([d if d >= 0 else 0 for d in
 
 # returns minutes spent within kilometers range from shore
 time_in_shoredist_rng = lambda track, subset, dist0=0.01, dist1=5: (
-    sum(map(len, segment(
+    sum(map(len, segment_rng(
         {'time': track['time'][subset][[dist0 <= d <= dist1 for d in track['km_from_shore'][subset]]]}, 
         maxdelta=timedelta(minutes=1), 
         minsize=1
@@ -29,13 +31,14 @@ time_in_shoredist_rng = lambda track, subset, dist0=0.01, dist1=5: (
 
 
 # categorical vessel data
-staticinfo = lambda track, domain: dict(
+#staticinfo = lambda track, domain: dict(
+staticinfo = lambda track: dict(
         mmsi                                =   track['mmsi'],
         imo                                 =   track['imo'] or '',
-        cluster_label                       =   track['cluster_label'] if 'cluster_label' in track.keys() else '',
+        label                               =   track['label'] if 'label' in track.keys() else '',
         vessel_name                         =   track['vessel_name'] or '',
         vessel_type                         =   track['ship_type_txt'] or '',
-        domainname                          =   domain.name,
+        #domainname                          =   domain.name,
         vessel_length                       =   (track['dim_bow'] + track['dim_stern']) or '',
         hull_submerged_surface_area         =   track['submerged_hull_m^2'] or '',
         #ballast                             =   None,
@@ -44,9 +47,10 @@ staticinfo = lambda track, domain: dict(
 
 # collect aggregated statistics on vessel positional data 
 transitinfo = lambda track, zoneset: dict(
-        src_zone                            =   track['in_zone'][zoneset][0],
-        rcv_zone                            =   track['in_zone'][zoneset][-1],
+        src_zone                            =   f"{int(track['in_zone'][zoneset][0][1:]):03}",
+        rcv_zone                            =   f"{int(track['in_zone'][zoneset][-1][1:]):03}",
         transit_nodes                       =   f"{track['in_zone'][zoneset][0]}_{track['in_zone'][zoneset][-1]}",
+        num_datapoints                      =   len(track['time'][zoneset]),
         first_seen_in_zone                  =   epoch_2_dt(track['time'][zoneset][0]).strftime('%Y-%m-%d %H:%M UTC'),
         last_seen_in_zone                   =   epoch_2_dt(track['time'][zoneset][-1]).strftime('%Y-%m-%d %H:%M UTC'),
         year                                =   epoch_2_dt(track['time'][zoneset][0]).year,
@@ -71,9 +75,9 @@ transitinfo = lambda track, zoneset: dict(
     )
 
 
-def geofence(track_merged_nosegments, domain):
-    ''' compute points-in-polygons for every positional report in a vessel 
-        trajectory. at each track position where the zone changes, a transit 
+
+def serialize_network_edge(tracks, domain, staticinfo=staticinfo, transitinfo=transitinfo):
+    ''' at each track position where the zone changes, a transit 
         index is recorded, and trajectory statistics are aggregated for this
         index range using staticinfo() and transitinfo()
         
@@ -82,91 +86,62 @@ def geofence(track_merged_nosegments, domain):
         deserialization and concatenation of results
         
         args:
-            track_merged: dict
+            tracks: dict
                 dictionary of vessel trajectory data, as output by 
                 ais.track_gen.trackgen() or its wrapper functions
-            domain: ais.gis.Domain() class object
-                collection of zones defined as polygons, these will
-                be used as nodes in the network graph
 
         returns: None
     '''
 
-    filepath = os.path.join(tmp_dir, str(track_merged_nosegments['mmsi']).zfill(9))
+    for track in tracks:
+        filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
+        if not 'in_zone' in track.keys():
+            get_zones = fence([track], domain=domain)
+            track = next(get_zones)
+            assert list(get_zones) == []
 
-    with open(filepath, 'ab') as f:
-
-        for track_merged in segment_tracks_dbscan(segment_tracks_timesplits([track_merged_nosegments]), max_cluster_dist_km=50):
-
-            track_merged['in_zone'] = np.array([domain.point_in_polygon(x, y) for x, y in zip(track_merged['lon'], track_merged['lat'])], dtype=object)
-            transits = np.where(track_merged['in_zone'][:-1] != track_merged['in_zone'][1:])[0] +1
+        with open(filepath, 'ab') as f:
+            transits = np.where(track['in_zone'][:-1] != track['in_zone'][1:])[0] +1
 
             for i in range(len(transits)-1):
                 rng = np.array(range(transits[i], transits[i+1]+1))
-                track_stats = staticinfo(track_merged, domain)
-                track_stats.update(transitinfo(track_merged, rng))
+                track_stats = staticinfo(track)
+                track_stats.update(transitinfo(track, rng))
                 pickle.dump(track_stats, f)
 
             i0 = transits[-1] if len(transits) >= 1 else 0
-            rng = np.array(range(i0, len(track_merged['in_zone'])))
-            track_stats = staticinfo(track_merged, domain)
-            track_stats.update(transitinfo(track_merged, rng))
+            rng = np.array(range(i0, len(track['in_zone'])))
+            track_stats = staticinfo(track)
+            track_stats.update(transitinfo(track, rng))
             track_stats['rcv_zone'] = 'NULL'
             track_stats['transit_nodes'] = track_stats['src_zone']
             pickle.dump(track_stats, f)
 
-    return
+        yield 
 
 
-def graph(merged, domain, parallel=0, filters=[lambda rowdict: False]):
-    ''' perform geofencing on vessel trajectories, then concatenate aggregated 
-        transit statistics between nodes (zones) to create network edges from 
-        vessel trajectories
 
-        this function will call geofence() for each trajectory in parallel, 
-        outputting serialized results to the tmp_dir directory. after 
-        deserialization, the temporary files are removed, and output will be 
-        written to 'output.csv' inside the data_dir directory
+def aggregate_output(filename='output.csv', filters=[lambda row: False], delete=True):
+    ''' concatenate serialized output from geofence()
 
-        args:
-            merged: ais.track_gen.trackgen() trajectory iterator (or one of its wrapper functions)
-                intended to be used with the ais.merge_data.merge_layers() 
-                wrapper, but should work with any of the wrappers
-            domain: ais.gis.Domain() class object
-                collection of zones defined as polygons, these will
-                be used as nodes in the network graph
-            parallel: integer
-                number of processes to compute geofencing in parallel.
-                if set to 0 or False, no parallelization will be used
-            filters: list of callables
-                each callable function should accept a dictionary describing a 
-                network edge as input. if any of the callables return True, 
-                the edge will be filtered from the output rows. see staticinfo()
-                and transitinfo() above for more info on network edge dict keys
-                
-                for example, to filter all rows where the max speed exceeds 50 
-                knots, and filter non-transiting vessels from zone Z0:
+        filters: list of callables
+            each callable function should accept a dictionary describing a 
+            network edge as input. if any of the callables return True, 
+            the edge will be filtered from the output rows. see staticinfo()
+            and transitinfo() above for more info on network edge dict keys
+            
+            for example, to filter all rows where the max speed exceeds 50 
+            knots, and filter non-transiting vessels from zone Z0:
 
-                >>> filters = [
-                    lambda rowdict: rowdict['velocity_knots_max'] == 'NULL' or float(rowdict['velocity_knots_max']) > 50,
-                    lambda rowdict: rowdict['src_zone'] == 'Z0' and rowdict['rcv_zone'] == 'NULL'
-                ]
-                
-        returns: None
+            >>> filters = [
+                lambda row: row['velocity_knots_max'] == 'NULL' or float(row['velocity_knots_max']) > 50,
+                lambda row: row['src_zone'] == 'Z0' and row['rcv_zone'] == 'NULL'
+            ]
     '''
     
-    if not parallel: 
-        for track_merged in merged:
-            geofence(track_merged, domain=domain)
-    else:
-        with Pool(processes=parallel) as p:
-            fcn = partial(geofence, domain=domain)
-            p.imap_unordered(fcn, merged, chunksize=1)
-            p.close()
-            p.join()
-
+    outputfile = os.path.join(output_dir, filename)
     picklefiles = [os.path.join(tmp_dir, fname) for fname in sorted(os.listdir(tmp_dir)) if '_' not in fname]
-    outputfile = os.path.join(data_dir, 'output.csv')
+    assert len(picklefiles) > 0, 'failed to geofence any data... try running again with parallel=0'
 
     with open(outputfile, 'w') as output:
 
@@ -186,7 +161,7 @@ def graph(merged, domain, parallel=0, filters=[lambda rowdict: False]):
                         raise e
                     if not reduce(np.logical_or, [f(getrow) for f in filters]):
                         results.append(','.join(map(str, getrow.values())))
-            os.remove(picklefile)
+            if delete: os.remove(picklefile)
             if len(results) == 0: continue
             output.write('\n'.join(results) + '\n')
 

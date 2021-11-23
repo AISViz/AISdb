@@ -4,65 +4,18 @@ from functools import partial
 from datetime import datetime
 #import threading
 import concurrent.futures
+import asyncio
 
 import numpy as np
 from shapely.geometry import Polygon
 
-from common import *
-import database
-from database.lambdas import *
-from database.qryfcn import *
+from common import dbpath
+from database.qryfcn import crawl
 from database.dbconn import dbconn
-
-
-aisdb = dbconn(dbpath)
+from database.lambdas import dt2monthstr
 
 
 class qrygen(UserDict):
-    '''  convert dictionary key:val pairs to SQL query code
-
-    accepts query parameters as args, and stores them in a dictionary.
-    some additional computed values are stored, e.g. bounding boxes and 
-    polygon geometry when using coordinate arrays
-    
-    
-    code example:
-    ```
-    from datetime import datetime
-
-    from database.lambdas import *
-    from database.qryfcn import *
-    from database.dbconn import dbconn
-
-    # create a database and then insert some rows
-    cur = database.dbconn(dbpath=':memory:').cur
-    database.create_table_msg123(cur, '202101')
-    database.create_table_msg18(cur, '202101')
-    database.create_table_msg5(cur, '202101')
-    # insert rows using database.decoder or manually
-
-
-    # these args will be passed to the query function and callback lambda to generate SQL code
-    # for example, when using callback in_radius, xy must be a point, and a radius must be supplied in meters
-    # times are specified using datetime.datetime() format
-    qry = qrygen(
-            xy=[-180, -90, -180, 90, 180, 90, 180, -90,],   # xy coordinate pairs
-            # can also be specified as seperate arrays, e.g.
-            # x=[-180, -180, 180, 180],
-            # y=[-90, 90, 90, -90],
-            start=datetime(2021,1,1),                       # start of query range 
-            end=datetime(2021,2,1),                         # end of query range
-        )
-
-    sql = qry.crawl(callback=database.lambdas.in_poly, qryfcn=database.qryfcn.msg123union18join5)
-
-    print(sql)
-    cur.execute(sql)
-
-    res = cur.fetchall()
-    ```
-    '''
-
 
     def __init__(self, **kwargs):
 
@@ -92,32 +45,21 @@ class qrygen(UserDict):
                 assert 'radius' in self.keys(), 'undefined radius'
 
 
-    def crawl(self, callback, qryfcn=msg123union18join5):
-        ''' returns an SQL query to crawl the database 
-            query generated using given query function, parameters stored in self, and a callback function 
-        '''
-        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 2'
+    #def crawl(self):
+    #    ''' returns an SQL query to crawl the database 
+    #        query generated using given query function, parameters stored in self, and a callback function 
+    #    '''
+    #    #return '\nUNION '.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months'])) + '\nORDER BY 1, 2'
+    #    return crawl(**self)
 
 
-    def crawl_unordered(self, callback, qryfcn=msg123union18join5):
-        ''' returns an SQL query to crawl the database 
-            query generated using given query function, parameters stored in self, and a callback function 
-        '''
-        return '\nUNION'.join(map(partial(qryfcn, callback=callback, kwargs=self), self['months']))
-
-
-    #def qry_thread(self, dbpath, qry):
-    #    aisdb = dbconn(dbpath)
-    #    aisdb.cur.execute(qry)
-    #    return aisdb.cur.fetchall()
-
-
-    def run_qry(self, callback, qryfcn, dbpath=dbpath):
+    def run_qry(self, fcn=crawl, dbpath=dbpath):
         ''' generates an query using self.crawl(), runs it, then returns the resulting rows '''
-        qry = self.crawl(callback=callback, qryfcn=qryfcn)
+        #qry = self.crawl(callback=callback, qryfcn=qryfcn)
+        qry = fcn(**self)
         print(qry)
 
-        #aisdb = dbconn(dbpath)
+        aisdb = dbconn(dbpath)
         aisdb.cur.execute(qry)
         res = aisdb.cur.fetchall()
         aisdb.conn.close()
@@ -137,19 +79,21 @@ class qrygen(UserDict):
                 aisdb.conn.close()
         '''
 
-    def gen_qry(self, callback, qryfcn, dbpath=dbpath):
-        ''' similar to run_qry, but in a generator format for better memory performance. 
+
+    async def gen_qry(self, fcn=crawl, dbpath=dbpath):
+        ''' similar to run_qry, but in a generator format for better memory performance
             
             yields:
                 a set (numpy array) of rows for each unique MMSI
                 rowsets are sorted by time
         '''
         # create query to crawl db
-        qry = self.crawl(callback=callback, qryfcn=qryfcn)
-        print(qry)
+        qry = fcn(**self)
 
         # initialize db, run query
-        #aisdb = dbconn(dbpath)
+        print(qry)
+        print('\nquerying the database...')
+        aisdb = dbconn(dbpath)
         dt = datetime.now()
         aisdb.cur.execute(qry)
         delta =datetime.now() - dt
@@ -157,20 +101,25 @@ class qrygen(UserDict):
 
         # get 100k rows at a time, yield sets of rows for each unique MMSI
         mmsi_rows = None
-        #while len(res := np.array(aisdb.cur.fetchmany(100000))) > 0: 
-        res = np.array(aisdb.cur.fetchmany(10**5))
-        while len(res) > 0: 
-            if not isinstance(mmsi_rows, np.ndarray):
-                mmsi_rows = res
+        while len(res := aisdb.cur.fetchmany(10**5)) > 0:
+            if mmsi_rows is None:
+                mmsi_rows = np.array(res, dtype=object)
             else:
-                mmsi_rows = np.vstack((mmsi_rows, res))
-            while len(np.unique(mmsi_rows[:,0])) > 1:
+                mmsi_rows = np.vstack((mmsi_rows, np.array(res, dtype=object)))
+
+            print(f'{mmsi_rows[0][0]}', end='\r')
+
+            while len(mmsi_rows) > 1 and int(mmsi_rows[0][0]) != int(mmsi_rows[-1][0]):
+                if not isinstance(mmsi_rows[0][0], (float, int)):
+                    print(f'error: MMSI not an integer! {mmsi_rows[0]}')
+                    breakpoint()
+                if not isinstance(mmsi_rows, np.ndarray):
+                    print(f'not an array: {mmsi_rows}')
+                    breakpoint()
                 ummsi_idx = np.where(mmsi_rows[:,0] != mmsi_rows[0,0])[0][0]
-                yield mmsi_rows[0:ummsi_idx]
+                yield np.array(mmsi_rows[0:ummsi_idx], dtype=object)
                 mmsi_rows = mmsi_rows[ummsi_idx:]
-            res = np.array(aisdb.cur.fetchmany(10**5))
-        yield mmsi_rows
 
+        yield np.array(mmsi_rows, dtype=object)
 
-        print('done')
-
+        print('\ndone')
