@@ -156,7 +156,7 @@ def test_full_pipeline_sequential():
 
 def test_full_pipeline_parallel():
     '''
-    sort -k8g,8 -k9g,9 -k1,1 -k15,15 -t',' <(tail -n +2 output_encodedsegments_testparallel.csv) > testoutput.csv && head -n 1 output_encodedsegments_testparallel.csv > sorted.csv && cat testoutput.csv >> sorted.csv && rm testoutput.csv
+    sort -k8g,8 -k9g,9 -k1,1 -k15,15 -t',' <(tail -n +2 output_cutdistance=5000m_maxdistance=200000m_cuttime=24hrs.csv) > testoutput.csv && head -n 1 output_cutdistance=5000m_maxdistance=200000m_cuttime=24hrs.csv > sorted.csv && cat testoutput.csv >> sorted.csv && rm testoutput.csv
     '''
     fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
     assert os.path.isfile(fpath)
