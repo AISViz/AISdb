@@ -189,9 +189,9 @@ def segment_tracks_encode_greatcircledistance(tracks, cutdistance, maxdistance, 
     '''
     score_fcn = lambda xy1,xy2,t1,t2,distance_meters=maxdistance: (
                             #((distance_meters) / max(5, haversine(*xy1, *xy2))) / max(2, np.abs(t2-t1))
-                            ((distance_meters) / max(5, dm)) / max(2, abs(t2-t1))
+                            ((distance_meters) / max(5, dm)) / max(2, dt)
                             if (dm := haversine(*xy1, *xy2)) < maxdistance 
-                            #and (dt := abs(t2-t1)) < cuttime.total_seconds() / 60 
+                            and (dt := abs(t2-t1)) < cuttime.total_seconds() / 60 
                             else -1
                         )
     score_idx = lambda scores: np.where(scores == np.max(scores))[0][0]

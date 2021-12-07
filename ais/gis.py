@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timedelta
 from collections import UserDict
-from functools import reduce
+from functools import reduce, partial
 import json
 
 import numpy as np
@@ -9,7 +9,7 @@ import shapely.wkb
 from shapely.ops import unary_union
 from shapely.geometry import Polygon, Point
 
-from common import dbpath
+from common import dbpath, output_dir
 from index import index
 
 
