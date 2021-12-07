@@ -7,6 +7,7 @@ import pickle
 
 import numpy as np
 
+from common import output_dir
 from network_graph import serialize_network_edge
 from merge_data import merge_layers
 from track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks, segment_tracks_encode_greatcircledistance
@@ -49,7 +50,10 @@ def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
     with open(pathname, mode) as f: 
         f.write('\n'.join(map(lambda r: ','.join(map(lambda r: r.replace(',','').replace('#',''), map(str.rstrip, map(str, r)))), rows))+'\n')
 
-
+def writepickle(tracks, fpath=os.path.join(output_dir, 'tracks.pickle')):
+    with open(fpath, 'wb') as f:
+        for track in tracks:
+            pickle.dump(track, f)
 
 def deserialize_generator(fpath):
     with open(fpath, 'rb') as f:
