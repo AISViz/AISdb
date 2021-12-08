@@ -66,6 +66,7 @@ else:
             }\n\nto remove this warning, copy and paste the above text to {cfgfile} ''')
 
 
+'''
 # create default dirs if they dont exist
 try:
     if not os.path.isdir(data_dir): 
@@ -84,6 +85,7 @@ except PermissionError as err:
     raise PermissionError(f'Could not access {err.filename}! Ensure path exists and has valid permissions')
 except Exception as err:
     raise err
+'''
 
 
 
