@@ -1,0 +1,5 @@
+SOURCEDIR="`pwd`/source"
+OUTPUTDIR="`pwd`/html"
+#CONFPATH="`pwd`/conf.py"
+#sphinx-build -a -b=html -c="${CONFPATH}" "${SOURCEDIR}" "${OUTPUTDIR}"
+sphinx-build -a -b=html "${SOURCEDIR}" "${OUTPUTDIR}"
