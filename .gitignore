@@ -10,3 +10,7 @@ ais/webdata/webdriver*
 *.cookie
 *.log
 *.egg-info
+docs/html/*
+docs/source/sphinx-apidoc/*
+web/node_modules/*
+web/package-lock.json
