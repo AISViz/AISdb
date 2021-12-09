@@ -24,10 +24,10 @@ setup(name='aisdb',
       packages=[
           'aisdb', 'aisdb.database', 'aisdb.webdata', 
         ],
-      #packages=find_packages(exclude=['tests', 'docs', 'output', '__pycache__', 'tonnage.db']),
       setup_requires=[
           'cython',
           #'setuptools',
+          'pip>=21.1.0',
           'wheel',
         ],
       install_requires=[

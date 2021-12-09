@@ -50,13 +50,28 @@ exclude_patterns = []
 #
 html_theme = 'alabaster'
 
+html_theme_options = {
+    #'page_width': 'auto',
+    'page_width': '75vw',
+    'fixed_sidebar': False,
+    'sidebar_collapse': True,
+    'show_powered_by': False,
+    'description': 'AIS Database and Processing Utils',
+}
+
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 #html_static_path = ['_static']
-html_static_path = []
+html_static_path = ['.']
 
 
+
+
+html_css_files = [
+    'custom.css',
+]
 
 
 def skip(app, what, name, obj, would_skip, options):

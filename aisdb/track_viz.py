@@ -10,12 +10,42 @@ from datetime import datetime, timedelta
 from functools import partial
 from multiprocessing import Pool
 
-#from qgis.core import QgsApplication, QgsProject, QgsRasterLayer, QgsPrintLayout, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMapSettings, QgsPointXY, QgsGeometry, QgsWkbTypes, QgsTask, QgsVectorLayer, QgsField, QgsFeature, QgsMapRendererCustomPainterJob, QgsSymbol, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsLineSymbol
+#from qgis.core import ( QgsApplication, QgsProject, QgsRasterLayer, QgsPrintLayout, 
+#       QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMapSettings, QgsPointXY, 
+#       QgsGeometry, QgsWkbTypes, QgsTask, QgsVectorLayer, QgsField, QgsFeature, 
+#       QgsMapRendererCustomPainterJob, QgsSymbol, QgsCategorizedSymbolRenderer, 
+#       QgsRendererCategory, QgsLineSymbol)
 from qgis.core import *
 from qgis.PyQt.QtCore import Qt, QSize, QVariant, QTimer
-from qgis.gui import QgsMapCanvas, QgsMapToolPan, QgsMapToolZoom, QgsRubberBand, QgsMapCanvasItem, QgsVertexMarker, QgsMapToolEmitPoint, QgsStatusBar, QgsMapCanvasItem
-from qgis.PyQt.QtGui import QColor, QGuiApplication, QImage, QPainter, QPainterPath, QCursor
-from qgis.PyQt.QtWidgets import QMainWindow, QWidget, QLabel, QFrame, QStatusBar, QVBoxLayout, QApplication, QAction
+from qgis.gui import (
+        QgsMapCanvas, 
+        QgsMapToolPan, 
+        QgsMapToolZoom, 
+        QgsRubberBand, 
+        QgsMapCanvasItem, 
+        QgsVertexMarker, 
+        QgsMapToolEmitPoint, 
+        QgsStatusBar, 
+        QgsMapCanvasItem,
+    )
+from qgis.PyQt.QtGui import (
+        QColor, 
+        QGuiApplication, 
+        QImage, 
+        QPainter, 
+        QPainterPath, 
+        QCursor,
+    )
+from qgis.PyQt.QtWidgets import (
+        QMainWindow, 
+        QWidget, 
+        QLabel, 
+        QFrame, 
+        QStatusBar, 
+        QVBoxLayout, 
+        QApplication, 
+        QAction,
+    )
 
 import numpy as np
 import shapely.ops

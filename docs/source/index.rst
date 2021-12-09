@@ -1,6 +1,6 @@
 
-AISDB: AIS Database and Processing Utils
-========================================
+AISDB Docs: Index
+=================
 
 .. toctree::
    :maxdepth: 4
