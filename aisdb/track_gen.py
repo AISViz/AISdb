@@ -13,13 +13,15 @@ from gis import haversine
 
 def filtermask(track, rng, filters, first_val=False):
     '''
-    from .gis import compute_knots
-    filters=[
-            lambda track, rng: track['time'][rng][:-1] != track['time'][rng][1:],
-            #lambda track, rng: compute_knots(track, rng) < 40,
-            lambda track, rng: (compute_knots(track, rng[:-1]) < 40) & (compute_knots(track, rng[1:]),
-            lambda track, rng: np.full(len(rng)-1, 201000000 <= track['mmsi'] < 776000000, dtype=np.bool), 
-        ]
+    >>>
+        from .gis import compute_knots
+        filters=[
+                lambda track, rng: track['time'][rng][:-1] != track['time'][rng][1:],
+                #lambda track, rng: compute_knots(track, rng) < 40,
+                lambda track, rng: (compute_knots(track, rng[:-1]) < 40) & (compute_knots(track, rng[1:]),
+                lambda track, rng: np.full(len(rng)-1, 201000000 <= track['mmsi'] < 776000000, dtype=np.bool), 
+            ]
+
     '''
     mask = reduce(np.logical_and, map(lambda f: f(track, rng), filters))
     #return np.logical_and(np.append([True], mask), np.append(mask, [True]))
@@ -47,12 +49,13 @@ def trackgen(
             'ship_type', 'ship_type_txt', ],
         deduplicate_timestamps: bool = True,
         ) -> dict:
-    ''' each row contains columns from database: 
-            mmsi time lon lat cog sog name type...
+    ''' 
+        each row contains columns from database: mmsi time lon lat cog sog name type...
         rows must be sorted by first by mmsi, then time
 
         colnames is a description of each column in rows. 
         first two columns must be ['mmsi', 'time']
+
     '''
     mmsi_col = [i for i,c in zip(range(len(colnames)), colnames) if c.lower() == 'mmsi'][0]
     time_col = [i for i,c in zip(range(len(colnames)), colnames) if c.lower() == 'time'][0]

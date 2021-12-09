@@ -3,12 +3,12 @@ from datetime import datetime, timedelta
 import cProfile
 from functools import partial
 
-from ais import zones_dir, output_dir, dbpath, tmp_dir
-from ais.gis import Domain, ZoneGeomFromTxt, epoch_2_dt
-#from ais.proc_util import graph
-from ais.proc_util import *
-from ais.track_gen import *
-from ais.network_graph import aggregate_output
+from aisdb import zones_dir, output_dir, dbpath, tmp_dir
+from aisdb.gis import Domain, ZoneGeomFromTxt, epoch_2_dt
+#from aisdb.proc_util import graph
+from aisdb.proc_util import *
+from aisdb.track_gen import *
+from aisdb.network_graph import aggregate_output
 
 
 # load polygons geometry into Domain object
@@ -96,7 +96,7 @@ def test_segment_tracks_timesplits_concat_haversine():
     track = next(testinput)
     track['time'].size
 
-    from ais.track_viz import TrackViz
+    from aisdb.track_viz import TrackViz
     from shapely.geometry import LineString
     viz = TrackViz()
 

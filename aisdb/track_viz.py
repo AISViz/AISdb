@@ -95,7 +95,6 @@ class customQgsMultiPoint(QgsRubberBand):
 
 
 class TrackViz(QMainWindow):
-    
 
     def __init__(self):
         assert os.path.isfile('/usr/bin/qgis'), 'couldnt find qgis in path'

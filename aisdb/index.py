@@ -13,18 +13,55 @@ from numpy import arange
 
 
 class index():
-    """ job scheduler utility featuring:
-            - spatial hashing, indexing, and binning for spatial processing
-            - in-memory caching for arbitrary binary objects
-            - parallel process management (see inherited: parallelindex)
+    ''' database and process management utility
     
-        intended to be a lightweight utility for hashmap-like boolean 
-        indexing on function calls, performant storage of in-memory binary 
-        objects mapped to boundary regions, and parallel process scheduling to 
-        run spatial/temporal processing in smaller batches
+        An SQL database for caching arbitrary binary.  Intended to be used as a
+        wrapper for arbitrary function calls, where the result of the function 
+        is stored as a binary BLOB in the database. A hash of the function name,
+        path, and input arguments will be interpreted as a 16-bit integer to be 
+        used as primary key on a clustered index.
 
-        for usage: see __main__ demo at bottom of script
-    """
+        Optionally can also store True/False instead of binary, segment 
+        a bounding-box coordinate region into smaller partitions, and
+        run tasks in parallel
+
+        Example:
+        
+        >>> import os
+            import time
+            import json
+            from datetime import datetime, timedelta
+
+        >>> def callback(**kwargs):
+                print(f'hello from {os.getpid()}\\n{json.dumps(kwargs, default=str, indent=1)}')
+                time.sleep(0.5)
+                return str(datetime.now().time())
+            
+        >>> def parallelized_callback(**kwargs):
+                print(f'hello from {os.getpid()}\t{kwargs}')
+                time.sleep(1)
+                return None
+
+
+        >>> # define some boundaries using or subsetting these dict keys (only used when bins=True)
+            kwargs = {
+                    'west':    -123.45,     'east':    -110.01,
+                    'south':    43.21,      'north':    46.54, 
+                    'bottom':   5000,       'top':      0, 
+                    'start':    datetime(2000, 1, 1, 0, 0), 
+                    'end':      datetime(2000, 1, 2, 0, 0)
+                }
+
+        >>> # here kwargs will split into 21 function calls using default spatial bin sizes
+            with index(bins=True, store=True, inmemory=False, **kwargs) as scheduler: 
+                results = scheduler(callback=callback, testarg='some arg', anotherarg='changing this will invalidate results hash')
+            print(results)
+
+        >>> # and again, but this time in parallel
+            with parallelindex(pool=10, **kwargs) as scheduler: 
+                scheduler(callback=parallelized_callback, newargument='test')
+
+    '''
 
     # each data blob in the database assumed to be uniquely described by a function
     # and its input arguments
@@ -68,7 +105,7 @@ class index():
                     delta time bin size (timedelta)
                 storagedir:
                     directory to store spatial hashes and binary objects
-               **kwargs:
+                kwargs:
                     boundary arguments to split into bins, e.g. 
                     (south, west, north, east, top, bottom, start, end)
         """
@@ -210,54 +247,8 @@ class parallelindex(index):
 
 
 
+'''
 class memindex(index):
     pass
-
-
-
-if __name__ == '__main__':
-    """ run the demo to split boundary arguments into smaller areas, 
-        then log the results of each function call
-
-        >   python3.8 index.py 
-
-
-        run demo again to quickly load cached results
-
-        >   python3.8 index.py 
-    """
-    import time
-
-
-    def callback(**kwargs):
-        """ demo: some arbitrary slow process that accepts space/time boundaries as args """
-        print(f'hello world!\n{json.dumps(kwargs, default=str, indent=1)}')
-        time.sleep(0.5)
-        return str(datetime.now().time())
-
-    def parallelized_callback(**kwargs):
-        """ another useless demo function """
-        print(f'hello world! {kwargs}')
-        time.sleep(1)
-        return None
-
-
-    # define some boundaries using or subsetting these dict keys (only used when bins=True)
-    kwargs = {
-            'west':    -123.45,     'east':    -110.01,
-            'south':    43.21,      'north':    46.54, 
-            'bottom':   5000,       'top':      0, 
-            'start':    datetime(2000, 1, 1, 0, 0), 
-            'end':      datetime(2000, 1, 2, 0, 0)
-        }
-
-    # here kwargs will split into 21 function calls using default spatial bin sizes
-    with index(bins=True, store=True, inmemory=False, **kwargs) as scheduler: 
-        results = scheduler(callback=callback, testarg='some arg', anotherarg='changing this will invalidate results hash')
-
-    print(results)
-
-    # and again, but this time in parallel
-    with parallelindex(pool=10, **kwargs) as scheduler: 
-        scheduler(callback=parallelized_callback, newargument='test')
+'''
 

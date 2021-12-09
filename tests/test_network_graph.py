@@ -22,11 +22,11 @@ import cProfile
 
 import numpy as np
 
-from ais import *
-from ais.gis import Domain, ZoneGeomFromTxt
-from ais.track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks
-from ais.network_graph import serialize_network_edge
-from ais.merge_data import merge_tracks_hullgeom, merge_tracks_shoredist, merge_tracks_bathymetry
+from aisdb import *
+from aisdb.gis import Domain, ZoneGeomFromTxt
+from aisdb.track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks
+from aisdb.network_graph import serialize_network_edge
+from aisdb.merge_data import merge_tracks_hullgeom, merge_tracks_shoredist, merge_tracks_bathymetry
 
 
 
@@ -175,14 +175,6 @@ def test_network_graph():
         track_merged = next(trackgen(merged, colnames))
         while track_merged['mmsi'] < 262006976:
             track_merged = next(trackgen(merged, colnames))
-
-
-        aisdb.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        aisdb.cur.fetchall()
-
-        aisdb.cur.execute("SELECT * from rtree_201910_msg_1_2_3 limit 10")
-        aisdb.cur.execute("SELECT * from static_201910_aggregate limit 10")
-        aisdb.cur.fetchall()
 
         for rows in merged:
             if len(np.unique(rows[:,1])) != len(rows[:,1]): break
