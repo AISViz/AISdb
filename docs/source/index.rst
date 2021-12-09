@@ -17,7 +17,7 @@ AISDB: AIS Database and Processing Utils
    :titlesonly:
 
    summary
-   sphinx-apidoc/ais
+   sphinx-apidoc/aisdb
 
 
 

@@ -3,7 +3,7 @@ const app = express();
 const port = 8085;
 
 
-app.use(express.static('../docs/html'))
+app.use(express.static('../html'))
 
 app.use((req, res, next) => {
     res.set('Cache-Control', 'no-store')
