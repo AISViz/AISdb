@@ -59,24 +59,24 @@ class qrygen(UserDict):
         qry = fcn(**self)
         print(qry)
 
-        aisdb = dbconn(dbpath)
-        aisdb.cur.execute(qry)
-        res = aisdb.cur.fetchall()
-        aisdb.conn.close()
+        aisdatabase = dbconn(dbpath)
+        aisdatabase.cur.execute(qry)
+        res = aisdatabase.cur.fetchall()
+        aisdatabase.conn.close()
         return np.array(res) 
         '''
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            #aisdb = dbconn(dbpath)
+            #aisdatabase = dbconn(dbpath)
             future = executor.submit(self.qry_thread, dbpath=dbpath, qry=qry)
             try:
                 res = future.result()
             except KeyboardInterrupt as err:
                 print('interrupted!')
-                aisdb.conn.interrupt()
+                aisdatabase.conn.interrupt()
             except Exception as err:
                 raise err
             finally:
-                aisdb.conn.close()
+                aisdatabase.conn.close()
         '''
 
 
@@ -93,15 +93,15 @@ class qrygen(UserDict):
         # initialize db, run query
         print(qry)
         print('\nquerying the database...')
-        aisdb = dbconn(dbpath)
+        aisdatabase = dbconn(dbpath)
         dt = datetime.now()
-        aisdb.cur.execute(qry)
+        aisdatabase.cur.execute(qry)
         delta =datetime.now() - dt
         print(f'query time: {delta.total_seconds():.2f}s')
 
         # get 100k rows at a time, yield sets of rows for each unique MMSI
         mmsi_rows = None
-        res = aisdb.cur.fetchmany(10**5))
+        res = aisdatabase.cur.fetchmany(10**5)
         while len(res) > 0:
             if mmsi_rows is None:
                 mmsi_rows = np.array(res, dtype=object)
@@ -121,7 +121,7 @@ class qrygen(UserDict):
                 yield np.array(mmsi_rows[0:ummsi_idx], dtype=object)
                 mmsi_rows = mmsi_rows[ummsi_idx:]
 
-            res = aisdb.cur.fetchmany(10**5))
+            res = aisdatabase.cur.fetchmany(10**5)
 
         yield np.array(mmsi_rows, dtype=object)
 
