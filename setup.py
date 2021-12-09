@@ -1,12 +1,17 @@
-from setuptools import setup, find_packages
+import os
+import sys
 import ensurepip
-from packaging import version
+ensurepip.bootstrap(upgrade=True)
+import pip
 
-if version.parse(ensurepip.version()) < version.parse('21.1.0'):
+majorver = int(pip.__version__.split('.')[0])
+if majorver < 21:
     print('pip version too low! pip will now be upgraded')
-    ensurepip.bootstrap(upgrade=True)
-    print('pip successfully upgraded, please try installing again')
-    exit()
+    os.system(f'{sys.executable} -m pip install --upgrade pip')
+    #print('pip successfully upgraded, please try installing again')
+    #exit()
+    from importlib import reload
+    reload(pip)
 
 
 setup(name='aisdb',
