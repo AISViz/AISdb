@@ -14,7 +14,7 @@ cfgfile = os.path.join(os.path.expanduser('~'), '.config', f'{pkgname}.cfg')
 
 # default config values
 data_dir = os.path.join(os.path.expanduser('~'), f'{pkgname}') + os.path.sep
-dbpath = os.path.join(data_dir, f'{pkgname}.db')
+dbpath = os.path.join(data_dir, f'ais.db')
 tmp_dir = os.path.join(data_dir, 'tmp_parsing') + os.path.sep 
 zones_dir = os.path.join(data_dir, 'zones') + os.path.sep 
 rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
@@ -66,6 +66,7 @@ else:
             }\n\nto remove this warning, copy and paste the above text to {cfgfile} ''')
 
 
+'''
 # create default dirs if they dont exist
 try:
     if not os.path.isdir(data_dir): 
@@ -84,6 +85,7 @@ except PermissionError as err:
     raise PermissionError(f'Could not access {err.filename}! Ensure path exists and has valid permissions')
 except Exception as err:
     raise err
+'''
 
 
 

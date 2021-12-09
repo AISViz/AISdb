@@ -74,26 +74,12 @@ class dbconn():
             conn = psycopg2.connect(dbname='ee_ais', user=os.environ.get('PGUSER'), port=os.environ.get('PGPORT'), password=os.environ.get('PGPASS'), host='localhost')
             cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             self.conn, self.cur = conn, cur
-            self.lambdas = dict(
-                in_poly     = lambda poly,alias='m123',**_: f'ST_Contains(\n    ST_GeomFromText(\'{poly}\'),\n    ST_MakePoint({alias}.longitude, {alias}.latitude)\n  )',
-                in_radius   = lambda *,x,y,radius,alias='m123',**_: f'ST_DWithin(Geography({alias}.ais_geom), Geography(ST_MakePoint({x}, {y})), {radius})'
-                ,
-                in_radius_time  = lambda *,x,y,radius,alias='m123',**kwargs: f'ST_DWithin(Geography({alias}.ais_geom), Geography(ST_MakePoint({x}, {y})), {radius}) AND {alias}.time BETWEEN \'{kwargs["start"].strftime("%Y-%m-%d %H:%M:%S")}\'::date AND \'{kwargs["end"].strftime("%Y-%m-%d %H:%M:%S")}\'::date',
-                in_bbox     = lambda south, north, west, east,**_:    f'ais_geom && ST_MakeEnvelope({west},{south},{east},{north})',
-            )
             self.dbtype = 'postgres'
             #create_table_coarsetype(self.cur)
 
         else:
             #import sqlite3
             import pysqlite3 as sqlite3
-            self.lambdas = dict(
-                #in_poly = lambda poly,alias='m123',**_: f'Contains(\n    GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
-                in_poly = lambda poly,alias='m123',**_: f'ST_Contains(\n    ST_GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
-                in_radius = lambda *,x,y,radius,**_: f'Within(Geography(m123.ais_geom), Geography(MakePoint({x}, {y})), {radius})', 
-                in_radius_time = lambda *,x,y,radius,alias='m123',**kwargs: f''' Within(Geography({alias}.ais_geom), Geography(MakePoint({x}, {y})), {radius}) AND {alias}.time BETWEEN \'{kwargs["start"].strftime("%Y-%m-%d %H:%M:%S")}\'::date AND \'{kwargs["end"].strftime("%Y-%m-%d %H:%M:%S")}\'::date ''',
-                in_bbox = lambda south, north, west, east,**_:    f'ais_geom && MakeEnvelope({west},{south},{east},{north})'
-            )
             self.dbtype = 'sqlite3'
 
             if dbpath is not None:

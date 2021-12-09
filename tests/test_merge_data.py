@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import shapely.wkt
-import pickle
 
 from database import *
 from shapely.geometry import Polygon, LineString, MultiPoint

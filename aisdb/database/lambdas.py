@@ -1,4 +1,5 @@
-import __main__
+import os
+#import __main__
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -7,16 +8,22 @@ from database.dbconn import dbconn
 #from database import epoch_2_dt
 from gis import epoch_2_dt, dt_2_epoch
 
-'''
-the following code block will set implementation-specific lambdas according to 
-the implementation selected in class dbconn. see dbconn.py for more info
-'''
-for key, val in dbconn().lambdas.items(): setattr(__main__, key, val)
-in_radius = __main__.in_radius
-in_poly = __main__.in_poly
-in_radius_time = __main__.in_radius_time
-in_bbox = __main__.in_bbox
 
+# legacy support 
+if os.environ.get('POSTGRESDB'):
+    in_poly     = lambda poly,alias='m123',**_: f'ST_Contains(\n    ST_GeomFromText(\'{poly}\'),\n    ST_MakePoint({alias}.longitude, {alias}.latitude)\n  )'
+    in_radius   = lambda *,x,y,radius,alias='m123',**_: f'ST_DWithin(Geography({alias}.ais_geom), Geography(ST_MakePoint({x}, {y})), {radius})'
+    in_radius_time  = lambda *,x,y,radius,alias='m123',**kwargs: f'ST_DWithin(Geography({alias}.ais_geom), Geography(ST_MakePoint({x}, {y})), {radius}) AND {alias}.time BETWEEN \'{kwargs["start"].strftime("%Y-%m-%d %H:%M:%S")}\'::date AND \'{kwargs["end"].strftime("%Y-%m-%d %H:%M:%S")}\'::date'
+    in_bbox     = lambda south, north, west, east,**_:    f'ais_geom && ST_MakeEnvelope({west},{south},{east},{north})'
+
+else:
+            #self.lambdas = dict(
+                #in_poly = lambda poly,alias='m123',**_: f'Contains(\n    GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )',
+    in_poly = lambda poly,alias='m123',**_: f'ST_Contains(\n    ST_GeomFromText(\'{poly}\'),\n    MakePoint({alias}.longitude, {alias}.latitude)\n  )'
+    in_radius = lambda *,x,y,radius,**_: f'Within(Geography(m123.ais_geom), Geography(MakePoint({x}, {y})), {radius})'
+    in_radius_time = lambda *,x,y,radius,alias='m123',**kwargs: f''' Within(Geography({alias}.ais_geom), Geography(MakePoint({x}, {y})), {radius}) AND {alias}.time BETWEEN \'{kwargs["start"].strftime("%Y-%m-%d %H:%M:%S")}\'::date AND \'{kwargs["end"].strftime("%Y-%m-%d %H:%M:%S")}\'::date '''
+    in_bbox = lambda south, north, west, east,**_:    f'ais_geom && MakeEnvelope({west},{south},{east},{north})'
+            #)
 
 '''
 collection of callback functions for dynamically generating SQL queries,

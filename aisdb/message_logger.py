@@ -4,7 +4,7 @@ import threading
 from datetime import datetime
 import time
 
-from common import rawdata_dir, host_addr, host_port
+from common import dbpath, rawdata_dir, host_addr, host_port
 
 
 unix_origin = datetime(1970, 1, 1)

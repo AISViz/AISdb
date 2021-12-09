@@ -1,0 +1,10 @@
+{
+  "name": "AISDB",
+  "version": "0.1.0",
+  "description": "AIS database and processing utils",
+  "main": "server.js",
+  "author": "MERIDIAN / Matt Smith",
+  "dependencies": {
+    "express": "^4.14.1"
+  }
+}
