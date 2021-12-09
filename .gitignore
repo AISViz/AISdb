@@ -12,5 +12,5 @@ ais/webdata/webdriver*
 *.egg-info
 docs/html/*
 docs/source/sphinx-apidoc/*
-web/node_modules/*
-web/package-lock.json
+docs/docserver/node_modules/*
+docs/docserver/package-lock.json
