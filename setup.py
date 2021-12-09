@@ -3,13 +3,12 @@ import sys
 import ensurepip
 ensurepip.bootstrap(upgrade=True)
 import pip
+from setuptools import setup
 
 majorver = int(pip.__version__.split('.')[0])
 if majorver < 21:
     print('pip version too low! pip will now be upgraded')
     os.system(f'{sys.executable} -m pip install --upgrade pip')
-    #print('pip successfully upgraded, please try installing again')
-    #exit()
     from importlib import reload
     reload(pip)
 
