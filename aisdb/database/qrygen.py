@@ -101,7 +101,8 @@ class qrygen(UserDict):
 
         # get 100k rows at a time, yield sets of rows for each unique MMSI
         mmsi_rows = None
-        while len(res := aisdb.cur.fetchmany(10**5)) > 0:
+        res = aisdb.cur.fetchmany(10**5))
+        while len(res) > 0:
             if mmsi_rows is None:
                 mmsi_rows = np.array(res, dtype=object)
             else:
@@ -119,6 +120,8 @@ class qrygen(UserDict):
                 ummsi_idx = np.where(mmsi_rows[:,0] != mmsi_rows[0,0])[0][0]
                 yield np.array(mmsi_rows[0:ummsi_idx], dtype=object)
                 mmsi_rows = mmsi_rows[ummsi_idx:]
+
+            res = aisdb.cur.fetchmany(10**5))
 
         yield np.array(mmsi_rows, dtype=object)
 
