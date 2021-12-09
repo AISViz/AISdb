@@ -16,7 +16,7 @@ Description of message types: https://arundaleais.github.io/docs/ais/ais_message
 
 The package can be installed using pip:
   ```
-  python3 -m pip install git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=ais
+  python3 -m pip install git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=aisdb
   ```
 
 To enable experimental visualization features, QGIS must also be installed and included in the PYTHONPATH env variable
