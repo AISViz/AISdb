@@ -14,7 +14,8 @@ setup(name='aisdb',
       #packages=find_packages(exclude=['tests', 'docs', 'output', '__pycache__', 'tonnage.db']),
       setup_requires=[
           'cython',
-          'setuptools',
+          'pip>=21.3.1',
+          #'setuptools',
           'wheel',
         ],
       install_requires=[
@@ -28,7 +29,7 @@ setup(name='aisdb',
           'selenium', 
           'tqdm',
           'scikit-learn',
-          'sphinx',
+          'sphinx', # required for building docs
         ],
      )
 
