@@ -1,15 +1,18 @@
 <img src="https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/tests/output/scriptoutput.png" alt="ais tracks - one month in the canadian atlantic" width="900"/>
 
-## Description  
+## Getting Started
+
+### Description  
 Functions and utilities for the purpose of decoding, storing, processing, and visualizing AIS data. 
 
 
-## What is AIS?
+### What is AIS?
 Wikipedia: https://en.wikipedia.org/wiki/Automatic_identification_system  
-Description of message types: https://arundaleais.github.io/docs/ais/ais_message_types.html  
-
-
-## Install
+Description of message types: https://arundaleais.github.io/docs/ais/ais_message_types.html
+  
+  
+  
+### Installing
 
 The package can be installed using pip:
   ```
@@ -19,7 +22,7 @@ The package can be installed using pip:
 To enable experimental visualization features, QGIS must also be installed and included in the PYTHONPATH env variable
 
 
-## Configuring
+### Configuring
 
 A config file can be used to specify storage location for the database as well as directory paths for where to look for additional data.
 The package will look for configs in the file `$HOME/.config/ais.cfg`, where $HOME is the user's home directory.
@@ -36,7 +39,7 @@ host_addr = localhost
 host_port = 9999
 ```
 
-## Getting started: code examples
+### Code examples
 
 1. [Parsing raw format messages into a database](examples/example01_create_db_from_rawmsgs.py)
 
@@ -56,17 +59,9 @@ host_port = 9999
 7. Render visualizations  
   TODO: add documentation
 
-## Collecting AIS Data
+### Collecting AIS Data
 
 1. [Setting up an AIS radio station, and exchanging data with other networks](docs/AIS_base_station.md)
 
 
-
-## How it Works
-
-Greater detail on package functionality for developers, contributors, and AIS analysts
-
-1. [Summary of package contents](docs/overview.md)
-
-2. [SQL Database Schematics](docs/database.md)
 
