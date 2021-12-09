@@ -1,21 +1,21 @@
-SQL Database
-============
+Database Conventions
+====================
 
 Table Naming
 ------------
 
 When loading data into the database, messages will be sorted into SQL
 tables determined by the message type and month. The names of these
-tables follow the following format, where ``{month}`` indicates the
+tables follow the following format, where ``{MONTH}`` indicates the
 table month in the format YYYYMM
 
 .. code:: sql
 
-   ais_{month}_msg_1_2_3
-   ais_{month}_msg_18
-   ais_{month}_msg_5
-   ais_{month}_msg_24
-   static_{month}_aggregate
+   ais_MONTH_msg_1_2_3
+   ais_MONTH_msg_18
+   ais_MONTH_msg_5
+   ais_MONTH_msg_24
+   static_MONTH_aggregate
 
 Virtual tables will also be created from the position reports tables
 using INSERT triggers. These tables are effectively a covering index,
@@ -24,8 +24,8 @@ but can be queried as if it were a normal table. For more info, see
 
 .. code:: sql
 
-   rtree_{month}_msg_1_2_3
-   rtree_{month}_msg_18
+   rtree_MONTH_msg_1_2_3
+   rtree_MONTH_msg_18
 
 Additional tables are also included for storing data not directly
 derived from AIS message reports.
@@ -36,8 +36,8 @@ derived from AIS message reports.
    coarsetype_ref
    hashmap
 
-Manually writing SQL queries
-----------------------------
+Custom SQL Queries
+------------------
 
 Instead of using the included run_qry and gen_qry functions for querying
 the database, SQL code can be written manually. As messages are

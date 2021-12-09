@@ -12,7 +12,8 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../..'))
+import ais
 
 
 # -- Project information -----------------------------------------------------
@@ -30,6 +31,7 @@ author = 'MERIDIAN / Matt Smith'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -38,7 +40,8 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = [
+    ]
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -51,4 +54,23 @@ html_theme = 'alabaster'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
+html_static_path = []
+
+
+
+
+
+#html_theme_options = {
+#    'navigation_depth': 4,
+#}
+
+def skip(app, what, name, obj, would_skip, options):
+    if "fromFunction" in name:
+        return True
+    else:
+        return would_skip
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)
+

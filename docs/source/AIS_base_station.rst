@@ -1,5 +1,5 @@
-Setting up your own AIS radio station
-=====================================
+Setting up a radio station
+==========================
 
 Requirements
 ------------
@@ -24,8 +24,8 @@ Requirements
       Uputronics <https://store.uputronics.com/index.php?route=product/product&path=59&product_id=93>`__,
       to improve signal range and quality
 
-Setting up the hardware
------------------------
+Hardware Setup
+--------------
 
 -  When setting up your antenna, be sure to place it as high as possible
    and as far away from obstructions and other equipment as is
@@ -56,8 +56,8 @@ Setting up the hardware
       !AIVDM,1,1,,B,B4eHt=@0:voCah6HRP1;?wg5oP06,0*7B
       !AIVDM,1,1,,A,B4eHWD009>oAeDVHIfm87wh7kP06,0*20
 
-Setting up the software
------------------------
+Software Setup
+--------------
 
 -  Install AISHub dispatcher on your device, following the `installation
    instructions on the AISHub

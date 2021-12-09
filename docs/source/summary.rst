@@ -1,5 +1,5 @@
-Overview of package components
-==============================
+Summary of package components
+=============================
 
 .. raw:: html
 

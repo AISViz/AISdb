@@ -1,19 +1,23 @@
-.. AIS documentation master file, created by
-   sphinx-quickstart on Wed Dec  8 15:39:27 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
 AISDB: AIS Database and Processing Utils
 ========================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
    :caption: Contents:
 
-   overview
+   sphinx-apidoc/readme
    database
    AIS_base_station
 
+
+.. toctree::
+   :maxdepth: 5
+   :caption: API Docs:
+   :titlesonly:
+
+   summary
+   sphinx-apidoc/ais
 
 
 
@@ -24,10 +28,5 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-
-.. automodule:: ais
-   :members:
-   :undoc-members:
-   :special-members: __init__
    
 
