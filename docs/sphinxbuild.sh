@@ -6,7 +6,8 @@ ROOTDIR="${SCRIPTPATH}/../"
 
 #sphinx-apidoc --module-first --separate --implicit-namespaces -o "${RSTSOURCEDIR}" "${PKGDIR}"
 
-[[ -d "${RSTSOURCEDIR}/sphinx-apidoc" ]] && rm ${RSTSOURCEDIR}/sphinx-apidoc/*
+mkdir -p "${RSTSOURCEDIR}/sphinx-apidoc"
+[[ ! -z `ls -A "${RSTSOURCEDIR}/sphinx-apidoc"` ]] && rm ${RSTSOURCEDIR}/sphinx-apidoc/*
 sphinx-apidoc --separate --force --implicit-namespaces --module-first -q --no-toc -o "${RSTSOURCEDIR}/sphinx-apidoc" "${PKGDIR}"
 pandoc "${ROOTDIR}/readme.md" --from markdown --to rst -s -o "${RSTSOURCEDIR}/sphinx-apidoc/readme.rst"
 sphinx-build -a -j auto -q -b=html "${RSTSOURCEDIR}" "${HTMLOUTPUTDIR}"
