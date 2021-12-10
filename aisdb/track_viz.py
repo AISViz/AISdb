@@ -622,7 +622,7 @@ def cpu_bound(track, domain, cutdistance, maxdistance, cuttime, minscore):
     timesplit = partial(segment_tracks_timesplits,  maxdelta=cuttime)
     distsplit = partial(segment_tracks_encode_greatcircledistance, cutdistance=cutdistance, maxdistance=maxdistance, cuttime=cuttime, minscore=minscore)
     geofenced = partial(fence_tracks,               domain=domain)
-    split_len = partial(concat_tracks,              max_track_length=10000)
+    split_len = partial(max_tracklength,              max_track_length=10000)
     print('processing mmsi', track['mmsi'], end='\r')
     serialize_geomwkb(split_len(distsplit(timesplit([track]))))
     return

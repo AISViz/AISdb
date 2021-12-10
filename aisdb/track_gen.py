@@ -6,7 +6,7 @@ from gis import delta_knots
 
 import numpy as np
 from sklearn.cluster import DBSCAN
-from gis import haversine
+from gis import haversine, delta_knots
 
 
 ''' utility functions '''
@@ -171,25 +171,7 @@ def segment_tracks_dbscan(tracks, max_cluster_dist_km=50, flagfcn=flag):
 def segment_tracks_encode_greatcircledistance(tracks, cutdistance, maxdistance, cuttime, minscore=0.0000001):
     ''' if the distance between two consecutive points in the track exceeds 
         given threshold, the track will be segmented '''
-    '''
-    score_fcn = lambda xy1,xy2,t1,t2,distance_meters=cutdistance: (
-                            ((distance_meters) / max(1, haversine(*xy1, *xy2)))
-                            / max(1, np.abs(t2-t1))
-                        )
-    score_fcn = lambda xy1,xy2,t1,t2,mintime=2,cutdistance=cutdistance,cuttime=cuttime: (
-                            25 / (max(1, dm)/maxdistance) / (max(mintime, dt) * 60)
-                            if (dm := haversine(*xy1, *xy2)) < maxdistance 
-                            and (dt := abs(t2-t1)) < cuttime.total_seconds() / 60 
-                            else 0
-                        )
-    score_fcn = lambda xy1,xy2,t1,t2: (
-                            ((maxdistance) / max(10, haversine(*xy1, *xy2))) - (max(3, abs(t2-t1)) * 60)
-                            #((maxdistance) / max(10, dm)) - (max(3, dt) * 60)
-                            #if (dm := haversine(*xy1, *xy2)) < maxdistance 
-                            #and (dt := abs(t2-t1)) < cuttime.total_seconds() / 60 
-                            #else -999999
-                        )
-    '''
+
     score_fcn = lambda xy1,xy2,t1,t2,distance_meters=maxdistance: (
                             #((distance_meters) / max(5, haversine(*xy1, *xy2))) / max(2, np.abs(t2-t1))
                             ((distance_meters) / max(5, dm)) / max(2, dt)
@@ -211,18 +193,6 @@ def segment_tracks_encode_greatcircledistance(tracks, cutdistance, maxdistance, 
                         t2=pathway['time'][-1],
                     ) for pathway in pathways  ], dtype=float)
             highscore = scores[np.where(scores == np.max(scores))[0][0]] if scores.size > 0 else minscore
-            '''
-            while scores.size > 0 and sum(scores == highscore) != 1 and mintime > 1:
-                mintime = mintime / 2
-                scores = np.array([score_fcn(
-                            xy1=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]), 
-                            xy2=(pathway['lon'][-1], pathway['lat'][-1]),
-                            t1=track['time'][0],
-                            t2=pathway['time'][-1],
-                            mintime=mintime,
-                        ) for pathway in pathways  ], dtype=float)
-                highscore = scores[np.where(scores == np.max(scores))[0][0]] if scores.size > 0 else 0
-            '''
 
             if (highscore > minscore #-1 * maxdistance
                     #and haversine(pathways[score_idx(scores)]['lon'][-1], pathways[score_idx(scores)]['lat'][-1], 
@@ -262,64 +232,46 @@ def segment_tracks_encode_greatcircledistance(tracks, cutdistance, maxdistance, 
 
 
 
-def concat_tracks(tracks, max_track_length=10000):
-    ''' if two sequential tracks both have the same mmsi, are contained by the
-        same polygon in the domain, and no clustering was applied, they will be concatenated
-        concatenates two sequential tracks where callback returns True
+def max_tracklength(tracks, max_track_length=10000):
+    ''' applies a maximum track length to avoid excess memory consumption
 
         args:
             tracks: generator
                 yields track dictionaries
-            callback: function
-                accepts two tracks as input. returns True if tracks should be concatenated
+            max_track_length: int 
+                tracks exceeding this number of datapoints will be segmented
         
         yields track dictionaries
     '''
-    '''
-    callback=lambda concatenated, track: (
-        concatenated['mmsi']  ==   track['mmsi'] 
-        #and (concatenated['label']  == -1  ==   track['label'] 
-        #        if 'label' in concatenated.keys() else True)
-        and (len(set(concatenated['in_zone']))  ==  1  
-                if 'in_zone' in concatenated.keys() else True)
-        and (set(concatenated['in_zone'])  ==  set(track['in_zone'])
-                if 'in_zone' in concatenated.keys() else True)
-    ),
-    '''
-    #concatenated = await next(tracks)
-    #concatenated = next(tracks)
 
-    for concatenated in tracks:
+    for track in tracks:
         # apply upper limit to track size to improve memory performance in worst-case scenario
-        while (concatenated['time'].size > max_track_length):
+        while (track['time'].size > max_track_length):
             yield dict(
-                    **{k:concatenated[k] for k in concatenated['static']},
-                    **{k:concatenated[k][:max_track_length] for k in concatenated['dynamic']},
-                    static = concatenated['static'],
-                    dynamic = set(concatenated['dynamic']),
+                    **{k:track[k] for k in track['static']},
+                    **{k:track[k][:max_track_length] for k in track['dynamic']},
+                    static = track['static'],
+                    dynamic = set(track['dynamic']),
                 ).copy()
-            concatenated = dict(
-                    **{k:concatenated[k] for k in concatenated['static']},
-                    **{k:concatenated[k][max_track_length:] for k in concatenated['dynamic']},
-                    static = concatenated['static'],
-                    dynamic = set(concatenated['dynamic']),
+            track = dict(
+                    **{k:track[k] for k in track['static']},
+                    **{k:track[k][max_track_length:] for k in track['dynamic']},
+                    static = track['static'],
+                    dynamic = set(track['dynamic']),
                 )
-        yield concatenated.copy()
+        yield track.copy()
 
-        '''
-        if callback(concatenated, track):
-            concatenated = dict(
-                    **{k:concatenated[k] for k in concatenated['static']},
-                    **{k:np.append(concatenated[k], track[k]) for k in concatenated['dynamic']},
-                    static = concatenated['static'],
-                    dynamic = set(concatenated['dynamic']),
-                )
-        else:
-            yield concatenated.copy()
-            concatenated = track
 
-    yield concatenated.copy()
-        '''
+def concat_realisticspeed(tracks, knots_threshold=50):
+    segment = next(tracks)
+    for track in tracks:
+        deltas = {
+                'time': np.append(segment['time'][-1], track['time'][0]),
+                'lon': np.append(segment['lon'][-1], track['lon'][0]),
+                'lat': np.append(segment['lat'][-1], track['lat'][0]),
+            }
+        delta_knots(deltas, range(2))
+
 
 
 def fence_tracks(tracks, domain):

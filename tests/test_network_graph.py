@@ -24,13 +24,9 @@ import numpy as np
 
 from aisdb import *
 from aisdb.gis import Domain, ZoneGeomFromTxt
-from aisdb.track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks
+from aisdb.track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, max_tracklength
 from aisdb.network_graph import serialize_network_edge
 from aisdb.merge_data import merge_tracks_hullgeom, merge_tracks_shoredist, merge_tracks_bathymetry
-
-
-
-
 
 
 

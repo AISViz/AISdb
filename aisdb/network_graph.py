@@ -3,17 +3,32 @@ from multiprocessing import Pool#, set_start_method
 import pickle
 from functools import partial, reduce
 from datetime import datetime, timedelta
-#import asyncio
 
 import numpy as np
 from shapely.geometry import Point, LineString, Polygon
 
 from common import *
-from gis import delta_knots, delta_meters, delta_seconds, ZoneGeom, Domain, epoch_2_dt
-#from proc_util import epoch_2_dt
-#from proc_util import *
-from track_gen import segment_rng, trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks
-from merge_data import merge_tracks_hullgeom, merge_tracks_shoredist, merge_tracks_bathymetry
+from gis import (
+        delta_knots, 
+        delta_meters, 
+        delta_seconds, 
+        ZoneGeom, 
+        Domain, 
+        epoch_2_dt,
+    )
+from track_gen import (
+        fence_tracks, 
+        max_tracklength,
+        segment_rng, 
+        segment_tracks_timesplits, 
+        segment_tracks_dbscan, 
+        trackgen, 
+    )
+from merge_data import (
+        merge_tracks_hullgeom, 
+        merge_tracks_shoredist, 
+        merge_tracks_bathymetry,
+    )
 
 
 # returns absolute value of bathymetric depths with topographic heights converted to 0
