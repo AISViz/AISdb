@@ -87,7 +87,12 @@ colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
 
 class toolCoord(QgsMapToolEmitPoint):
     ''' custom map interface tool for retrieving coordinates at the cursor position '''
+
     def __init__(self, canvas, statbar, project):
+        ''' initialize the coordinates map tool
+            
+            create statbar, define the coordinate reference systems and transformation context
+        '''
         self.canvas = canvas
         super().__init__(self.canvas)
         self.statbar = statbar
@@ -111,6 +116,9 @@ class toolCoord(QgsMapToolEmitPoint):
 
 
 class toolScaleCoord(toolCoord):
+    ''' add tools to the map to show the current displayed canvas scale in 
+        kilometers, and add event hooks to the canvas 
+    '''
 
     def canvasMoveEvent(self, event):
         ext = self.canvas.extent()
@@ -141,15 +149,25 @@ class toolScaleCoord(toolCoord):
 
 
 class customQgsMultiPoint(QgsRubberBand):
+    ''' custom MultiPoint geometry object using the PointGeometry WKB type '''
     def __init__(self, canvas):
         super().__init__(canvas, QgsWkbTypes.PointGeometry)
 
 
 
 class TrackViz(QMainWindow):
+    ''' main application window
+
+        runs the QGIS application using PyQt
+    '''
 
     def __init__(self):
-        assert os.path.isfile('/usr/bin/qgis'), 'couldnt find qgis in path'
+        ''' start the application
+
+            initialize PyQt app, create a project and coordinate reference system, 
+            open a new map canvas window inside the main window, load map configurations,
+            and then load the interface tools
+        '''
         assert os.path.isdir(os.path.join(output_dir, 'png/')), f'couldnt find {output_dir}{os.path.sep}png{os.path.sep}'
         # initialize qt app
         #self.app = QApplication(sys.argv)
@@ -212,7 +230,10 @@ class TrackViz(QMainWindow):
 
 
     def init_ui(self):
-        ''' add some tools to the visualization window '''
+        ''' add some tools to the visualization window 
+
+            pan, zoom in/out, status bar, basemap layer (microsoft visual earth), etc.
+        '''
         # pan
         self.actionPan = QAction('Pan', self)
         self.actionPan.setCheckable(True)
@@ -294,6 +315,7 @@ class TrackViz(QMainWindow):
             self.canvas.unsetMapTool(self.toolcoord)
             self.canvas.setMapTool(self.toolscalecoord)
             self.centralWidget().setCursor(QCursor())
+
     
     def clear_coord(self):
         for m in self.toolcoord.markers: self.canvas.scene().removeItem(m)
@@ -301,21 +323,46 @@ class TrackViz(QMainWindow):
         self.toolcoord.pts = []
 
 
-    def poly_from_coords(self):
-        geom = Polygon(
-                  [(p.x(), p.y()) for p in self.toolcoord.pts] 
-                + [(self.toolcoord.pts[0].x(), self.toolcoord.pts[0].y())]
-            )
-        self.clear_coord()
-        return geom
-
     def set_canvas_boundary(self, xmin=-180, ymin=-90, xmax=180, ymax=90):
-        #ext1 = self.canvas.extent()
+        ''' set the map canvas boundary to the given coordinates '''
         xy1 = self.xform.transform(QgsPointXY(xmin, ymin))
         xy2 = self.xform.transform(QgsPointXY(xmax, ymax))
         ext = QgsRectangle(xy1.x(), xy1.y(), xy2.x(), xy2.y())
         self.canvas.setExtent(ext)
         self.canvas.refresh()
+
+
+    def focus_canvas_item(self, geom=None, domain=None, zone=None):
+        ''' set the map canvas boundary to the boundary of the given object
+
+            accepts one of:
+                geom: shapely.geometry object
+                zone: aisdb.gis.ZoneGeometry
+                domain: aisdb.gis.Domain
+        '''
+        if domain is not None:
+            self.set_canvas_boundary(xmin=domain.minX, ymin=domain.minY, xmax=domain.maxX, ymax=domain.maxY)
+            return
+
+        if zone is not None:
+            geom = zone.Geometry
+
+        if geom.type == 'LineString' or geom.type == 'Polygon':
+			xmin = min(xmin, np.min(geometry.xy[0]))
+			ymin = min(ymin, np.min(geometry.xy[1]))
+			xmax = max(xmax, np.max(geometry.xy[0]))
+			ymax = max(ymax, np.max(geometry.xy[1]))
+		elif geometry.type == 'MultiPoint':
+			xmin = min(xmin, list(geometry)[0].x)
+			ymin = min(ymin, list(geometry)[0].y)
+			xmax = max(xmax, list(geometry)[0].x)
+			ymax = max(ymax, list(geometry)[0].y)
+        else:
+            assert False, f'unknown geometry: {geom}'
+
+		self.set_canvas_boundary(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax)
+        return
+
 
     def split_feature_over_meridian(self, meridian, geom):
         adjust = lambda x: ((np.array(x) + 180) % 360) - 180  
@@ -332,6 +379,7 @@ class TrackViz(QMainWindow):
 
 
     def add_feature_point(self, geom, ident, color=None, opacity=None):
+        ''' add a shapely.geometry.MultiPoint object to the map canvas '''
         if color is None: color = (colorhash(ident),)
         assert geom.type.upper() == 'MULTIPOINT' or geom.type.upper() == 'GEOMETRYCOLLECTION'
         r = customQgsMultiPoint(self.canvas)
@@ -346,6 +394,7 @@ class TrackViz(QMainWindow):
 
 
     def add_feature_polyline(self, geom, ident, color=None, opacity=None, nosplit=False):
+        ''' using shapely.geometry, add a LineString, LinearRing, or Polygon object to the map canvas '''
         #task = renderLineFeature(self.canvas, self.xform, geom, ident, color, opacity, nosplit)
         #self.qgs.taskManager().addTask(task)
         meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
@@ -399,30 +448,34 @@ class TrackViz(QMainWindow):
 
 
     def clear_points(self):
+        ''' clear all Points objects from the map canvas '''
         while len(self.features_point) > 0: self.canvas.scene().removeItem(self.features_point.pop()[1])
 
 
     def clear_lines(self):
+        ''' clear all LineString objects from the map canvas '''
         while len(self.features_line) > 0: self.canvas.scene().removeItem(self.features_line.pop()[1])
 
 
     def clear_polygons(self):
+        ''' clear all Polygon and LinearRing objects from the map canvas '''
         while len(self.features_poly) > 0: self.canvas.scene().removeItem(self.features_poly.pop()[1])
 
 
     def clearfeatures(self):
+        ''' clear all features from the map canvas '''
         self.clear_points()
         self.clear_lines()
         self.clear_polygons()
 
 
+
     def vectorize(self, qgeoms, identifiers, color=None, opacity=None, nosplit=False):
-        '''
-        self=viz
-        ident = identifiers[0]
-        qgeoms = [ft[1].asGeometry() for ft in self.features_line]
-        qgeoms = [ft[1].asGeometry() for ft in self.features_point]
-        identifiers = [1 for x in qgeoms]
+        ''' render vector shapefile for a given geometry, and return it as a QGIS vector layer
+
+            color can be an RGBA tuple, hexadecimal code, or color name string
+            if no color is chosen, a new color will be determined using a hash of the 
+            identifier
         '''
 
         geomtype = QgsWkbTypes.displayString(qgeoms[0].wkbType())
@@ -503,6 +556,10 @@ class TrackViz(QMainWindow):
 
 
     def render_vectors(self, fname='test.png', w=1920, h=1080): 
+        ''' get the currently displayed geometry objects, render them as vectors, and save the image as .png 
+
+            the canvas will be cleared after saving the image
+        '''
         '''
         w=1920
         h=1080
@@ -582,6 +639,7 @@ class TrackViz(QMainWindow):
 
 
     def export_vlayer_as_shp(self, vl, fpath=f'output{os.path.sep}test.shp'):
+        ''' currently unused. prefer exporting shapes in WKB format using shapely '''
         save_opt = QgsVectorFileWriter.SaveVectorOptions()
         save_opt.driverName = 'ESRI Shapefile'
         save_opt.fileEncoding = 'UTF-8'
@@ -597,18 +655,21 @@ class TrackViz(QMainWindow):
 
 
     def export_qgis(self, projpath):
+        ''' export QGIS project instance to the given project path'''
         #self.project.fileName()
         assert projpath[-4:] == '.qgz', 'project path must end with .qgz'
         self.project.write(projpath)
 
 
     def import_qgis(self, projpath='/home/matt/Desktop/qgis/ecoregion_test.qgz'):
+        ''' import QGIS project instance from the given project path'''
         self.project.read(projpath)
         #self.layout = self.project.instance().layoutManager().layoutByName('scripted_layout')
         #self.layout.addItem(QgsLayoutItemMap(self.layout))
 
 
     def exit(self):
+        ''' remove canvas items and shut down QGIS '''
         self.clearfeatures()
         #self.project.write('scripts/ecoregion_test/testplot.qgz')
         self.project.removeMapLayers([lyr.id() for lyr in self.settings.layers()])
@@ -620,6 +681,7 @@ class TrackViz(QMainWindow):
 
 
 def serialize_geomwkb(tracks):
+    ''' for each track dictionary, serialize the geometry as WKB to the output directory '''
     wkbdir = os.path.join(output_dir, 'wkb/')
     if not os.path.isdir(wkbdir): 
         os.mkdir(wkbdir)
@@ -658,30 +720,4 @@ def serialize_geoms(tracks, domain, processes, cutdistance=5000, maxdistance=125
         p.join()
     print()
 
-'''
-    def layer_from_feature_old(self, geomwkt, ident, color=None, opacity=None, nosplit=False):
-        if nosplit == False and (meridian := LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)).crosses(shapely.wkt.loads(geomwkt)):
-            print(f'splitting {ident}')
-            splits = self.split_feature_over_meridian(meridian, geomwkt)
-            return [self.layer_from_feature(splits[0].wkt, ident+'A', color, opacity, nosplit=True)[0],
-                    #self.layer_from_feature(splits[1].wkt.replace('-', ' '), ident+'B', color, opacity, nosplit=True)[0]]
-                    self.layer_from_feature(splits[1].wkt, ident+'B', color, opacity, nosplit=True)[0]]
-        if color is None: color = (colorhash(ident),)
-        geomtype = geomwkt.split('(', 1)[0].rstrip().upper()
-        if opacity is None: opacity = 0.5 if geomtype in ('POLYGON','LINEARRING') else 1
-        vl = QgsVectorLayer(geomtype, str(ident), 'memory')
-        pr = vl.dataProvider()
-        seg = QgsFeature()
-        seg.setGeometry(QgsGeometry.fromWkt(geomwkt))
-        """
-        seg.setGeometry(q)
-        """ 
-        pr.addFeatures([seg])
-        vl.updateExtents()
-        symbol = QgsSymbol.defaultSymbol(vl.geometryType())
-        symbol.setColor(QColor(*color if isinstance(color, tuple) else color))
-        symbol.setOpacity(opacity)
-        vl.renderer().setSymbol(symbol)
-        return [vl]
-'''
 
