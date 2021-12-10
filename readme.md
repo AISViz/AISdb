@@ -19,7 +19,7 @@ The package can be installed using pip:
   python3 -m pip install git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=aisdb
   ```
 
-To enable experimental mapping features, QGIS must also be installed and included in the PYTHONPATH env variable. Note that when using venv, the `--system-site-packages` flag must be used to allow QGIS to work in python
+Although the graphical interface is still a work in progress, it can be enabled by [installing QGIS](https://qgis.org/en/site/forusers/download.html). Note that when creating an environment using venv, the `--system-site-packages` flag must be used to share QGIS application data with the environment.
 
 
 
