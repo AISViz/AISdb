@@ -1,5 +1,5 @@
-Database Conventions
-====================
+SQL Database Info
+=================
 
 Table Naming
 ------------
