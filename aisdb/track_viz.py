@@ -5,46 +5,68 @@ https://gis.stackexchange.com/questions/245840/wait-for-canvas-to-finish-renderi
 '''
 
 import os
+import sys
+import shutil
 from hashlib import sha256
 from datetime import datetime, timedelta
 from functools import partial
 from multiprocessing import Pool
 
-#from qgis.core import ( QgsApplication, QgsProject, QgsRasterLayer, QgsPrintLayout, 
-#       QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMapSettings, QgsPointXY, 
-#       QgsGeometry, QgsWkbTypes, QgsTask, QgsVectorLayer, QgsField, QgsFeature, 
-#       QgsMapRendererCustomPainterJob, QgsSymbol, QgsCategorizedSymbolRenderer, 
-#       QgsRendererCategory, QgsLineSymbol)
-from qgis.core import *
+if shutil.which('qgis'):
+    sys.path.append(shutil.which('qgis'))
+else:
+    print('warning: could not find QGIS installed!')
+
+
 from qgis.PyQt.QtCore import Qt, QSize, QVariant, QTimer
-from qgis.gui import (
-        QgsMapCanvas, 
-        QgsMapToolPan, 
-        QgsMapToolZoom, 
-        QgsRubberBand, 
-        QgsMapCanvasItem, 
-        QgsVertexMarker, 
-        QgsMapToolEmitPoint, 
-        QgsStatusBar, 
-        QgsMapCanvasItem,
-    )
 from qgis.PyQt.QtGui import (
         QColor, 
+        QCursor,
         QGuiApplication, 
         QImage, 
         QPainter, 
         QPainterPath, 
-        QCursor,
     )
 from qgis.PyQt.QtWidgets import (
-        QMainWindow, 
-        QWidget, 
-        QLabel, 
-        QFrame, 
-        QStatusBar, 
-        QVBoxLayout, 
-        QApplication, 
         QAction,
+        QApplication, 
+        #QFrame, 
+        #QLabel, 
+        QMainWindow, 
+        #QStatusBar, 
+        #QVBoxLayout, 
+        #QWidget, 
+    )
+from qgis.core import (
+        QgsApplication, 
+        QgsCategorizedSymbolRenderer, 
+        QgsCoordinateReferenceSystem, 
+        QgsCoordinateTransform, 
+        QgsFeature, 
+        QgsField, 
+        QgsGeometry, 
+        QgsLineSymbol,
+        QgsMapRendererCustomPainterJob, 
+        QgsMapSettings, 
+        QgsPointXY, 
+        QgsPrintLayout, 
+        QgsProject, 
+        QgsRasterLayer, 
+        QgsRendererCategory, 
+        QgsSymbol, 
+        QgsVectorLayer, 
+        QgsWkbTypes, 
+    )
+from qgis.gui import (
+        QgsMapCanvas, 
+        QgsMapCanvasItem,
+        QgsMapCanvasItem, 
+        QgsMapToolEmitPoint, 
+        QgsMapToolPan, 
+        QgsMapToolZoom, 
+        QgsRubberBand, 
+        QgsStatusBar, 
+        QgsVertexMarker, 
     )
 
 import numpy as np
