@@ -10,7 +10,7 @@ import numpy as np
 from common import output_dir
 from network_graph import serialize_network_edge
 from merge_data import merge_layers
-from track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, concat_tracks, segment_tracks_encode_greatcircledistance
+from track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, max_tracklength, segment_tracks_encode_greatcircledistance
 
 def _fast_unzip(zipf, dirname='.'):
     ''' parallel process worker for fast_unzip() '''
@@ -90,7 +90,7 @@ def graph_cpu_bound(track, domain, cutdistance, maxdistance, cuttime, minscore=0
     timesplit = partial(segment_tracks_timesplits, maxdelta=cuttime)
     distsplit = partial(segment_tracks_encode_greatcircledistance, cutdistance=cutdistance, maxdistance=maxdistance, cuttime=cuttime, minscore=minscore)
     geofenced = partial(fence_tracks,               domain=domain)
-    #split_len = partial(concat_tracks,              max_track_length=10000)
+    #split_len = partial(max_tracklength,              max_track_length=10000)
     serialize = partial(serialize_network_edge,     domain=domain)
     print('processing mmsi', track['mmsi'], end='\r')
     #list(serialize(geofenced(split_len(distsplit(timesplit([track]))))))

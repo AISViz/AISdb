@@ -175,7 +175,7 @@ with import_handler() as importconfigs:
             segment_tracks_timesplits, 
             segment_tracks_dbscan, 
             fence_tracks, 
-            concat_tracks,
+            max_tracklength,
             #segment,
             #filtermask,
         )
