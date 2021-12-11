@@ -426,23 +426,34 @@ class TrackViz(QMainWindow):
             #label.setPos(*r.getPoint(0))
             #label.setFontColor(QColor(255,0,0))
             #self.layout.addLayoutItem(label)
+            r.setToGeometry(qgeom, None)
+            self.features_poly.append((ident, r))
 
         elif geom.type.upper() == 'LINESTRING':
-            pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.coords.xy)]
-            qgeom = QgsGeometry.fromPolylineXY(pts)
-            r.setColor(QColor(*color))
-            r.setOpacity(opacity or 1)
+            '''
+            if len(geom.coords.xy[0]) < 10000:
+                pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.coords.xy)]
+                qgeom = QgsGeometry.fromPolylineXY(pts)
+                r.setColor(QColor(*color))
+                r.setOpacity(opacity or 1)
+                r.setToGeometry(qgeom, None)
+            else:
+            '''
+            for i in range(0, len(geom.coords.xy[0]), 10000):
+                pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(geom.coords.xy[0][i:i+10000], geom.coords.xy[1][i:i+10000])]
+                qgeom = QgsGeometry.fromPolylineXY(pts)
+                r.setColor(QColor(*color))
+                r.setOpacity(opacity or 1)
+                r.setToGeometry(qgeom, None)
+                self.features_line.append((ident, r))
+
 
         else: assert False, f'{geom.type} is not a linear feature!'
 
-        r.setToGeometry(qgeom, None)
+        #r.setToGeometry(qgeom, None)
         #self.canvas.update()
         #r.show()
         #r.updateCanvas()
-        if geom.type.upper() in ('POLYGON', 'LINEARRING'): 
-            self.features_poly.append((ident, r))
-        elif geom.type.upper() == 'LINESTRING':
-            self.features_line.append((ident, r))
 
         return 
 
