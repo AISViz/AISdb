@@ -168,7 +168,7 @@ def segment_tracks_dbscan(tracks, max_cluster_dist_km=50, flagfcn=flag):
                     ).copy()
 
 
-def segment_tracks_encode_greatcircledistance(tracks, maxdistance, cuttime, minscore=0.0000001):
+def segment_tracks_encode_greatcircledistance(tracks, maxdistance, cuttime, cutknots=50, minscore=0.0000001):
     ''' if the distance between two consecutive points in the track exceeds 
         given threshold, the track will be segmented '''
 
@@ -183,23 +183,23 @@ def segment_tracks_encode_greatcircledistance(tracks, maxdistance, cuttime, mins
                         )
     '''
     score_fcn = lambda xy1,xy2,t1,t2,distance_meters=maxdistance: (
-                            #((distance_meters) / max(5, dm)) / max(2, dt)
-                            (distance_meters / dm) / dt 
-                            if ((dm := max(haversine(*xy1, *xy2), 2)) / ((dt := max(abs(t2-t1), 2))*60)) * 1.9438444924406 < 50
-                            and dm < distance_meters
-                            #and dt < cuttime.total_seconds() / 60 
-                            else -1
-                        )
+            (distance_meters / dm) / dt 
+            if (dm := max(haversine(*xy1, *xy2), 2)) / ((dt := max(abs(t2-t1),2))*60) * 1.9438444924406 < cutknots 
+            and dm < distance_meters
+            #and dt < cuttime.total_seconds() / 60 
+            else -1
+        )
 
     score_idx = lambda scores: np.where(scores == np.max(scores))[0][-1]
     n = 0
+    lastmmsi = 0
     for track in tracks:
         pathways = []
         #segments_idx = np.nonzero(np.array(list(map(haversine, track['lon'][:-1], track['lat'][:-1], track['lon'][1:], track['lat'][1:]))) > 5000)[0]+1
 
         segments_idx = reduce(np.append, (
                 [0], 
-                np.where(delta_knots(track, range(track['time'].size)) > 50)[0]+1,
+                np.where(delta_knots(track, range(track['time'].size)) > 35)[0]+1,
                 [track['time'].size]
             ))
 
@@ -210,9 +210,33 @@ def segment_tracks_encode_greatcircledistance(tracks, maxdistance, cuttime, mins
             scores = np.array([score_fcn(
                         xy1=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]), 
                         xy2=(pathway['lon'][-1], pathway['lat'][-1]),
-                        t1=track['time'][0],
+                        t1=track['time'][segments_idx[i]],
+                        t2=pathway['time'][-1]) 
+                        for pathway in pathways  ], dtype=np.float16)
+            '''
+
+            # take average of most recent 2 scores
+            scores = (
+                np.array([score_fcn(
+                        xy1=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]), 
+                        xy2=(pathway['lon'][
+                                (idx1:=min(2, pathway['time'].size-1)*-1)
+                            ], pathway['lat'][idx1]),
+                        t1=track['time'][segments_idx[i]],
+                        t2=pathway['time'][idx1],
+                    ) for pathway in pathways ], dtype=np.float16)
+                +
+                np.array([score_fcn(
+                        xy1=(track['lon'][
+                                (idx2:=segments_idx[min(i+1, segments_idx.size-1)])
+                            ], track['lat'][segments_idx[i]+1]), 
+                        xy2=(pathway['lon'][-1], pathway['lat'][-1]),
+                        t1=track['time'][idx2],
                         t2=pathway['time'][-1],
-                    ) for pathway in pathways  ], dtype=float)
+                    ) for pathway in pathways ], dtype=np.float16)
+                ) / 2
+            '''
+                
             highscore = scores[np.where(scores == np.max(scores))[0][0]] if scores.size > 0 else minscore
 
             if (highscore > minscore):
@@ -237,7 +261,7 @@ def segment_tracks_encode_greatcircledistance(tracks, maxdistance, cuttime, mins
                         **{k:track[k][segments_idx[i] : segments_idx[i+1]] for k in track['dynamic']},
                         static          = track['static'],
                         dynamic         = track['dynamic'],
-                    ).copy())
+                    ))
 
 
         for pathway, label in zip(pathways, range(n, len(pathways)+n)):
@@ -247,6 +271,25 @@ def segment_tracks_encode_greatcircledistance(tracks, maxdistance, cuttime, mins
             #    assert pathway['time'][i] < pathway['time'][i+1]
             yield pathway
 
+
+def mmsirange(tracks, low=200000000, high=780000000):
+    for track in tracks:
+        if low <= track['mmsi'] <= high:
+            yield track
+        elif track['mmsi'] > high: 
+            return
+
+
+def mmsifilter(rowgen, mmsis=[]):
+    for row in rowgen:
+        print(row[0][0], end='\r')
+        if row[0][0] in mmsis: 
+            yield row
+        if sum([row[0][0] < mmsi for mmsi in mmsis]) == len(mmsis):
+            continue
+        elif sum([row[0][0] > mmsi for mmsi in mmsis]) == len(mmsis):
+            print()
+            return
 
 
 def max_tracklength(tracks, max_track_length=10000):
@@ -280,6 +323,7 @@ def max_tracklength(tracks, max_track_length=10000):
 
 
 def concat_realisticspeed(tracks, knots_threshold=50):
+    ''' if two consecutive tracks are within a realistic speed threshold, they will be concatenated '''
     segment = next(tracks)
     for track in tracks:
         deltas = {
@@ -288,8 +332,6 @@ def concat_realisticspeed(tracks, knots_threshold=50):
                 'lat': np.append(segment['lat'][-1], track['lat'][0]),
             }
         if segment['mmsi'] == track['mmsi'] and delta_knots(deltas, range(2))[0] < knots_threshold:
-            for k in segment['static']:
-                assert segment[k] == track[k]
             segment = dict(
                     **{k:segment[k] for k in segment['static']},
                     **{k:np.append(segment[k], track[k]) for k in track['dynamic']},
