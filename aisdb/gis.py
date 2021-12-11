@@ -132,12 +132,12 @@ class Domain():
                     seed = domaincache.hash_seed(callback=self.init_boundary, passkwargs={"name":self.name})
                     domaincache.drop_hash(seed=seed)
                 self.bounds = domaincache(callback=self.init_boundary, name=self.name)[0]
-
-            self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
-
         else:
             self.bounds = self.init_boundary(name=name)
-            self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
+
+        self.minX, self.minY, self.maxX, self.maxY = np.array(self.bounds.convex_hull.bounds, dtype=np.float16)
+        self.minX -=1; self.maxX +=1
+        self.minY -=1; self.maxY +=1
 
     def init_boundary(self, name):
         return unary_union([g.geometry for g in self.geoms.values()])
