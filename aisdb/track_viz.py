@@ -348,19 +348,19 @@ class TrackViz(QMainWindow):
             geom = zone.Geometry
 
         if geom.type == 'LineString' or geom.type == 'Polygon':
-			xmin = min(xmin, np.min(geometry.xy[0]))
-			ymin = min(ymin, np.min(geometry.xy[1]))
-			xmax = max(xmax, np.max(geometry.xy[0]))
-			ymax = max(ymax, np.max(geometry.xy[1]))
-		elif geometry.type == 'MultiPoint':
-			xmin = min(xmin, list(geometry)[0].x)
-			ymin = min(ymin, list(geometry)[0].y)
-			xmax = max(xmax, list(geometry)[0].x)
-			ymax = max(ymax, list(geometry)[0].y)
+            xmin = min(xmin, np.min(geometry.xy[0]))
+            ymin = min(ymin, np.min(geometry.xy[1]))
+            xmax = max(xmax, np.max(geometry.xy[0]))
+            ymax = max(ymax, np.max(geometry.xy[1]))
+        elif geometry.type == 'MultiPoint':
+            xmin = min(xmin, list(geometry)[0].x)
+            ymin = min(ymin, list(geometry)[0].y)
+            xmax = max(xmax, list(geometry)[0].x)
+            ymax = max(ymax, list(geometry)[0].y)
         else:
             assert False, f'unknown geometry: {geom}'
 
-		self.set_canvas_boundary(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax)
+        self.set_canvas_boundary(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax)
         return
 
 
