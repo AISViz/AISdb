@@ -86,19 +86,21 @@ def graph_blocking_io(fpath, domain):
     for x in merge_layers(trackgen(deserialize_generator(fpath))):
         yield x
 
-def graph_cpu_bound(track, domain, cutdistance, maxdistance, cuttime, minscore=0.0000001):
-    timesplit = partial(segment_tracks_timesplits, maxdelta=cuttime)
-    distsplit = partial(segment_tracks_encode_greatcircledistance, cutdistance=cutdistance, maxdistance=maxdistance, cuttime=cuttime, minscore=minscore)
+def graph_cpu_bound(track, domain, **params):
+    #timesplit = partial(segment_tracks_timesplits, maxdelta=cuttime)
+    distsplit = partial(segment_tracks_encode_greatcircledistance, **params)
     geofenced = partial(fence_tracks,               domain=domain)
     #split_len = partial(max_tracklength,              max_track_length=10000)
     serialize = partial(serialize_network_edge,     domain=domain)
     print('processing mmsi', track['mmsi'], end='\r')
     #list(serialize(geofenced(split_len(distsplit(timesplit([track]))))))
-    list(serialize(geofenced(distsplit(timesplit([track])))))
-    return
+    #for t in serialize(geofenced(distsplit([track]))):
+    #    pass
+    list(serialize(geofenced(distsplit([track]))))
+    #return
 
 
-def graph(fpath, domain, parallel=0, cutdistance=5000, maxdistance=200000, cuttime=timedelta(hours=24), minscore=0.0000001):
+def graph(fpath, domain, parallel=0, **params):
     ''' perform geofencing on vessel trajectories, then concatenate aggregated 
         transit statistics between nodes (zones) to create network edges from 
         vessel trajectories
@@ -122,12 +124,12 @@ def graph(fpath, domain, parallel=0, cutdistance=5000, maxdistance=200000, cutti
     '''
     if not parallel: 
         for track in graph_blocking_io(fpath, domain):
-            graph_cpu_bound(track, domain=domain, cutdistance=cutdistance, maxdistance=maxdistance, cuttime=cuttime, minscore=minscore)
+            graph_cpu_bound(track, domain=domain, **params)
         print()
 
     else:
         with Pool(processes=parallel) as p:
-            fcn = partial(graph_cpu_bound, domain=domain, cutdistance=cutdistance, maxdistance=maxdistance, cuttime=cuttime, minscore=minscore)
+            fcn = partial(graph_cpu_bound, domain=domain, **params)
             p.imap_unordered(fcn, (tr for tr in graph_blocking_io(fpath, domain=domain)), chunksize=1)
             p.close()
             p.join()
