@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 from functools import partial
 from multiprocessing import Pool
 
-if shutil.which('qgis'):
-    sys.path.append(shutil.which('qgis'))
+if (qgispath := shutil.which('qgis')):
+    sys.path.append(qgispath)
 else:
     print('warning: could not find QGIS installed!')
 
@@ -52,6 +52,7 @@ from qgis.core import (
         QgsPrintLayout, 
         QgsProject, 
         QgsRasterLayer, 
+        QgsRectangle,
         QgsRendererCategory, 
         QgsSymbol, 
         QgsVectorLayer, 
@@ -332,7 +333,7 @@ class TrackViz(QMainWindow):
         self.canvas.refresh()
 
 
-    def focus_canvas_item(self, geom=None, domain=None, zone=None):
+    def focus_canvas_item(self, /, geom=None, domain=None, zone=None):
         ''' set the map canvas boundary to the boundary of the given object
 
             accepts one of:
