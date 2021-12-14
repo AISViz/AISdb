@@ -5,7 +5,7 @@ from datetime import timedelta
 from gis import delta_knots
 
 import numpy as np
-from sklearn.cluster import DBSCAN
+#from sklearn.cluster import DBSCAN
 from gis import haversine, delta_knots
 
 
@@ -116,6 +116,7 @@ def flag(track):
     return False
 
 
+"""
 def segment_tracks_dbscan(tracks, max_cluster_dist_km=50, flagfcn=flag):
     '''
         args:
@@ -167,6 +168,7 @@ def segment_tracks_dbscan(tracks, max_cluster_dist_km=50, flagfcn=flag):
                         dynamic         = track['dynamic'],
                     ).copy()
 
+"""
 
 def segment_tracks_encode_greatcircledistance(tracks, maxdistance, cuttime, cutknots=50, minscore=0.0000001):
     ''' if the distance between two consecutive points in the track exceeds 
@@ -205,7 +207,7 @@ def segment_tracks_encode_greatcircledistance(tracks, maxdistance, cuttime, cutk
 
         for i in range(segments_idx.size-1):
             if len(pathways) > 100: 
-                print('warning: excessive number of pathways!')
+                print(f'warning: excessive number of pathways! mmsi={track["mmsi"]}')
                 yield pathways.pop(0)
             scores = np.array([score_fcn(
                         xy1=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]), 

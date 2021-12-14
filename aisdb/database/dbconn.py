@@ -78,8 +78,8 @@ class dbconn():
             #create_table_coarsetype(self.cur)
 
         else:
-            #import sqlite3
-            import pysqlite3 as sqlite3
+            import sqlite3
+            #import pysqlite3 as sqlite3
             self.dbtype = 'sqlite3'
 
             if dbpath is not None:

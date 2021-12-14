@@ -420,6 +420,7 @@ class TrackViz(QMainWindow):
         self.features_point.append((ident, r))
         return
 
+
     def add_feature_line(self, geom, ident, color=None, opacity=None):
         ''' add a shapely.geometry.LineString object to the map canvas '''
         if color is None: color = (colorhash(ident),)
@@ -431,6 +432,7 @@ class TrackViz(QMainWindow):
             r.setOpacity(opacity or 1)
             r.setToGeometry(qgeom, None)
             self.features_line.append((ident, r))
+
 
     def add_feature_poly(self, geom, ident, color=None, opacity=None):
         ''' add a shapely.geometry.Polygon or shapely.geometry.LineString object to the map canvas '''
@@ -454,63 +456,6 @@ class TrackViz(QMainWindow):
         #self.layout.addLayoutItem(label)
         r.setToGeometry(qgeom, None)
         self.features_poly.append((ident, r))
-
-
-    def add_feature_polyline(self, geom, ident, color=None, opacity=None, nosplit=False):
-        ''' deprecated do not use '''
-        print('WARNING: add_feature_polyline will be deprecated')
-        #task = renderLineFeature(self.canvas, self.xform, geom, ident, color, opacity, nosplit)
-        #self.qgs.taskManager().addTask(task)
-        meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
-        if nosplit == False and meridian.crosses(geom):
-            print(f'splitting {ident}')
-            splits = self.split_feature_over_meridian(meridian, geom)
-            self.add_feature_polyline(splits[0], ident+'A', color, opacity, nosplit=True)
-            #self.layer_from_feature(splits[1].wkt.replace('-', ' '), ident+'B', color, opacity, nosplit=True)[0]
-            self.add_feature_polyline(splits[1], ident+'B', color, opacity, nosplit=True)
-            return
-
-        if color is None: color = (colorhash(ident),)
-        r = QgsRubberBand(self.canvas, True)
-
-        if geom.type.upper() in ('POLYGON', 'LINEARRING'): 
-            if geom.type == 'LinearRing':
-                pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.coords.xy)]
-            elif geom.type == 'Polygon':
-                pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.boundary.coords.xy)]
-            qgeom = QgsGeometry.fromPolygonXY([pts])
-            r.setFillColor(QColor(*color))
-            r.setStrokeColor(QColor(0,0,0))
-            #r.setSecondaryStrokeColor(QColor(*color))
-            r.setOpacity(opacity or 0.3)
-            r.setWidth(2)
-            #label = QgsLayoutItemLabel(self.layout)
-            #label.setText(ident)
-            #label.adjustSizeToText()
-            #label.setPos(*r.getPoint(0))
-            #label.setFontColor(QColor(255,0,0))
-            #self.layout.addLayoutItem(label)
-            r.setToGeometry(qgeom, None)
-            self.features_poly.append((ident, r.asGeometry()))
-
-        elif geom.type.upper() == 'LINESTRING':
-            for i in range(0, len(geom.coords.xy[0]), 10000):
-                pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(geom.coords.xy[0][i:i+10000], geom.coords.xy[1][i:i+10000])]
-                qgeom = QgsGeometry.fromPolylineXY(pts)
-                r.setColor(QColor(*color))
-                r.setOpacity(opacity or 1)
-                r.setToGeometry(qgeom, None)
-                self.features_line.append((ident, r.asGeometry()))
-
-
-        else: assert False, f'{geom.type} is not a linear feature!'
-
-        #r.setToGeometry(qgeom, None)
-        #self.canvas.update()
-        #r.show()
-        #r.updateCanvas()
-
-        return 
 
 
     def clear_points(self):

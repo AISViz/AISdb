@@ -1,8 +1,8 @@
 import os
 import json
 import pickle
-#import sqlite3
-import pysqlite3 as sqlite3
+import sqlite3
+#import pysqlite3 as sqlite3
 import logging
 from hashlib import md5
 from multiprocessing import Pool

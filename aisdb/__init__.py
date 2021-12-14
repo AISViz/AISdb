@@ -131,7 +131,10 @@ with import_handler() as importconfigs:
 
     from .database.qrygen import qrygen
 
-    from .gebco import Gebco
+    try: 
+        from .gebco import Gebco
+    except:
+        pass
 
     from .gis import (
             dt_2_epoch,
@@ -154,26 +157,38 @@ with import_handler() as importconfigs:
             interp_time,
         )
 
-    from .merge_data import (
-            merge_tracks_hullgeom,
-            merge_tracks_shoredist,
-            merge_tracks_bathymetry,
-        )
+    try: 
+        from .merge_data import (
+                merge_tracks_hullgeom,
+                merge_tracks_shoredist,
+                merge_tracks_bathymetry,
+            )
+    except:
+        pass
 
     #from .network_graph import graph
-    from .network_graph import serialize_network_edge
+    try:
+        from .network_graph import serialize_network_edge
+    except:
+        pass
 
-    from .proc_util import (
-            fast_unzip,
-            writecsv,
-        )
+    try: 
+        from .proc_util import (
+                fast_unzip,
+                writecsv,
+            )
+    except:
+        pass
 
-    from .shore_dist import shore_dist_gfw
+    try:
+        from .shore_dist import shore_dist_gfw
+    except:
+        pass
 
     from .track_gen import (
             trackgen,
             segment_tracks_timesplits, 
-            segment_tracks_dbscan, 
+            #segment_tracks_dbscan, 
             fence_tracks, 
             max_tracklength,
             #segment,
