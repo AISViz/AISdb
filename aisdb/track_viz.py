@@ -2,6 +2,9 @@
 https://docs.qgis.org/3.16/en/docs/pyqgis_developer_cookbook/intro.html
 https://www.opengis.ch/2018/06/22/threads-in-pyqgis3/
 https://gis.stackexchange.com/questions/245840/wait-for-canvas-to-finish-rendering-before-saving-image
+
+# use processing framework plugin?
+https://gis.stackexchange.com/questions/374567/in-python-what-is-the-best-way-to-replicate-the-qgis-heatmap-plugin
 '''
 
 import os
@@ -44,12 +47,16 @@ from qgis.core import (
         QgsCoordinateTransform, 
         QgsFeature, 
         QgsField, 
+        QgsFillSymbol,
         QgsGeometry, 
         QgsLineSymbol,
-        QgsMapRendererCustomPainterJob, 
+        #QgsMapRendererCustomPainterJob, 
+        QgsMapRendererParallelJob,
         QgsMapSettings, 
+        QgsMarkerSymbol,
         QgsPointXY, 
         QgsPrintLayout, 
+        QgsProcessingFeedback,
         QgsProject, 
         QgsRasterLayer, 
         QgsRectangle,
@@ -69,6 +76,15 @@ from qgis.gui import (
         QgsStatusBar, 
         QgsVertexMarker, 
     )
+
+#self.qgs = QgsApplication([], True)
+pluginpath = '/usr/share/qgis/python/plugins'
+assert os.path.isdir(pluginpath), 'could not find QGIS plugin path'
+sys.path.append(pluginpath)
+#import processing 
+#from processing.core.Processing import Processing
+#Processing.initialize()
+
 
 import numpy as np
 import shapely.ops
@@ -104,10 +120,12 @@ class toolCoord(QgsMapToolEmitPoint):
         self.pts = []
 
     def canvasMoveEvent(self, event):
+        ''' updates the status bar with the current coordinates when the canvas is moved '''
         xy = self.xform.transform(self.toMapCoordinates(event.originalPixelPoint()))
         self.statbar.showMessage(f'lat: {xy[1]:.6f}  lon: {xy[0]:.6f}')
 
     def canvasReleaseEvent(self, event):
+        ''' place a marker at the current cursor location '''
         xy = self.toMapCoordinates(event.originalPixelPoint())
         m = QgsVertexMarker(self.canvas)
         m.setCenter(xy)
@@ -122,6 +140,7 @@ class toolScaleCoord(toolCoord):
     '''
 
     def canvasMoveEvent(self, event):
+        ''' updates the status bar with the current coordinates when the canvas is moved '''
         ext = self.canvas.extent()
         xfr = self.xform.transform
         xy = xfr(ext.center())
@@ -129,6 +148,7 @@ class toolScaleCoord(toolCoord):
         self.statbar.showMessage(f'center: lat {xy[1]:.6f}  lon {xy[0]:.6f}    scale: {int(scale - (scale % 1))}km')
 
     def canvasReleaseEvent(self, event):
+        ''' updates the status bar with the current coordinates when the canvas is released '''
         ext = self.canvas.extent()
         xfr = self.xform.transform
         xy = xfr(ext.center())
@@ -136,6 +156,7 @@ class toolScaleCoord(toolCoord):
         self.statbar.showMessage(f'center: lat {xy[1]:.6f}  lon {xy[0]:.6f}    scale: {int(scale - (scale % 1))}km')
 
     def getCurrentScale(self):
+        ''' returns kilometers distance from the lower-left corner to upper-right corner of canvas '''
         ext = self.canvas.extent()
         xfr = self.xform.transform
         xy = xfr(ext.center())
@@ -143,6 +164,7 @@ class toolScaleCoord(toolCoord):
         return int(scale - (scale % 1))
 
     def getCurrentCenter(self):
+        ''' returns longitude / latitude coordinates from the center of the canvas '''
         ext = self.canvas.extent()
         xfr = self.xform.transform
         xy = xfr(ext.center())
@@ -169,13 +191,12 @@ class TrackViz(QMainWindow):
             open a new map canvas window inside the main window, load map configurations,
             and then load the interface tools
         '''
-        assert os.path.isdir(os.path.join(output_dir, 'png/')), f'couldnt find {output_dir}{os.path.sep}png{os.path.sep}'
-        # initialize qt app
-        #self.app = QApplication(sys.argv)
+        # start qgis
         QgsApplication.setPrefixPath('/usr', True)
         self.qgs = QgsApplication([], True)
-
+        assert os.path.isdir(os.path.join(output_dir, 'png/')), f'couldnt find {output_dir}{os.path.sep}png{os.path.sep}'
         super().__init__()
+
         self.qgs.initQgis()
         #self.qgs.setApplicationName('ais_track_viz')
         #self.qgs.setApplicationDisplayName('ais_track_viz')
@@ -228,6 +249,8 @@ class TrackViz(QMainWindow):
         #thread.start()
         #thread.join()
         self.init_ui()
+
+        #Processing.initialize()
 
 
     def init_ui(self):
@@ -283,11 +306,10 @@ class TrackViz(QMainWindow):
 
         # start the app
         self.show()
-        #self.raise_()  # focus
-        #self.app.exec_()  # blocking
 
 
     def zoomIn(self):
+        ''' toolbar zoom button action '''
         if self.actionZoomIn.isChecked():
             self.canvas.setMapTool(self.toolZoomIn)
         else:
@@ -295,6 +317,7 @@ class TrackViz(QMainWindow):
 
 
     def zoomOut(self):
+        ''' toolbar zoom button action '''
         if self.actionZoomOut.isChecked():
             self.canvas.setMapTool(self.toolZoomOut)
         else:
@@ -302,6 +325,7 @@ class TrackViz(QMainWindow):
 
 
     def pan(self):
+        ''' toolbar pan button action '''
         if self.actionPan.isChecked():
             self.canvas.setMapTool(self.toolPan)
         else:
@@ -309,6 +333,7 @@ class TrackViz(QMainWindow):
 
 
     def get_coord(self):
+        ''' toolbar Place Marker button action '''
         if self.actionCoord.isChecked():
             self.canvas.unsetMapTool(self.toolscalecoord)
             self.canvas.setMapTool(self.toolcoord)
@@ -319,13 +344,14 @@ class TrackViz(QMainWindow):
 
     
     def clear_coord(self):
+        ''' toolbar Clear Markers button action '''
         for m in self.toolcoord.markers: self.canvas.scene().removeItem(m)
         self.toolcoord.markers = []
         self.toolcoord.pts = []
 
 
     def set_canvas_boundary(self, xmin=-180, ymin=-90, xmax=180, ymax=90):
-        ''' set the map canvas boundary to the given coordinates '''
+        ''' set the map canvas boundary '''
         xy1 = self.xform.transform(QgsPointXY(xmin, ymin))
         xy2 = self.xform.transform(QgsPointXY(xmax, ymax))
         ext = QgsRectangle(xy1.x(), xy1.y(), xy2.x(), xy2.y())
@@ -366,6 +392,7 @@ class TrackViz(QMainWindow):
 
 
     def split_feature_over_meridian(self, meridian, geom):
+        ''' '''
         adjust = lambda x: ((np.array(x) + 180) % 360) - 180  
         if isinstance(geom, str): geom = shapely.wkt.loads(geom)
         merged = shapely.ops.linemerge([geom.boundary, meridian])
@@ -393,9 +420,45 @@ class TrackViz(QMainWindow):
         self.features_point.append((ident, r))
         return
 
+    def add_feature_line(self, geom, ident, color=None, opacity=None):
+        ''' add a shapely.geometry.LineString object to the map canvas '''
+        if color is None: color = (colorhash(ident),)
+        r = QgsRubberBand(self.canvas, True)
+        for i in range(0, len(geom.coords.xy[0]), 10000):
+            pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(geom.coords.xy[0][i:i+10000], geom.coords.xy[1][i:i+10000])]
+            qgeom = QgsGeometry.fromPolylineXY(pts)
+            r.setColor(QColor(*color))
+            r.setOpacity(opacity or 1)
+            r.setToGeometry(qgeom, None)
+            self.features_line.append((ident, r))
+
+    def add_feature_poly(self, geom, ident, color=None, opacity=None):
+        ''' add a shapely.geometry.Polygon or shapely.geometry.LineString object to the map canvas '''
+        if color is None: color = (colorhash(ident),)
+        r = QgsRubberBand(self.canvas, True)
+        if geom.type == 'LinearRing':
+            pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.coords.xy)]
+        elif geom.type == 'Polygon':
+            pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.boundary.coords.xy)]
+        qgeom = QgsGeometry.fromPolygonXY([pts])
+        r.setFillColor(QColor(*color))
+        r.setStrokeColor(QColor(0,0,0))
+        #r.setSecondaryStrokeColor(QColor(*color))
+        r.setOpacity(opacity or 0.3)
+        r.setWidth(2)
+        #label = QgsLayoutItemLabel(self.layout)
+        #label.setText(ident)
+        #label.adjustSizeToText()
+        #label.setPos(*r.getPoint(0))
+        #label.setFontColor(QColor(255,0,0))
+        #self.layout.addLayoutItem(label)
+        r.setToGeometry(qgeom, None)
+        self.features_poly.append((ident, r))
+
 
     def add_feature_polyline(self, geom, ident, color=None, opacity=None, nosplit=False):
-        ''' using shapely.geometry, add a LineString, LinearRing, or Polygon object to the map canvas '''
+        ''' deprecated do not use '''
+        print('WARNING: add_feature_polyline will be deprecated')
         #task = renderLineFeature(self.canvas, self.xform, geom, ident, color, opacity, nosplit)
         #self.qgs.taskManager().addTask(task)
         meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
@@ -428,25 +491,16 @@ class TrackViz(QMainWindow):
             #label.setFontColor(QColor(255,0,0))
             #self.layout.addLayoutItem(label)
             r.setToGeometry(qgeom, None)
-            self.features_poly.append((ident, r))
+            self.features_poly.append((ident, r.asGeometry()))
 
         elif geom.type.upper() == 'LINESTRING':
-            '''
-            if len(geom.coords.xy[0]) < 10000:
-                pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.coords.xy)]
-                qgeom = QgsGeometry.fromPolylineXY(pts)
-                r.setColor(QColor(*color))
-                r.setOpacity(opacity or 1)
-                r.setToGeometry(qgeom, None)
-            else:
-            '''
             for i in range(0, len(geom.coords.xy[0]), 10000):
                 pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(geom.coords.xy[0][i:i+10000], geom.coords.xy[1][i:i+10000])]
                 qgeom = QgsGeometry.fromPolylineXY(pts)
                 r.setColor(QColor(*color))
                 r.setOpacity(opacity or 1)
                 r.setToGeometry(qgeom, None)
-                self.features_line.append((ident, r))
+                self.features_line.append((ident, r.asGeometry()))
 
 
         else: assert False, f'{geom.type} is not a linear feature!'
@@ -481,16 +535,25 @@ class TrackViz(QMainWindow):
         self.clear_polygons()
 
 
+    def vectorize(self, identifiers, bands, color=None, opacity=None):
+        ''' render vector layer for a given geometry, and return it as a QGIS vector layer
 
-    def vectorize(self, qgeoms, identifiers, color=None, opacity=None, nosplit=False):
-        ''' render vector shapefile for a given geometry, and return it as a QGIS vector layer
 
-            color can be an RGBA tuple, hexadecimal code, or color name string
-            if no color is chosen, a new color will be determined using a hash of the 
-            identifier
+            identifier:
+                unique descriptor of each in bands
+            bands:
+                QgsRubberBand object describing geometry to be vectorized
+            color: 
+                can be an RGBA tuple, hexadecimal code, or color name string
+                if no color is chosen, a new color will be determined using a 
+                hash of the identifier
+            opacity:
+                float ranging from 0 to 1. If set to None, will use a preset value
+
+
         '''
 
-        geomtype = QgsWkbTypes.displayString(qgeoms[0].wkbType())
+        geomtype = QgsWkbTypes.displayString(bands[0].asGeometry().wkbType())
         if geomtype == 'LineString':
             symboltype = QgsLineSymbol
             if not opacity: opacity = 1
@@ -506,9 +569,9 @@ class TrackViz(QMainWindow):
         unique, idx = np.unique(identifiers, return_index=True)
 
         categories = []
-        #styles = QgsCategorizedSymbolRenderer()
-        for ident, qgeom in zip(unique, np.array(qgeoms)[idx]):
-            #sym = QgsSymbol.defaultSymbol(int(qgeom.wkbType()))
+        #for ident, qgeom in zip(unique, np.array(bands)[idx]):
+            #sym = QgsSymbol.defaultSymbol(int(qgeom.asGeometry().wkbType()))
+        for ident in unique[idx]:
             sym = symboltype.createSimple({'identifier': ident})
             sym.setColor(QColor(color or colorhash(ident)))
             sym.setOpacity(opacity)
@@ -519,21 +582,26 @@ class TrackViz(QMainWindow):
 
 
         '''
-        QgsStyle().defaultStyle().colorRampNames()
+            QgsStyle().defaultStyle().colorRampNames()
 
-        
-        styles = QgsHeatmapRenderer()
-        styles.setColorRamp(QgsStyle().defaultStyle().colorRamp('Spectral'))
+            categories = []
+            #styles = QgsCategorizedSymbolRenderer()
+            for ident, qgeom in zip(unique, np.array(bands)[idx]):
+                sym = symboltype.createSimple({'identifier': ident})
+                sym.setColor(QColor(color or colorhash(ident)))
+                sym.setOpacity(opacity)
+                #cat = QgsRendererCategory(str(ident), symbol=sym.clone(), label='identifier', render=True)
+                #categories.append(cat)
+            
+            styles = QgsHeatmapRenderer()
+            styles.setRadius(viz.canvas.scale())
+            styles.setColorRamp(QgsStyle().defaultStyle().colorRamp('Spectral'))
 
-        print(styles.dump()[0:1000])
+            print(styles.dump()[0:1000])
         '''
 
-        #if color is None: color = colorhash(ident)
-        #if opacity is None: opacity = 0.5 if geomtype in ('Polygon','LineString') else 1
-
-
         #meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
-        geomtype = QgsWkbTypes.displayString(int(qgeoms[0].wkbType()))
+        geomtype = QgsWkbTypes.displayString(int(bands[0].asGeometry().wkbType()))
         vl = QgsVectorLayer(geomtype+'?crs=epsg:3857', f'tmp_lyr', 'memory')
         #vl.setCrs(self.project.crs())
         pr = vl.dataProvider()
@@ -542,28 +610,18 @@ class TrackViz(QMainWindow):
             ])
         vl.updateFields()
         features = []
-        for qgeom,ident in zip(qgeoms, identifiers):
+        for qgeom,ident in zip(bands, identifiers):
             ft = QgsFeature()
-            ft.setGeometry(qgeom)
+            ft.setGeometry(qgeom.asGeometry())
             ft.setFields(pr.fields())
             ft.setAttribute(0, ident)
             features.append(ft)
-            #pr.addFeatures([ft])
         pr.addFeatures(features)
         vl.updateExtents()
         vl.setRenderer(styles)
         vl.triggerRepaint()
         vl.setAutoRefreshEnabled(True)
 
-        '''
-        vl.extent()
-        tft = vl.getFeature(1)
-
-        symbol = QgsSymbol.defaultSymbol(vl.geometryType())
-        symbol.setColor(QColor(*color if isinstance(color, tuple) else color))
-        symbol.setOpacity(opacity)
-        vl.renderer().setSymbol(symbol)
-        '''
         return vl
 
 
@@ -573,6 +631,8 @@ class TrackViz(QMainWindow):
             the canvas will be cleared after saving the image
         '''
         '''
+        from qgis.core import *
+        import numpy as np
         w=1920
         h=1080
         fname='test.png'
@@ -585,36 +645,29 @@ class TrackViz(QMainWindow):
         self.vl2 = None
         self.vl3 = None
         if len(self.features_point) > 0:
-            self.vl1 = self.vectorize([ft[1].asGeometry() for ft in self.features_point], [ft[0] for ft in self.features_point])
+            #self.vl1 = self.vectorize([ft[0] for ft in self.features_point], [ft[1].asGeometry() for ft in self.features_point])
+            self.vl1 = self.vectorize(*np.array(self.features_point, dtype=object).T)
+            #self.vl1.setName('points')
         if len(self.features_line) > 0:
-            self.vl2 = self.vectorize([ft[1].asGeometry() for ft in self.features_line],  [ft[0] for ft in self.features_line])
+            self.vl2 = self.vectorize(*np.array(self.features_line, dtype=object).T)
+            #self.vl2 = self.vectorize([ft[0] for ft in self.features_line], [ft[1].asGeometry() for ft in self.features_line])
+            #self.vl2.setName('lines')
         if len(self.features_poly) > 0:
-            self.vl3 = self.vectorize([ft[1].asGeometry() for ft in self.features_poly],  [ft[0] for ft in self.features_poly])
+            self.vl3 = self.vectorize(*np.array(self.features_poly, dtype=object).T)
+            #self.vl3 = self.vectorize([ft[0] for ft in self.features_poly], [ft[1].asGeometry() for ft in self.features_poly])
+            #self.vl3.setName('polygons')
     
-        #self.clearfeatures()
-        #self.settings.setLayers(self.settings.layers() + [vl])
-        #self.project.addMapLayers([vl2])
         '''
-
-        self.canvas.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
-        #self.canvas.setExtent(vl.extent())
-        #self.project.write(f'output{os.path.sep}state.qgz')
-        self.canvas.update()
-        self.canvas.refresh()
-        #QGuiApplication.processEvents()
-        #self.qgs.processEvents()
         self.canvas.saveAsImage(f'output{os.path.sep}{fname}')
         '''
-        #settings = QgsMapSettings()
-        self.canvas.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
+
+        #self.project.write(f'output{os.path.sep}state.qgz')
+        #self.canvas.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
+        #self.canvas.update()
+        #self.canvas.refresh()
         self.settings.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
-        #self.settings.setLayers([self.vl1, self.basemap_lyr])
-        self.canvas.update()
-        self.canvas.refresh()
+        self.settings.setExtent(self.canvas.extent())  # seems redundant but is actually necessary
         self.settings.setOutputSize(QSize(w, h))
-        self.settings.setExtent(self.canvas.extent())
-        #QgsMapLayerRegistry.instance()
-        #self.settings.setOutputSize(QSize(w,h))
 
         render = QgsMapRendererParallelJob(self.settings)
         def finished():
@@ -623,30 +676,24 @@ class TrackViz(QMainWindow):
             img.save(imgpath, 'png')
         render.finished.connect(finished)
         render.start()
-        render.waitForFinished()
-
-        self.canvas.setLayers([self.basemap_lyr])
+        #render.waitForFinished()
+        #print(os.path.join(output_dir, 'png', fname))
 
         '''
-        #image = QImage(QSize(w,h), QImage.Format_RGB32)
-        #painter = QPainter(image)
-        #self.settings.setLayers([vl, self.basemap_lyr])
-        #self.canvas.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
-        #self.settings.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
-        settings = QgsMapSettings()
-        settings.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
-        #job = QgsMapRendererCustomPainterJob(self.settings, painter)
-        #job.renderSynchronously()
-        render = QgsMapRendererParallelJob(settings)
+            self.canvas.setLayers([
+                #*(f[1] for f in self.features_point), 
+                #*(f[1] for f in self.features_line), 
+                #*(f[1] for f in self.features_poly), 
+                #*(lyr for lyr in (self.vl1, self.vl2, self.vl3) if lyr is not None), 
+                self.basemap_lyr,
+            ])
+            #job = QgsMapRendererCustomPainterJob(self.settings, painter)
+            #job.renderSynchronously()
+            render = QgsMapRendererParallelJob(settings)
+            
 
-        render.start()
-        render.waitForFinished()
-        img = render.renderedImage()
-        img.save(f'output{os.path.sep}{fname}', 'png')
-        
-
-        painter.end()
-        image.save(f'output{os.path.sep}{fname}')
+            painter.end()
+            image.save(f'output{os.path.sep}{fname}')
         '''
 
 
