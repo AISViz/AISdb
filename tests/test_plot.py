@@ -145,31 +145,6 @@ def test_plot_smallboundary():
     rows[rows[:,0] == 316002048]
     '''
 
-def test_coverage_aishub():
-    '''
-
-    '''
-    viz = TrackViz()
-
-    start = datetime.now() - timedelta(hours=48)
-    end = datetime.now()
-    rowgen = qrygen(
-            #xy = merge(canvaspoly.boundary.coords.xy),
-            start   = start,
-            end     = end,
-        ).gen_qry(callback=rtree_in_timerange_validmmsi, qryfcn=leftjoin_dynamic_static, dbpath=dbpath) 
-    #merged = merge_layers(rowgen)
-    merged = trackgen(rowgen)
-    timesplits = segment_tracks_timesplits(merged, maxdelta=timedelta(hours=2))
-    #timesplits = segment_tracks_timesplits((next(trackgen(r) for r in rowgen)), maxdelta=timedelta(hours=2))
-
-    #for cluster in (next(trackgen(r)) for r in rowgen):
-    for cluster in segment_tracks_dbscan(timesplits, max_cluster_dist_km=1):
-        if len(cluster['time']) <= 1: continue
-        linegeom = LineString(zip(cluster['lon'], cluster['lat']))
-        viz.add_feature_polyline(linegeom, ident=cluster['mmsi'])
-
-    viz.clear_lines()
 
 def test_cluster_stopped():
     import hdbscan

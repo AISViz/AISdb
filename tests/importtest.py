@@ -16,17 +16,12 @@ from aisdb.track_viz import TrackViz
 viz = TrackViz()
 
 
-#def testrun(row):
-#    return serialize(merge_tracks_bathymetry(merge_tracks_shoredist(merge_tracks_hullgeom(geofenced(distsplit(timesplit(trackgen([row]))))))))
-
-
-
 
 shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
 zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
 domain = Domain('east', zonegeoms)
 for txt, geom in list(domain.geoms.items()):
-	viz.add_feature_polyline(geom.geometry, ident=txt, opacity=0.3, color=(200, 200, 200))
+	viz.add_feature_poly(geom.geometry, ident=txt, opacity=0.3, color=(200, 200, 200))
 
 fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
 
@@ -43,9 +38,9 @@ import cProfile
 viz.clear_lines()
 viz.clear_points()
 testmmsi = [218158000]
-testmmsi = [316001088]
-testmmsi = [218158000, 316043424, 316015104]
-testmmsi = [218158000, 316001088, 316043424, 316015104]
+#testmmsi = [316001088]
+#testmmsi = [218158000, 316043424, 316015104]
+#testmmsi = [218158000, 316001088, 316043424, 316015104]
 #testmmsi = [316015104, ]
 rowgen = deserialize_generator(fpath)
 #tracks = timesplit(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))
@@ -75,10 +70,29 @@ for track in tracks:
         viz.add_feature_point(ptgeom, ident=track['mmsi']+1000)
     else:
         linegeom = LineString(zip(track['lon'], track['lat']))
-        viz.add_feature_polyline(linegeom, ident=track['mmsi']+1000)
+        viz.add_feature_line(linegeom, ident=track['mmsi']+1000)
     n += 1
     print(f'{n}')
+    if n >= 10: break
 viz.focus_canvas_item(domain=domain)
+
+viz.render_vectors()
+
+from aisdb.track_viz import processing
+processing.algorithmHelp('qgis:union')
+
+params = {
+        #'INPUT': self.basemap_lyr,
+        'INPUT': vl3,
+        'OVERLAY': vl3,
+        'OUTPUT': os.path.join(output_dir, 'testimg.png'),
+    }
+feedback = QgsProcessingFeedback()
+
+res = processing.run('qgis:union', params, feedback=feedback)
+
+from qgis.core import QgsLabelPosition, QgsProcessingFeedback
+
 
 '''
 notable changes:
@@ -88,6 +102,8 @@ notable changes:
     changed score datatype to 16-bit float (lower precision means more ties, causing it to prefer more recent tracks)
     corrected indexing error when computing scores
     took the average of 2 nearest scores instead of single score
+    
+    tested minimum score 
 '''
 
 

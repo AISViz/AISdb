@@ -13,9 +13,9 @@ from database.lambdas import *
 from database.qryfcn import leftjoin_dynamic_static
 from merge_data import merge_layers
 from track_gen import segment_tracks_timesplits
-from clustering import * 
+#from clustering import * 
 
-assert track_dicts
+#assert track_dicts
 
 
 shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
