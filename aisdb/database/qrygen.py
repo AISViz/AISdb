@@ -54,7 +54,7 @@ class qrygen(UserDict):
 
 
     def run_qry(self, fcn=crawl, dbpath=dbpath):
-        ''' generates an query using self.crawl(), runs it, then returns the resulting rows '''
+        ''' generates a query using self.crawl(), runs it, then returns the resulting rows '''
         #qry = self.crawl(callback=callback, qryfcn=qryfcn)
         qry = fcn(**self)
         print(qry)
@@ -81,11 +81,13 @@ class qrygen(UserDict):
 
 
     async def gen_qry(self, fcn=crawl, dbpath=dbpath):
-        ''' similar to run_qry, but in a generator format for better memory performance
+        ''' similar to run_qry, but in a generator format for smaller memory footprint 
             
             yields:
-                a set (numpy array) of rows for each unique MMSI
-                rowsets are sorted by time
+                numpy array of rows for each unique MMSI
+                arrays are sorted by MMSI
+                rows are sorted by time
+
         '''
         # create query to crawl db
         qry = fcn(**self)
