@@ -3,6 +3,7 @@
 *.db
 *.db-journal
 *.egg-info
+*.eggs
 *.log
 *.pyc
 *.swp
