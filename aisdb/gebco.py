@@ -5,8 +5,12 @@ import zipfile
 
 import requests
 from tqdm import tqdm
-import rasterio
 import numpy as np
+
+try:
+    import rasterio
+except Exception as err:
+    print('error: ', err.with_traceback(None))
 
 from common import *
 

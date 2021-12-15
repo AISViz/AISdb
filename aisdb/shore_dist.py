@@ -11,7 +11,11 @@ import os
 
 import requests
 import tqdm
-import rasterio 
+
+try:
+    import rasterio
+except Exception as err:
+    print('error: ', err.with_traceback(None))
 
 from common import *
 
