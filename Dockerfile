@@ -7,19 +7,22 @@ RUN pacman -Syyuu --noconfirm \
       qgis \
       xorg-xauth
 
-# configure a non-root user to run the application, disable password authentication
 ARG USERNAME
 RUN useradd -m "$USERNAME" --shell /bin/python3 
 USER "$USERNAME"
 
 WORKDIR "/home/$USERNAME"
 
-RUN python -m ensurepip
-RUN python -m pip install --upgrade wheel pip && python -m pip install --upgrade numpy
+RUN python -m ensurepip \
+  && python -m pip install --no-warn-script-location --upgrade wheel pip numpy 
+
 COPY --chown="$USERNAME" docs/ docs/
 COPY --chown="$USERNAME" setup.py .
+
+RUN mkdir -p aisdb/database aisdb/webdata \
+  && python -m pip install . --no-warn-script-location
+
 COPY --chown="$USERNAME" aisdb/ aisdb/
-RUN python -m pip install . 
 
 USER root
 CMD ["/sbin/sshd", \
