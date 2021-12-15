@@ -27,7 +27,7 @@ marinetraffic_VD02_key = ''
 commondirs = ['.', 'database', 'webdata']
 cfgnames = ['data_dir', 'dbpath', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'output_dir', 
             'host_addr', 'host_port', 
-            'marinetraffic_VD02_key',
+            #'marinetraffic_VD02_key',
            ]
 
 # legacy support
@@ -61,9 +61,11 @@ if os.path.isfile(cfgfile):
         host_port = int(host_port)
 
 else:
-    print(f'''no config file found, applying default configs:\n\n{
-            printdefault(cfgnames)
-            }\n\nto remove this warning, copy and paste the above text to {cfgfile} ''')
+    print(f'''\n{printdefault(cfgnames)}\n\nno .cfg file found, writing default configuration to {cfgfile} ''')
+    if not os.path.isdir(os.path.dirname(cfgfile)):
+        os.mkdir(os.path.dirname(cfgfile))
+    with open(cfgfile, 'w') as f:
+        f.write(printdefault(cfgnames))
 
 
 '''
@@ -131,10 +133,7 @@ with import_handler() as importconfigs:
 
     from .database.qrygen import qrygen
 
-    try: 
-        from .gebco import Gebco
-    except:
-        pass
+    from .gebco import Gebco
 
     from .gis import (
             dt_2_epoch,
@@ -157,33 +156,20 @@ with import_handler() as importconfigs:
             interp_time,
         )
 
-    try: 
-        from .merge_data import (
-                merge_tracks_hullgeom,
-                merge_tracks_shoredist,
-                merge_tracks_bathymetry,
-            )
-    except:
-        pass
+    from .merge_data import (
+            merge_tracks_hullgeom,
+            merge_tracks_shoredist,
+            merge_tracks_bathymetry,
+        )
 
-    #from .network_graph import graph
-    try:
-        from .network_graph import serialize_network_edge
-    except:
-        pass
+    from .network_graph import serialize_network_edge
 
-    try: 
-        from .proc_util import (
-                fast_unzip,
-                writecsv,
-            )
-    except:
-        pass
+    from .proc_util import (
+            fast_unzip,
+            writecsv,
+        )
 
-    try:
-        from .shore_dist import shore_dist_gfw
-    except:
-        pass
+    from .shore_dist import shore_dist_gfw
 
     from .track_gen import (
             trackgen,
