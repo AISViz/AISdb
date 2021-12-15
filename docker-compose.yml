@@ -9,11 +9,11 @@ secrets:
 services:
   test:
     container_name: aisdb
-    env_file:
-      - ~/.config/ais.cfg
-    environment:
-      QT_DEBUG_PLUGINS: 1
-      QT_QPA_PLATFORM: offscreen
+    #environment:
+    #  QT_DEBUG_PLUGINS: 1
+    #  QT_QPA_PLATFORM: offscreen
+    #  QT_PLUGIN_PATH: /usr/lib/qt/plugins
+    #  XDG_RUNTIME_DIR: /tmp/runtime-ais_env
     build: 
       context: .
       args:
