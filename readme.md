@@ -31,12 +31,12 @@ Use the `-X` option on connect to enable X11 forwarding over SSH, allowing the Q
 You will need a public/private key to connect, by default the docker-compose file will look for `~/.ssh/id_aisdb` and `~/.ssh/id_aisdb.pub`. 
 Set the environment variable `DATA_DIR` to the desired storage location, this path will be mounted as a volume within the container. 
 The default configuration paths (see [Configuring](#Configuring) below) will be used inside this directory
-  ```
-  echo "DATA_DIR=/home/$USER/ais/" > .env
-  ssh-keygen -f ~/.ssh/id_aisdb
-  docker-compose up --detach
-  AISDB_IP=`docker inspect aisdb | grep 'IPAddr' | grep '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*' | cut -d'"' -f4`
-  ssh ais_env@$AISDB_IP -i ~/.ssh/id_aisdb -X
+  ``` sh
+  echo "DATA_DIR=/home/$USER/ais/" > .env  
+  ssh-keygen -f ~/.ssh/id_aisdb  
+  docker-compose up --detach  
+  AISDB_IP=`docker inspect aisdb | grep 'IPAddr' | grep '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*' | cut -d'"' -f4`  
+  ssh ais_env@$AISDB_IP -i ~/.ssh/id_aisdb -X  
   ```
 
 
@@ -45,17 +45,17 @@ The default configuration paths (see [Configuring](#Configuring) below) will be 
 A config file can be used to specify storage location for the database as well as directory paths for where to look for additional data.
 The package will look for configs in the file `$HOME/.config/ais.cfg`, where $HOME is the user's home directory.
 If no config file is found, the following defaults will be used
-```
-dbpath = $HOME/ais.db
-data_dir = $HOME/ais/             
-zones_dir = $HOME/ais/zones/
-tmp_dir = $HOME/ais/tmp_parsing/
-rawdata_dir = $HOME/ais/rawdata/
-output_dir = $HOME/ais/scriptoutput/
+  ``` sh
+  dbpath = $HOME/ais.db  
+  data_dir = $HOME/ais/             
+  zones_dir = $HOME/ais/zones/  
+  tmp_dir = $HOME/ais/tmp_parsing/  
+  rawdata_dir = $HOME/ais/rawdata/  
+  output_dir = $HOME/ais/scriptoutput/  
 
-host_addr = localhost
-host_port = 9999
-```
+  host_addr = localhost  
+  host_port = 9999  
+  ```
 
 ### Code examples
 
