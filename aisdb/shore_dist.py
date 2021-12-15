@@ -1,3 +1,12 @@
+''' collect shore distance at a given coordinates using Global Fishing Watch raster files.
+
+    the raster data used here can be downloaded from:
+    https://globalfishingwatch.org/data-download/datasets/public-distance-from-shore-v1
+    https://globalfishingwatch.org/data-download/datasets/public-distance-from-port-v1
+
+    once downloaded, place the unzipped geotiff files in `data_dir`
+'''
+
 import os
 
 import requests
@@ -8,9 +17,6 @@ from common import *
 
 class shore_dist_gfw():
     '''
-    the raster data file used here can be downloaded from:
-    https://globalfishingwatch.org/data-download/datasets/public-distance-from-shore-v1
-    https://globalfishingwatch.org/data-download/datasets/public-distance-from-port-v1
     '''
 
     # load raster into memory
@@ -33,7 +39,6 @@ class shore_dist_gfw():
         self.shoredata.stop()
         del self.shoredata
         del self.shoreband1
-        self.dataset.
         self.portdata.close()
         self.portdata.stop()
         del self.portdata

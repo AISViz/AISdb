@@ -1,3 +1,5 @@
+''' geometry and GIS related utilities '''
+
 import os
 from datetime import datetime, timedelta
 from collections import UserDict
@@ -135,7 +137,7 @@ class Domain():
         else:
             self.bounds = self.init_boundary(name=name)
 
-        self.minX, self.minY, self.maxX, self.maxY = np.array(self.bounds.convex_hull.bounds, dtype=np.float16)
+        self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
         self.minX -=1; self.maxX +=1
         self.minY -=1; self.maxY +=1
 

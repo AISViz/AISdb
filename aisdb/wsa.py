@@ -1,7 +1,9 @@
 '''
-Quantifying the extent of niche areas in the global fleet of commercial ships: the potential for ‘‘super-hot spots’’of biofouling
+compute wetted surface area using denny-mumford regression on vessel deadweight tonnage
 
-Cameron S. Moser, Timothy P. Wier, Matthew R. First, Jonathan F. Grant, Scott C. Riley, Stephanie H. Robbins-Wamsley, Mario N. Tamburri, Gregory M. Ruiz, A. Whitman Miller, Lisa A. Drake
+
+Reference: 
+Moser, C. S., Wier, T. P., First, M. R., Grant, J. F., Riley, S. C., Robbins-Wamsley, S. H., ... & Drake, L. A. (2017). Quantifying the extent of niche areas in the global fleet of commercial ships: the potential for “super-hot spots” of biofouling. Biological Invasions, 19(6), 1745-1759.
 '''
 #from webdata.marinetraffic import get_tonnage_mmsi_imo
 

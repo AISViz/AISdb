@@ -1,3 +1,5 @@
+''' parsing NMEA messages to create an SQL database. See function decode_msgs() for usage ''' 
+
 import os
 import re
 from datetime import datetime, timedelta

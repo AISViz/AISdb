@@ -68,6 +68,7 @@ def merge_layers(tracks):
 
             # shore distance from cell grid
             track['km_from_shore'] = np.array([sdist.getdist(x, y) for x, y in zip(track['lon'], track['lat']) ])
+            track['km_from_port'] = np.array([sdist.getportdist(x, y) for x, y in zip(track['lon'], track['lat']) ])
 
             # seafloor depth from cell grid
             track['depth_metres'] = np.array([bathymetry.getdepth(x, y) for x,y in zip(track['lon'], track['lat']) ]) * -1

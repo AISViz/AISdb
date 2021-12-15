@@ -1,3 +1,5 @@
+''' generation, segmentation, and filtering of vessel trajectories '''
+
 #import asyncio
 from functools import reduce
 from datetime import timedelta

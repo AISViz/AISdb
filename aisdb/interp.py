@@ -1,3 +1,5 @@
+''' linear interpolation of track segments on temporal axis '''
+
 from datetime import datetime, timedelta
 
 import numpy as np

@@ -1,3 +1,5 @@
+''' collect vessel transits between zones (nodes), and aggregate various trajectory statistics '''
+
 import os
 from multiprocessing import Pool#, set_start_method
 import pickle
@@ -23,11 +25,6 @@ from track_gen import (
         segment_tracks_timesplits, 
         #segment_tracks_dbscan, 
         trackgen, 
-    )
-from merge_data import (
-        merge_tracks_hullgeom, 
-        merge_tracks_shoredist, 
-        merge_tracks_bathymetry,
     )
 
 

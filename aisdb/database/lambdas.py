@@ -1,3 +1,5 @@
+''' contains useful one-liners and lambda functions. includes DB query callback functions '''
+
 import os
 #import __main__
 from datetime import datetime, timedelta

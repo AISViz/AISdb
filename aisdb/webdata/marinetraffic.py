@@ -1,3 +1,5 @@
+''' scrape vessel information such as deadweight tonnage from marinetraffic.com '''
+
 import os
 
 from common import *

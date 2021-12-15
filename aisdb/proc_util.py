@@ -9,8 +9,7 @@ import numpy as np
 
 from common import output_dir
 from network_graph import serialize_network_edge
-from merge_data import merge_layers
-from track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, max_tracklength, segment_tracks_encode_greatcircledistance
+from track_gen import trackgen, segment_tracks_timesplits, fence_tracks, max_tracklength, segment_tracks_encode_greatcircledistance
 
 def _fast_unzip(zipf, dirname='.'):
     ''' parallel process worker for fast_unzip() '''
@@ -83,6 +82,7 @@ def deserialize(fpaths):
 
 
 def graph_blocking_io(fpath, domain):
+    from merge_data import merge_layers
     for x in merge_layers(trackgen(deserialize_generator(fpath))):
         yield x
 

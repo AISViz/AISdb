@@ -1,3 +1,5 @@
+''' load bathymetry data from GEBCO raster files '''
+
 import os
 import zipfile
 

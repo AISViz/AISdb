@@ -1,3 +1,5 @@
+''' SQL database schematics and triggers. used in decoder.py '''
+
 from collections import Counter
 
 import numpy as np

@@ -1,3 +1,5 @@
+''' class to convert a dictionary of input parameters into SQL code, and generate queries '''
+
 import os
 from collections import UserDict
 from functools import partial

@@ -1,3 +1,5 @@
+''' job scheduler and hashmap database utility '''
+
 import os
 import json
 import pickle

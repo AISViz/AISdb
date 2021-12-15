@@ -1,3 +1,5 @@
+''' exposes the SQLite DB connection. some postgres code is also included for legacy support '''
+
 import os
 
 from common import dbpath, table_prefix

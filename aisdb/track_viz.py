@@ -1,8 +1,10 @@
 '''
+vizualize AIS data and geometry features using QGIS. still a work in progress
+
 https://docs.qgis.org/3.16/en/docs/pyqgis_developer_cookbook/intro.html
+
 https://www.opengis.ch/2018/06/22/threads-in-pyqgis3/
 https://gis.stackexchange.com/questions/245840/wait-for-canvas-to-finish-rendering-before-saving-image
-
 # use processing framework plugin?
 https://gis.stackexchange.com/questions/374567/in-python-what-is-the-best-way-to-replicate-the-qgis-heatmap-plugin
 '''
@@ -93,8 +95,8 @@ from shapely.geometry import LineString, Polygon, MultiPoint, Point
 
 from common import output_dir
 from gis import haversine
-from proc_util import deserialize_generator
-from track_gen import *
+#from proc_util import deserialize_generator
+#from track_gen import *
 
 
 colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
@@ -194,7 +196,9 @@ class TrackViz(QMainWindow):
         # start qgis
         QgsApplication.setPrefixPath('/usr', True)
         self.qgs = QgsApplication([], True)
-        assert os.path.isdir(os.path.join(output_dir, 'png/')), f'couldnt find {output_dir}{os.path.sep}png{os.path.sep}'
+        if not os.path.isdir(testpath := os.path.join(output_dir, 'png')):
+            print(f'creating directory: {testpath}')
+            os.mkdir(testpath)
         super().__init__()
 
         self.qgs.initQgis()
@@ -702,9 +706,9 @@ def serialize_geomwkb(tracks):
     return
 
 
-def blocking_io(fpath):
-    for x in trackgen(deserialize_generator(fpath)):
-        yield x
+#def blocking_io(fpath):
+#    for x in trackgen(deserialize_generator(fpath)):
+#        yield x
 
 def cpu_bound(track, domain, cutdistance, maxdistance, cuttime, minscore):
     timesplit = partial(segment_tracks_timesplits,  maxdelta=cuttime)
