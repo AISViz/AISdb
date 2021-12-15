@@ -1,65 +1,51 @@
 import os
 from functools import partial 
 from datetime import timedelta
+from functools import reduce
 
 from shapely.geometry import Point, LineString, Polygon, MultiPoint
+import numpy as np
 
-#from ais import *
 from aisdb import zones_dir, output_dir
 from aisdb.gis import Domain, ZoneGeomFromTxt
-from aisdb.track_gen import trackgen, segment_tracks_timesplits, segment_tracks_dbscan, fence_tracks, max_tracklength, segment_tracks_encode_greatcircledistance, concat_realisticspeed, mmsifilter, mmsirange
+from aisdb.track_gen import trackgen, segment_tracks_timesplits, fence_tracks, max_tracklength, segment_tracks_encode_greatcircledistance, concat_realisticspeed, mmsifilter, mmsirange
 from aisdb.network_graph import serialize_network_edge
-from aisdb.merge_data import merge_tracks_hullgeom, merge_tracks_shoredist, merge_tracks_bathymetry
 from aisdb.proc_util import deserialize_generator
 from aisdb.track_viz import TrackViz
 
-viz = TrackViz()
 
 
-
-shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
+keyorder = lambda key: int(key.rsplit(os.path.sep, 1)[1].split('.')[0].split('Z')[1])
+shapefilepaths = sorted(reduce(np.append, 
+    [list(map(os.path.join, (path[0] for p in path[2]), path[2])) for path in list(os.walk(zones_dir))]
+    ), key=keyorder)
 zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
-domain = Domain('east', zonegeoms)
+#domain = Domain('west', {k:v for k,v in zonegeoms.items() if 'WZ' in k}, clearcache=True)
+domain = Domain('east', {k:v for k,v in zonegeoms.items() if 'EZ' in k}, clearcache=True)
+
+viz = TrackViz()
 for txt, geom in list(domain.geoms.items()):
 	viz.add_feature_poly(geom.geometry, ident=txt, opacity=0.3, color=(200, 200, 200))
+
 
 fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
 
 
 timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=28))
-#distsplit = partial(segment_tracks_encode_greatcircledistance, maxdistance=100000, cuttime=timedelta(hours=24), minscore=0.000001)
-#distsplit = partial(segment_tracks_encode_greatcircledistance, maxdistance=100000, cuttime=timedelta(hours=24), cutknots=40, minscore=0.000012)  # works well for 316015104, poor results for 316015104
 distsplit = partial(segment_tracks_encode_greatcircledistance, maxdistance=100000, cuttime=timedelta(hours=28), cutknots=50, minscore=0.000005) 
 geofenced = partial(fence_tracks,               domain=domain)
 serialize = partial(serialize_network_edge,     domain=domain)
 
-import cProfile
 
 viz.clear_lines()
 viz.clear_points()
-testmmsi = [218158000]
-#testmmsi = [316001088]
 #testmmsi = [218158000, 316043424, 316015104]
-#testmmsi = [218158000, 316001088, 316043424, 316015104]
-#testmmsi = [316015104, ]
+testmmsi = [218158000, 316001088, 316043424, 316015104]
 rowgen = deserialize_generator(fpath)
-#tracks = timesplit(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))
-#tracks = timesplit(max_tracklength(trackgen(mmsifilter(rowgen, mmsis=testmmsi))))
-#tracks = distsplit(timesplit(max_tracklength(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))))
-#tracks = distsplit(timesplit(trackgen(mmsifilter(rowgen, mmsis=testmmsi))))
-tracks = distsplit(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))
+
 #tracks = max_tracklength(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))
+tracks = distsplit(timesplit(trackgen(mmsifilter(rowgen, mmsis=testmmsi))))
 
-#cProfile.run('''test = next(tracks)['time'].size''', sort='tottime')
-#test
-
-#cProfile.run('''track = next(tracks)''', sort='tottime')
-
-
-#tracks = distsplit(timesplit(max_tracklength(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))))
-#tracks = max_tracklength(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))
-#tracks = concat_realisticspeed(distsplit(timesplit(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))))
-#tracks = geofenced(concat_realisticspeed(distsplit(timesplit(trackgen(mmsifilter(rowgen, mmsi=testmmsi))))), knots_threshold=50000)
 
 n = 0
 for track in tracks:
@@ -73,10 +59,13 @@ for track in tracks:
         viz.add_feature_line(linegeom, ident=track['mmsi']+1000)
     n += 1
     print(f'{n}')
-    if n >= 10: break
 viz.focus_canvas_item(domain=domain)
 
 viz.render_vectors()
+
+
+exit()
+
 
 from aisdb.track_viz import processing
 processing.algorithmHelp('qgis:union')
@@ -107,16 +96,7 @@ notable changes:
 '''
 
 
-
-
-
-
-
-
-
-
-
-
+from aisdb.merge_data import merge_tracks_hullgeom, merge_tracks_shoredist, merge_tracks_bathymetry
 def graph_blocking_io(fpath, domain):
     for x in merge_layers(trackgen(deserialize_generator(fpath))):
         yield x
