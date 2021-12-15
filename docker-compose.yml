@@ -2,9 +2,9 @@ version: '3.9'
 
 secrets:
   host_ssh_key:
-    file: ~/.ssh/id_ed25519_meridian
+    file: ~/.ssh/id_aisdb
   host_authorized_keys:
-    file: ~/.ssh/id_ed25519_meridian.pub
+    file: ~/.ssh/id_aisdb.pub
 
 services:
   test:
@@ -24,7 +24,6 @@ services:
       - host_ssh_key
       - host_authorized_keys
     volumes:
-      - /run/media/matt/My Passport/:/home/ais_env/ais
-      #- ~/.Xauthority:/home/ais_env/.Xauthority"
-      #- /tmp/.X11-unix:/tmp/.X11-unix
+      - ${DATA_DIR}:/home/ais_env/ais
+      #- /run/media/matt/My Passport/:/home/ais_env/ais
 
