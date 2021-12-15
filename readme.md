@@ -1,4 +1,4 @@
-<img src="https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/tests/output/scriptoutput.png" alt="ais tracks - one month in the canadian atlantic" width="900"/>
+<img src="https://gitlab.meridian.cs.dal.ca/matt_s/ais_public/-/raw/master/docs/scriptoutput.png" alt="ais tracks - one month in the canadian atlantic" width="900"/>
 
 ## Getting Started
 
@@ -23,6 +23,20 @@ The package can be installed using pip:
 
 Although the graphical interface is still a work in progress, it can be enabled by [installing QGIS](https://qgis.org/en/site/forusers/download.html). Note that when creating an environment using venv, the `--system-site-packages` option must be used to share QGIS application data with the environment.
 
+
+### Docker Install
+
+Build the Dockerfile with docker-compose, and connect to the container using SSH. 
+You will need a public/private key to connect, by default the docker-compose file will look for `~/.ssh/id_aisdb` and `~/.ssh/id_aisdb.pub`. 
+Set the environment variable `DATA_DIR` to the desired storage location, this path will be mounted as a volume within the container.
+Use the `-X` option on connect to allow X11 forwarding enabling the QGIS application window.
+  ```
+  ssh-keygen -f ~/.ssh/id_aisdb
+  echo "DATA_DIR=/home/$USER/ais/" > .env
+  docker-compose up --detach
+  AISDB_IP=`docker inspect aisdb | grep 'IPAddr' | grep '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*' | cut -d'"' -f4`
+  ssh ais_env@$AISDB_IP -i ~/.ssh/id_aisdb -X
+  ```
 
 
 ### Configuring
