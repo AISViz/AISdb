@@ -1,6 +1,8 @@
 Getting Started
 ===============
 
+.. description:
+
 Description
 -----------
 
@@ -15,17 +17,26 @@ What is AIS?
 | Description of message types:
   https://arundaleais.github.io/docs/ais/ais_message_types.html
 
+.. install:
+
 Installing
 ----------
 
 The package can be installed using pip:
-``python3 -m venv env_aisdb --upgrade-deps   source env_aisdb/bin/activate   python3 -m pip install git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=aisdb``
+
+.. code-block:: sh
+
+  python3 -m venv env_aisdb --upgrade-deps
+  source env_aisdb/bin/activate
+  python3 -m pip install 'git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=aisdb'
+
 
 Although the graphical interface is still a work in progress, it can be
-enabled by `installing
-QGIS <https://qgis.org/en/site/forusers/download.html>`__. Note that
+enabled by `installing QGIS <https://qgis.org/en/site/forusers/download.html>`__. Note that
 when creating an environment using venv, the ``--system-site-packages``
 option must be used to share QGIS application data with the environment.
+
+.. docker:
 
 Docker Install
 --------------
@@ -37,7 +48,7 @@ need a public/private key to connect, by default the docker-compose file
 will look for ``~/.ssh/id_aisdb`` and ``~/.ssh/id_aisdb.pub``. Set the
 environment variable ``DATA_DIR`` to the desired storage location, this
 path will be mounted as a volume within the container. The default
-configuration paths (see `Configuring <#Configuring>`__ below) will be
+configuration paths (see :ref:`Configuring <Configuring>` below) will be
 used inside this directory
 
 .. code-block:: sh
@@ -47,6 +58,9 @@ used inside this directory
   docker-compose up --detach  
   AISDB_IP=`docker inspect aisdb | grep 'IPAddr' | grep '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*' | cut -d'"' -f4`  
   ssh ais_env@$AISDB_IP -i ~/.ssh/id_aisdb -X  
+
+
+.. _Configuring: 
 
 Configuring
 -----------
