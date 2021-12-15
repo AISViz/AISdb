@@ -1,0 +1,30 @@
+version: '3.9'
+
+secrets:
+  host_ssh_key:
+    file: ~/.ssh/id_ed25519_meridian
+  host_authorized_keys:
+    file: ~/.ssh/id_ed25519_meridian.pub
+
+services:
+  test:
+    container_name: aisdb
+    env_file:
+      - ~/.config/ais.cfg
+    environment:
+      QT_DEBUG_PLUGINS: 1
+      QT_QPA_PLATFORM: offscreen
+    build: 
+      context: .
+      args:
+        - USERNAME=ais_env
+    expose:
+      - "22"
+    secrets:
+      - host_ssh_key
+      - host_authorized_keys
+    volumes:
+      - /run/media/matt/My Passport/:/home/ais_env/ais
+      #- ~/.Xauthority:/home/ais_env/.Xauthority"
+      #- /tmp/.X11-unix:/tmp/.X11-unix
+
