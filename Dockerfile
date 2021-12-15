@@ -1,11 +1,10 @@
 FROM archlinux:base
-RUN   pacman -Syyuu --noconfirm \
+RUN pacman -Syyuu --noconfirm \
    && pacman -S --noconfirm --needed \
       gcc \
       openssh \
       python \
       qgis \
-      wget \
       xorg-xauth
 
 # configure a non-root user to run the application, disable password authentication
