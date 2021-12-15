@@ -25,5 +25,4 @@ services:
       - host_authorized_keys
     volumes:
       - ${DATA_DIR}:/home/ais_env/ais
-      #- /run/media/matt/My Passport/:/home/ais_env/ais
 

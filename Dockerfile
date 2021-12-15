@@ -11,7 +11,6 @@ RUN   pacman -Syyuu --noconfirm \
 # configure a non-root user to run the application, disable password authentication
 ARG USERNAME
 RUN useradd -m "$USERNAME" --shell /bin/python3 
-  # && echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 USER "$USERNAME"
 
 WORKDIR "/home/$USERNAME"
