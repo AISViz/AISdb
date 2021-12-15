@@ -12,9 +12,9 @@ https://gis.stackexchange.com/questions/374567/in-python-what-is-the-best-way-to
 import os
 import sys
 import shutil
-from hashlib import sha256
 from datetime import datetime, timedelta
-from functools import partial
+from functools import partial, reduce
+from hashlib import sha256
 from multiprocessing import Pool
 
 if (qgispath := shutil.which('qgis')):
@@ -446,6 +446,11 @@ class TrackViz(QMainWindow):
             pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.coords.xy)]
         elif geom.type == 'Polygon':
             pts = [self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*geom.boundary.coords.xy)]
+        elif geom.type == 'GeometryCollection':
+            pts = reduce(list.__add__, [[self.xform.transform(QgsPointXY(x,y)) for x,y in zip(*g.boundary.coords.xy)] for g in geom.geoms])
+        else: 
+            assert False, f'unknown geometry type {geom.type}:{geom}'
+
         qgeom = QgsGeometry.fromPolygonXY([pts])
         r.setFillColor(QColor(*color))
         r.setStrokeColor(QColor(0,0,0))

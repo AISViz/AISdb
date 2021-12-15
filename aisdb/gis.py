@@ -8,8 +8,9 @@ import json
 
 import numpy as np
 import shapely.wkb
-from shapely.ops import unary_union
-from shapely.geometry import Polygon, Point
+from shapely.ops import unary_union, linemerge, polygonize, cascaded_union
+from shapely.geometry import Polygon, Point, LineString
+from shapely.geometry.collection import GeometryCollection
 
 from common import dbpath, output_dir
 from index import index
@@ -75,6 +76,23 @@ def strdms2dd(strdms):
 
 
 class ZoneGeom():
+    ''' class describing polygon coordinate geometry
+
+        geometry will be stored as a shapely.geometry.Polygon object.
+        some additional variables are stored as attributes, such as 
+        centroids and farthest radial distance from the centroid
+
+        When compared with a shapely.geometry.Point object, the '>' operator
+        will return True if the point is contained within the polygon
+
+        args:
+            name: string
+                unique descriptor of a zone
+            x: np.array 
+                longitude coordinate array
+            y: np.array
+                latitude coordinate array
+    '''
 
     def __init__(self, name, x, y):
         self.name = name
@@ -87,6 +105,18 @@ class ZoneGeom():
         self.minY, self.maxY = np.min(self.y), np.max(self.y)
         if not (self.minX >= -180 and self.maxX <= 180):
             print(f'warning: zone {self.name} boundary exceeds longitudes -180..180')
+            meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
+            adjust = lambda x: ((np.array(x) + 180) % 360) - 180
+            merged = shapely.ops.linemerge([self.geometry.boundary, meridian])
+            border = shapely.ops.unary_union(merged)
+            decomp = list(shapely.ops.polygonize(border))
+            p1, p2 = decomp[0], decomp[-1]
+            splits = [Polygon(zip(adjust(p2.boundary.coords.xy[0]), p2.boundary.coords.xy[1])),
+                      Polygon(zip(adjust(p1.boundary.coords.xy[0]), p1.boundary.coords.xy[1])) ]
+                      #Polygon(zip(adjust(np.array(p2.boundary.coords.xy[0])), p2.boundary.coords.xy[1])) ]
+            #self.geometry = unary_union(splits)
+            self.geometry = GeometryCollection(splits)
+
         if not (self.minY <= 90 and self.maxY >= -90): 
             print(f'warning: zone {self.name} boundary exceeds latitudes -90..90')
 
@@ -121,6 +151,14 @@ class Domain():
                 if True, the contents of the cache will be cleared before storing
                 new values in the cache
 
+        attr:
+            self.name
+            self.geoms
+            self.minX
+            self.minY
+            self.maxX
+            self.maxY
+
     '''
 
     def __init__(self, name=None, geoms=[], cache=True, clearcache=False):
@@ -142,7 +180,9 @@ class Domain():
         self.minY -=1; self.maxY +=1
 
     def init_boundary(self, name):
-        return unary_union([g.geometry for g in self.geoms.values()])
+        if sum([g.geometry.type == 'GeometryCollection' for g in self.geoms.values()]) > 0:
+            print('warning: domain exceeded map boundary')
+        return unary_union([g.geometry for g in self.geoms.values() if g.geometry.type != 'GeometryCollection'])
 
     def nearest_polygons_to_point(self, x, y):
         ''' compute great circle distance for this point to each polygon centroid, 
