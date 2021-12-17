@@ -1,8 +1,8 @@
 from datetime import datetime 
 
-from ais import dbpath, qrygen
-from ais.database.qryfcn import crawl
-from ais.database.lambdas import rtree_in_time_bbox_validmmsi
+from aisdb import dbpath, qrygen
+from aisdb.database.qryfcn import crawl
+from aisdb.database.lambdas import rtree_in_time_bbox_validmmsi
 
 
 '''
