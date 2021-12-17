@@ -22,6 +22,8 @@ RUN mkdir -p aisdb/database aisdb/webdata \
   && python -m pip install . --no-warn-script-location
 
 COPY --chown="$USERNAME" docs/ docs/
+COPY --chown="$USERNAME" examples/ examples/
+COPY --chown="$USERNAME" tests/ tests/
 COPY --chown="$USERNAME" aisdb/ aisdb/
 
 USER root
