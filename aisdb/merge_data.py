@@ -9,7 +9,6 @@ from wsa import wsa
 from webdata.bathymetry import Gebco
 from webdata.shore_dist import shore_dist_gfw
 from webdata import marinetraffic
-from webdata.load_raster import load_raster_pixel
 
 
 def merge_tracks_shoredist(tracks):
