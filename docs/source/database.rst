@@ -62,4 +62,10 @@ Schema
 
 See `create_tables.py <../ais/database/create_tables.py>`__ to see the
 SQL code used to create the database tables. This is represented
-approximately in the below diagram
+approximately by the below diagram (click to enlarge)  
+
+.. raw:: html
+
+   <a href='_images/db_schema.png'><img src='_images/db_schema.png'></img></a>
+
+

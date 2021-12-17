@@ -8,11 +8,25 @@ Description
 
 Package features:
   + SQL database for storing AIS position reports and vessel metadata
+  + Vessel position cleaning and trajectory modeling
   + Utilities for streaming and decoding AIS data in the NMEA binary string format (See `Base Station Deployment <AIS_base_station.html>`__)
   + Integration with public datasources including depth charts, distances from shore, vessel geometry, etc.
   + Plotting with QGIS (work in progress)
   + Network graph analysis, MMSI deduplication, interpolation, and other processing utilities
 
+
+.. image:: scriptoutput.png
+   :width: 900
+
+.. image:: docs/source/scriptoutput.png
+   :width: 900
+
+| Source Code: 
+  https://gitlab.meridian.cs.dal.ca/matt_s/ais_public
+| Documentation: 
+  https://docs.meridian.cs.dal.ca/aisdb/
+
+.. whatisais:
 
 What is AIS?
 ------------
@@ -31,7 +45,7 @@ The package can be installed using pip:
 
 .. code-block:: sh
 
-  python3 -m venv env_aisdb --upgrade-deps
+  python3 -m venv env_aisdb --upgrade
   source env_aisdb/bin/activate
   python3 -m pip install 'git+https://gitlab.meridian.cs.dal.ca/matt_s/ais_public#egg=aisdb'
 
@@ -97,18 +111,16 @@ Code examples
 2. `Automatically generate SQL database
    queries <examples/example02_query_the_database.py>`__
 
-3. Compute vessel trajectories TODO: add documentation
-
-4. | Merging data from additional sources
+3. | Compute vessel trajectories 
    | TODO: add documentation
 
-5. | Scraping the web for vessel metadata
+4. | Integrating data from public data sources
    | TODO: add documentation
 
-6. `Compute network graph of vessel movements between
+5. `Compute network graph of vessel movements between
    polygons <examples/example04_network_graph.py>`__
 
-7. | Render visualizations
+6. | Plot with QGIS
    | TODO: add documentation
 
 Collecting AIS Data
