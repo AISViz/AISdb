@@ -68,29 +68,6 @@ else:
         f.write(printdefault(cfgnames))
 
 
-'''
-# create default dirs if they dont exist
-try:
-    if not os.path.isdir(data_dir): 
-        os.mkdir(data_dir)
-    if not os.path.isdir(tmp_dir):
-        os.mkdir(tmp_dir)
-    if not os.path.isdir(zones_dir):
-        os.mkdir(zones_dir)
-    if not os.path.isdir(rawdata_dir):
-        os.mkdir(rawdata_dir)
-    if not os.path.isdir(output_dir):
-        os.mkdir(output_dir)
-except FileNotFoundError as err:
-    raise FileNotFoundError(f'Could not access {err.filename}! Ensure path exists and has valid permissions')
-except PermissionError as err:
-    raise PermissionError(f'Could not access {err.filename}! Ensure path exists and has valid permissions')
-except Exception as err:
-    raise err
-'''
-
-
-
 class import_handler():
     
     def __init__(self):
@@ -133,7 +110,9 @@ with import_handler() as importconfigs:
 
     from .database.qrygen import qrygen
 
-    from .gebco import Gebco
+    from .webdata.bathymetry import Gebco
+
+    from .webdata.shore_dist import shore_dist_gfw
 
     from .gis import (
             dt_2_epoch,
@@ -168,8 +147,6 @@ with import_handler() as importconfigs:
             fast_unzip,
             writecsv,
         )
-
-    from .shore_dist import shore_dist_gfw
 
     from .track_gen import (
             trackgen,

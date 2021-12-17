@@ -16,12 +16,12 @@ WORKDIR "/home/$USERNAME"
 RUN python -m ensurepip \
   && python -m pip install --no-warn-script-location --upgrade wheel pip numpy 
 
-COPY --chown="$USERNAME" docs/ docs/
 COPY --chown="$USERNAME" setup.py .
 
 RUN mkdir -p aisdb/database aisdb/webdata \
   && python -m pip install . --no-warn-script-location
 
+COPY --chown="$USERNAME" docs/ docs/
 COPY --chown="$USERNAME" aisdb/ aisdb/
 
 USER root

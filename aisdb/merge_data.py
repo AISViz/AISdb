@@ -1,13 +1,15 @@
-#import asyncio
+''' merge track dictionaries with rasters or other data from the web '''
 
 import numpy as np
+from PIL import Image
 
 from common import *
 from track_gen import trackgen
-from gebco import Gebco
 from wsa import wsa
-from shore_dist import shore_dist_gfw
+from webdata.bathymetry import Gebco
+from webdata.shore_dist import shore_dist_gfw
 from webdata import marinetraffic
+from webdata.load_raster import load_raster_pixel
 
 
 def merge_tracks_shoredist(tracks):
@@ -34,7 +36,7 @@ def merge_tracks_hullgeom(tracks):
 
 
 def merge_layers(tracks):
-    ''' generator function to merge AIS row data with shore distance, bathymetry, and geometry databases
+    ''' generator function to merge AIS row data with shore distance, bathymetry, geometry databases
 
         same as above functions, but all combined in one
 
@@ -67,7 +69,7 @@ def merge_layers(tracks):
             track['submerged_hull_m^2'] = wsa(track['deadweight_tonnage'], track['ship_type'] or 0)
 
             # shore distance from cell grid
-            track['km_from_shore'] = np.array([sdist.getdist(x, y) for x, y in zip(track['lon'], track['lat']) ])
+            track['km_from_shore'] = np.array([sdist.getdist(x, y) for x, y in zip(track['lon'], track['lat'])])
             track['km_from_port'] = np.array([sdist.getportdist(x, y) for x, y in zip(track['lon'], track['lat']) ])
 
             # seafloor depth from cell grid
