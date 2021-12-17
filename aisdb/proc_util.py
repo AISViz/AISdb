@@ -31,18 +31,23 @@ def fast_unzip(zipfilenames, dirname='.', processes=12):
         p.join()
 
 
-def binarysearch(arr, search):
+def binarysearch(arr, search, descending=False):
     ''' fast indexing of ordered arrays '''
-    low, high = 0, len(arr)-1
+    low, high = 0, arr.size-1
+    if descending: 
+        arr = arr[::-1]
     while (low <= high):
-        mid = int((low + high) / 2)
-        if arr[mid] == search or mid == 0 or mid == len(arr)-1:
-            return mid
-        elif (arr[mid] >= search):
+        mid = (low + high) // 2
+        if search >= arr[mid-1] and search <= arr[mid+1]: 
+            break
+        elif (arr[mid] > search):
             high = mid -1 
         else:
             low = mid +1
-    return mid
+    if descending: 
+        return arr.size - mid - 1
+    else:
+        return mid
 
 
 def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
