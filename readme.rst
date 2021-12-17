@@ -8,7 +8,7 @@ Description
 
 Package features:
   + SQL database for storing AIS position reports and vessel metadata
-  + Utilities for streaming and decoding AIS data in the NMEA binary string format
+  + Utilities for streaming and decoding AIS data in the NMEA binary string format (See `Base Station Deployment <AIS_base_station.html>`__)
   + Integration with public datasources including depth charts, distances from shore, vessel geometry, etc.
   + Plotting with QGIS (work in progress)
   + Network graph analysis, MMSI deduplication, interpolation, and other processing utilities
@@ -74,10 +74,11 @@ Configuring
   as well as directory paths for where to look for additional data. The
   package will look for configs in the file ``$HOME/.config/ais.cfg``,
   where $HOME is the user’s home directory. If no config file is found,
-  the following defaults will be used \``\` bash dbpath = $HOME/ais.db
+  the following defaults will be used
 
 .. code-block:: sh
 
+  dbpath = $HOME/ais.db
   data_dir = $HOME/ais/
   zones_dir = $HOME/ais/zones/
   tmp_dir = $HOME/ais/tmp_parsing/
