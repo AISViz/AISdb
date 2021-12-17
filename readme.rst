@@ -16,10 +16,10 @@ Package features:
 
 
 .. image:: scriptoutput.png
-   :width: 900
+   :width: 900px
 
 .. image:: docs/source/scriptoutput.png
-   :width: 900
+   :width: 900px
 
 | Source Code: 
   https://gitlab.meridian.cs.dal.ca/matt_s/ais_public
