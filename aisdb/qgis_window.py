@@ -87,7 +87,7 @@ try:
     #from processing.core.Processing import Processing
     #Processing.initialize()
 except Exception as err:
-    print(f'error: {err.with_traceback()}'
+    print(f'error: {err.with_traceback()}')
 
 
 import numpy as np
