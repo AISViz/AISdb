@@ -2,3 +2,14 @@
   min-width: 66vw;
 }
 
+.function{
+  margin-top: 32px;
+}
+
+.class{
+  margin-top: 32px;
+}
+
+.method{
+  margin-top: 16px;
+}
