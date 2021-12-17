@@ -1,8 +1,11 @@
 ''' collect shore distance at a given coordinates using Global Fishing Watch raster files.
 
     the raster data used here can be downloaded from:
-    https://globalfishingwatch.org/data-download/datasets/public-distance-from-shore-v1
-    https://globalfishingwatch.org/data-download/datasets/public-distance-from-port-v1
+
+    .. code-block::
+
+        https://globalfishingwatch.org/data-download/datasets/public-distance-from-shore-v1
+        https://globalfishingwatch.org/data-download/datasets/public-distance-from-port-v1
 
     once downloaded, place the unzipped geotiff files in `data_dir`
 '''
