@@ -23,61 +23,64 @@ else:
     print('warning: could not find QGIS installed!')
 
 
-from qgis.PyQt.QtCore import Qt, QSize, QVariant, QTimer
-from qgis.PyQt.QtGui import (
-        QColor, 
-        QCursor,
-        QGuiApplication, 
-        QImage, 
-        QPainter, 
-        QPainterPath, 
-    )
-from qgis.PyQt.QtWidgets import (
-        QAction,
-        QApplication, 
-        #QFrame, 
-        #QLabel, 
-        QMainWindow, 
-        #QStatusBar, 
-        #QVBoxLayout, 
-        #QWidget, 
-    )
-from qgis.core import (
-        QgsApplication, 
-        QgsCategorizedSymbolRenderer, 
-        QgsCoordinateReferenceSystem, 
-        QgsCoordinateTransform, 
-        QgsFeature, 
-        QgsField, 
-        QgsFillSymbol,
-        QgsGeometry, 
-        QgsLineSymbol,
-        #QgsMapRendererCustomPainterJob, 
-        QgsMapRendererParallelJob,
-        QgsMapSettings, 
-        QgsMarkerSymbol,
-        QgsPointXY, 
-        QgsPrintLayout, 
-        QgsProcessingFeedback,
-        QgsProject, 
-        QgsRasterLayer, 
-        QgsRectangle,
-        QgsRendererCategory, 
-        QgsSymbol, 
-        QgsVectorLayer, 
-        QgsWkbTypes, 
-    )
-from qgis.gui import (
-        QgsMapCanvas, 
-        QgsMapCanvasItem,
-        QgsMapCanvasItem, 
-        QgsMapToolEmitPoint, 
-        QgsMapToolPan, 
-        QgsMapToolZoom, 
-        QgsRubberBand, 
-        QgsStatusBar, 
-        QgsVertexMarker, 
-    )
+try:
+    from qgis.PyQt.QtCore import Qt, QSize, QVariant, QTimer
+    from qgis.PyQt.QtGui import (
+            QColor, 
+            QCursor,
+            QGuiApplication, 
+            QImage, 
+            QPainter, 
+            QPainterPath, 
+        )
+    from qgis.PyQt.QtWidgets import (
+            QAction,
+            QApplication, 
+            #QFrame, 
+            #QLabel, 
+            QMainWindow, 
+            #QStatusBar, 
+            #QVBoxLayout, 
+            #QWidget, 
+        )
+    from qgis.core import (
+            QgsApplication, 
+            QgsCategorizedSymbolRenderer, 
+            QgsCoordinateReferenceSystem, 
+            QgsCoordinateTransform, 
+            QgsFeature, 
+            QgsField, 
+            QgsFillSymbol,
+            QgsGeometry, 
+            QgsLineSymbol,
+            #QgsMapRendererCustomPainterJob, 
+            QgsMapRendererParallelJob,
+            QgsMapSettings, 
+            QgsMarkerSymbol,
+            QgsPointXY, 
+            QgsPrintLayout, 
+            QgsProcessingFeedback,
+            QgsProject, 
+            QgsRasterLayer, 
+            QgsRectangle,
+            QgsRendererCategory, 
+            QgsSymbol, 
+            QgsVectorLayer, 
+            QgsWkbTypes, 
+        )
+    from qgis.gui import (
+            QgsMapCanvas, 
+            QgsMapCanvasItem,
+            QgsMapCanvasItem, 
+            QgsMapToolEmitPoint, 
+            QgsMapToolPan, 
+            QgsMapToolZoom, 
+            QgsRubberBand, 
+            QgsStatusBar, 
+            QgsVertexMarker, 
+        )
+except Exception as err:
+    print(f'error: {err.with_traceback()}'
 
 #self.qgs = QgsApplication([], True)
 pluginpath = '/usr/share/qgis/python/plugins'
@@ -95,8 +98,6 @@ from shapely.geometry import LineString, Polygon, MultiPoint, Point
 
 from common import output_dir
 from gis import haversine
-#from proc_util import deserialize_generator
-#from track_gen import *
 
 
 colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
@@ -180,7 +181,7 @@ class customQgsMultiPoint(QgsRubberBand):
 
 
 
-class TrackViz(QMainWindow):
+class ApplicationWindow(QMainWindow):
     ''' main application window
 
         runs the QGIS application using PyQt
@@ -517,47 +518,39 @@ class TrackViz(QMainWindow):
         elif geomtype in ('LinearRing', 'Polygon', 'MultiPolygon'):
             symboltype = QgsFillSymbol
             if not opacity: opacity = 0.33
+            if not color: color = '#bbbbbb'
         else:
             assert False, f'unknown type {geomtype}'
 
-        unique, idx = np.unique(identifiers, return_index=True)
-
+        # assign hex color hash for each identifier
         categories = []
-        #for ident, qgeom in zip(unique, np.array(bands)[idx]):
-            #sym = QgsSymbol.defaultSymbol(int(qgeom.asGeometry().wkbType()))
-        for ident in unique[idx]:
+        for ident in identifiers:
             sym = symboltype.createSimple({'identifier': ident})
+            #sym.setColor(QColor(*color if isinstance(color, tuple) else color or colorhash(ident)))
             sym.setColor(QColor(color or colorhash(ident)))
             sym.setOpacity(opacity)
             cat = QgsRendererCategory(str(ident), symbol=sym.clone(), label='identifier', render=True)
-            #styles.addCategory(cat)
             categories.append(cat)
         styles = QgsCategorizedSymbolRenderer(attrName='identifier', categories=categories)
 
 
         '''
-            QgsStyle().defaultStyle().colorRampNames()
+            from qgis.core import QgsHeatmapRenderer,QgsStyle
 
-            categories = []
-            #styles = QgsCategorizedSymbolRenderer()
-            for ident, qgeom in zip(unique, np.array(bands)[idx]):
-                sym = symboltype.createSimple({'identifier': ident})
-                sym.setColor(QColor(color or colorhash(ident)))
-                sym.setOpacity(opacity)
-                #cat = QgsRendererCategory(str(ident), symbol=sym.clone(), label='identifier', render=True)
-                #categories.append(cat)
+            # show color ramp names
+            QgsStyle().defaultStyle().colorRampNames()
+            print(styles.dump()[0:1000])
+
             
             styles = QgsHeatmapRenderer()
-            styles.setRadius(viz.canvas.scale())
-            styles.setColorRamp(QgsStyle().defaultStyle().colorRamp('Spectral'))
-
-            print(styles.dump()[0:1000])
+            styles.setRadius(5)
+            #styles.setColorRamp(QgsStyle().defaultStyle().colorRamp('Spectral'))
+            styles.setColorRamp(QgsStyle().defaultStyle().colorRamp('Blues'))
+            styles.setWeightExpression(None)
         '''
 
-        #meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
-        geomtype = QgsWkbTypes.displayString(int(bands[0].asGeometry().wkbType()))
+        #geomtype = QgsWkbTypes.displayString(int(bands[0].asGeometry().wkbType()))
         vl = QgsVectorLayer(geomtype+'?crs=epsg:3857', f'tmp_lyr', 'memory')
-        #vl.setCrs(self.project.crs())
         pr = vl.dataProvider()
         pr.addAttributes([
                 QgsField('identifier', QVariant.Int), 
@@ -586,6 +579,7 @@ class TrackViz(QMainWindow):
         '''
         '''
         from qgis.core import *
+        identifiers, bands = np.array(self.features_poly).T
         import numpy as np
         w=1920
         h=1080
@@ -617,8 +611,8 @@ class TrackViz(QMainWindow):
 
         #self.project.write(f'output{os.path.sep}state.qgz')
         #self.canvas.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
-        #self.canvas.update()
-        #self.canvas.refresh()
+        self.canvas.update()
+        self.canvas.refresh()
         self.settings.setLayers([vl for vl in [self.vl1, self.vl2, self.vl3, self.basemap_lyr] if vl is not None])
         self.settings.setExtent(self.canvas.extent())  # seems redundant but is actually necessary
         self.settings.setOutputSize(QSize(w, h))
@@ -630,8 +624,11 @@ class TrackViz(QMainWindow):
             img.save(imgpath, 'png')
         render.finished.connect(finished)
         render.start()
-        #render.waitForFinished()
+        render.waitForFinished()
         #print(os.path.join(output_dir, 'png', fname))
+
+        self.canvas.setLayers([self.basemap_lyr])
+
 
         '''
             self.canvas.setLayers([

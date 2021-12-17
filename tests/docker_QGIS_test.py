@@ -7,23 +7,28 @@ from shapely.geometry import Point, LineString, Polygon, MultiPoint
 import numpy as np
 
 from aisdb import zones_dir, output_dir
-from aisdb.gis import Domain, ZoneGeomFromTxt
+from aisdb.gis import Domain, ZoneGeomFromTxt, glob_shapetxts
 from aisdb.track_gen import trackgen, segment_tracks_timesplits, fence_tracks, max_tracklength, segment_tracks_encode_greatcircledistance, concat_realisticspeed, mmsifilter, mmsirange
 from aisdb.network_graph import serialize_network_edge
 from aisdb.proc_util import deserialize_generator
 from aisdb.track_viz import TrackViz
 
+# Available platform plugins are: eglfs, linuxfb, minimal, minimalegl, offscreen, vnc, xcb
+#os.environ['QT_DEBUG_PLUGINS'] = '1'
+#os.environ['QT_QPA_PLATFORM'] = 'linuxfb'
+#os.environ['QT_PLUGIN_PATH'] = '/usr/lib/qt/plugins'
+#os.environ['XDG_RUNTIME_DIR'] = '/tmp/runtime-ais_env'
+
+#viz = ApplicationWindow()
 
 
 keyorder = lambda key: int(key.rsplit(os.path.sep, 1)[1].split('.')[0].split('Z')[1])
-shapefilepaths = sorted(reduce(np.append, 
-    [list(map(os.path.join, (path[0] for p in path[2]), path[2])) for path in list(os.walk(zones_dir))]
-    ), key=keyorder)
+shapefilepaths = glob_shapetxts(keyorder=keyorder)
+
 zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
 #domain = Domain('west', {k:v for k,v in zonegeoms.items() if 'WZ' in k}, clearcache=True)
-domain = Domain('east', {k:v for k,v in zonegeoms.items() if 'EZ' in k}, clearcache=True)
+domain = Domain('east', {k:v for k,v in zonegeoms.items() if 'EZ' in k})
 
-viz = TrackViz()
 for txt, geom in list(domain.geoms.items()):
 	viz.add_feature_poly(geom.geometry, ident=txt, opacity=0.3, color=(200, 200, 200))
 
@@ -31,8 +36,8 @@ for txt, geom in list(domain.geoms.items()):
 fpath = os.path.join(output_dir, 'rowgen_year_test2.pickle')
 
 
-timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=28))
-distsplit = partial(segment_tracks_encode_greatcircledistance, maxdistance=100000, cuttime=timedelta(hours=28), cutknots=50, minscore=0.000005) 
+timesplit = partial(segment_tracks_timesplits,  maxdelta=timedelta(hours=24))
+distsplit = partial(segment_tracks_encode_greatcircledistance, maxdistance=100000, cuttime=timedelta(hours=24), cutknots=50, minscore=0.000005) 
 geofenced = partial(fence_tracks,               domain=domain)
 serialize = partial(serialize_network_edge,     domain=domain)
 
@@ -42,9 +47,9 @@ viz.clear_points()
 #testmmsi = [218158000, 316043424, 316015104]
 testmmsi = [218158000, 316001088, 316043424, 316015104]
 rowgen = deserialize_generator(fpath)
-
 #tracks = max_tracklength(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))
 tracks = distsplit(timesplit(trackgen(mmsifilter(rowgen, mmsis=testmmsi))))
+#tracks = distsplit(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))
 
 
 n = 0
@@ -61,7 +66,7 @@ for track in tracks:
     print(f'{n}')
 viz.focus_canvas_item(domain=domain)
 
-viz.render_vectors()
+viz.render_vectors(fname='test4.png')
 
 
 exit()
