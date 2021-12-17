@@ -79,16 +79,15 @@ try:
             QgsStatusBar, 
             QgsVertexMarker, 
         )
+    #self.qgs = QgsApplication([], True)
+    pluginpath = '/usr/share/qgis/python/plugins'
+    assert os.path.isdir(pluginpath), 'could not find QGIS plugin path'
+    sys.path.append(pluginpath)
+    #import processing 
+    #from processing.core.Processing import Processing
+    #Processing.initialize()
 except Exception as err:
     print(f'error: {err.with_traceback()}'
-
-#self.qgs = QgsApplication([], True)
-pluginpath = '/usr/share/qgis/python/plugins'
-assert os.path.isdir(pluginpath), 'could not find QGIS plugin path'
-sys.path.append(pluginpath)
-#import processing 
-#from processing.core.Processing import Processing
-#Processing.initialize()
 
 
 import numpy as np
@@ -532,7 +531,6 @@ class ApplicationWindow(QMainWindow):
             cat = QgsRendererCategory(str(ident), symbol=sym.clone(), label='identifier', render=True)
             categories.append(cat)
         styles = QgsCategorizedSymbolRenderer(attrName='identifier', categories=categories)
-
 
         '''
             from qgis.core import QgsHeatmapRenderer,QgsStyle
