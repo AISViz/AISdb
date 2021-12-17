@@ -61,26 +61,21 @@ def merge_layers(tracks):
         #for rows in list(rowgen):
         for track in tracks:
 
-            # vessel tonnage from marinetraffic.com
+            # vessel tonnage from marinetraffic.com and hull submerged surface area regression 
             track['deadweight_tonnage'] = hullgeom.get_tonnage_mmsi_imo(track['mmsi'], track['imo'] or 0)
-
-            # wetted surface area - regression on tonnage and ship type
             track['submerged_hull_m^2'] = wsa(track['deadweight_tonnage'], track['ship_type'] or 0)
 
-            # shore distance from cell grid
+            # shore, port distance from cell grid
             track['km_from_shore'] = np.array([sdist.getdist(x, y) for x, y in zip(track['lon'], track['lat'])])
             track['km_from_port'] = np.array([sdist.getportdist(x, y) for x, y in zip(track['lon'], track['lat']) ])
 
-            # seafloor depth from cell grid
-            track['depth_metres'] = np.array([bathymetry.getdepth(x, y) for x,y in zip(track['lon'], track['lat']) ]) * -1
-
-            # seafloor depth from nonnegative border cells
+            # seafloor depth from cell grid, and depths of surrounding gridcells
+            track['depth_metres'] = np.array([bathymetry.getdepth(x, y) for x,y in zip(track['lon'], track['lat']) ])
             track['depth_border_cells_average'] = np.array([bathymetry.getdepth_cellborders_nonnegative_avg(x, y) for x,y in zip(track['lon'], track['lat'])])
 
             # update indices
             track['static'] = set(track['static']).union(set(['submerged_hull_m^2', 'deadweight_tonnage']))
             track['dynamic'] = set(track['dynamic']).union(set(['km_from_shore', 'depth_metres', 'depth_border_cells_average']))
-            #track['dynamic'] = set(track['dynamic']).union(set(['km_from_shore', 'depth_metres']))
 
             yield track
 

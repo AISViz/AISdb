@@ -114,6 +114,15 @@ with import_handler() as importconfigs:
 
     from .webdata.shore_dist import shore_dist_gfw
 
+    from .webdata import merge_data
+
+    from .webdata.merge_data import (
+            merge_layers,
+            merge_tracks_bathymetry,
+            merge_tracks_hullgeom,
+            merge_tracks_shoredist,
+        )
+
     from .gis import (
             dt_2_epoch,
             epoch_2_dt,
@@ -133,12 +142,6 @@ with import_handler() as importconfigs:
 
     from .interp import (
             interp_time,
-        )
-
-    from .merge_data import (
-            merge_tracks_hullgeom,
-            merge_tracks_shoredist,
-            merge_tracks_bathymetry,
         )
 
     from .network_graph import serialize_network_edge

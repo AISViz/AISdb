@@ -6,8 +6,13 @@ Getting Started
 Description
 -----------
 
-Functions and utilities for the purpose of decoding, storing,
-processing, and visualizing AIS data.
+Package features:
+  + SQL database for storing AIS position reports and vessel metadata
+  + Utilities for streaming and decoding AIS data in the NMEA binary string format
+  + Integration with public datasources including depth charts, distances from shore, vessel geometry, etc.
+  + Plotting with QGIS (work in progress)
+  + Network graph analysis, MMSI deduplication, interpolation, and other processing utilities
+
 
 What is AIS?
 ------------
@@ -48,8 +53,8 @@ need a public/private key to connect, by default the docker-compose file
 will look for ``~/.ssh/id_aisdb`` and ``~/.ssh/id_aisdb.pub``. Set the
 environment variable ``DATA_DIR`` to the desired storage location, this
 path will be mounted as a volume within the container. The default
-configuration paths (see :ref:`Configuring <Configuring>` below) will be
-used inside this directory
+configuration paths will be used inside this directory 
+(see :ref:`Configuring <Configuring>` below)
 
 .. code-block:: sh
 

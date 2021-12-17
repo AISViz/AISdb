@@ -13,6 +13,7 @@ ais/webdata/webdriver*
 docs/docserver/node_modules/*
 docs/docserver/package-lock.json
 docs/html/*
+docs/source/readme.rst
 docs/source/sphinx-apidoc/*
 tests/output/*
 tmp/*
