@@ -23,71 +23,68 @@ else:
     print('warning: could not find QGIS installed!')
 
 
-try:
-    from qgis.PyQt.QtCore import Qt, QSize, QVariant, QTimer
-    from qgis.PyQt.QtGui import (
-            QColor, 
-            QCursor,
-            QGuiApplication, 
-            QImage, 
-            QPainter, 
-            QPainterPath, 
-        )
-    from qgis.PyQt.QtWidgets import (
-            QAction,
-            QApplication, 
-            #QFrame, 
-            #QLabel, 
-            QMainWindow, 
-            #QStatusBar, 
-            #QVBoxLayout, 
-            #QWidget, 
-        )
-    from qgis.core import (
-            QgsApplication, 
-            QgsCategorizedSymbolRenderer, 
-            QgsCoordinateReferenceSystem, 
-            QgsCoordinateTransform, 
-            QgsFeature, 
-            QgsField, 
-            QgsFillSymbol,
-            QgsGeometry, 
-            QgsLineSymbol,
-            #QgsMapRendererCustomPainterJob, 
-            QgsMapRendererParallelJob,
-            QgsMapSettings, 
-            QgsMarkerSymbol,
-            QgsPointXY, 
-            QgsPrintLayout, 
-            QgsProcessingFeedback,
-            QgsProject, 
-            QgsRasterLayer, 
-            QgsRectangle,
-            QgsRendererCategory, 
-            QgsSymbol, 
-            QgsVectorLayer, 
-            QgsWkbTypes, 
-        )
-    from qgis.gui import (
-            QgsMapCanvas, 
-            QgsMapCanvasItem,
-            QgsMapCanvasItem, 
-            QgsMapToolEmitPoint, 
-            QgsMapToolPan, 
-            QgsMapToolZoom, 
-            QgsRubberBand, 
-            QgsStatusBar, 
-            QgsVertexMarker, 
-        )
-    #self.qgs = QgsApplication([], True)
-    pluginpath = '/usr/share/qgis/python/plugins'
-    assert os.path.isdir(pluginpath), 'could not find QGIS plugin path'
-    sys.path.append(pluginpath)
-    #import processing 
-    #from processing.core.Processing import Processing
-    #Processing.initialize()
-except Exception as err:
-    print(f'error: {err.with_traceback(None)}')
+from qgis.PyQt.QtCore import Qt, QSize, QVariant, QTimer
+from qgis.PyQt.QtGui import (
+        QColor, 
+        QCursor,
+        QGuiApplication, 
+        QImage, 
+        QPainter, 
+        QPainterPath, 
+    )
+from qgis.PyQt.QtWidgets import (
+        QAction,
+        QApplication, 
+        #QFrame, 
+        #QLabel, 
+        QMainWindow, 
+        #QStatusBar, 
+        #QVBoxLayout, 
+        #QWidget, 
+    )
+from qgis.core import (
+        QgsApplication, 
+        QgsCategorizedSymbolRenderer, 
+        QgsCoordinateReferenceSystem, 
+        QgsCoordinateTransform, 
+        QgsFeature, 
+        QgsField, 
+        QgsFillSymbol,
+        QgsGeometry, 
+        QgsLineSymbol,
+        #QgsMapRendererCustomPainterJob, 
+        QgsMapRendererParallelJob,
+        QgsMapSettings, 
+        QgsMarkerSymbol,
+        QgsPointXY, 
+        QgsPrintLayout, 
+        QgsProcessingFeedback,
+        QgsProject, 
+        QgsRasterLayer, 
+        QgsRectangle,
+        QgsRendererCategory, 
+        QgsSymbol, 
+        QgsVectorLayer, 
+        QgsWkbTypes, 
+    )
+from qgis.gui import (
+        QgsMapCanvas, 
+        QgsMapCanvasItem,
+        QgsMapCanvasItem, 
+        QgsMapToolEmitPoint, 
+        QgsMapToolPan, 
+        QgsMapToolZoom, 
+        QgsRubberBand, 
+        QgsStatusBar, 
+        QgsVertexMarker, 
+    )
+#self.qgs = QgsApplication([], True)
+pluginpath = '/usr/share/qgis/python/plugins'
+assert os.path.isdir(pluginpath), 'could not find QGIS plugin path'
+sys.path.append(pluginpath)
+#import processing 
+#from processing.core.Processing import Processing
+#Processing.initialize()
 
 
 import numpy as np
