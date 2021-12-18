@@ -8,7 +8,7 @@ from setuptools import setup
 majorver = int(pip.__version__.split('.')[0])
 if majorver < 21:
     print('pip version too low! pip will now be upgraded')
-    os.system(f'{sys.executable} -m pip install --upgrade pip')
+    os.system(f'{sys.executable} -m pip install --upgrade pip numpy wheel')
     from importlib import reload
     reload(pip)
 
@@ -25,28 +25,25 @@ setup(name='aisdb',
           'aisdb', 'aisdb.database', 'aisdb.webdata', 
         ],
       setup_requires=[
-          'cython',
-          #'setuptools',
+          'numpy',
           'pip>=21.1.0',
           'wheel',
         ],
       install_requires=[
-          'pip>=21.1.0',
           'numpy',
-          'pysqlite3-binary', 
-          'pyais', 
-          'shapely', 
-          'requests', 
-          'rasterio', 
           'packaging', 
+          'pillow',
+          'pip>=21.1.0',
+          'pyais', 
+          'requests', 
           'selenium', 
+          'shapely', 
           'tqdm',
-          'scikit-learn',
         ],
-      tests_requires=[
-          'pytest',
-          #'pytest-monitor',
-          'sphinx', # required for building docs
-        ],
+      extras_require={
+          'testing' : ['pytest',],
+          'monitor' : ['pytest', 'pytest-monitor',], 
+          'docs'    : ['sphinx',],
+        },
      )
 

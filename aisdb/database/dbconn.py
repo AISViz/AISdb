@@ -1,3 +1,5 @@
+''' exposes the SQLite DB connection. some postgres code is also included for legacy support '''
+
 import os
 
 from common import dbpath, table_prefix
@@ -78,8 +80,8 @@ class dbconn():
             #create_table_coarsetype(self.cur)
 
         else:
-            #import sqlite3
-            import pysqlite3 as sqlite3
+            import sqlite3
+            #import pysqlite3 as sqlite3
             self.dbtype = 'sqlite3'
 
             if dbpath is not None:

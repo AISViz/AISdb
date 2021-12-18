@@ -1,3 +1,5 @@
+''' a general-use webscraper utilizing selenium, firefox, and mozilla geckodriver '''
+
 import os
 import configparser
 

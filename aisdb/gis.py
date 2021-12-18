@@ -1,3 +1,5 @@
+''' geometry and GIS related utilities '''
+
 import os
 from datetime import datetime, timedelta
 from collections import UserDict
@@ -6,10 +8,11 @@ import json
 
 import numpy as np
 import shapely.wkb
-from shapely.ops import unary_union
-from shapely.geometry import Polygon, Point
+from shapely.ops import unary_union, linemerge, polygonize, cascaded_union
+from shapely.geometry import Polygon, Point, LineString
+from shapely.geometry.collection import GeometryCollection
 
-from common import dbpath, output_dir
+from common import dbpath, output_dir, zones_dir
 from index import index
 
 
@@ -73,6 +76,23 @@ def strdms2dd(strdms):
 
 
 class ZoneGeom():
+    ''' class describing polygon coordinate geometry
+
+        geometry will be stored as a shapely.geometry.Polygon object.
+        some additional variables are stored as attributes, such as 
+        centroids and farthest radial distance from the centroid
+
+        When compared with a shapely.geometry.Point object, the '>' operator
+        will return True if the point is contained within the polygon
+
+        args:
+            name: string
+                unique descriptor of a zone
+            x: np.array 
+                longitude coordinate array
+            y: np.array
+                latitude coordinate array
+    '''
 
     def __init__(self, name, x, y):
         self.name = name
@@ -85,6 +105,18 @@ class ZoneGeom():
         self.minY, self.maxY = np.min(self.y), np.max(self.y)
         if not (self.minX >= -180 and self.maxX <= 180):
             print(f'warning: zone {self.name} boundary exceeds longitudes -180..180')
+            meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
+            adjust = lambda x: ((np.array(x) + 180) % 360) - 180
+            merged = shapely.ops.linemerge([self.geometry.boundary, meridian])
+            border = shapely.ops.unary_union(merged)
+            decomp = list(shapely.ops.polygonize(border))
+            p1, p2 = decomp[0], decomp[-1]
+            splits = [Polygon(zip(adjust(p2.boundary.coords.xy[0]), p2.boundary.coords.xy[1])),
+                      Polygon(zip(adjust(p1.boundary.coords.xy[0]), p1.boundary.coords.xy[1])) ]
+                      #Polygon(zip(adjust(np.array(p2.boundary.coords.xy[0])), p2.boundary.coords.xy[1])) ]
+            #self.geometry = unary_union(splits)
+            self.geometry = GeometryCollection(splits)
+
         if not (self.minY <= 90 and self.maxY >= -90): 
             print(f'warning: zone {self.name} boundary exceeds latitudes -90..90')
 
@@ -104,6 +136,31 @@ class ZoneGeomFromTxt(ZoneGeom):
         super().__init__(name, xy[::2], xy[1::2])
 
 
+def glob_shapetxts(zones_dir=zones_dir, keyorder=lambda key: key):
+    ''' walk a directory to glob txt files. can be used with ZoneGeomFromTxt()
+
+        zones_dir: string
+            directory to walk
+        keyorder:
+            anonymous function for custom sort ordering
+
+        example keyorder:
+
+        .. code-block::
+            
+            # numeric sort on zone names with strsplit on 'Z' char
+            keyorder=lambda key: int(key.rsplit(os.path.sep, 1)[1].split('.')[0].split('Z')[1])
+
+        returns:
+            .txt shapefile paths
+
+    '''
+    txtpaths = reduce(np.append, 
+        [list(map(os.path.join, (path[0] for p in path[2]), path[2])) for path in list(os.walk(zones_dir))]
+    )
+    return sorted(txtpaths, key=keyorder)
+
+
 class Domain():
     ''' collection of ZoneGeom objects, with additional computed statistics such as zone set boundary coordinates
 
@@ -119,6 +176,14 @@ class Domain():
                 if True, the contents of the cache will be cleared before storing
                 new values in the cache
 
+        attr:
+            self.name
+            self.geoms
+            self.minX
+            self.minY
+            self.maxX
+            self.maxY
+
     '''
 
     def __init__(self, name=None, geoms=[], cache=True, clearcache=False):
@@ -132,15 +197,17 @@ class Domain():
                     seed = domaincache.hash_seed(callback=self.init_boundary, passkwargs={"name":self.name})
                     domaincache.drop_hash(seed=seed)
                 self.bounds = domaincache(callback=self.init_boundary, name=self.name)[0]
-
-            self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
-
         else:
             self.bounds = self.init_boundary(name=name)
-            self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
+
+        self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
+        self.minX -=1; self.maxX +=1
+        self.minY -=1; self.maxY +=1
 
     def init_boundary(self, name):
-        return unary_union([g.geometry for g in self.geoms.values()])
+        if sum([g.geometry.type == 'GeometryCollection' for g in self.geoms.values()]) > 0:
+            print('warning: domain exceeded map boundary')
+        return unary_union([g.geometry for g in self.geoms.values() if g.geometry.type != 'GeometryCollection'])
 
     def nearest_polygons_to_point(self, x, y):
         ''' compute great circle distance for this point to each polygon centroid, 

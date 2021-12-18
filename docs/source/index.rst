@@ -6,7 +6,7 @@ AISDB Docs: Index
    :maxdepth: 4
    :caption: Contents:
 
-   sphinx-apidoc/readme
+   readme
    database
    AIS_base_station
 
@@ -16,7 +16,6 @@ AISDB Docs: Index
    :caption: API Docs:
    :titlesonly:
 
-   summary
    sphinx-apidoc/aisdb
 
 

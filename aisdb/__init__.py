@@ -27,7 +27,7 @@ marinetraffic_VD02_key = ''
 commondirs = ['.', 'database', 'webdata']
 cfgnames = ['data_dir', 'dbpath', 'tmp_dir', 'zones_dir', 'rawdata_dir', 'output_dir', 
             'host_addr', 'host_port', 
-            'marinetraffic_VD02_key',
+            #'marinetraffic_VD02_key',
            ]
 
 # legacy support
@@ -54,6 +54,8 @@ if os.path.isfile(cfgfile):
     # initialize config settings as variables
     for setting in cfgnames:
         exec(f'''{setting} = settings['{setting}'] if '{setting}' in settings.keys() else {setting}''')
+    for setting in legacy_cfg:
+        exec(f'''{setting} = settings['{setting}'] if '{setting}' in settings.keys() else {setting}''')
 
     # convert port string to integer
     if isinstance(host_port, str):
@@ -61,32 +63,11 @@ if os.path.isfile(cfgfile):
         host_port = int(host_port)
 
 else:
-    print(f'''no config file found, applying default configs:\n\n{
-            printdefault(cfgnames)
-            }\n\nto remove this warning, copy and paste the above text to {cfgfile} ''')
-
-
-'''
-# create default dirs if they dont exist
-try:
-    if not os.path.isdir(data_dir): 
-        os.mkdir(data_dir)
-    if not os.path.isdir(tmp_dir):
-        os.mkdir(tmp_dir)
-    if not os.path.isdir(zones_dir):
-        os.mkdir(zones_dir)
-    if not os.path.isdir(rawdata_dir):
-        os.mkdir(rawdata_dir)
-    if not os.path.isdir(output_dir):
-        os.mkdir(output_dir)
-except FileNotFoundError as err:
-    raise FileNotFoundError(f'Could not access {err.filename}! Ensure path exists and has valid permissions')
-except PermissionError as err:
-    raise PermissionError(f'Could not access {err.filename}! Ensure path exists and has valid permissions')
-except Exception as err:
-    raise err
-'''
-
+    print(f'''\n{printdefault(cfgnames)}\n\nno .cfg file found, writing default configuration to {cfgfile} ''')
+    if not os.path.isdir(os.path.dirname(cfgfile)):
+        os.mkdir(os.path.dirname(cfgfile))
+    with open(cfgfile, 'w') as f:
+        f.write(printdefault(cfgnames))
 
 
 class import_handler():
@@ -131,7 +112,18 @@ with import_handler() as importconfigs:
 
     from .database.qrygen import qrygen
 
-    from .gebco import Gebco
+    from .webdata.bathymetry import Gebco
+
+    from .webdata.shore_dist import shore_dist_gfw
+
+    from .webdata import merge_data
+
+    from .webdata.merge_data import (
+            merge_layers,
+            merge_tracks_bathymetry,
+            merge_tracks_hullgeom,
+            merge_tracks_shoredist,
+        )
 
     from .gis import (
             dt_2_epoch,
@@ -154,13 +146,6 @@ with import_handler() as importconfigs:
             interp_time,
         )
 
-    from .merge_data import (
-            merge_tracks_hullgeom,
-            merge_tracks_shoredist,
-            merge_tracks_bathymetry,
-        )
-
-    #from .network_graph import graph
     from .network_graph import serialize_network_edge
 
     from .proc_util import (
@@ -168,12 +153,10 @@ with import_handler() as importconfigs:
             writecsv,
         )
 
-    from .shore_dist import shore_dist_gfw
-
     from .track_gen import (
             trackgen,
             segment_tracks_timesplits, 
-            segment_tracks_dbscan, 
+            #segment_tracks_dbscan, 
             fence_tracks, 
             max_tracklength,
             #segment,

@@ -1,18 +1,22 @@
+''' class to convert a dictionary of input parameters into SQL code, and generate queries '''
+
 import os
 from collections import UserDict
 from functools import partial
 from datetime import datetime
 #import threading
-import concurrent.futures
-import asyncio
+#import concurrent.futures
+#import asyncio
 
 import numpy as np
 from shapely.geometry import Polygon
 
-from common import dbpath
+from common import dbpath, data_dir
 from database.qryfcn import crawl
 from database.dbconn import dbconn
-from database.lambdas import dt2monthstr
+from database.lambdas import dt2monthstr, arr2polytxt
+from database.create_tables import createfcns
+from database.insert_tables import insertfcns
 
 
 class qrygen(UserDict):
@@ -54,7 +58,7 @@ class qrygen(UserDict):
 
 
     def run_qry(self, fcn=crawl, dbpath=dbpath):
-        ''' generates an query using self.crawl(), runs it, then returns the resulting rows '''
+        ''' generates a query using self.crawl(), runs it, then returns the resulting rows '''
         #qry = self.crawl(callback=callback, qryfcn=qryfcn)
         qry = fcn(**self)
         print(qry)
@@ -80,12 +84,15 @@ class qrygen(UserDict):
         '''
 
 
-    async def gen_qry(self, fcn=crawl, dbpath=dbpath):
-        ''' similar to run_qry, but in a generator format for better memory performance
+    #async def gen_qry(self, fcn=crawl, dbpath=dbpath):
+    def gen_qry(self, fcn=crawl, dbpath=dbpath):
+        ''' similar to run_qry, but in a generator format for smaller memory footprint 
             
             yields:
-                a set (numpy array) of rows for each unique MMSI
-                rowsets are sorted by time
+                numpy array of rows for each unique MMSI
+                arrays are sorted by MMSI
+                rows are sorted by time
+
         '''
         # create query to crawl db
         qry = fcn(**self)
@@ -96,7 +103,7 @@ class qrygen(UserDict):
         aisdatabase = dbconn(dbpath)
         dt = datetime.now()
         aisdatabase.cur.execute(qry)
-        delta =datetime.now() - dt
+        delta = datetime.now() - dt
         print(f'query time: {delta.total_seconds():.2f}s')
 
         # get 100k rows at a time, yield sets of rows for each unique MMSI
@@ -126,3 +133,16 @@ class qrygen(UserDict):
         yield np.array(mmsi_rows, dtype=object)
 
         print('\ndone')
+
+
+    def gen_dbfile(self, newdb=os.path.join(data_dir, 'export.db'), dbpath=dbpath):
+        ''' export rows matching the callback into a new sqlite database file '''
+        assert 'callback' in self.data.keys()
+        exportdb = dbconn(newdb)
+        aisdatabase = dbconn(dbpath)
+
+        for month in self.data['months']:
+            pass
+            #exportdb.cur.execute()
+
+

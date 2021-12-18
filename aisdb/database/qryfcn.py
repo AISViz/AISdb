@@ -1,3 +1,5 @@
+''' SQL boilerplate for dynamically creating database queries. used when calling qrygen.py '''
+
 from database.qryfcn_legacy import *
 
 

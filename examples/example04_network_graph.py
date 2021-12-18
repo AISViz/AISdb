@@ -2,35 +2,47 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from ais import (
-        network_graph, 
+from aisdb import (
+        Domain,
+        ZoneGeom,
+        ZoneGeomFromTxt, 
         merge_layers, 
         qrygen, 
-        leftjoin_dynamic_static,
+        zones_dir,
+    )
+from aisdb.gis import glob_shapetxts
+from aisdb.network_graph import graph
+from aisdb.database.qryfcn import leftjoin_dynamic_static
+from aisdb.database.lambdas import (
         rtree_in_bbox_time, 
         rtree_in_bbox_time_validmmsi, 
-        ZoneGeomFromTxt, 
-        Domain,
     )
 
 
-# zones_dir should be defined in ~/.config/ais.cfg
 
+#zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in glob_shapetxts(zones_dir=zones_dir)]} 
 
-shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
-zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
-domain = Domain('east', zonegeoms)
+zonegeoms = {
+    'Zone1': ZoneGeom(name='Zone1', 
+                      x=[-170.24, -170.24, -38.5, -38.5, -170.24], 
+                      y=[29.0, 75.2, 75.2, 29.0, 29.0])}
+domain = Domain(name='new_domain', geoms=zonegeoms, cache=False)
 
 # query db for points in domain 
-rowgen = qrygen(
+qry = qrygen(
         start   = datetime(2020,9,1),
-        end     = start + timedelta(hours=24),
-        #end     = datetime(2020,10,1),
+        end     = datetime(2020,9,3),
         xmin    = domain.minX, 
         xmax    = domain.maxX, 
         ymin    = domain.minY, 
         ymax    = domain.maxY,
-    ).gen_qry(dbpath, callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
+        callback=rtree_in_bbox_time,
+    )
+
+# view the SQL code to be executed
+print(crawl(**qry))
+
+rowgen = qry.gen_qry(dbpath=dbpath, fcn=leftjoin_dynamic_static)
 
 merged = merge_layers(rowgen, dbpath)
 
