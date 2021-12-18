@@ -66,7 +66,7 @@ def dms2dd(d, m, s, ax):
 
 def strdms2dd(strdms):
     '''  convert string representation of degrees, minutes, seconds to decimal deg '''
-    d, m, s, ax = [v for v in strdms.split(' ') if v != '']
+    d, m, s, ax = [v for v in strdms.replace("''", '"').split(' ') if v != '']
     return dms2dd(
             float(d.rstrip('°')),
             float(m.rstrip("'")),
