@@ -15,11 +15,23 @@ Package features:
   + Network graph analysis, MMSI deduplication, interpolation, and other processing utilities
 
 
-.. image:: scriptoutput.png
-   :width: 900px
+.. raw:: html 
 
-.. image:: docs/source/scriptoutput.png
-   :width: 900px
+   <a href='docs/source/scriptoutput.png'>
+      <img 
+        src='docs/source/scriptoutput.png' 
+        width="800"
+        onerror="this.onerror=null; this.src=''; this.width='0'"
+      ></img>
+   </a>
+   <a href='_images/scriptoutput.png'>
+      <img 
+        src='_images/scriptoutput.png' 
+        width="800"
+        onerror="this.onerror=null; this.src=''; this.width='0'"
+      ></img>
+  </a>
+
 
 | Source Code: 
   https://gitlab.meridian.cs.dal.ca/matt_s/ais_public
