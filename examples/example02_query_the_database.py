@@ -1,6 +1,6 @@
 from datetime import datetime 
 
-from aisdb import dbpath, qrygen
+from aisdb import dbpath, DBQuery
 from aisdb.database.qryfcn import crawl
 from aisdb.database.lambdas import rtree_in_time_bbox_validmmsi
 
@@ -11,7 +11,7 @@ Some preset filter functions are included in ais/database/lambdas.py, however cu
 '''
 
 
-qry = qrygen(
+qry = DBQuery(
     start     = datetime(2021,1,10),
     end       = datetime(2021,1,11),
     ymin      = 43.35715610154772, 
