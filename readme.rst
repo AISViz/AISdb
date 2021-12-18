@@ -85,7 +85,7 @@ configuration paths will be used inside this directory
 .. code-block:: sh
 
   echo "DATA_DIR=/home/$USER/ais/" > .env  
-  ssh-keygen -f ~/.ssh/id_aisdb  
+  ssh-keygen -f ~/.ssh/id_aisdb -N ''
   docker-compose up --detach  
   AISDB_IP=`docker inspect aisdb | grep 'IPAddr' | grep '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*' | cut -d'"' -f4`  
   ssh ais_env@$AISDB_IP -i ~/.ssh/id_aisdb -X  

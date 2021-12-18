@@ -107,6 +107,7 @@ class ZoneGeom():
             print(f'warning: zone {self.name} boundary exceeds longitudes -180..180')
             meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
             adjust = lambda x: ((np.array(x) + 180) % 360) - 180
+            self.centroid = adjust(self.centroid[0]), self.centroid[1]
             merged = shapely.ops.linemerge([self.geometry.boundary, meridian])
             border = shapely.ops.unary_union(merged)
             decomp = list(shapely.ops.polygonize(border))
