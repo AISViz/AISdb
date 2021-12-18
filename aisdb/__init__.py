@@ -110,7 +110,7 @@ with import_handler() as importconfigs:
 
     from .database import qryfcn
 
-    from .database.qrygen import qrygen
+    from .database.qrygen import DBQuery
 
     from .webdata.bathymetry import Gebco
 
