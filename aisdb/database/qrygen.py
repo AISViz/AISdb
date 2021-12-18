@@ -11,10 +11,12 @@ from datetime import datetime
 import numpy as np
 from shapely.geometry import Polygon
 
-from common import dbpath
+from common import dbpath, data_dir
 from database.qryfcn import crawl
 from database.dbconn import dbconn
 from database.lambdas import dt2monthstr, arr2polytxt
+from database.create_tables import createfcns
+from database.insert_tables import insertfcns
 
 
 class qrygen(UserDict):
@@ -140,6 +142,7 @@ class qrygen(UserDict):
         aisdatabase = dbconn(dbpath)
 
         for month in self.data['months']:
-            exportdb.cur.execute()
+            pass
+            #exportdb.cur.execute()
 
 

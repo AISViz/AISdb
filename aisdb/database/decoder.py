@@ -10,13 +10,12 @@ from functools import partial
 import json
 import pickle
 
-
 import numpy as np
 import pyais
 from pyais import FileReaderStream
 assert version.parse(pyais.__version__) >= version.parse('1.6.1')
 
-from common import *
+from aisdb.common import *
 from database.create_tables import createfcns
 from database.insert_tables import insertfcns
 from database import dbconn

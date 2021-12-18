@@ -95,7 +95,7 @@ def insert_msg24(cur, mstr, rows):
 
 
 
-insertfcn = {
+insertfcns = {
         'msg1' : insert_msg123,
         'msg2' : insert_msg123,
         'msg3' : insert_msg123,

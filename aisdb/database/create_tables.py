@@ -6,11 +6,6 @@ import numpy as np
 
 from database import dbconn
 from aisdb.common import table_prefix
-#import dbconn
-
-#aisdb = dbconn()
-#dbtype = aisdb.dbtype
-#cur = aisdb.conn.cursor()
 
 
 def sqlite_create_table_polygons(cur):
@@ -352,15 +347,82 @@ def aggregate_static_msg5_msg24(dbpath, months_str):
     conn.close()
 
 
-if table_prefix == 'ais_'
-    createfcn = {
-            'msg1' : sqlite_create_table_msg123,
+def create_table_msg27(cur, month):
+    cur.execute(f'''
+            CREATE TABLE IF NOT EXISTS ais_{month}_msg_27 (
+                --id INTEGER PRIMARY KEY AUTOINCREMENT,
+                --unq_id_prefix character varying(11),
+                --lineno integer,
+                --errorflag boolean,
+                mmsi integer,
+                --message_id smallint,
+                --repeat_indicator "char",
+                "time" timestamp without time zone,
+                millisecond smallint,
+                region smallint,
+                country smallint,
+                --base_station integer,
+                --online_data character varying(6),
+                --group_code character varying(4),
+                --sequence_id smallint,
+                --channel character varying(3),
+                --data_length character varying(20),
+                navigational_status smallint,
+                sog real,
+                accuracy boolean,
+                longitude double precision,
+                latitude double precision,
+                cog real
+                --raim_flag boolean,
+                --gnss_status boolean,
+                --spare character varying(4)
+            );
+        ''')
+    #cur.execute(f''' SELECT AddGeometryColumn('ais_{month}_msg_27', 'ais_geom', 4326, 'POINT', 'XY') ''')
+    #cur.execute(f''' SELECT CreateSpatialIndex('ais_{month}_msg_27', 'ais_geom') ''')
+    #cur.execute(f''' CREATE UNIQUE INDEX idx_{month}_msg27_mmsi_time_lat_lon ON 'ais_{month}_msg_27' (mmsi, time, longitude, latitude)''')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg27_mmsi ON 'ais_{month}_msg_27' (mmsi) ''')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg27_time ON 'ais_{month}_msg_27' (time) ''')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg27_lon ON 'ais_{month}_msg_27' (longitude) ''')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg27_lat ON 'ais_{month}_msg_27' (latitude)  ''')
+
+
+def build_idx_msg123(cur, month):
+    dt = datetime.now()
+    cur.execute(f''' CREATE INDEX idx_{month}_msg123_mmsi_time ON 'ais_{month}_msg_1_2_3' (mmsi, time) ''')
+    print('added primary key')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg123_mmsi ON 'ais_{month}_msg_1_2_3' (mmsi) ''')
+    print('indexed mmsi')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg123_time ON 'ais_{month}_msg_1_2_3' (time) ''')
+    print('indexed time')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg123_lon ON 'ais_{month}_msg_1_2_3' (longitude) ''')
+    print('indexed lon')
+    cur.execute(f''' CREATE INDEX idx_{month}_msg123_lat ON 'ais_{month}_msg_1_2_3' (latitude) ''')
+    print('indexed lat')
+    #cur.execute(f''' VACUUM ''')
+    print(f'elapsed: {(datetime.now() - dt).seconds}s')
+
+
+if table_prefix == 'ais_':
+    createfcns = {
+            'msg1'  : sqlite_create_table_msg123,
             #'msg2' : sqlite_create_table_msg123,
             #'msg3' : sqlite_create_table_msg123,
-            'msg5' : create_table_msg5,
+            'msg5'  : create_table_msg5,
             'msg18' : sqlite_create_table_msg18,
             'msg24' : create_table_msg24,
+            'msg27' : create_table_msg27
         }
 else: 
     from create_tables_postgres import *
+    createfcns = {
+            'msg1'  : create_table_msg123,
+            #'msg2' : create_table_msg123,
+            #'msg3' : create_table_msg123,
+            'msg5'  : create_table_msg5,
+            'msg18' : create_table_msg18,
+            'msg24' : create_table_msg24,
+            'msg27' : create_table_msg27
+        }
+
 
