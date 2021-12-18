@@ -14,7 +14,8 @@
 .env
 .git
 .pytest_cache
-docs/html/*
+docs/html
+docs/html**
 env
 tests/data
 tests/data/**

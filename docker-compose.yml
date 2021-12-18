@@ -15,6 +15,7 @@ services:
     #  QT_PLUGIN_PATH: /usr/lib/qt/plugins
     #  XDG_RUNTIME_DIR: /tmp/runtime-ais_env
     build: 
+      target: aisdb
       context: .
       args:
         - USERNAME=ais_env
@@ -25,4 +26,16 @@ services:
       - host_authorized_keys
     volumes:
       - ${DATA_DIR}:/home/ais_env/ais
+    command: ["/sbin/sshd", "-D", "-e", "-h", "/run/secrets/host_ssh_key", "-oAuthorizedKeysFile=/run/secrets/host_authorized_keys", "-oDenyUsers=root", "-oKbdInteractiveAuthentication=no", "-oPasswordAuthentication=no", "-oPermitEmptyPasswords=no", "-oPrintMotd=no", "-oPort=22", "-oPubkeyAuthentication=yes", "-oUseDNS=no", "-oX11Forwarding=yes", "-oX11UseLocalhost=no" ] 
+
+  web:
+    container_name: aisdb_docs
+    build: 
+      target: webserv
+      context: .
+      args:
+        - USERNAME=ais_env
+    expose:
+      - "8085"
+    command: ["npm", "--prefix", "/home/ais_env/js/", "start"]
 

@@ -40,10 +40,10 @@ setup(name='aisdb',
           'shapely', 
           'tqdm',
         ],
-      tests_requires=[
-          'pytest',
-          #'pytest-monitor',
-          'sphinx', # required for building docs
-        ],
+      extras_require={
+          'testing' : ['pytest',],
+          'monitor' : ['pytest', 'pytest-monitor',], 
+          'docs'    : ['sphinx',],
+        },
      )
 

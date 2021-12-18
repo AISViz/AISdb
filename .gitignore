@@ -1,3 +1,5 @@
+**/node_modules/*
+**package-lock.json
 *.cookie
 *.csv
 *.db
@@ -10,8 +12,6 @@
 *__pycache__*
 .env
 ais/webdata/webdriver*
-docs/docserver/node_modules/*
-docs/docserver/package-lock.json
 docs/html/*
 docs/source/readme.rst
 docs/source/sphinx-apidoc/*

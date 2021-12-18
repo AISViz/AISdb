@@ -1,4 +1,4 @@
-FROM archlinux:base
+FROM archlinux:base AS aisdb
 RUN pacman -Syyuu --noconfirm \
    && pacman -S --noconfirm --needed \
       gcc \
@@ -21,26 +21,23 @@ COPY --chown="$USERNAME" setup.py .
 RUN mkdir -p aisdb/database aisdb/webdata \
   && python -m pip install . --no-warn-script-location
 
-COPY --chown="$USERNAME" docs/ docs/
+#COPY --chown="$USERNAME" docs/ docs/
 COPY --chown="$USERNAME" examples/ examples/
 COPY --chown="$USERNAME" tests/ tests/
 COPY --chown="$USERNAME" aisdb/ aisdb/
 
 USER root
-CMD ["/sbin/sshd", \
-      "-D", \
-      "-e", \
-      "-h", "/run/secrets/host_ssh_key", \
-      "-oAuthorizedKeysFile=/run/secrets/host_authorized_keys", \
-      "-oDenyUsers=root", \
-      "-oKbdInteractiveAuthentication=no", \
-      "-oPasswordAuthentication=no", \
-      "-oPermitEmptyPasswords=no", \
-      "-oPrintMotd=no", \
-      "-oPort=22", \
-      "-oPubkeyAuthentication=yes", \
-      "-oUseDNS=no", \
-      "-oX11Forwarding=yes", \
-      "-oX11UseLocalhost=no" ] 
 
+
+FROM aisdb AS webserv
+
+RUN pacman -S nodejs npm python-sphinx --noconfirm
+ARG USERNAME
+USER "$USERNAME"
+RUN npm install express
+
+COPY --chown="$USERNAME" readme.rst .
+COPY --chown="$USERNAME" docs/ docs/
+RUN /bin/bash "/home/$USERNAME/docs/sphinxbuild.sh"
+COPY --chown="$USERNAME" js/ js/
 
