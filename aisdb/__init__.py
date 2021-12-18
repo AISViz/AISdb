@@ -54,6 +54,8 @@ if os.path.isfile(cfgfile):
     # initialize config settings as variables
     for setting in cfgnames:
         exec(f'''{setting} = settings['{setting}'] if '{setting}' in settings.keys() else {setting}''')
+    for setting in legacy_cfg:
+        exec(f'''{setting} = settings['{setting}'] if '{setting}' in settings.keys() else {setting}''')
 
     # convert port string to integer
     if isinstance(host_port, str):

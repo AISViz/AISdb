@@ -1,14 +1,11 @@
 import os
 import logging
 
-#prefix = 'ais_'
-#if os.environ.get('POSTGRESDB'): 
-#    prefix = 'ais_s_'  # legacy database
 from common import table_prefix
 prefix = table_prefix 
 
 
-msg123union18join5 = lambda month, callback, kwargs: (f'''
+msg123union18join5 = lambda month, callback, **kwargs: (f'''
 SELECT m123.mmsi, m123.time, m123.longitude, m123.latitude, m123.cog, m123.sog, m5.vessel_name, ref.coarse_type_txt
   FROM {prefix}{month}_msg_1_2_3 AS m123
   LEFT JOIN (

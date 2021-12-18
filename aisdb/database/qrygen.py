@@ -5,8 +5,8 @@ from collections import UserDict
 from functools import partial
 from datetime import datetime
 #import threading
-import concurrent.futures
-import asyncio
+#import concurrent.futures
+#import asyncio
 
 import numpy as np
 from shapely.geometry import Polygon
@@ -14,7 +14,7 @@ from shapely.geometry import Polygon
 from common import dbpath
 from database.qryfcn import crawl
 from database.dbconn import dbconn
-from database.lambdas import dt2monthstr
+from database.lambdas import dt2monthstr, arr2polytxt
 
 
 class qrygen(UserDict):
@@ -82,7 +82,8 @@ class qrygen(UserDict):
         '''
 
 
-    async def gen_qry(self, fcn=crawl, dbpath=dbpath):
+    #async def gen_qry(self, fcn=crawl, dbpath=dbpath):
+    def gen_qry(self, fcn=crawl, dbpath=dbpath):
         ''' similar to run_qry, but in a generator format for smaller memory footprint 
             
             yields:
