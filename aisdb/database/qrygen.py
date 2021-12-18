@@ -4,14 +4,11 @@ import os
 from collections import UserDict
 from functools import partial
 from datetime import datetime
-#import threading
-#import concurrent.futures
-#import asyncio
 
 import numpy as np
 from shapely.geometry import Polygon
 
-from common import dbpath, data_dir
+from aisdb.common import dbpath, data_dir
 from database.qryfcn import crawl
 from database.dbconn import dbconn
 from database.lambdas import dt2monthstr, arr2polytxt
@@ -19,7 +16,7 @@ from database.create_tables import createfcns
 from database.insert_tables import insertfcns
 
 
-class qrygen(UserDict):
+class DBQuery(UserDict):
 
     def __init__(self, **kwargs):
 
@@ -137,12 +134,32 @@ class qrygen(UserDict):
 
     def gen_dbfile(self, newdb=os.path.join(data_dir, 'export.db'), dbpath=dbpath):
         ''' export rows matching the callback into a new sqlite database file '''
+
+
         assert 'callback' in self.data.keys()
         exportdb = dbconn(newdb)
         aisdatabase = dbconn(dbpath)
 
-        for month in self.data['months']:
-            pass
-            #exportdb.cur.execute()
+        for mstr in self['months']: #exportdb.cur.execute()
+            for msg, fcn in createfcns.items():
+                exportdb.cur.execute('SELECT * FROM sqlite_master WHERE type="table" AND name LIKE ?', [f'%{mstr}%msg_' + msg.split('msg')[1] +'%'])
+                if not exportdb.cur.fetchall():
+                    fcn(exportdb.cur, mstr)
+            
+            for tablename, alias in zip([f'rtree_{mstr}_msg_1_2_3'], ['m123', 'm18']):
+                aisdatabase.cur.execute(f'SELECT * FROM ? WHERE {self["callback"](month=mstr,alias=alias)}',[tablename])
+                res = aisdatabase.cur.fetchmany(10**5)
+                while len(res) > 0:
+                    exportdb.cur.executemany(f'INSERT {",".join(["?" for _ in range(len(res[0]))])} INTO {tablename}', res)
+                    res = aisdatabase.cur.fetchmany(10**5)
+            exportdb.conn.commit()
+
+            #aisdatabase.cur.execute(f'SELECT * FROM ? WHERE {self["callback"](month=mstr, alias="m18")}', [f'rtree_{mstr}_msg_18'])
+                
+
+            #for rows in self.gen_qry:
+            #for msg, fcn in insertfcns.items()
+            #exportdb.cur.execute('SELECT
+            
 
 
