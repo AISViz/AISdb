@@ -17,7 +17,8 @@ from pyais import FileReaderStream
 assert version.parse(pyais.__version__) >= version.parse('1.6.1')
 
 from common import *
-from database.create_tables import *
+from database.create_tables import createfcns
+from database.insert_tables import insertfcns
 from database import dbconn
 from index import index
 
@@ -33,100 +34,6 @@ def is_valid_date(year, month, day, hour=0, minute=0, second=0, **_):
             and 0 <= hour   <= 23 
             and 0 <= minute <= 59 
             and 0 <= second <= 59)
-
-
-def insert_msg123(cur, mstr, rows):
-    #cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_1_2_3" ')
-    #if not cur.fetchall(): 
-    #    sqlite_create_table_msg123(cur, mstr)
-    
-    tup123 = ((
-        float(r['mmsi']), r['epoch'], r['type'], r['lon'], r['lat'], 
-        int(r['status']), r['turn'], r['speed'], r['course'], r['heading'], 
-        r['maneuver'], r['second'],
-        )   for r in rows
-    )
-    coveridx = ((r['mmsi'], r['epoch']) for r in rows)
-    cur.executemany(f'''
-                    INSERT OR IGNORE INTO ais_{mstr}_msg_1_2_3 
-                    (mmsi, time, msgtype, longitude, latitude, 
-                    navigational_status, rot, sog, cog, 
-                    heading, maneuver, utc_second) 
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?) 
-                    ''', 
-                    tup123)
-    return
-
-
-def insert_msg5(cur, mstr, rows):
-    #cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_{mstr}_msg_5" ')
-    #if not cur.fetchall(): 
-    #    create_table_msg5(cur, mstr)
-
-    tup5 = ((
-                r['type'], r['repeat'], int(r['mmsi']), r['ais_version'], r['imo'], r['callsign'], 
-                r['shipname'].rstrip(), r['shiptype'], r['to_bow'], r['to_stern'], r['to_port'], 
-                r['to_starboard'], r['epfd'], r['month'], r['day'], 
-                r['hour'], r['minute'], r['draught'], r['destination'], r['dte'], r['epoch']
-            ) for r in rows 
-        )
-    cur.executemany(f'INSERT INTO ais_{mstr}_msg_5 '
-                    '(message_id, repeat_indicator, mmsi, ais_version, imo, call_sign, '
-                    'vessel_name, ship_type, dim_bow, dim_stern, dim_port, dim_star, '
-                    'fixing_device, eta_month, eta_day, eta_hour, eta_minute, draught, '
-                    'destination, dte, time) '
-                    'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', tup5)
-    return
-
-
-def insert_msg18(cur, mstr, rows):
-    #cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_18" ')
-    #if not cur.fetchall(): 
-    #    sqlite_create_table_msg18(cur, mstr)
-
-    tup18 = ((
-        int(r['mmsi']), r['epoch'], r['type'], r['lon'], r['lat'], 
-        r['radio'] if 'radio' in r.keys() else None,
-        r['speed'], r['course'], r['heading'], r['second'],
-        ) for r in rows
-    )
-    cur.executemany(f'''
-                    INSERT OR IGNORE INTO ais_{mstr}_msg_18 
-                    (mmsi, time, msgtype, longitude, latitude, 
-                    navigational_status, sog, cog, 
-                    heading, utc_second) 
-                    VALUES (?,?,?,?,?,?,?,?,?,?) 
-                    ''', 
-                    tup18)
-    return
-
-
-def insert_msg24(cur, mstr, rows):
-    #cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="ais_{mstr}_msg_24" ')
-    #if not cur.fetchall(): 
-    #    create_table_msg24(cur, mstr)
-
-    tup24 = ((
-            r['type'], r['repeat'], int(r['mmsi']), r['partno'], 
-            r['shipname']           if r['partno'] == 0 else None,
-            r['shiptype']           if r['partno'] == 1 else None,
-            r['vendorid']           if r['partno'] == 1 else None,
-            r['model']              if r['partno'] == 1 else None,
-            r['serial']             if r['partno'] == 1 else None,
-            r['callsign']           if r['partno'] == 1 else None, 
-            r['to_bow']             if r['partno'] == 1 else None, 
-            r['to_stern']           if r['partno'] == 1 else None, 
-            r['to_port']            if r['partno'] == 1 else None, 
-            r['to_starboard']       if r['partno'] == 1 else None, 
-            r['mothership_mmsi']    if r['partno'] == 1 else None, 
-            r['epoch'],
-        ) for r in rows
-    )
-    cur.executemany(f'INSERT INTO ais_{mstr}_msg_24 '
-                    '(message_id, repeat_indicator, mmsi, sequence_id, vessel_name, ship_type, vendor_id,  '
-                    'model, serial, call_sign, dim_bow, dim_stern, dim_port, dim_star, mother_ship_mmsi, time) '
-                    'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', tup24)
-    return
 
 
 def append_file(picklefile, batch):
@@ -230,24 +137,6 @@ def decode_raw_pyais(fpath):
 
 
 def insert_serialized(filepaths, dbpath):
-    insertfcn = {
-            'msg1' : insert_msg123,
-            'msg2' : insert_msg123,
-            'msg3' : insert_msg123,
-            'msg5' : insert_msg5,
-            'msg18' : insert_msg18,
-            #'msg19' : ,
-            'msg24' : insert_msg24,
-            #'msg27' : insert_msg123,
-        }
-    createfcn = {
-            'msg1' : sqlite_create_table_msg123,
-            #'msg2' : sqlite_create_table_msg123,
-            #'msg3' : sqlite_create_table_msg123,
-            'msg5' : create_table_msg5,
-            'msg18' : sqlite_create_table_msg18,
-            'msg24' : create_table_msg24,
-        }
 
     print('deserializing decoded data and performing DB insert...')
 
@@ -268,7 +157,7 @@ def insert_serialized(filepaths, dbpath):
         cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_1_2_3" ')
         if not cur.fetchall(): 
             print(f'creating database tables for month {mstr}...')
-            for fcn in createfcn.values(): fcn(cur, mstr)
+            for fcn in createfcns.values(): fcn(cur, mstr)
 
         dt = datetime.now()
 
@@ -281,7 +170,7 @@ def insert_serialized(filepaths, dbpath):
                     break
                 except Exception as e:
                     raise e
-                insertfcn[msgtype](cur, mstr, rows)
+                insertfcns[msgtype](cur, mstr, rows)
         cur.execute('COMMIT TRANSACTION')
         conn.commit()
 

@@ -101,7 +101,7 @@ class qrygen(UserDict):
         aisdatabase = dbconn(dbpath)
         dt = datetime.now()
         aisdatabase.cur.execute(qry)
-        delta =datetime.now() - dt
+        delta = datetime.now() - dt
         print(f'query time: {delta.total_seconds():.2f}s')
 
         # get 100k rows at a time, yield sets of rows for each unique MMSI
@@ -131,3 +131,15 @@ class qrygen(UserDict):
         yield np.array(mmsi_rows, dtype=object)
 
         print('\ndone')
+
+
+    def gen_dbfile(self, newdb=os.path.join(data_dir, 'export.db'), dbpath=dbpath):
+        ''' export rows matching the callback into a new sqlite database file '''
+        assert 'callback' in self.data.keys()
+        exportdb = dbconn(newdb)
+        aisdatabase = dbconn(dbpath)
+
+        for month in self.data['months']:
+            exportdb.cur.execute()
+
+
