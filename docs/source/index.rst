@@ -7,6 +7,7 @@ AISDB Docs: Index
    :caption: Contents:
 
    readme
+   docker
    database
    AIS_base_station
 

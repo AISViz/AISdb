@@ -67,30 +67,6 @@ enabled by `installing QGIS <https://qgis.org/en/site/forusers/download.html>`__
 when creating an environment using venv, the ``--system-site-packages``
 option must be used to share QGIS application data with the environment.
 
-.. docker:
-
-Docker Install
---------------
-
-Build the Dockerfile with docker-compose, and connect to the container
-using SSH. Use the ``-X`` option on connect to enable X11 forwarding
-over SSH, allowing the QGIS application window to be displayed. You will
-need a public/private key to connect, by default the docker-compose file
-will look for ``~/.ssh/id_aisdb`` and ``~/.ssh/id_aisdb.pub``. Set the
-environment variable ``DATA_DIR`` to the desired storage location, this
-path will be mounted as a volume within the container. The default
-configuration paths will be used inside this directory 
-(see :ref:`Configuring <Configuring>` below)
-
-.. code-block:: sh
-
-  echo "DATA_DIR=/home/$USER/ais/" > .env  
-  ssh-keygen -f ~/.ssh/id_aisdb -N ''
-  docker-compose up --detach  
-  AISDB_IP=`docker inspect aisdb | grep 'IPAddr' | grep '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*' | cut -d'"' -f4`  
-  ssh ais_env@$AISDB_IP -i ~/.ssh/id_aisdb -X  
-
-
 .. _Configuring: 
 
 Configuring

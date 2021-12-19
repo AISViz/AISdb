@@ -3,8 +3,8 @@ version: '3.9'
 
 services:
 
-  app:
-    container_name: aisdb
+  aisdb:
+    container_name: aisdb_sshd
     build: 
       target: sshhost
       context: .
@@ -18,14 +18,6 @@ services:
     volumes:
       - ${DATA_DIR}:/home/ais_env/ais
 
-  tests:
-    container_name: aisdb_test
-    build:
-      target: runtest
-      context: .
-      args:
-        - USERNAME=ais_env
-
   docs:
     container_name: aisdb_docs
     build: 
@@ -35,6 +27,18 @@ services:
         - USERNAME=ais_env
     expose:
       - "8085"
+    networks:
+      - net1
+
+  test:
+    container_name: aisdb_test
+    build:
+      target: runtest
+      context: .
+      args:
+        - USERNAME=ais_env
+    volumes:
+      - ${DATA_DIR}:/home/ais_env/ais
 
 
 secrets:
@@ -42,3 +46,14 @@ secrets:
     file: ~/.ssh/id_aisdb
   host_authorized_keys:
     file: ~/.ssh/id_aisdb.pub
+
+
+networks:
+  net1:
+    name: net1
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: "2001:3984:3989::/64"
+          gateway: "2001:3984:3989::1"
+

@@ -10,6 +10,8 @@
 *.pyc
 *.swp
 *__pycache__*
+.*
+.**
 .env
 ais/webdata/webdriver*
 docs/html/*
