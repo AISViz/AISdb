@@ -1,5 +1,8 @@
-#image:
-#  name: alpine:latest
+image:
+  name: docker:latest
+
+services:
+  - docker:dind
 
 stages:
   - build
@@ -7,8 +10,8 @@ stages:
   - doctest
 
 before_script:
-  - mkdir -p ~/ais && export DATA_DIR=~/ais
-  - apk add docker docker-compose sudo
+#  - mkdir -p ~/ais && export DATA_DIR=~/ais
+  - apk add --no-cache py3-pip && pip install docker-compose
 
 create-package:
   type: build
@@ -16,4 +19,4 @@ create-package:
   only: 
     - test-ci
   script:
-    - sudo -E docker-compose build aisdb
+    - docker-compose build aisdb
