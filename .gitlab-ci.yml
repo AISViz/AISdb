@@ -7,9 +7,10 @@ stages:
   - doctest
 
 before_script:
-  - apk add docker docker-compose
+  - apk add git docker docker-compose
   - mkdir -p ~/ais
   - export DATA_DIR=~/ais
+  - git clone https://gitlab.meridian.cs.dal.ca/matt_s/aisdb.git && cd aisdb
 
 create-package:
   type: build
