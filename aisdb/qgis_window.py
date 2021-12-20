@@ -380,7 +380,7 @@ class ApplicationWindow(QMainWindow):
             ymin = min(ymin, np.min(geometry.xy[1]))
             xmax = max(xmax, np.max(geometry.xy[0]))
             ymax = max(ymax, np.max(geometry.xy[1]))
-        elif geometry.type == 'MultiPoint':
+        elif geom.type == 'MultiPoint':
             xmin = min(xmin, list(geometry)[0].x)
             ymin = min(ymin, list(geometry)[0].y)
             xmax = max(xmax, list(geometry)[0].x)
@@ -410,14 +410,18 @@ class ApplicationWindow(QMainWindow):
     def add_feature_point(self, geom, ident, color=None, opacity=None):
         ''' add a shapely.geometry.MultiPoint object to the map canvas '''
         if color is None: color = (colorhash(ident),)
-        assert geom.type.upper() == 'MULTIPOINT' or geom.type.upper() == 'GEOMETRYCOLLECTION'
         r = customQgsMultiPoint(self.canvas)
-        pts = [self.xform.transform(QgsPointXY(xy.x, xy.y)) for xy in geom]
-        qgeom = QgsGeometry.fromMultiPointXY(pts)
+        if geom.type == 'MultiPoint' or geom.type == 'GeometryCollection':
+            pts = [self.xform.transform(QgsPointXY(xy.x, xy.y)) for xy in geom]
+            qgeom = QgsGeometry.fromMultiPointXY(pts)
+        elif geom.type == 'Point':
+            pts = self.xform.transform(QgsPointXY(geom.x, geom.y))
+            qgeom = QgsGeometry.fromPointXY(pts)
+        else:
+            assert False
         r.setColor(QColor(*color))
         r.setOpacity(opacity or 1)
         r.setToGeometry(qgeom, None)
-        #return r
         self.features_point.append((ident, r))
         return
 
