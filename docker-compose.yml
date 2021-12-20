@@ -8,6 +8,7 @@ services:
     build: 
       target: sshhost
       context: .
+      dockerfile: ./docker/Dockerfile
       args:
         - USERNAME=ais_env
     expose:
@@ -18,32 +19,33 @@ services:
     volumes:
       - ${DATA_DIR}:/home/ais_env/ais
     networks:
-      - net1
+      - ipv6_private 
 
   docs:
     container_name: aisdb_docs
     build: 
       target: webserv
       context: .
+      dockerfile: ./docker/Dockerfile
       args:
         - USERNAME=ais_env
     expose:
       - "8085"
     networks:
-      - net1
-    restart: always
+      - ipv6_private
 
   test:
     container_name: aisdb_test
     build:
       target: runtest
       context: .
+      dockerfile: ./docker/Dockerfile
       args:
         - USERNAME=ais_env
     volumes:
       - ${DATA_DIR}:/home/ais_env/ais
     networks:
-      - net1
+      - ipv6_private
 
 
 secrets:
@@ -54,11 +56,11 @@ secrets:
 
 
 networks:
-  net1:
-    name: net1
+  ipv6_private:
+    name: ipv6_private
     enable_ipv6: true
     ipam:
       config:
-        - subnet: "2001:3984:3989::/124"
-          gateway: "2001:3984:3989::1"
+        - subnet: "fc00:0:0::/120"
+          gateway: "fc00:0:0::1"
 

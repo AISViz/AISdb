@@ -17,13 +17,12 @@ RUN mkdir -p aisdb/database aisdb/webdata && python -m pip install . --no-warn-s
 FROM aisdb AS sshhost
 USER root
 RUN pacman -S --noconfirm --needed openssh xorg-xauth
-COPY --chown="$USERNAME" docker_entry.py .
+COPY --chown="$USERNAME" docker/entry.py .
 COPY --chown="$USERNAME" examples/ examples/
 COPY --chown="$USERNAME" tests/ tests/
 COPY --chown="$USERNAME" aisdb/ aisdb/
 RUN chown -R "$USERNAME" aisdb
-ENTRYPOINT ["python", "./docker_entry.py"]
-CMD ["/sbin/sshd", "-D", "-e", "-h", "/run/secrets/host_ssh_key", "-oAuthorizedKeysFile=/run/secrets/host_authorized_keys", "-oDenyUsers=root", "-oKbdInteractiveAuthentication=no", "-oPasswordAuthentication=no", "-oPermitEmptyPasswords=no", "-oPrintMotd=no", "-oPort=22", "-oPubkeyAuthentication=yes", "-oUseDNS=no", "-oX11Forwarding=yes", "-oX11UseLocalhost=no"]
+ENTRYPOINT ["python", "./entry.py"]
 
 # run package tests
 FROM aisdb AS runtest
@@ -45,6 +44,6 @@ COPY --chown="$USERNAME" readme.rst .
 COPY --chown="$USERNAME" docs/ docs/
 COPY --chown="$USERNAME" aisdb/ aisdb/
 RUN /bin/bash "/home/$USERNAME/docs/sphinxbuild.sh"
-COPY --chown="$USERNAME" js/ js/
-CMD ["npm", "--prefix", "/home/ais_env/js/", "start"]
+COPY --chown="$USERNAME" docker/ docker/
+CMD ["npm", "--prefix", "/home/ais_env/docker/", "start"]
 
