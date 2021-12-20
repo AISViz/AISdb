@@ -7,9 +7,8 @@ stages:
   - doctest
 
 before_script:
-  - uname -r
-  - ls -lash
   - mkdir -p ~/ais && export DATA_DIR=~/ais
+  - apt-get install docker-compose 
 
 create-package:
   type: build
