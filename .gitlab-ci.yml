@@ -10,7 +10,7 @@ stages:
   - doctest
 
 before_script:
-#  - mkdir -p ~/ais && export DATA_DIR=~/ais
+  - mkdir -p ~/ais && export DATA_DIR=~/ais
 #  - apk add --no-cache gcc py3-pip && pip install docker-compose
 
 create-package:
