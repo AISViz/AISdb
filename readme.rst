@@ -67,6 +67,8 @@ enabled by `installing QGIS <https://qgis.org/en/site/forusers/download.html>`__
 when creating an environment using venv, the ``--system-site-packages``
 option must be used to share QGIS application data with the environment.
 
+Alternatively, the package can be :ref:`installed with docker <docker>`
+
 .. _Configuring: 
 
 Configuring
@@ -80,7 +82,7 @@ Configuring
 
 .. code-block:: sh
 
-  dbpath = $HOME/ais.db
+  dbpath = $HOME/ais/ais.db
   data_dir = $HOME/ais/
   zones_dir = $HOME/ais/zones/
   tmp_dir = $HOME/ais/tmp_parsing/

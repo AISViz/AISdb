@@ -17,6 +17,8 @@ services:
       - host_authorized_keys
     volumes:
       - ${DATA_DIR}:/home/ais_env/ais
+    networks:
+      - net1
 
   docs:
     container_name: aisdb_docs
@@ -39,6 +41,8 @@ services:
         - USERNAME=ais_env
     volumes:
       - ${DATA_DIR}:/home/ais_env/ais
+    networks:
+      - net1
 
 
 secrets:
@@ -54,6 +58,6 @@ networks:
     enable_ipv6: true
     ipam:
       config:
-        - subnet: "2001:3984:3989::/64"
+        - subnet: "2001:3984:3989::/124"
           gateway: "2001:3984:3989::1"
 

@@ -1,4 +1,4 @@
-.. docker:
+.. _docker:
 
 Docker Install
 --------------
@@ -10,7 +10,7 @@ Docker is also used for CI testing and generating sphinx docs.
 Set the environment variable ``DATA_DIR`` to the desired storage location, this
 path will be mounted as a volume within the container. 
 The default paths will be used inside this directory 
-(see :ref:`Configuring <Configuring>` below)
+(see :ref:`Configuring <Configuring>`)
 
 .. code-block:: sh
 
@@ -26,16 +26,19 @@ The ``-X`` option is used when connecting to enable forwarding
   $ ssh-keygen -f ~/.ssh/id_aisdb -N ''
 
 
-Start the aisdb environment and sphinx docs using docker-compose
+Create and start the aisdb environment and sphinx docs with ``docker-compose up``. 
+Possible options are ``aisdb``, ``docs``, or ``test``
 
   
 .. code-block:: sh
 
   $ docker-compose up aisdb docs
 
+  ...
+
   aisdb_sshd  | Starting environment over SSH
   aisdb_sshd  | 
-  aisdb_sshd  | ssh -X -p 22 -i ~/.ssh/id_aisdb ais_env@172.22.0.2
+  aisdb_sshd  | ssh -X -i ~/.ssh/id_aisdb ais_env@2001:3984:3989::4
   aisdb_sshd  | 
   aisdb_sshd  | Server listening on 0.0.0.0 port 22.
   aisdb_sshd  | Server listening on :: port 22.
@@ -44,7 +47,7 @@ Start the aisdb environment and sphinx docs using docker-compose
   aisdb_docs  | > node server.js
   aisdb_docs  | 
   aisdb_docs  | Docs available at http://172.23.0.2:8085
-  aisdb_docs  | Docs available at http://[2001:3984:3989::2]:8085
+  aisdb_docs  | Docs available at http://[2001:3984:3989::3]:8085
 
 
 Copy the container address and connect to the container
