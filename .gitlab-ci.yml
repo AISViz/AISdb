@@ -9,8 +9,6 @@ stages:
 before_script:
   - apk update
   - apk add git docker docker-compose openrc
-  - service docker start
-  - rc-update add docker boot
   - service docker status
   - mkdir -p ~/ais && export DATA_DIR=~/ais
 
