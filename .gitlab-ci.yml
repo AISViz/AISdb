@@ -1,5 +1,5 @@
-image:
-  name: docker/compose:1.29.2
+#image:
+#  name: docker/compose:1.29.2
 
 #services:
 #  - docker:dind
@@ -19,4 +19,4 @@ create-package:
   only: 
     - test-ci
   script:
-    - docker-compose build aisdb
+    - pip3 install .
