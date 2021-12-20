@@ -1,0 +1,21 @@
+#image:
+#  name: alpine:latest
+
+stages:
+  - build
+  - test
+  - doctest
+
+before_script:
+  - uname -r
+  - apk add --no-cache python
+  - python -m pip install docker-compose
+  - docker-compose -v
+
+create-package:
+  type: build
+  stage: build
+  only: test-ci
+  script:
+    - echo testing
+    - docker-compose -v
