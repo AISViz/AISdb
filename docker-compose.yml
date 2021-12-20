@@ -3,11 +3,12 @@ version: '3.9'
 
 services:
 
-  app:
-    container_name: aisdb
+  aisdb:
+    container_name: aisdb_sshd
     build: 
       target: sshhost
       context: .
+      dockerfile: ./docker/Dockerfile
       args:
         - USERNAME=ais_env
     expose:
@@ -17,24 +18,34 @@ services:
       - host_authorized_keys
     volumes:
       - ${DATA_DIR}:/home/ais_env/ais
-
-  tests:
-    container_name: aisdb_test
-    build:
-      target: runtest
-      context: .
-      args:
-        - USERNAME=ais_env
+    networks:
+      - ipv6_private 
 
   docs:
     container_name: aisdb_docs
     build: 
       target: webserv
       context: .
+      dockerfile: ./docker/Dockerfile
       args:
         - USERNAME=ais_env
     expose:
       - "8085"
+    networks:
+      - ipv6_private
+
+  test:
+    container_name: aisdb_test
+    build:
+      target: runtest
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        - USERNAME=ais_env
+    volumes:
+      - ${DATA_DIR}:/home/ais_env/ais
+    networks:
+      - ipv6_private
 
 
 secrets:
@@ -42,3 +53,14 @@ secrets:
     file: ~/.ssh/id_aisdb
   host_authorized_keys:
     file: ~/.ssh/id_aisdb.pub
+
+
+networks:
+  ipv6_private:
+    name: ipv6_private
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: "fc00:0:0::/120"
+          gateway: "fc00:0:0::1"
+

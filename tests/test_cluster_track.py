@@ -1,18 +1,14 @@
-'''
-https://en.wikipedia.org/wiki/Image_segmentation#Clustering_methods
-https://geoffboeing.com/2014/08/clustering-to-reduce-spatial-data-set-size/
-'''
-
-
 import pickle
 
 from shapely.geometry import MultiPoint, Point, LineString
 
-from track_viz import TrackViz
+from aisdb.common import zones_dir
+from qgis_window import ApplicationWindow
 from database.lambdas import *
 from database.qryfcn import leftjoin_dynamic_static
-from merge_data import merge_layers
+from webdata.merge_data import merge_layers
 from track_gen import segment_tracks_timesplits
+from gis import Domain, ZoneGeom, ZoneGeomFromTxt
 #from clustering import * 
 
 #assert track_dicts
@@ -22,22 +18,22 @@ shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in o
 zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
 domain = Domain('east', zonegeoms)
 
-viz = TrackViz()
+viz = ApplicationWindow()
 
 for txt, geom in list(domain.geoms.items()):
     viz.add_feature_polyline(geom.geometry, ident=txt, opacity=0.3, color=(200, 200, 200))
 
 
 
-test_cluster_duplicate_mmsi(track_dicts):
+def test_cluster_duplicate_mmsi(track_dicts):
 
     rowgen = qrygen(
             start   = datetime(2019,9,1),
             end     = datetime(2019,9,8),
             #end     = start + timedelta(hours=24),
-            xmin    = domain.minX, 
-            xmax    = domain.maxX, 
-            ymin    = domain.minY, 
+            xmin    = domain.minX,
+            xmax    = domain.maxX,
+            ymin    = domain.minY,
             ymax    = domain.maxY,
         ).gen_qry(callback=rtree_in_bbox_time, qryfcn=leftjoin_dynamic_static)
 
@@ -110,6 +106,6 @@ test_cluster_duplicate_mmsi(track_dicts):
     viz.clear_points()
 
 
-    viz = TrackViz()
+    viz = ApplicationWindow()
 
     
