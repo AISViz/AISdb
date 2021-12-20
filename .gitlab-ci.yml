@@ -11,7 +11,8 @@ stages:
 
 before_script:
   - mkdir -p ~/ais && export DATA_DIR=~/ais
-  - apk add --no-cache gcc py3-pip
+  - apk add --no-cache gcc py3-pip python3
+  - pip3 install wheel numpy
 
 create-package:
   type: build
