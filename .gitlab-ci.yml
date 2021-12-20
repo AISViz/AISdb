@@ -1,5 +1,5 @@
 image:
-  name: docker/compose:latest 
+  name: docker/compose:1.29.2
 
 #services:
 #  - docker:dind
