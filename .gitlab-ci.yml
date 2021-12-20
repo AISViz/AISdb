@@ -1,8 +1,8 @@
 image:
-  name: docker:latest
+  name: docker/compose:latest 
 
-services:
-  - docker:dind
+#services:
+#  - docker:dind
 
 stages:
   - build
@@ -11,7 +11,7 @@ stages:
 
 before_script:
 #  - mkdir -p ~/ais && export DATA_DIR=~/ais
-  - apk add --no-cache py3-pip && pip install docker-compose
+#  - apk add --no-cache gcc py3-pip && pip install docker-compose
 
 create-package:
   type: build
