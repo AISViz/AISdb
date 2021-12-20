@@ -31,6 +31,7 @@ services:
       - "8085"
     networks:
       - net1
+    restart: always
 
   test:
     container_name: aisdb_test

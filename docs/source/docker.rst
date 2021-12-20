@@ -38,7 +38,7 @@ Possible options are ``aisdb``, ``docs``, or ``test``
 
   aisdb_sshd  | Starting environment over SSH
   aisdb_sshd  | 
-  aisdb_sshd  | ssh -X -i ~/.ssh/id_aisdb ais_env@2001:3984:3989::4
+  aisdb_sshd  | ssh -X -i ~/.ssh/id_aisdb ais_env@2001:3984:3989::2
   aisdb_sshd  | 
   aisdb_sshd  | Server listening on 0.0.0.0 port 22.
   aisdb_sshd  | Server listening on :: port 22.
@@ -54,7 +54,7 @@ Copy the container address and connect to the container
 
 .. code-block:: sh
 
-  $ ssh -X -p 22 -i ~/.ssh/id_aisdb ais_env@172.22.0.2
+  $ ssh -X -i ~/.ssh/id_aisdb ais_env@2001:3984:3989::2
 
   Last login: Sun Dec 19 11:41:23 2021 from 172.22.0.1
   Python 3.10.1 (main, Dec 11 2021, 17:22:55) [GCC 11.1.0] on linux

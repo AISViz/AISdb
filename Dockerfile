@@ -21,6 +21,7 @@ COPY --chown="$USERNAME" docker_entry.py .
 COPY --chown="$USERNAME" examples/ examples/
 COPY --chown="$USERNAME" tests/ tests/
 COPY --chown="$USERNAME" aisdb/ aisdb/
+RUN chown -R "$USERNAME" aisdb
 ENTRYPOINT ["python", "./docker_entry.py"]
 CMD ["/sbin/sshd", "-D", "-e", "-h", "/run/secrets/host_ssh_key", "-oAuthorizedKeysFile=/run/secrets/host_authorized_keys", "-oDenyUsers=root", "-oKbdInteractiveAuthentication=no", "-oPasswordAuthentication=no", "-oPermitEmptyPasswords=no", "-oPrintMotd=no", "-oPort=22", "-oPubkeyAuthentication=yes", "-oUseDNS=no", "-oX11Forwarding=yes", "-oX11UseLocalhost=no"]
 
