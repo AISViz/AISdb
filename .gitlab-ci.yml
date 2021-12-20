@@ -15,7 +15,8 @@ before_script:
 create-package:
   type: build
   stage: build
-  only: test-ci
+  only: 
+    - test-ci
   script:
     - echo testing
     - docker-compose -v
