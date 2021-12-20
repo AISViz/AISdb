@@ -7,11 +7,11 @@ stages:
   - doctest
 
 before_script:
+  - apk update
   - apk add git docker docker-compose
-  - mkdir -p ~/ais
-  - export DATA_DIR=~/ais
-  - ls -lash
-  - ls -lash aisdb
+  - rc-update add docker boot
+  - service docker status
+  - mkdir -p ~/ais && export DATA_DIR=~/ais
 
 create-package:
   type: build
