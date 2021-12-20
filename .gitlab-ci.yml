@@ -2,9 +2,9 @@ stages:
   - build
 
 before_script:
-  - mkdir -p ~/ais && export DATA_DIR=~/ais
   - apk add --no-cache gcc python3
-  - python3 -m ensurepip && python3 -m pip install --upgrade setuptools wheel
+  - python3 -m ensurepip && python3 -m pip install --upgrade setuptools wheel pip cython
+  - mkdir -p ~/ais && export DATA_DIR=~/ais
 
 create-package:
   type: build
