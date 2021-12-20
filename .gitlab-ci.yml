@@ -1,18 +1,10 @@
-#image:
-#  name: docker/compose:1.29.2
-
-#services:
-#  - docker:dind
-
 stages:
   - build
-  - test
-  - doctest
 
 before_script:
   - mkdir -p ~/ais && export DATA_DIR=~/ais
-  - apk add --no-cache gcc py3-pip python3
-  - pip3 install --upgrade setuptools wheel
+  - apk add --no-cache gcc python3
+  - python3 -m ensurepip && python3 -m pip install --upgrade setuptools wheel
 
 create-package:
   type: build
@@ -20,4 +12,4 @@ create-package:
   only: 
     - test-ci
   script:
-    - pip3 install .
+    - python3 -m pip install .
