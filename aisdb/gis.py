@@ -16,6 +16,9 @@ from common import dbpath, output_dir, zones_dir
 from index import index
 
 
+shiftcoord = lambda x: ((np.array(x) + 180) % 360) - 180
+
+
 def dt_2_epoch(dt_arr, t0=datetime(1970,1,1,0,0,0)):
     ''' convert datetime.datetime to epoch minutes '''
     delta = lambda dt: (dt - t0).total_seconds() // 60
@@ -106,15 +109,14 @@ class ZoneGeom():
         if not (self.minX >= -180 and self.maxX <= 180):
             print(f'warning: zone {self.name} boundary exceeds longitudes -180..180')
             meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
-            adjust = lambda x: ((np.array(x) + 180) % 360) - 180
-            self.centroid = adjust(self.centroid[0]), self.centroid[1]
+            self.centroid = shiftcoord(self.centroid[0]), self.centroid[1]
             merged = shapely.ops.linemerge([self.geometry.boundary, meridian])
             border = shapely.ops.unary_union(merged)
             decomp = list(shapely.ops.polygonize(border))
             p1, p2 = decomp[0], decomp[-1]
-            splits = [Polygon(zip(adjust(p2.boundary.coords.xy[0]), p2.boundary.coords.xy[1])),
-                      Polygon(zip(adjust(p1.boundary.coords.xy[0]), p1.boundary.coords.xy[1])) ]
-                      #Polygon(zip(adjust(np.array(p2.boundary.coords.xy[0])), p2.boundary.coords.xy[1])) ]
+            splits = [Polygon(zip(shiftcoord(p2.boundary.coords.xy[0]), p2.boundary.coords.xy[1])),
+                      Polygon(zip(shiftcoord(p1.boundary.coords.xy[0]), p1.boundary.coords.xy[1])) ]
+                      #Polygon(zip(shiftcoord(np.array(p2.boundary.coords.xy[0])), p2.boundary.coords.xy[1])) ]
             #self.geometry = unary_union(splits)
             self.geometry = GeometryCollection(splits)
 
@@ -188,6 +190,7 @@ class Domain():
     '''
 
     def __init__(self, name=None, geoms=[], cache=True, clearcache=False):
+        if len(geoms) == 0: assert False, 'domain needs to have atleast one polygon geometry'
         self.name = name
         self.geoms = geoms
         if cache: 
