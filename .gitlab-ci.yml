@@ -8,7 +8,7 @@ stages:
 
 before_script:
   - mkdir -p ~/ais && export DATA_DIR=~/ais
-  - apk add docker docker-compose 
+  - apk add docker docker-compose sudo
 
 create-package:
   type: build
@@ -16,4 +16,4 @@ create-package:
   only: 
     - test-ci
   script:
-    - docker-compose build aisdb
+    - sudo -E docker-compose build aisdb
