@@ -8,7 +8,7 @@ stages:
 
 before_script:
   - mkdir -p ~/ais && export DATA_DIR=~/ais
-  - apt-get install docker-compose 
+  - apk add docker docker-compose 
 
 create-package:
   type: build
