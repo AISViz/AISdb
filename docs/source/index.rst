@@ -17,7 +17,7 @@ AISDB Docs: Index
    :caption: API Docs:
    :titlesonly:
 
-   sphinx-apidoc/aisdb
+   api/aisdb
 
 
 
