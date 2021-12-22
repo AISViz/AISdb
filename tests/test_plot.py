@@ -8,20 +8,13 @@ from shapely.geometry import Polygon, LineString, MultiPoint
 from database import *
 from gis import Domain, ZoneGeom, ZoneGeomFromTxt, glob_shapetxts
 from track_gen import segment_tracks_timesplits
-from tests.create_testing_data import sample_random_polygon, arrayhash
+from tests.create_testing_data import sample_random_polygon, arrayhash, zonegeoms_or_randompoly
 
 from aisdb.qgis_window import ApplicationWindow
 
 
 #shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
-shapefilepaths = glob_shapetxts()
-if len(shapefilepaths) > 0:
-    zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
-else:
-    print('no zone geometry found, fuzzing some new ones...')
-    zonegeoms = { arrayhash(matrix) : ZoneGeom(arrayhash(matrix), *matrix) for matrix in  [sample_random_polygon() for _ in range(10)] }
-
-
+zonegeoms = zonegeoms_or_randompoly()
 domain = Domain('testdomain', zonegeoms, cache=False)
 
 

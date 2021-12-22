@@ -3,8 +3,10 @@ from hashlib import sha256
 from functools import reduce
 
 import numpy as np
+from shapely.geometry import Polygon
 
 from aisdb.database.lambdas import boxpoly
+from aisdb.gis import shiftcoord, ZoneGeom, ZoneGeomFromTxt, glob_shapetxts
 
 
 arrayhash = lambda matrix, nbytes=2: sha256(reduce(np.append, matrix).tobytes()).hexdigest()[nbytes*-8:]
@@ -43,11 +45,6 @@ def sample_track_pickle():
     return testrows
 
 
-
-from shapely.geometry import Polygon
-from aisdb.gis import shiftcoord
-
-
 def sample_random_polygon():
     vertices = 5
     x,y=[0,0,0],[0,0,0]
@@ -59,4 +56,13 @@ def sample_random_polygon():
     #return geom
     return x, y
 
+
+def zonegeoms_or_randompoly(): 
+    shapefilepaths = glob_shapetxts()
+    if len(shapefilepaths) > 0:
+        zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
+    else:
+        print('no zone geometry found, fuzzing some new ones...')
+        zonegeoms = { arrayhash(matrix) : ZoneGeom(arrayhash(matrix), *matrix) for matrix in  [sample_random_polygon() for _ in range(10)] }
+    return zonegeoms
 
