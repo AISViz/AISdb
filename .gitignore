@@ -14,6 +14,7 @@
 .**
 .env
 ais/webdata/webdriver*
+docker-compose.override.yml
 docs/html/*
 docs/source/readme.rst
 docs/source/sphinx-apidoc/*
