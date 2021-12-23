@@ -92,7 +92,7 @@ def decode_raw_pyais(fpath, tmp_dir=tmp_dir):
     filedate = getfiledate(fpath)
     mstr = filedate.strftime('%Y%m')
     #picklefile  = os.path.join(tmp_dir, ''.join(fpath[regexdate.start():regexdate.end()].split('-')))
-    picklefile = f'{filedate.strftime("%Y%m%d")}_{fpath.rsplit(".",1)[0].rsplit(os.path.sep, 1)[1]}'
+    picklefile = os.path.join(tmp_dir, f'{filedate.strftime("%Y%m%d")}_{fpath.rsplit(".",1)[0].rsplit(os.path.sep, 1)[1]}')
 
     #if sum( [os.path.isfile(f'{picklefile}_msg{msgtype:02}') for msgtype in (1,2,3,5,18,24)] ) >= 6: 
     #    return
@@ -157,7 +157,7 @@ def decode_raw_pyais(fpath, tmp_dir=tmp_dir):
     print(f'{fpath.split(os.path.sep)[-1]}\tprocessed {n} messages in {(datetime.now() - t0).total_seconds():.0f}s.\tskipped: {skipped}\tfailed: {failed}')
 
 
-def insert_serialized(dbpath):
+def insert_serialized(dbpath, delete=True):
 
     print('deserializing decoded data and performing DB insert...')
 
@@ -199,7 +199,8 @@ def insert_serialized(dbpath):
 
         delta =datetime.now() - dt
         print(f'insert time {serialized}:\t{delta.total_seconds():.2f}s')
-        os.remove(os.path.join(tmp_dir, serialized))
+        if delete:
+            os.remove(os.path.join(tmp_dir, serialized))
 
     conn.close()
 
@@ -207,7 +208,7 @@ def insert_serialized(dbpath):
     aggregate_static_msg5_msg24(dbpath, months_str)
 
 
-def decode_msgs(filepaths, dbpath, processes=12):
+def decode_msgs(filepaths, dbpath, processes=12, delete=True):
     ''' decode NMEA binary message format and store in an SQLite database
 
         messages will be decoded and prepared for insertion in parallel, and 
@@ -231,6 +232,11 @@ def decode_msgs(filepaths, dbpath, processes=12):
                 into the database
             dbpath (string)
                 location of where the created database should be saved
+            processes: int
+                number of processes to run in parallel. Set to 0 or False to 
+                disable concurrency
+            delete: boolean
+                if True, decoded data in tmp_dir will be removed
 
         returns:
             None
@@ -256,7 +262,7 @@ def decode_msgs(filepaths, dbpath, processes=12):
                 logging.debug(f'preparing {filepaths[i]}')
 
     if len(filepaths) == 0: 
-        insert_serialized(filepaths, dbpath)
+        insert_serialized(dbpath, delete=delete)
         return
 
     # create temporary directory for parsed data
@@ -278,9 +284,7 @@ def decode_msgs(filepaths, dbpath, processes=12):
             print(fpath)
             proc(fpath)
 
-    
-    insert_serialized(dbpath)
-
+    insert_serialized(dbpath, delete=delete)
 
     dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
     with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
