@@ -6,8 +6,10 @@
 **.md
 **.pickle
 **.png
+**/debug/*
 **__pycache__**
 **webdriver
+*.d
 *.egg-info  
 *.eggs/
 *.pickle
@@ -15,6 +17,7 @@
 *.pyd
 *.pyo
 *.txt
+*.whl
 .cache
 .eggs
 .git
@@ -24,3 +27,7 @@ docs/html
 docs/html**
 tests/data
 tests/data/**
+rust/*
+rust/**
+!rust/Cargo.tml
+!rust/src/*
