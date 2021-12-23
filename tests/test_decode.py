@@ -3,6 +3,7 @@ import os
 from aisdb import *
 from database import *
 from aisdb.database.decoder import *
+from aisdb.proc_util import glob_files
 
 testdbs = os.path.join(os.path.dirname(dbpath), 'testdb') + os.path.sep 
 
@@ -22,12 +23,9 @@ if not os.path.isdir(testdbs):
 
 
 def test_sort_1w():
-    db = testdbs + 'june2018-06-01_test.db'
-    #os.remove(db)
-    #dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
-    dirpath, dirnames, filenames = np.array(list(os.walk(rawdata_dir))[0], dtype=object)
-    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
-    filepaths = filepaths[0:7]
+    db = testdbs + 'test_7days.db'
+    os.remove(db)
+    filepaths = glob_files(rawdata_dir, ext='.nm4')[0:7]
     dt = datetime.now()
     decode_msgs(filepaths, db)
     delta =datetime.now() - dt
@@ -36,15 +34,11 @@ def test_sort_1w():
 
 def test_sort_1m():
 
-    #db= testdbs + '201806.db'
-    db= testdbs + '201909.db'
+    db = testdbs + 'test_31days.db'
     #os.remove(db)
-    dirpath, dirnames, filenames = np.array(list(os.walk(rawdata_dir))[0], dtype=object)
-    #filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
-    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2019-09' in f], dtype=object)
-    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2021-01' in f and '.nm4' in f], dtype=object)
+    filepaths = glob_files(rawdata_dir, ext='.nm4')[0:31]
     dt = datetime.now()
-    decode_msgs(filepaths, db, processes=32)
+    decode_msgs(filepaths, db, processes=12)
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
