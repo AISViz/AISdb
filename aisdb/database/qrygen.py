@@ -10,7 +10,7 @@ from shapely.geometry import Polygon
 
 from aisdb.common import dbpath, data_dir
 from database.qryfcn import crawl
-from database.dbconn import dbconn
+from database.dbconn import DBConn
 from database.lambdas import dt2monthstr, arr2polytxt
 from database.create_tables import createfcns
 from database.insert_tables import insertfcns
@@ -60,14 +60,14 @@ class DBQuery(UserDict):
         qry = fcn(**self)
         print(qry)
 
-        aisdatabase = dbconn(dbpath)
+        aisdatabase = DBConn(dbpath)
         aisdatabase.cur.execute(qry)
         res = aisdatabase.cur.fetchall()
         aisdatabase.conn.close()
         return np.array(res) 
         '''
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            #aisdatabase = dbconn(dbpath)
+            #aisdatabase = DBConn(dbpath)
             future = executor.submit(self.qry_thread, dbpath=dbpath, qry=qry)
             try:
                 res = future.result()
@@ -97,7 +97,7 @@ class DBQuery(UserDict):
         # initialize db, run query
         print(qry)
         print('\nquerying the database...')
-        aisdatabase = dbconn(dbpath)
+        aisdatabase = DBConn(dbpath)
         dt = datetime.now()
         aisdatabase.cur.execute(qry)
         delta = datetime.now() - dt
@@ -137,8 +137,8 @@ class DBQuery(UserDict):
 
 
         assert 'callback' in self.data.keys()
-        exportdb = dbconn(newdb)
-        aisdatabase = dbconn(dbpath)
+        exportdb = DBConn(newdb)
+        aisdatabase = DBConn(dbpath)
 
         for mstr in self['months']: #exportdb.cur.execute()
             for msg, fcn in createfcns.items():

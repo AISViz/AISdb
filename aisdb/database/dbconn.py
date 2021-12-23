@@ -48,7 +48,7 @@ def create_table_coarsetype(cur):
         )
     )
 
-class dbconn():
+class DBConn():
     ''' class to return a database connection object
 
         by default this will create a new SQLite database if the dbpath does 

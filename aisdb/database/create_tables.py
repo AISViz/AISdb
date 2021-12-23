@@ -4,7 +4,7 @@ from collections import Counter
 
 import numpy as np
 
-from database import dbconn
+from database.dbconn import DBConn
 from aisdb.common import table_prefix
 
 
@@ -286,7 +286,7 @@ def aggregate_static_msg5_msg24(dbpath, months_str):
                 format: YYYYMM 
     '''
 
-    aisdb = dbconn(dbpath=dbpath)
+    aisdb = DBConn(dbpath=dbpath)
     conn, cur = aisdb.conn, aisdb.cur
 
     for month in months_str:

@@ -18,7 +18,8 @@ assert version.parse(pyais.__version__) >= version.parse('1.6.1')
 from aisdb.common import *
 from database.create_tables import createfcns
 from database.insert_tables import insertfcns
-from database import dbconn
+from gis import dt_2_epoch, epoch_2_dt
+from database.dbconn import DBConn
 from index import index
 
 
@@ -56,8 +57,21 @@ def append_file(picklefile, batch):
 
 
 #def decode_raw_pyais(fpath, tmpdir):
-def decode_raw_pyais(fpath):
-    ''' parallel process worker function. see decode_msgs() for usage '''
+def decode_raw_pyais(fpath, tmp_dir=tmp_dir):
+    ''' parallel process worker function. see decode_msgs() for usage 
+
+        arg:
+            fpath: string
+                filepath to .nm4 AIS binary data
+            tmp_dir: string
+                filepath to temporary directory for storing serialized decoded binary
+
+        decodes AIS messages using pyais.
+        timestamps are parsed from base station epochs and converted to epoch-minutes.
+        Discards messages not in types (1, 2, 3, 4, 5, 11, 18, 19, 24, 27).
+        Remaining messages are collected by type, and then serialized. 
+        Can be run concurrently 
+    '''
 
     # if the file was already parsed, skip it
 
@@ -135,11 +149,11 @@ def decode_raw_pyais(fpath):
     print(f'{fpath.split(os.path.sep)[-1]}\tprocessed {n} messages in {(datetime.now() - t0).total_seconds():.0f}s.\tskipped: {skipped}\tfailed: {failed}')
 
 
-def insert_serialized(filepaths, dbpath):
+def insert_serialized(dbpath):
 
     print('deserializing decoded data and performing DB insert...')
 
-    aisdb = dbconn(dbpath=dbpath)
+    aisdb = DBConn(dbpath=dbpath)
     conn, cur = aisdb.conn, aisdb.cur
     months_str = []
 
@@ -178,11 +192,6 @@ def insert_serialized(filepaths, dbpath):
         os.remove(os.path.join(tmp_dir, picklefile))
 
     conn.close()
-
-    dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
-    with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
-        for fpath in filepaths:
-            dbindex.insert_hash(seed=os.path.abspath(fpath))
 
     # aggregate and index static reports: msg5, msg24
     aggregate_static_msg5_msg24(dbpath, months_str)
@@ -260,7 +269,14 @@ def decode_msgs(filepaths, dbpath, processes=12):
             proc(fpath)
 
     
-    insert_serialized(filepaths, dbpath)
+    insert_serialized(dbpath)
+
+
+    dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
+    with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
+        for fpath in filepaths:
+            dbindex.insert_hash(seed=os.path.abspath(fpath))
+
 
 
 

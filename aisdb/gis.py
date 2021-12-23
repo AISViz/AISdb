@@ -139,31 +139,6 @@ class ZoneGeomFromTxt(ZoneGeom):
         super().__init__(name, xy[::2], xy[1::2])
 
 
-def glob_shapetxts(zones_dir=zones_dir, keyorder=lambda key: key):
-    ''' walk a directory to glob txt files. can be used with ZoneGeomFromTxt()
-
-        zones_dir: string
-            directory to walk
-        keyorder:
-            anonymous function for custom sort ordering
-
-        example keyorder:
-
-        .. code-block::
-            
-            # numeric sort on zone names with strsplit on 'Z' char
-            keyorder=lambda key: int(key.rsplit(os.path.sep, 1)[1].split('.')[0].split('Z')[1])
-
-        returns:
-            .txt shapefile paths
-
-    '''
-    txtpaths = reduce(np.append, 
-        [list(map(os.path.join, (path[0] for p in path[2]), path[2])) for path in list(os.walk(zones_dir))]
-    )
-    return sorted(txtpaths, key=keyorder)
-
-
 class Domain():
     ''' collection of ZoneGeom objects, with additional computed statistics such as zone set boundary coordinates
 

@@ -103,7 +103,7 @@ with import_handler() as importconfigs:
         )
 
     from .database.dbconn import (
-            dbconn
+            DBConn
         )
 
     from .database.decoder import (
