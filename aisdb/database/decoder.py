@@ -13,7 +13,6 @@ import pickle
 import numpy as np
 import pyais
 from pyais import FileReaderStream
-assert version.parse(pyais.__version__) >= version.parse('1.6.1')
 
 from aisdb.common import *
 from database.create_tables import createfcns
@@ -21,6 +20,11 @@ from database.insert_tables import insertfcns
 from gis import dt_2_epoch, epoch_2_dt
 from database.dbconn import DBConn
 from index import index
+
+
+datefcn = lambda fpath: re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(fpath)
+regexdate_2_dt = lambda reg, fmt='%Y%m%d': datetime.strptime(reg.string[reg.start():reg.end()], fmt)
+getfiledate = lambda fpath, fmt='%Y%m%d': regexdate_2_dt(datefcn(fpath), fmt=fmt)
 
 
 def is_valid_date(year, month, day, hour=0, minute=0, second=0, **_):
@@ -82,9 +86,13 @@ def decode_raw_pyais(fpath, tmp_dir=tmp_dir):
     splitmsg    = lambda rawmsg: rawmsg.split('\\')
     parsetime   = lambda comment: dt_2_epoch(datetime.fromtimestamp(int(comment.split('c:')[1].split(',')[0].split('*')[0])))
 
-    regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(fpath)
-    mstr        = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
-    picklefile  = os.path.join(tmp_dir, ''.join(fpath[regexdate.start():regexdate.end()].split('-')))
+    #regexdate   = datefcn(fpath)
+    
+    #mstr        = ''.join(fpath[regexdate.start():regexdate.end()].split('-')[:-1])
+    filedate = getfiledate(fpath)
+    mstr = filedate.strftime('%Y%m')
+    #picklefile  = os.path.join(tmp_dir, ''.join(fpath[regexdate.start():regexdate.end()].split('-')))
+    picklefile = f'{filedate.strftime("%Y%m%d")}_{fpath.rsplit(".",1)[0].rsplit(os.path.sep, 1)[1]}'
 
     #if sum( [os.path.isfile(f'{picklefile}_msg{msgtype:02}') for msgtype in (1,2,3,5,18,24)] ) >= 6: 
     #    return
@@ -157,14 +165,16 @@ def insert_serialized(dbpath):
     conn, cur = aisdb.conn, aisdb.cur
     months_str = []
 
-    for picklefile in sorted(os.listdir(tmp_dir)):
-        msgtype     = picklefile.split('_', 1)[1].rsplit('.', 1)[0]
-        regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(picklefile)
-        mstr        = picklefile[regexdate.start():regexdate.end()][:-2]
+    for serialized in sorted(os.listdir(tmp_dir)):
+        msgtype     = serialized.rsplit('_', 1)[1]
+        #regexdate   = re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(serialized)
+        serialdate  = getfiledate(serialized)
+        #mstr        = serialized[regexdate.start():regexdate.end()][:-2]
+        mstr        = serialdate.strftime('%Y%m')
         if mstr not in months_str: months_str.append(mstr)
 
         if msgtype == 'msg11' or msgtype == 'msg27' or msgtype == 'msg19' or msgtype == 'msg4': 
-            os.remove(os.path.join(tmp_dir, picklefile))
+            os.remove(os.path.join(tmp_dir, serialized))
             continue
 
         cur.execute(f'SELECT name FROM sqlite_master WHERE type="table" AND name="rtree_{mstr}_msg_1_2_3" ')
@@ -175,7 +185,7 @@ def insert_serialized(dbpath):
         dt = datetime.now()
 
         cur.execute('BEGIN EXCLUSIVE TRANSACTION')
-        with open(os.path.join(tmp_dir, picklefile), 'rb') as f:
+        with open(os.path.join(tmp_dir, serialized), 'rb') as f:
             while True:
                 try:
                     rows = pickle.load(f)
@@ -188,8 +198,8 @@ def insert_serialized(dbpath):
         conn.commit()
 
         delta =datetime.now() - dt
-        print(f'insert time {picklefile}:\t{delta.total_seconds():.2f}s')
-        os.remove(os.path.join(tmp_dir, picklefile))
+        print(f'insert time {serialized}:\t{delta.total_seconds():.2f}s')
+        os.remove(os.path.join(tmp_dir, serialized))
 
     conn.close()
 
