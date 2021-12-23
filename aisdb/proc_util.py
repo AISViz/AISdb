@@ -1,7 +1,7 @@
 import os
 import zipfile
 from multiprocessing import Pool
-from functools import partial
+from functools import partial, reduce
 from datetime import datetime, timedelta
 import pickle
 
@@ -83,4 +83,35 @@ def deserialize(fpaths):
         with open(fpath, 'rb') as f:
             yield pickle.load(f)
 
+
+def glob_files(dirpath, ext='.txt', keyorder=lambda key: key):
+    ''' walk a directory to glob txt files. can be used with ZoneGeomFromTxt()
+
+        zones_dir: string
+            directory to walk
+        keyorder:
+            anonymous function for custom sort ordering
+
+        example keyorder:
+
+        .. code-block::
+            
+            # numeric sort on zone names with strsplit on 'Z' char
+            keyorder=lambda key: int(key.rsplit(os.path.sep, 1)[1].split('.')[0].split('Z')[1])
+
+        returns:
+            .txt shapefile paths
+
+    '''
+    #txtpaths = reduce(np.append, 
+    #    [list(map(os.path.join, (path[0] for p in path[2]), path[2])) for path in list(os.walk(zones_dir))]
+    #)
+    
+    paths = list(os.walk(dirpath))
+
+    extfiles = [[p[0], sorted([f for f in p[2] if f[-len(ext):] == ext], key=keyorder)] for p in paths if len(p[2]) > 0]
+
+    extpaths = reduce(np.append, [list(map(os.path.join, (path[0] for p in path[1]), path[1])) for path in extfiles], np.array([], dtype=object))
+
+    return sorted(extpaths, key=keyorder)
 
