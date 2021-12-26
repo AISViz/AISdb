@@ -4,6 +4,7 @@
 **.eggs/
 **.log
 **.md
+**.nm4
 **.pickle
 **.png
 **/debug/*
@@ -25,9 +26,9 @@
 docker-compose.override.yml
 docs/html
 docs/html**
-tests/data
-tests/data/**
 rust/*
 rust/**
+tests/data
+tests/data/**
 !rust/Cargo.tml
-!rust/src/*
+!rust/src/*.rs
