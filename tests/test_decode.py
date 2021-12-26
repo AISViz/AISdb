@@ -7,38 +7,42 @@ from aisdb.proc_util import glob_files
 
 testdbs = os.path.join(os.path.dirname(dbpath), 'testdb') + os.path.sep 
 
-"""
-month = '201806'
-aisdb = dbconn(dbpath=dbpath)
-conn, cur = aisdb.conn, aisdb.cur
-cur.execute(f''' CREATE INDEX IF NOT EXISTS idx_msg5_{month}_shiptype ON 'ais_{month}_msg_5' (ship_type) ''')
-cur.execute(f''' CREATE INDEX IF NOT EXISTS idx_msg5_{month}_vesselname ON 'ais_{month}_msg_5' (vessel_name) ''')
-conn.close()
-"""
-
-
 
 if not os.path.isdir(testdbs): 
     os.mkdir(testdbs)
 
+def test_sort_1d():
+
+    db = testdbs + 'test_24h.db'
+    os.remove(db)
+    filepaths = glob_files(rawdata_dir, ext='.nm4')
+    testset = [f for f in filepaths if getfiledate(f) - getfiledate(filepaths[0]) <= timedelta(days=1)] 
+    dt = datetime.now()
+    decode_msgs(testset, db, processes=12, delete=False)
+    delta =datetime.now() - dt
+    print(f'total parse and insert time: {delta.total_seconds():.2f}s')
+
 
 def test_sort_1w():
-    db = testdbs + 'test_7days.db'
+
+    db = testdbs + 'test_8days.db'
     os.remove(db)
-    filepaths = glob_files(rawdata_dir, ext='.nm4')[0:7]
+    filepaths = glob_files(rawdata_dir, ext='.nm4')
+    testset = [f for f in filepaths if getfiledate(f) - getfiledate(filepaths[0]) < timedelta(days=8)] 
     dt = datetime.now()
-    decode_msgs(filepaths, db)
+    decode_msgs(testset, db, processes=12, delete=False)
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
 
 def test_sort_1m():
 
-    db = testdbs + 'test_31days.db'
+    db = testdbs + 'test_32days.db'
     #os.remove(db)
-    filepaths = glob_files(rawdata_dir, ext='.nm4')[0:31]
+    filepaths = glob_files(rawdata_dir, ext='.nm4')
+    testset = [f for f in filepaths if getfiledate(f) - getfiledate(filepaths[0]) < timedelta(days=32)] 
     dt = datetime.now()
-    decode_msgs(filepaths, db, processes=12)
+    decode_msgs(testset, db, processes=12)
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
