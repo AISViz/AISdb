@@ -5,22 +5,20 @@ authors = ['Matt Smith matthew.smith@dal.ca']
 edition = '2021'
 
 [lib]
-name = 'rust_aisdb_lib'
+name = 'aisdb_lib'
 crate-type = ['cdylib']
 path = 'src/lib.rs'
 
 [[bin]]
-name = 'rust_aisdb_bin'
+name = 'aisdb_bin'
 path = 'src/bin.rs'
 
-#[dependencies.bytes]
-#version = '0.4.12'
-
-#[dependencies.pyo3]
-#version = "0.15.1"
-#features = ['extension-module']
-
 [dependencies]
-#futures = {version = "0.3.*"}
-#tokio = {version = "1.15.*", features = ["full"]}
 nmea-parser = {version = "0.8.0"}
+sqlx = { version = "0.5", features = ["sqlite", ] }
+#futures = {version = "0.3.*"}
+#sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "sqlite", "uuid", "chrono", "migrate" ] }
+#chrono = "0.4"
+#uuid = { version = "0.8", features = ["v4"] }
+#clap = "2"
+#tokio = {version = "1.15.*", features = ["full"]}

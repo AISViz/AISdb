@@ -1,5 +1,4 @@
 mod decode;
-mod errcheck;
 //use decode::{decodemsgs, printmsgs};
 
 pub fn main() {

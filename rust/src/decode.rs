@@ -18,16 +18,19 @@ pub struct VesselData {
     epoch: Option<i32>,
 }
 
+/// collect base station timestamp and NMEA payload
+/// as derived from NMEA string with metadata header
+///
+/// input example:
+/// ``` text
+/// \s:43479,c:1635883083,t:1635883172*6C\!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64
+/// ```
+///
+/// returns:
+/// ``` text
+/// ("!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64", 1635883083)
+/// ```
 fn split_msg(line: String) -> Option<(String, i32)> {
-    /* collect base station timestamp and NMEA payload
-    as derived from NMEA string with metadata header
-
-    input example:
-    \s:43479,c:1635883083,t:1635883172*6C\!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64
-
-    returns:
-    ("!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64", 1635883083)
-    */
     //let (meta, payload) = line.rsplit_once("\\").unwrap();
     match line.rsplit_once("\\")? {
         (meta, payload) => match meta.split(",").collect::<Vec<&str>>()[..] {
@@ -70,8 +73,6 @@ pub fn decodemsgs(filename: String) -> Vec<VesselData> {
                 message.payload = parsed(Some(payload));
             }
         }
-        //println!("{:?} {:?}", message.epoch, message.payload);
-        //println!("{:?}", message);
         msgs.push(message);
     }
     return msgs;
@@ -83,6 +84,24 @@ pub fn decodemsgs(filename: String) -> Vec<VesselData> {
 mod tests {
     use super::*;
 
+    fn corpus() -> Vec<&str> {
+        return [r#"
+!AIVDM,1,1,,A,B4eIh>@0<voAFw6HKAi7swf1lH@s,0*61
+!AIVDM,1,1,,A,14eH4HwvP0sLsMFISQQ@09Vr2<0f,0*7B
+!AIVDM,1,1,,A,14eGGT0301sM630IS2hUUavt2HAI,0*4A
+!AIVDM,1,1,,B,14eGdb0001sM5sjIS3C5:qpt0L0G,0*0C
+!AIVDM,this_line_cannot_be_parsed
+!AIVDM,1,1,,A,14eI3ihP14sM1PHIS0a<d?vt2L0R,0*4D
+!AIVDM,another_error!!;wqlirf
+!AIVDM,1,1,,B,14eI@F@000sLtgjISe<W9S4p0D0f,0*24
+!AIVDM,1,1,,B,B4eHt=@0:voCah6HRP1;?wg5oP06,0*7B
+!AIVDM,1,1,,A,B4eHWD009>oAeDVHIfm87wh7kP06,0*20
+!AIVDM,9,1,,A,B4eHWD009>oAeDVHIfm87wh7kP06,0*20
+!AIVDM,1,9,,A,B4eHWD009>oAeDVHIfm87wh7kP06,0*20
+
+"#];
+    }
+
     fn test_printmsgs(msgs: Vec<VesselData>) {
         for msg in msgs {
             println!("mmsi: {:?}", msg.payload);
@@ -90,7 +109,7 @@ mod tests {
     }
     #[test]
     fn test_split_msg() {
-        let input = "\\s:43479,c:1635883083,t:1635883172*6C\\!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64";
+        let input = r#"\s:43479,c:1635883083,t:1635883172*6C\!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64"#;
         let result = split_msg(input.to_string()).unwrap();
         let expected = (
             "!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64".to_string(),
@@ -101,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_small_dynamicdata_nometadata() {
-        let _msgs = decodemsgs("src/aismsgs.nm4".to_string());
+        let _msgs = decodemsgs("testdata/aismsgs.nm4".to_string());
         //test_printmsgs(msgs);
     }
 
