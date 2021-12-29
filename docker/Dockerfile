@@ -4,7 +4,8 @@ RUN pacman -Syyuu --noconfirm \
    && pacman -S --noconfirm --needed \
       gcc \
       python \
-      qgis
+      qgis \
+      rust
 ARG USERNAME
 RUN useradd -m "$USERNAME" --shell /bin/python3
 USER "$USERNAME"
@@ -12,6 +13,14 @@ WORKDIR "/home/$USERNAME"
 COPY --chown="$USERNAME" setup.py .
 RUN python -m ensurepip && python -m pip install --no-warn-script-location --upgrade wheel pip numpy 
 RUN mkdir -p aisdb/database aisdb/webdata && python -m pip install . --no-warn-script-location
+
+# build and test rust targets
+FROM aisdb as compile
+ARG USERNAME
+#WORKDIR "/home/$USERNAME/aisdb/rust"
+COPY --chown="$USERNAME" rust/ rust/
+RUN cargo build --manifest-path="/home/$USERNAME/rust/Cargo.toml" --release
+CMD ["cargo", "test", "--manifest-path=rust/Cargo.toml"]
 
 # run package tests
 FROM aisdb AS runtest
@@ -44,5 +53,5 @@ COPY --chown="$USERNAME" docs/ docs/
 COPY --chown="$USERNAME" aisdb/ aisdb/
 RUN /bin/bash "/home/$USERNAME/docs/sphinxbuild.sh"
 COPY --chown="$USERNAME" docker/ docker/
-CMD ["npm", "--prefix", "/home/ais_env/docker/", "start"]
+CMD ["npm", "--prefix", "docker/", "start"]
 

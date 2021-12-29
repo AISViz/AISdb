@@ -34,6 +34,17 @@ services:
     networks:
       - ipv6_private
 
+  rustbuild:
+    container_name: rust
+    build:
+      target: compile
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+          - USERNAME=ais_env
+    networks:
+      - ipv6_private
+
   test:
     container_name: aisdb_test
     build:

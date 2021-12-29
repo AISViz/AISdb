@@ -26,9 +26,8 @@
 docker-compose.override.yml
 docs/html
 docs/html**
-rust/*
-rust/**
+rust/target/
+rust/target/**
+rust/Cargo.lock
 tests/data
 tests/data/**
-!rust/Cargo.tml
-!rust/src/*.rs
