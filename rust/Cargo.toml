@@ -1,5 +1,5 @@
 [package]
-name = 'rust_aisdb_pkg'
+name = 'aisdb'
 version = '0.1.0'
 authors = ['Matt Smith matthew.smith@dal.ca']
 edition = '2021'
@@ -15,9 +15,10 @@ path = 'src/bin.rs'
 
 [dependencies]
 nmea-parser = {version = "0.8.0"}
-sqlx = { version = "0.5", features = ["sqlite", ] }
+sqlx = { version = "0.5", features = ["sqlite", "runtime-tokio-rustls", ] }
+bitvec = {version = "0.22.*"}
 #futures = {version = "0.3.*"}
-#sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "sqlite", "uuid", "chrono", "migrate" ] }
+#sqlx = { version = "0.5", features = [ "sqlite", "uuid", "chrono", "migrate" ] }
 #chrono = "0.4"
 #uuid = { version = "0.8", features = ["v4"] }
 #clap = "2"
