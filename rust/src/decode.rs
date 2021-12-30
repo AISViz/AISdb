@@ -11,18 +11,42 @@ use nmea_parser::{
     NmeaParser, ParsedMessage,
 };
 
-#[derive(Debug)]
 pub struct VesselData {
-    msg: String,
-    payload: Option<ParsedMessage>,
-    epoch: Option<i32>,
+    //pub msg: String,
+    pub payload: Option<ParsedMessage>,
+    pub epoch: Option<i32>,
 }
 
-/// discard all other message types
-fn filter_vesseldata(payload: Option<ParsedMessage>) -> Option<ParsedMessage> {
+impl VesselData {
+    pub fn dynamicdata(self) -> (VesselDynamicData, i32) {
+        let p = self.payload.unwrap();
+        if let ParsedMessage::VesselDynamicData(p) = p {
+            (p, self.epoch.unwrap())
+        } else {
+            panic!("wrong msg type")
+        }
+    }
+    pub fn staticdata(self) -> (VesselStaticData, i32) {
+        let p = self.payload.unwrap();
+        if let ParsedMessage::VesselStaticData(p) = p {
+            (p, self.epoch.unwrap())
+        } else {
+            panic!("wrong msg type")
+        }
+    }
+}
+
+/// discard all other message types, sort filtered categories into columns
+fn filter_vesseldata(
+    payload: Option<ParsedMessage>,
+) -> Option<(Option<ParsedMessage>, Option<ParsedMessage>)> {
     match payload? {
-        ParsedMessage::VesselDynamicData(vdd) => Some(ParsedMessage::VesselDynamicData(vdd)),
-        ParsedMessage::VesselStaticData(vsd) => Some(ParsedMessage::VesselStaticData(vsd)),
+        ParsedMessage::VesselDynamicData(vdd) => {
+            Some((Some(ParsedMessage::VesselDynamicData(vdd)), None))
+        }
+        ParsedMessage::VesselStaticData(vsd) => {
+            Some((None, Some(ParsedMessage::VesselStaticData(vsd))))
+        }
         _ => None,
     }
 }
@@ -39,8 +63,8 @@ fn filter_vesseldata(payload: Option<ParsedMessage>) -> Option<ParsedMessage> {
 /// ``` text
 /// ("!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64", 1635883083)
 /// ```
-fn split_msg(line: String) -> Option<(String, i32)> {
-    match line.rsplit_once("\\")? {
+fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
+    match line.unwrap().rsplit_once("\\")? {
         (meta, payload) => {
             for tag in meta.split(",") {
                 if &tag[0..2] != "c:" {
@@ -57,53 +81,76 @@ fn split_msg(line: String) -> Option<(String, i32)> {
 /// work around panic bug in chrono library / indexing bug in nmea_parser library ???
 /// https://github.com/zaari/nmea-parser/issues/25
 fn skipmsg(msg: &str) -> bool {
+    /* true for base station reports and binary application data */
     msg.contains("!AIVDM,1,1,,,;")
         || msg.contains("!AIVDM,1,1,,,I")
         || msg.contains("!AIVDM,1,1,,,J")
 }
 
 /// open .nm4 file and decode each line, keeping only vessel data
-/// returns array of static and dynamic reports
-pub fn decodemsgs(filename: String) -> Vec<VesselData> {
-    println!("{:?}", filename);
-    let reader = BufReader::new(File::open(filename).expect("Cannot open file"));
+/// returns vector of static and dynamic reports
+pub fn decodemsgs(filename: &String) -> (Vec<VesselData>, Vec<VesselData>) {
+    let reader = BufReader::new(
+        File::open(filename).expect(format!("Cannot open file {}", filename).as_str()),
+    );
     let mut parser = NmeaParser::new();
-    let mut msgs = <Vec<VesselData>>::new();
+    let mut stat_msgs = <Vec<VesselData>>::new();
+    let mut positions = <Vec<VesselData>>::new();
 
-    let mut n = 0;
-    let mut keepn = 0;
+    let mut skip = 0;
+    let mut keep = 0;
     let mut failed = 0;
 
     for msg in reader.lines() {
         //println!("{:?}", &msg);
-        let mut message = VesselData {
-            msg: msg.as_ref().unwrap().to_string(),
-            epoch: None,
-            payload: None,
-        };
-        if let Some(splits) = split_msg(msg.as_ref().unwrap().to_string()) {
+
+        /* if message contains a header and payload ... */
+        if let Some(splits) = parse_headers(msg) {
+            /* skip problematic timestamps and binary data */
             if skipmsg(&splits.0) {
-                n += 1;
+                skip += 1;
                 continue;
             }
-            message.epoch = Some(splits.1);
-
+            /* if the payload was successfully decoded as vessel data, keep it */
             if let Ok(payload) = parser.parse_sentence(&splits.0) {
-                message.payload = filter_vesseldata(Some(payload));
+                //message.payload = filter_vesseldata(Some(payload));
+                match filter_vesseldata(Some(payload)) {
+                    Some((Some(p), None)) => {
+                        let message = VesselData {
+                            //msg: msg.unwrap(),
+                            epoch: Some(splits.1),
+                            payload: Some(p),
+                        };
+                        keep += 1;
+                        positions.push(message)
+                    }
+                    Some((None, Some(p))) => {
+                        let message = VesselData {
+                            //msg: msg.unwrap(),
+                            epoch: Some(splits.1),
+                            payload: Some(p),
+                        };
+                        keep += 1;
+                        stat_msgs.push(message)
+                    }
+
+                    _ => {
+                        skip += 1;
+                    }
+                }
+            } else {
+                failed += 1;
             }
-        }
-        if message.payload != None {
-            msgs.push(message);
-            keepn += 1;
         } else {
-            failed += 1
+            failed += 1;
         }
     }
     println!(
-        "decoded: {:?}    skipped: {:?}    failed: {:?}",
-        keepn, n, failed
+        "{}    decoded: {}    skipped: {}    failed: {}",
+        filename, keep, skip, failed,
     );
-    return msgs;
+
+    return (positions, stat_msgs);
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -154,9 +201,9 @@ mod tests {
     }
 
     #[test]
-    fn test_split_msg() {
+    fn test_parse_headers() {
         let input = r#"\s:43479,c:1635883083,t:1635883172*6C\!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64"#;
-        let result = split_msg(input.to_string()).unwrap();
+        let result = parse_headers(Ok(input.to_string())).unwrap();
         let expected = (
             "!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64".to_string(),
             1635883083,
@@ -165,23 +212,15 @@ mod tests {
     }
 
     #[test]
-    fn test_small_dynamicdata_nometadata() {
-        testingdata();
-        let _msgs = decodemsgs("testdata/testingdata.nm4".to_string());
-    }
-
-    #[test]
-    fn test_realdata() {
-        let mut n = 0;
+    fn test_files() {
+        let _ = testingdata();
         for filepath in read_dir("testdata/").unwrap() {
-            n += 1;
-            if n < 20 {
-                continue;
-            }
             let fpath = filepath.unwrap().path().display().to_string();
-            let _msgs = decodemsgs(fpath);
-            if n > 30 {
-                break;
+            if &fpath[fpath.len() - 4..] == ".nm4" {
+                println!("testing decoder: {}", fpath);
+                let _msgs = decodemsgs(&fpath);
+            } else {
+                continue;
             }
         }
     }
