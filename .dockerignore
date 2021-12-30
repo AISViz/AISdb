@@ -23,11 +23,13 @@
 .eggs
 .git
 .pytest_cache
+aisdb_rust/target/
+aisdb_rust/target/**
+aisdb_rust/testdata/**
 docker-compose.override.yml
 docs/html
 docs/html**
-rust/target/
-rust/target/**
-rust/Cargo.lock
+docker/node_modules/
+docker/node_modules/**
 tests/data
 tests/data/**

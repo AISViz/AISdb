@@ -14,11 +14,11 @@
 *__pycache__*
 .env
 ais/webdata/webdriver*
+aisdb_rust/target
+aisdb_rust/testdata
 docker-compose.override.yml
 docs/html/*
 docs/source/readme.rst
 docs/source/sphinx-apidoc/*
 tests/output/*
 tmp/*
-rust/target
-rust/testdata

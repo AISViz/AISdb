@@ -1,25 +1,21 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-
 use std::fs::read_dir;
+use std::str::FromStr;
 use std::time::{Duration, Instant};
-use std::{fs, str::FromStr};
+
+//use futures::{stream, StreamExt};
+use futures::*;
+
+//use tokio::test;
+//use tokio_stream::StreamExt;
 
 use sqlx::{
     query,
     sqlite::{
-        SqliteConnectOptions, SqliteConnection, SqliteJournalMode, SqlitePool, SqlitePoolOptions,
+        Sqlite, SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions,
         SqliteQueryResult, SqliteSynchronous,
     },
-    Connection, Error, Pool, Sqlite,
+    Error, Pool,
 };
-
-use nmea_parser::{
-    ais::{VesselDynamicData, VesselStaticData},
-    ParsedMessage,
-};
-
-use tokio::test;
 
 use crate::decode::{decodemsgs, VesselData};
 
@@ -62,6 +58,15 @@ pub async fn sqlite_createtable_dynamicreport(
     Ok(res)
 }
 
+/// TODO
+pub async fn sqlite_insert_static(
+    pool: &SqlitePool,
+    msgs: Vec<VesselData>,
+    mstr: &str,
+) -> Result<(), Error> {
+    Ok(())
+}
+
 /// insert position reports into database
 pub async fn sqlite_insert_positions(
     pool: &SqlitePool,
@@ -85,7 +90,6 @@ pub async fn sqlite_insert_positions(
     for msg in msgs {
         let (p, e) = msg.dynamicdata();
         query(&sql)
-            //.map(|q| q.bind(msg.payload.mmsi))
             .bind(p.mmsi)
             .bind(e)
             //.bind(0)
@@ -116,25 +120,66 @@ pub async fn get_db_pool(path: Option<&str>) -> Result<SqlitePool, Error> {
         .create_if_missing(true)
         .journal_mode(SqliteJournalMode::Wal)
         .synchronous(SqliteSynchronous::Normal)
-        .busy_timeout(Duration::from_secs(30));
+        .busy_timeout(Duration::from_secs(600));
 
     let sqlite_pool = SqlitePoolOptions::new()
-        .max_connections(3)
-        .connect_timeout(Duration::from_secs(30))
+        .max_connections(1)
+        .connect_timeout(Duration::from_secs(600))
         .connect_with(connection_options)
         .await?;
 
     query("pragma mmap_size = 30000000000;")
         .execute(&sqlite_pool)
-        .await?;
+        .await
+        .expect("couldnt set pragma mmap_size");
     query("pragma page_size = 4096;")
         .execute(&sqlite_pool)
-        .await?;
+        .await
+        .expect("couldnt set pragma page_size");
     query("pragma temp_store = MEMORY;")
         .execute(&sqlite_pool)
-        .await?;
+        .await
+        .expect("couldnt set pragma temp_store");
 
     Ok(sqlite_pool)
+}
+
+/// parse files and insert into DB using concurrent asynchronous runners
+pub async fn concurrent_insert_dir(
+    rawdata_dir: &str,
+    dbpath: &str,
+    start: Option<usize>,
+) -> Result<(), Error> {
+    assert_eq!(rawdata_dir.rsplit_once("/").unwrap().1, "");
+
+    let sqlite_pool = get_db_pool(Some(&dbpath)).await.expect("connecting to db");
+    sqlite_createtable_dynamicreport("202111", &sqlite_pool)
+        .await
+        .expect("creating dynamic tables");
+
+    let skip = start.unwrap_or(0);
+    let files: Vec<(String, &Pool<Sqlite>)> = read_dir(rawdata_dir)
+        .unwrap()
+        .map(|f| f.unwrap().path().display().to_string())
+        .filter(|f| &f[f.len() - 4..] == ".nm4")
+        .map(|f| (f, &sqlite_pool))
+        .collect::<Vec<(String, &Pool<Sqlite>)>>()[skip..]
+        .to_vec();
+
+    let stream = stream::iter(files)
+        .for_each_concurrent(1, |(f, p)| async move {
+            let (positions, stat_msgs) = decodemsgs(&f);
+            sqlite_insert_positions(&p, positions, "202111")
+                .await
+                .expect("couldnt insert position reports");
+            sqlite_insert_static(&p, stat_msgs, "202111")
+                .await
+                .expect("couldnt insert static reports")
+        })
+        .await;
+
+    sqlite_pool.close().await;
+    Ok(())
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -166,7 +211,7 @@ mod tests {
             .await
             .expect("inserting in db");
 
-        for filepath in read_dir("testdata/")
+        for filepath in read_dir("aisdb_rust/testdata/")
             .unwrap()
             .map(|f| f.unwrap().path().display().to_string())
         {

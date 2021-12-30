@@ -9,6 +9,7 @@ name = 'aisdb_lib'
 crate-type = ['cdylib']
 path = 'src/lib.rs'
 doctest = false
+test = false
 
 [[bin]]
 name = 'aisdb_bin'
@@ -19,7 +20,8 @@ doctest = false
 nmea-parser = {version = "0.8.0"}
 sqlx = { version = "0.5", features = ["sqlite", "runtime-tokio-rustls", ] }
 tokio = {version = "1", features = ["full"]}
-#futures = {version = "0.3.*"}
+tokio-stream = {version = "0.1"}
+futures = {version = "0.3.*"}
 #sqlx = { version = "0.5", features = [ "sqlite", "uuid", "chrono", "migrate" ] }
 #chrono = "0.4"
 #uuid = { version = "0.8", features = ["v4"] }

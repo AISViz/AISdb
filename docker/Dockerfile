@@ -14,14 +14,6 @@ COPY --chown="$USERNAME" setup.py .
 RUN python -m ensurepip && python -m pip install --no-warn-script-location --upgrade wheel pip numpy 
 RUN mkdir -p aisdb/database aisdb/webdata && python -m pip install . --no-warn-script-location
 
-# build and test rust targets
-FROM aisdb as compile
-ARG USERNAME
-#WORKDIR "/home/$USERNAME/aisdb/rust"
-COPY --chown="$USERNAME" rust/ rust/
-RUN cargo build --manifest-path="/home/$USERNAME/rust/Cargo.toml" --release
-CMD ["cargo", "test", "--manifest-path=rust/Cargo.toml"]
-
 # run package tests
 FROM aisdb AS runtest
 ARG USERNAME
@@ -30,6 +22,26 @@ RUN python -m pip install pytest --no-warn-script-location
 COPY --chown="$USERNAME" aisdb/ aisdb/
 COPY --chown="$USERNAME" tests/ tests/
 CMD ["python", "-m", "pytest", "--color=yes", "-x", "--tb=native", "tests/"]
+
+# build and test rust targets
+FROM aisdb as compile
+ARG USERNAME
+USER "$USERNAME"
+COPY --chown="$USERNAME" aisdb_rust/Cargo.toml aisdb_rust/Cargo.toml
+COPY --chown="$USERNAME" aisdb_rust/Cargo.lock aisdb_rust/Cargo.lock
+RUN mkdir -p aisdb_rust/src aisdb_rust/testdata \
+  && touch aisdb_rust/src/lib.rs \
+  && echo 'pub fn main(){}' > aisdb_rust/src/bin.rs \
+  && cargo build \
+      --manifest-path=/home/"$USERNAME"/aisdb_rust/Cargo.toml \
+      --profile=test
+RUN cargo build \
+      --manifest-path=/home/"$USERNAME"/aisdb_rust/Cargo.toml \
+      --quiet \
+      --release
+COPY --chown="$USERNAME" aisdb_rust/ aisdb_rust/
+RUN cargo build --manifest-path="/home/$USERNAME/aisdb_rust/Cargo.toml" --release --quiet
+CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--profile=test", "--color=always", "--", "--nocapture", "--color=always"]
 
 # forward X11 on sshd host
 FROM aisdb AS sshhost
