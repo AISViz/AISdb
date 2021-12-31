@@ -26,7 +26,9 @@
 aisdb_rust/target/
 aisdb_rust/target/**
 aisdb_rust/testdata/**
-docker-compose.override.yml
+aisdb_rust/testdata/*
+aisdb_rust/testdata/
+testdata/*
 docs/html
 docs/html**
 docker/node_modules/

@@ -27,21 +27,19 @@ CMD ["python", "-m", "pytest", "--color=yes", "-x", "--tb=native", "tests/"]
 FROM aisdb as compile
 ARG USERNAME
 USER "$USERNAME"
+RUN mkdir -p aisdb_rust/src \
+  && echo 'fn main(){}' > aisdb_rust/src/bin.rs \
+  && echo 'fn main(){}' > aisdb_rust/src/lib.rs
 COPY --chown="$USERNAME" aisdb_rust/Cargo.toml aisdb_rust/Cargo.toml
-COPY --chown="$USERNAME" aisdb_rust/Cargo.lock aisdb_rust/Cargo.lock
-RUN mkdir -p aisdb_rust/src aisdb_rust/testdata \
-  && touch aisdb_rust/src/lib.rs \
-  && echo 'pub fn main(){}' > aisdb_rust/src/bin.rs \
-  && cargo build \
-      --manifest-path=/home/"$USERNAME"/aisdb_rust/Cargo.toml \
-      --profile=test
 RUN cargo build \
-      --manifest-path=/home/"$USERNAME"/aisdb_rust/Cargo.toml \
-      --quiet \
-      --release
+    --manifest-path="/home/$USERNAME/aisdb_rust/Cargo.toml" \
+    --release
 COPY --chown="$USERNAME" aisdb_rust/ aisdb_rust/
-RUN cargo build --manifest-path="/home/$USERNAME/aisdb_rust/Cargo.toml" --release --quiet
-CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--profile=test", "--color=always", "--", "--nocapture", "--color=always"]
+RUN cargo build \
+    --manifest-path="/home/$USERNAME/aisdb_rust/Cargo.toml" \
+    --release
+RUN mkdir -p testdata/
+CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--release", "--color=always", "--tests", "--", "--nocapture"]
 
 # forward X11 on sshd host
 FROM aisdb AS sshhost
@@ -53,8 +51,8 @@ COPY --chown="$USERNAME" aisdb/ aisdb/
 RUN chown -R "$USERNAME" aisdb
 ENTRYPOINT ["python", "./entry.py"]
 
-# sphinx docs
-FROM aisdb AS webserv
+# sphinx docs + rust cargo docs
+FROM compile AS webserv
 USER root
 RUN pacman -S --noconfirm --needed nodejs npm python-sphinx python-sphinx_rtd_theme
 ARG USERNAME
@@ -63,7 +61,7 @@ RUN npm install express
 COPY --chown="$USERNAME" readme.rst .
 COPY --chown="$USERNAME" docs/ docs/
 COPY --chown="$USERNAME" aisdb/ aisdb/
-RUN /bin/bash "/home/$USERNAME/docs/sphinxbuild.sh"
 COPY --chown="$USERNAME" docker/ docker/
+RUN /bin/bash "/home/$USERNAME/docs/sphinxbuild.sh"
 CMD ["npm", "--prefix", "docker/", "start"]
 

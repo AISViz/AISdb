@@ -36,6 +36,8 @@ services:
 
   rustbuild:
     container_name: rust
+    environment:
+      - RUST_BACKTRACE=1
     build:
       target: compile
       context: .
