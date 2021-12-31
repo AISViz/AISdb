@@ -2,6 +2,7 @@
 AISDB Docs: Index
 =================
 
+
 .. toctree::
    :maxdepth: 4
    :caption: Contents:
@@ -18,7 +19,7 @@ AISDB Docs: Index
    :titlesonly:
 
    api/aisdb
-
+   rust
 
 
 Indices and tables
