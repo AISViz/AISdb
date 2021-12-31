@@ -1,12 +1,15 @@
 pub use std::{
     fs::{create_dir_all, read_dir, File},
     io::{BufRead, BufReader, Error, Write},
+    time::{Duration, Instant},
 };
 
 use nmea_parser::{
     ais::{VesselDynamicData, VesselStaticData},
     NmeaParser, ParsedMessage,
 };
+
+use crate::util::glob_dir;
 
 pub struct VesselData {
     pub payload: Option<ParsedMessage>,
@@ -32,16 +35,18 @@ impl VesselData {
     }
 }
 
-/// discard all other message types, sort filtered categories into columns
+/// discard all other message types, sort filtered categories
 pub fn filter_vesseldata(
-    payload: Option<ParsedMessage>,
-) -> Option<(Option<ParsedMessage>, Option<ParsedMessage>)> {
-    match payload? {
+    sentence: &str,
+    epoch: &i32,
+    parser: &mut NmeaParser,
+) -> Option<(ParsedMessage, i32, bool)> {
+    match parser.parse_sentence(&sentence).ok()? {
         ParsedMessage::VesselDynamicData(vdd) => {
-            Some((Some(ParsedMessage::VesselDynamicData(vdd)), None))
+            Some((ParsedMessage::VesselDynamicData(vdd), *epoch, true))
         }
         ParsedMessage::VesselStaticData(vsd) => {
-            Some((None, Some(ParsedMessage::VesselStaticData(vsd))))
+            Some((ParsedMessage::VesselStaticData(vsd), *epoch, false))
         }
         _ => None,
     }
@@ -75,76 +80,55 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
 }
 
 /// work around panic bug in chrono library / indexing bug in nmea_parser library ???
-/// https://github.com/zaari/nmea-parser/issues/25
-pub fn skipmsg(msg: &str) -> bool {
+/// <https://github.com/zaari/nmea-parser/issues/25>
+pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
     /* true for base station reports and binary application data */
-    msg.contains("!AIVDM,1,1,,,;")
+    if msg.contains("!AIVDM,1,1,,,;")
         || msg.contains("!AIVDM,1,1,,,I")
         || msg.contains("!AIVDM,1,1,,,J")
+    {
+        None
+    } else {
+        Some((msg.to_string(), *epoch))
+    }
 }
 
 /// open .nm4 file and decode each line, keeping only vessel data
 /// returns vector of static and dynamic reports
 pub fn decodemsgs(filename: &String) -> (Vec<VesselData>, Vec<VesselData>) {
     assert_eq!(&filename[&filename.len() - 4..], ".nm4");
-    let reader = BufReader::new(
-        File::open(filename).expect(format!("Cannot open file {}", filename).as_str()),
-    );
+    println!("opening file {}...", filename);
+
+    let reader = BufReader::new(File::open(filename).expect("Cannot open file"));
     let mut parser = NmeaParser::new();
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
 
-    let mut skip = 0;
-    let mut keep = 0;
-    let mut failed = 0;
+    for (payload, epoch, is_dynamic) in reader
+        .lines()
+        .filter_map(|l| parse_headers(l))
+        .filter_map(|(s, e)| skipmsg(&s, &e))
+        .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
+        .collect::<Vec<(ParsedMessage, i32, bool)>>()
+    {
+        let message = VesselData {
+            epoch: Some(epoch),
+            payload: Some(payload),
+        };
 
-    for msg in reader.lines() {
-        //println!("{:?}", &msg);
-
-        /* if message contains a header and payload ... */
-        if let Some(splits) = parse_headers(msg) {
-            /* skip problematic timestamps and binary data */
-            if skipmsg(&splits.0) {
-                skip += 1;
-                continue;
-            }
-            /* if the payload was successfully decoded as vessel data, keep it */
-            if let Ok(payload) = parser.parse_sentence(&splits.0) {
-                //message.payload = filter_vesseldata(Some(payload));
-                match filter_vesseldata(Some(payload)) {
-                    Some((Some(p), None)) => {
-                        let message = VesselData {
-                            epoch: Some(splits.1),
-                            payload: Some(p),
-                        };
-                        keep += 1;
-                        positions.push(message)
-                    }
-                    Some((None, Some(p))) => {
-                        let message = VesselData {
-                            epoch: Some(splits.1),
-                            payload: Some(p),
-                        };
-                        keep += 1;
-                        stat_msgs.push(message)
-                    }
-
-                    _ => {
-                        skip += 1;
-                    }
-                }
-            } else {
-                failed += 1;
-            }
+        if is_dynamic {
+            positions.push(message);
         } else {
-            failed += 1;
+            stat_msgs.push(message);
         }
     }
-    println!(
-        "{}    decoded: {}    skipped: {}    failed: {}    ",
-        filename, keep, skip, failed,
-    );
 
+    println!(
+        "{}    dynamic: {}    static: {}",
+        filename.rsplit_once("/").unwrap().1,
+        positions.len(),
+        stat_msgs.len(),
+    );
     return (positions, stat_msgs);
 }
 
@@ -154,7 +138,8 @@ pub fn decodemsgs(filename: &String) -> (Vec<VesselData>, Vec<VesselData>) {
 pub mod tests {
     use super::*;
 
-    pub fn testingdata() -> Result<(), Error> {
+    #[test]
+    pub fn testingdata() -> Result<(), &'static str> {
         let c = r#"
 \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;I=i:8f0D4l>niTdDO`cO3jGqrlQ,0*67
 \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,another_error!!;wqlirf
@@ -190,9 +175,14 @@ pub mod tests {
 \s:42958,c1635809454,t:1635809521*6F\!AIVDM,1,1,,,;h3woll47wk?0<tSF0l4Q@000P00,0*4B
 \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;i<rac5sg@;huMi4QhiWacTLEQj<,0*71
 \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,2,1,4,,54sc8041SAu`uDPr220dU<56222222222222221618@247?m07SUEBp1,0*0C"#;
-        create_dir_all("aisdb_rust/testdata/")?;
-        let mut output = File::create("aisdb_rust/testdata/testingdata.nm4")?;
-        write!(output, "{}", c)
+
+        if create_dir_all("testdata/").is_ok() {
+            let mut output = File::create("testdata/testingdata.nm4").unwrap();
+            let _ = write!(output, "{}", c);
+            Ok(())
+        } else {
+            Err("cant create testing data dir!")
+        }
     }
 
     #[test]
@@ -207,18 +197,28 @@ pub mod tests {
     }
 
     #[test]
-    pub fn test_files() {
+    pub fn test_files() -> Result<(), Error> {
         let _ = testingdata();
-        for filepath in
-            read_dir("aisdb_rust/testdata/").expect("couldnt read testing data directory")
-        {
-            let fpath = filepath.unwrap().path().display().to_string();
-            if &fpath[fpath.len() - 4..] == ".nm4" {
-                println!("testing decoder: {}", fpath);
-                let _msgs = decodemsgs(&fpath);
-            } else {
-                continue;
+        let fpaths = glob_dir("testdata/", "nm4", 0).unwrap();
+
+        let mut n = 0;
+        for filepath in fpaths {
+            if n > 10 {
+                break;
             }
+            let start = Instant::now();
+            let (positions, stat_msgs) = decodemsgs(&filepath);
+            //assert_ne!(positions.len(), 0);
+            //assert_ne!(stat_msgs.len(), 0);
+            let elapsed = start.elapsed();
+            println!(
+                "{}\tdecoded {} msgs/s",
+                n,
+                ((positions.len() + stat_msgs.len()) as f64 / elapsed.as_secs_f64())
+            );
+            n += 1;
         }
+
+        Ok(())
     }
 }

@@ -1,56 +1,44 @@
-use std::fs::read_dir;
-
 use sqlx::Error;
-use tokio;
+//use tokio;
+//use async_std;
 
 pub mod db;
 pub mod decode;
+pub mod util;
 
 pub use db::*;
 pub use decode::*;
+pub use util::*;
+
+pub use sqlx::query_as;
 
 #[tokio::main]
-/// first prototype only
+/// first prototype
 /// decode dynamic reports into rust_test.db
 pub async fn main() -> Result<(), Error> {
-    //let sqlite_pool = get_db_pool(None).await.expect("connecting to db");
     /*
-    let sqlite_pool = get_db_pool(Some("/run/media/matt/My Passport/testdb/rust_test.db"))
-    .await
-    .expect("connecting to db");
+     */
+    let mstr = "202111";
 
-    sqlite_createtable_dynamicreport("202111", &sqlite_pool)
-    .await
-    .expect("inserting in db");
+    let sqlite_pool = get_db_pool(None).await?;
 
-    let mut n = 0;
+    let _ = sqlite_createtable_dynamicreport(mstr, &sqlite_pool).await?;
 
-    for filepath in read_dir("testdata/")
-    .unwrap()
-    .map(|f| f.unwrap().path().display().to_string())
-    {
-    n += 1;
-    if n < 111 {
-    continue;
-    } else if &filepath[filepath.len() - 4..] == ".nm4" {
-    print!("{}\t", n);
-    let (positions, stat_msgs) = decodemsgs(&filepath);
-    sqlite_insert_positions(&sqlite_pool, positions, "202111")
-    .await
-    .expect("error calling async insert function");
-    }
-    }
+    //query_as("select count(*) from ais_202111_msg_dynamic;")
+    let res: (i64,) = query_as(format!("select count(*) from ais_{}_msg_dynamic", mstr).as_str())
+        .fetch_one(&sqlite_pool)
+        .await
+        .expect("waiting for db...");
+    println!("db count: {}", res.0);
 
-    sqlite_pool.close().await;
-    Ok(())
-    */
-    //let _res = concurrent_insert_dir(Some("aisdb_rust/testdata/"), Some(116))
     let _res = concurrent_insert_dir(
         "/run/media/matt/DATA_AIS/unzipped/",
-        "/run/media/matt/My Passport/testdb/rust_test.db",
-        Some(117),
+        "/run/media/matt/My Passport/testdb/rust_test_newindex.db",
+        //Some(15),
+        Some(450),
     )
     .await
     .expect("could not spawn decoder processes");
+
     Ok(())
 }
