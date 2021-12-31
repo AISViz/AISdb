@@ -19,12 +19,7 @@ doctest = false
 
 [dependencies]
 nmea-parser = {version = "0.8.0"}
-sqlx = { version = "0.5", features = ["sqlite", "runtime-tokio-rustls", ] }
+sqlx = { version = "0.5", features = ["sqlite", "runtime-async-std-native-tls", ] }
 async-std = {version = "1.10", features = ["attributes"] }
-tokio = {version = "1", features = ["full"]}
-#tokio-stream = {version = "0.1"}
-futures = {version = "0.3.*"}
-#sqlx = { version = "0.5", features = [ "sqlite", "uuid", "chrono", "migrate" ] }
-#chrono = "0.4"
-#uuid = { version = "0.8", features = ["v4"] }
+futures = {version = "0.3.*", default-features = false}
 #clap = "2"

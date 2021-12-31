@@ -214,7 +214,8 @@ mod tests {
 
     use super::*;
 
-    #[tokio::test]
+    //#[tokio::test]
+    #[async_std::test]
     async fn test_create_dynamictable() -> Result<(), Error> {
         let sqlite_pool = get_db_pool(None).await.expect("connecting to db");
 
@@ -227,7 +228,7 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[async_std::test]
     async fn test_insert_dynamic_msgs() -> Result<(), Error> {
         //let sqlite_pool = get_db_pool(Some("testdata/test.db"))
         let sqlite_pool = get_db_pool(None).await.expect("connecting to db");
