@@ -25,6 +25,8 @@ CMD ["python", "-m", "pytest", "--color=yes", "-x", "--tb=native", "tests/"]
 
 # build and test rust targets
 FROM aisdb as compile
+USER root
+RUN pacman -S pkgconf --noconfirm
 ARG USERNAME
 USER "$USERNAME"
 RUN mkdir -p aisdb_rust/src \

@@ -16,11 +16,8 @@ cp "${RSTSOURCEDIR}/db_schema.png" "$HTMLOUTPUTDIR/_images/"
 cp "${RSTSOURCEDIR}/scriptoutput.png" "$HTMLOUTPUTDIR/_images/"
 cargo doc \
   --document-private-items \
-  --frozen \
   --manifest-path="$ROOTDIR/aisdb_rust/Cargo.toml" \
   --no-deps \
-  --offline \
   --package=aisdb \
   --release \
   --target-dir="$HTMLOUTPUTDIR/rust" 
-  #--profile=test \
