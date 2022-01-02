@@ -1,15 +1,20 @@
-stages:
-  - build
+default:
+  image: docker/compose:latest
+  entrypoint: ["/bin/sh", "-c"]
+
+services:
+  - docker:dind
 
 before_script:
-  - apk add --no-cache gcc python3
-  - python3 -m ensurepip && python3 -m pip install --upgrade setuptools wheel pip Cython
-  - mkdir -p ~/ais && export DATA_DIR=~/ais
+  - docker version
+  - docker-compose version
 
-create-package:
-  type: build
+stages:
+  - build
+  - test
+  - docs
+
+build image:
   stage: build
-  only: 
-    - test-ci
-  script:
-    - python3 setup.py sdist
+    script:
+      - docker-compose up --build aisdb_base
