@@ -6,7 +6,7 @@ services:
   - docker:dind
 
 before_script:
-  - sudo service docker start
+  - service docker start
   #- sudo dockerd
   - docker version
   - docker-compose version
