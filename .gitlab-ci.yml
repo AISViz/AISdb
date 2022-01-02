@@ -6,6 +6,7 @@ services:
   - docker:dind
 
 before_script:
+  - systemctl enable docker && systemctl start docker
   - docker version
   - docker-compose version
 
