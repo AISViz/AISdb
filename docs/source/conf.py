@@ -19,7 +19,7 @@ import aisdb
 # -- Project information -----------------------------------------------------
 
 project = 'AISDB'
-copyright = '2021, MERIDIAN / Matt Smith'
+copyright = '2021, MERIDIAN'
 author = 'MERIDIAN / Matt Smith'
 
 
