@@ -1,0 +1,22 @@
+default:
+  image: docker/compose:latest
+  #entrypoint: ["/bin/sh", "-c"]
+
+services:
+  - docker:dind
+
+before_script:
+  - sudo service docker start
+  #- sudo dockerd
+  - docker version
+  - docker-compose version
+
+stages:
+  - build
+  - test
+  - docs
+
+build image:
+  stage: build
+  script:
+    - docker-compose up --build aisdb_base
