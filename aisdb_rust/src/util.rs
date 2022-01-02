@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::env;
 use std::fs::read_dir;
 
 use nmea_parser::ParsedMessage;
@@ -40,6 +41,21 @@ pub fn glob_dir(dirname: &str, matching: &str, skip: usize) -> Option<Vec<String
         .to_vec();
     fnames.sort();
     Some(fnames[skip..].to_vec())
+}
+
+/// collect --dbpath and --rawdata_dir args from command line
+pub fn parse_args() -> (String, String) {
+    let mut dbpath = "testdata/ais.db";
+    let mut rawdata_dir = "testdata/";
+    let args: Vec<String> = env::args().collect();
+    for arg in &args {
+        if arg.contains("--dbpath") {
+            dbpath = arg.rsplit_once("=").unwrap().1;
+        } else if arg.contains("--rawdata_dir") {
+            rawdata_dir = arg.rsplit_once("=").unwrap().1;
+        }
+    }
+    (dbpath.to_string(), rawdata_dir.to_string())
 }
 
 /// interpret VesselData struct as row data and perform a matrix transpose.
