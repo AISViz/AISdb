@@ -22,3 +22,4 @@ nmea-parser = {version = "0.8.0"}
 rusqlite    = {version = "0.26"}
 async-std   = {version = "1.10", features = ["attributes"] }
 futures     = {version = "0.3.*"}
+chrono      = {version = "0.4"}

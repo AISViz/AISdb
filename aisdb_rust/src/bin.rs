@@ -27,10 +27,10 @@ pub async fn main() -> Result<(), Error> {
     println!("creating database {} from files in {}", dbpath, rawdata_dir);
 
     let start = Instant::now();
-    let _ = concurrent_insert_dir(rawdata_dir, Some(dbpath), Some(0)).await;
+    let _ = concurrent_insert_dir(rawdata_dir, Some(dbpath), 420, usize::MAX).await;
     let elapsed = start.elapsed();
 
-    println!("total insert time: {} minutes", elapsed.as_secs_f32() / 60.);
+    println!("total insert time: {} minutes", elapsed.as_secs_f32() / 60.,);
 
     Ok(())
 }
