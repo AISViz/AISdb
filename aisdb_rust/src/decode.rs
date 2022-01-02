@@ -1,14 +1,16 @@
 pub use std::{
+    env,
     fs::{create_dir_all, read_dir, File},
     io::{BufRead, BufReader, Error, Write},
     time::{Duration, Instant},
-    env,
 };
 
 use nmea_parser::{
     ais::{VesselDynamicData, VesselStaticData},
     NmeaParser, ParsedMessage,
 };
+
+use crate::util::parse_args;
 
 pub struct VesselData {
     pub payload: Option<ParsedMessage>,
@@ -68,20 +70,21 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
         (meta, payload) => {
             for tag_outer in meta.split(",") {
                 for tag in tag_outer.split("*") {
-                //if &tag[0..2] != "c:" && &tag[0..3] != "\\c:"  {
-                if !&tag.contains("c:") {
-                    continue;
-                } else if tag.len() <= 3 {
-                    continue;
-                } else if let Ok(i) = tag[2..].parse::<i32>() {
-                    return Some((payload.to_string(), i));
-                } else if let Ok(i) = tag[3..].parse::<i32>() {
-                    return Some((payload.to_string(), i));
-                } else {
-                    //panic!("parsing error: {}", meta);
-                    return None;
+                    //if &tag[0..2] != "c:" && &tag[0..3] != "\\c:"  {
+                    if !&tag.contains("c:") {
+                        continue;
+                    } else if tag.len() <= 3 {
+                        continue;
+                    } else if let Ok(i) = tag[2..].parse::<i32>() {
+                        return Some((payload.to_string(), i));
+                    } else if let Ok(i) = tag[3..].parse::<i32>() {
+                        return Some((payload.to_string(), i));
+                    } else {
+                        //panic!("parsing error: {}", meta);
+                        return None;
+                    }
                 }
-            }}
+            }
             return None;
         }
     }
@@ -213,9 +216,8 @@ pub mod tests {
         let _ = testingdata();
 
         //let fpaths = glob_dir("testdata/", "nm4", 0).unwrap();
-        let args: Vec<String> = env::args().collect();
-        let (dbpath, rawdata_dir) = (&args[1], &args[2]);
-        let fpaths = glob_dir(rawdata_dir, "nm4", 0).unwrap();
+        let (_dbpath, rawdata_dir) = parse_args();
+        let fpaths = glob_dir(&rawdata_dir, "nm4", 0).unwrap();
 
         let mut n = 0;
         for filepath in fpaths {
