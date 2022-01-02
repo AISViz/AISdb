@@ -1,13 +1,10 @@
 ''' contains useful one-liners and lambda functions. includes DB query callback functions '''
 
 import os
-#import __main__
 from datetime import datetime, timedelta
 
 import numpy as np
 
-from database.dbconn import dbconn
-#from database import epoch_2_dt
 from gis import epoch_2_dt, dt_2_epoch
 from common import table_prefix
 

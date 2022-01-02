@@ -19,7 +19,7 @@ import aisdb
 # -- Project information -----------------------------------------------------
 
 project = 'AISDB'
-copyright = '2021, MERIDIAN / Matt Smith'
+copyright = '2021, MERIDIAN'
 author = 'MERIDIAN / Matt Smith'
 
 
@@ -48,16 +48,10 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+#html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
-html_theme_options = {
-    #'page_width': 'auto',
-    'page_width': '75vw',
-    'fixed_sidebar': False,
-    'sidebar_collapse': True,
-    'show_powered_by': False,
-    'description': 'AIS Database and Processing Utils',
-}
+html_theme_options = {}
 
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -70,7 +64,7 @@ html_static_path = ['.']
 
 
 html_css_files = [
-    'custom.css',
+        #'custom.css',
 ]
 
 
