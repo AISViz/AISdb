@@ -41,7 +41,7 @@ RUN cargo build \
     --manifest-path="/home/$USERNAME/aisdb_rust/Cargo.toml" \
     --release
 RUN mkdir -p testdata/
-CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--release", "--color=always", "--tests", "--", "--nocapture"]
+CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--release", "--color=always", "--", "--nocapture" ]
 
 # forward X11 on sshd host
 FROM aisdb AS sshhost
