@@ -1,5 +1,12 @@
 version: '3.9'
 
+#
+# show files not covered by dockerignore
+# useful for debugging large build context
+# find . | grep -vi "`cat .dockerignore`" 
+#
+#
+
 
 services:
 
@@ -31,6 +38,21 @@ services:
         - USERNAME=ais_env
     expose:
       - "8085"
+    networks:
+      - ipv6_private
+
+  rust_build_test:
+    container_name: aisdb_rust
+    environment:
+      - RUST_BACKTRACE=1
+    build:
+      target: compile
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+          - USERNAME=ais_env
+    volumes:
+      - ${DATA_DIR}:/home/ais_env/ais
     networks:
       - ipv6_private
 

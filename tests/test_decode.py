@@ -1,55 +1,54 @@
 import os
 
+from aisdb import *
 from database import *
+from aisdb.database.decoder import *
+from aisdb.proc_util import glob_files
 
 testdbs = os.path.join(os.path.dirname(dbpath), 'testdb') + os.path.sep 
-
-"""
-month = '201806'
-aisdb = dbconn(dbpath=dbpath)
-conn, cur = aisdb.conn, aisdb.cur
-cur.execute(f''' CREATE INDEX IF NOT EXISTS idx_msg5_{month}_shiptype ON 'ais_{month}_msg_5' (ship_type) ''')
-cur.execute(f''' CREATE INDEX IF NOT EXISTS idx_msg5_{month}_vesselname ON 'ais_{month}_msg_5' (vessel_name) ''')
-conn.close()
-"""
-
 
 
 if not os.path.isdir(testdbs): 
     os.mkdir(testdbs)
 
+def test_sort_1d():
+
+    db = testdbs + 'test_24h.db'
+    os.remove(db)
+    filepaths = glob_files(rawdata_dir, ext='.nm4')
+    testset = [f for f in filepaths if getfiledate(f) - getfiledate(filepaths[0]) <= timedelta(days=1)] 
+    dt = datetime.now()
+    decode_msgs(testset, db, processes=12, delete=False)
+    delta =datetime.now() - dt
+    print(f'total parse and insert time: {delta.total_seconds():.2f}s')
+
 
 def test_sort_1w():
-    db = testdbs + 'june2018-06-01_test.db'
-    #os.remove(db)
-    #dirpath, dirnames, filenames = np.array(list(os.walk('/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018'))[0], dtype=object)
-    dirpath, dirnames, filenames = np.array(list(os.walk(rawdata_dir))[0], dtype=object)
-    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
-    filepaths = filepaths[0:7]
+
+    db = testdbs + 'test_8days.db'
+    os.remove(db)
+    filepaths = glob_files(rawdata_dir, ext='.nm4')
+    testset = [f for f in filepaths if getfiledate(f) - getfiledate(filepaths[0]) < timedelta(days=8)] 
     dt = datetime.now()
-    decode_msgs(filepaths, db)
+    decode_msgs(testset, db, processes=12, delete=False)
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
 
 def test_sort_1m():
 
-    #db= testdbs + '201806.db'
-    db= testdbs + '201909.db'
+    db = testdbs + 'test_32days.db'
     #os.remove(db)
-    dirpath, dirnames, filenames = np.array(list(os.walk(rawdata_dir))[0], dtype=object)
-    #filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2018-06' in f])
-    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2019-09' in f], dtype=object)
-    filepaths = np.array([os.path.join(dirpath, f) for f in sorted(filenames) if '2021-01' in f and '.nm4' in f], dtype=object)
+    filepaths = glob_files(rawdata_dir, ext='.nm4')
+    testset = [f for f in filepaths if getfiledate(f) - getfiledate(filepaths[0]) < timedelta(days=32)] 
     dt = datetime.now()
-    decode_msgs(filepaths, db, processes=32)
+    decode_msgs(testset, db, processes=12)
     delta =datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
 
 def test_aggregate_staticreports():
 
-    from database import *
     dbpath = '/meridian/aisdb/eE_202009_test2.db'
     aisdb = dbconn(dbpath=dbpath)
     conn, cur = aisdb.conn, aisdb.cur
@@ -106,48 +105,3 @@ def test_aggregate_staticreports():
     cur.executemany(f''' INSERT INTO static_{month}_aggregate VALUES (?,?,?,?,?,?,?,?) ''', agg_rows)
     conn.commit()
     return
-
-
-
-
-
-### old, not used
-if False:
-
-
-    cur.execute(f''' select count(*) from ais_{month}_msg_5 ''')
-    cur.execute(f''' select count(*) from ais_{month}_msg_24 ''')
-
-
-#fpath = '/run/media/matt/Seagate Backup Plus Drive1/CCG_Terrestrial_AIS_Network/Raw_data/2018/CCG_AIS_Log_2018-06-01.csv'
-#fpath = '/run/media/matt/My Passport/raw_test/exactEarth_historical_data_2021-04-01.nm4'
-fpath = '/run/media/matt/Seagate Backup Plus Drive/CCG_Terrestrial_AIS_Network/Raw_data/2019/CCG_AIS_Log_2019-09-16.csv'
-#dbpath = '/run/media/matt/My Passport/ais_august.db'
-#dbpath = 'output/test_decode.db'
-#dbpath = '/run/media/matt/My Passport/test_decode.db'
-#dbpath = '/run/media/matt/My Passport/june2018_vacuum.db'
-dbpath = '/run/media/matt/My Passport/june2018_test3.db'
-
-#os.remove(dbpath)
-decode_raw_pyais(fpath)
-
-
-
-
-aisdb = dbconn(dbpath=dbpath)
-conn, cur = aisdb.conn, aisdb.cur
-
-cur.execute('select * from rtree_201806_msg_1_2_3 LIMIT 10')
-cur.execute('VACUUM INTO "/run/media/matt/My Passport/june2018_vacuum.db"')
-cur.execute('VACUUM INTO "/home/matt/june2018_vacuum_test3.db"')
-cur.execute('select * from ais_201806_msg_1_2_3 LIMIT 10')
-cur.execute('SELECT name FROM sqlite_master WHERE type IN ("table", "view") AND name NOT LIKE "sqlite_%" ORDER BY 1')
-res = np.array(cur.fetchall())
-res
-
-from shapely.geometry import Polygon, LineString, MultiPoint
-from gis import *
-from track_viz import *
-from track_gen import *
-
-

@@ -30,14 +30,13 @@ def test_query_smallboundary_statictables():
 
     # static: msg 5 union 24
     dt = datetime.now()
-    rows = qrygen(
+    rowgen = qrygen(
             start=start,
             end=end,
         )
-    .run_qry(dbpath=dbpath, callback=rtree_in_bbox_time_validmmsi, qryfcn=static) 
+    rowgen.run_qry(dbpath=dbpath, callback=rtree_in_bbox_time_validmmsi, qryfcn=static) 
     delta =datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
-
 
 
 def test_query_smallboundary_dynamictables():

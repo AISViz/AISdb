@@ -2,6 +2,7 @@
 AISDB Docs: Index
 =================
 
+
 .. toctree::
    :maxdepth: 4
    :caption: Contents:
@@ -17,8 +18,8 @@ AISDB Docs: Index
    :caption: API Docs:
    :titlesonly:
 
-   sphinx-apidoc/aisdb
-
+   api/aisdb
+   rust
 
 
 Indices and tables
