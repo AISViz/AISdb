@@ -1,7 +1,7 @@
 [package]
 name = 'aisdb'
 version = '0.1.0'
-authors = ['Matt Smith matthew.smith@dal.ca']
+authors = ['MERIDIAN // Matt Smith matthew.smith@dal.ca']
 edition = '2021'
 include = ['/src', ]
 
@@ -19,7 +19,6 @@ doctest = false
 
 [dependencies]
 nmea-parser = {version = "0.8.0"}
-sqlx = { version = "0.5", features = ["sqlite", "runtime-async-std-native-tls", ] }
-async-std = {version = "1.10", features = ["attributes"] }
-futures = {version = "0.3.*", default-features = false}
-#clap = "2"
+rusqlite    = {version = "0.26"}
+async-std   = {version = "1.10", features = ["attributes"] }
+futures     = {version = "0.3.*"}

@@ -9,8 +9,6 @@ use nmea_parser::{
     NmeaParser, ParsedMessage,
 };
 
-use crate::util::glob_dir;
-
 pub struct VesselData {
     pub payload: Option<ParsedMessage>,
     pub epoch: Option<i32>,
@@ -97,7 +95,7 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
 /// returns vector of static and dynamic reports
 pub fn decodemsgs(filename: &String) -> (Vec<VesselData>, Vec<VesselData>) {
     assert_eq!(&filename[&filename.len() - 4..], ".nm4");
-    println!("opening file {}...", filename);
+    //println!("opening file {}...", filename);
 
     let reader = BufReader::new(File::open(filename).expect("Cannot open file"));
     let mut parser = NmeaParser::new();
@@ -137,6 +135,7 @@ pub fn decodemsgs(filename: &String) -> (Vec<VesselData>, Vec<VesselData>) {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::util::glob_dir;
 
     #[test]
     pub fn testingdata() -> Result<(), &'static str> {
