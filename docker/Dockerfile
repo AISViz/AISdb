@@ -10,7 +10,7 @@ ARG USERNAME
 RUN useradd -m "$USERNAME" --shell /bin/python3
 USER "$USERNAME"
 WORKDIR "/home/$USERNAME"
-COPY --chown="$USERNAME" setup.py .
+COPY --chown="$USERNAME" ./setup.py "/home/$USERNAME/setup.py"
 RUN python -m ensurepip && python -m pip install --no-warn-script-location --upgrade wheel pip numpy 
 RUN mkdir -p aisdb/database aisdb/webdata && python -m pip install . --no-warn-script-location
 
