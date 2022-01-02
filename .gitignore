@@ -1,3 +1,5 @@
+!output/scriptoutput.png
+**.lock
 **/node_modules/*
 **package-lock.json
 *.cookie
@@ -10,13 +12,15 @@
 *.pyc
 *.swp
 *__pycache__*
-.*
-.**
 .env
+.pytest_cache
+.pytest_cache/*
 ais/webdata/webdriver*
+aisdb_rust/target
+aisdb_rust/testdata
+docker-compose.override.yml
 docs/html/*
+docs/source/api/*
 docs/source/readme.rst
-docs/source/sphinx-apidoc/*
 tests/output/*
 tmp/*
-!output/scriptoutput.png

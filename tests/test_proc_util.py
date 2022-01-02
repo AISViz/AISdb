@@ -1,6 +1,9 @@
-from proc_util import fast_unzip
+from aisdb import rawdata_dir, data_dir, output_dir
+from aisdb.proc_util import fast_unzip, glob_files, _fast_unzip
 
-zips = [os.path.join(rawdata_dir,r) for r in os.listdir(rawdata_dir) if r.lower().rfind('nm4') >= 0 and r.lower().rfind('zip') >= 0 ]
 
-fast_unzip(zips, dirname=rawdata_dir, processes=min(len(zips), 32, os.cpu_count()//2))
+files = glob_files(rawdata_dir, ext='.zip')
 
+fast_unzip(files, dirname=output_dir, processes=4)
+
+_fast_unzip(files[0], dirname=output_dir)
