@@ -8,8 +8,8 @@ use std::cmp::min;
 use std::time::Instant;
 
 //use futures::stream::iter;
-use chrono::{DateTime, NaiveDateTime, Utc};
-use rusqlite::{Connection, Result, Transaction};
+use chrono::{DateTime, NaiveDateTime, Utc, MIN_DATETIME};
+use rusqlite::{params, Connection, Result, Transaction};
 
 #[path = "util.rs"]
 mod util;
@@ -42,19 +42,14 @@ pub fn sqlite_createtable_staticreport(
     tx: &Transaction,
     mstr: &str,
 ) -> Result<usize, rusqlite::Error> {
-    tx.execute(
+    let sql = format!(
         "
         CREATE TABLE IF NOT EXISTS ais_{}_msg_static (
             mmsi INTEGER,
             time INTEGER,
-            --region INTEGER,
-            --country INTEGER,
-            --base_station integer,
             vessel_name TEXT,
             call_sign TEXT,
             imo INTEGER,
-            --ship_type INTEGER,
-            ship_type TEXT,
             dim_bow INTEGER,
             dim_stern INTEGER,
             dim_port INTEGER,
@@ -62,7 +57,7 @@ pub fn sqlite_createtable_staticreport(
             draught INTEGER,
             destination TEXT,
             ais_version TEXT,
-            fixing_device INTEGER,
+            fixing_device STRING,
             eta_month INTEGER,
             eta_day INTEGER,
             eta_hour INTEGER,
@@ -70,8 +65,10 @@ pub fn sqlite_createtable_staticreport(
             PRIMARY KEY (mmsi, time, imo)
         ) WITHOUT ROWID;
         ",
-        [mstr],
+        mstr
     )
+    .replace("\n", " ");
+    tx.execute(&sql, [])
 }
 
 /// create position reports table
@@ -92,13 +89,12 @@ pub fn sqlite_createtable_dynamicreport(
             maneuver TEXT,
             utc_second INTEGER,
             PRIMARY KEY (mmsi, time, longitude, latitude)
-            )
-        WITHOUT ROWID;",
+        ) WITHOUT ROWID;",
         mstr
     );
 
     //let tx = tx.transaction().expect("creating tx");
-    tx.execute(&sql, [])
+    Ok(tx.execute(&sql, []).expect("creating static tables"))
     //tx.commit().expect("committing tx");
     //Ok(())
 }
@@ -112,7 +108,6 @@ pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str)
             vessel_name,
             call_sign ,
             imo ,
-            --ship_type ,
             dim_bow ,
             dim_stern ,
             dim_port ,
@@ -124,69 +119,38 @@ pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str)
             eta_month ,
             eta_day ,
             eta_hour ,
-            eta_minute ,
+            eta_minute
             )
-            ",
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ",
         mstr
     );
-    println!("{}", sql);
 
-    let mut stmt = tx
-        .prepare_cached(sql.as_str())
-        .expect("preparing statement");
-
+    let mut stmt = tx.prepare_cached(&sql)?;
     for msg in msgs {
         let (p, e) = msg.staticdata();
-        let _ = stmt
-            .execute([
-                p.mmsi,
-                e as u32,
-                p.name.unwrap().parse::<u32>().unwrap_or(0),
-                p.call_sign.unwrap().parse::<u32>().unwrap_or(0),
-                p.imo_number.unwrap_or(0),
-                //p.ship_type,
-                p.dimension_to_bow.unwrap_or(0) as u32,
-                p.dimension_to_stern.unwrap_or(0) as u32,
-                p.dimension_to_port.unwrap_or(0) as u32,
-                p.dimension_to_starboard.unwrap_or(0) as u32,
-                p.draught10.unwrap_or(0) as u32,
-                p.destination.unwrap().parse::<u32>().unwrap_or(0),
-                p.ais_version_indicator as u32,
-                p.equipment_vendor_id.unwrap().parse::<u32>().unwrap_or(0),
-                p.eta
-                    .unwrap()
-                    .date()
-                    .naive_utc()
-                    .format("%m")
-                    .to_string()
-                    .parse::<u32>()
-                    .unwrap_or(0),
-                p.eta
-                    .unwrap()
-                    .date()
-                    .naive_utc()
-                    .format("%d")
-                    .to_string()
-                    .parse::<u32>()
-                    .unwrap_or(0),
-                p.eta
-                    .unwrap()
-                    .date()
-                    .naive_utc()
-                    .format("%H")
-                    .to_string()
-                    .parse::<u32>()
-                    .unwrap_or(0),
-                p.eta
-                    .unwrap()
-                    .date()
-                    .naive_utc()
-                    .format("%M")
-                    .to_string()
-                    .parse::<u32>()
-                    .unwrap_or(0),
-            ])
-            .expect("executing prepared row");
+        //let _ = stmt
+        let eta = p.eta.unwrap_or(MIN_DATETIME);
+        stmt.execute(params![
+            p.mmsi,
+            e,
+            p.name.unwrap_or("".to_string()),
+            p.call_sign.unwrap_or("".to_string()),
+            p.imo_number.unwrap_or(0),
+            //p.ship_type,
+            p.dimension_to_bow.unwrap_or(0),
+            p.dimension_to_stern.unwrap_or(0),
+            p.dimension_to_port.unwrap_or(0),
+            p.dimension_to_starboard.unwrap_or(0),
+            p.draught10.unwrap_or(0),
+            p.destination.unwrap_or("".to_string()),
+            p.ais_version_indicator,
+            p.equipment_vendor_id.unwrap_or("".to_string()),
+            eta.format("%m").to_string(),
+            eta.format("%d").to_string(),
+            eta.format("%H").to_string(),
+            eta.format("%M").to_string(),
+        ])?;
     }
     //tx.commit().expect("commit");
     Ok(())
@@ -198,19 +162,19 @@ pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str)
 pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
     let sql = format!(
         "INSERT OR IGNORE INTO ais_{}_msg_dynamic
-            (
-              mmsi,
-              time,
-              longitude,
-              latitude,
-              rot,
-              sog,
-              cog,
-              heading,
-              maneuver,
-              utc_second
-            )
-          VALUES (?,?,?,?,?,?,?,?,?,?)",
+        (
+            mmsi,
+            time,
+            longitude,
+            latitude,
+            rot,
+            sog,
+            cog,
+            heading,
+            maneuver,
+            utc_second
+        )
+        VALUES (?,?,?,?,?,?,?,?,?,?)",
         mstr
     );
     let start = Instant::now();
@@ -224,17 +188,17 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
     for msg in msgs {
         let (p, e) = msg.dynamicdata();
         let _ = stmt
-            .execute([
+            .execute(params![
                 p.mmsi,
-                e as u32,
-                p.longitude.unwrap_or(0.) as u32,
-                p.latitude.unwrap_or(0.) as u32,
-                p.rot.unwrap_or(-1.) as u32,
-                p.sog_knots.unwrap_or(-1.) as u32,
-                p.cog.unwrap_or(-1.) as u32,
-                p.heading_true.unwrap_or(-1.) as u32,
-                p.special_manoeuvre.unwrap_or(false) as u32,
-                p.timestamp_seconds.into(),
+                e,
+                p.longitude.unwrap_or(0.),
+                p.latitude.unwrap_or(0.),
+                p.rot.unwrap_or(-1.),
+                p.sog_knots.unwrap_or(-1.),
+                p.cog.unwrap_or(-1.),
+                p.heading_true.unwrap_or(-1.),
+                p.special_manoeuvre.unwrap_or(false),
+                p.timestamp_seconds,
             ])
             .expect("executing prepared row");
         n += 1;
@@ -269,14 +233,25 @@ pub async fn concurrent_insert_dir(
                 Utc,
             );
             let mstr = filedate.format("%Y%m").to_string();
-            print!("\tmstr: {}", mstr);
             let mut c = get_db_conn(dbpath).expect("getting db conn");
-            let t = c.transaction().expect("begin transaction");
-            let _newtab1 = sqlite_createtable_staticreport(&t, &mstr).expect("creating table");
-            let _newtab2 = sqlite_createtable_dynamicreport(&t, &mstr).expect("creating table");
-            let _insert1 = sqlite_insert_static(&t, stat_msgs, &mstr).expect("insert static");
-            let _insert2 = sqlite_insert_dynamic(&t, positions, &mstr).expect("insert positions");
-            let _results = t.commit().expect("commit to db");
+            let t = c.transaction();
+            let _newtab2 = sqlite_createtable_dynamicreport(&t.as_ref().unwrap(), &mstr)
+                .expect("creating dynamic table");
+            let _insert2 = sqlite_insert_dynamic(&t.as_ref().unwrap(), positions, &mstr)
+                .expect("insert positions");
+
+            let _ = t.unwrap().commit();
+            println!("\tmstr: {}", &mstr);
+            let t = c.transaction().expect("new tx");
+
+            let _newtab1 =
+                sqlite_createtable_staticreport(&t, &mstr).expect("creating static table");
+            let _ = t.commit();
+
+            let t = c.transaction();
+            let _insert1 =
+                sqlite_insert_static(&t.unwrap(), stat_msgs, &mstr).expect("static insert");
+            //let _results = t.commit().expect("commit to db");
         })
         .await;
 
@@ -292,6 +267,18 @@ mod tests {
     use crate::decodemsgs;
     use util::glob_dir;
     use util::parse_args;
+
+    fn testing_dbpaths() -> (
+        Option<&'static str>,
+        Option<&'static str>,
+        Option<&'static str>,
+    ) {
+        (
+            None,
+            Some("~/ais/ais.db"),
+            Some("/run/media/matt/My Passport/rust_db_test.db"),
+        )
+    }
 
     #[test]
     fn test_create_dynamictable() -> Result<()> {
