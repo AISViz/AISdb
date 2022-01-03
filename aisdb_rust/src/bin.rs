@@ -1,4 +1,5 @@
 use async_std;
+use std::path::PathBuf;
 use std::time::Instant;
 
 #[path = "db.rs"]
@@ -38,8 +39,13 @@ pub async fn main() -> Result<(), Error> {
     );
 
     let start = Instant::now();
-    let _ =
-        concurrent_insert_dir(&args.rawdata_dir, Some(&args.dbpath), args.start, args.end).await;
+    let _ = concurrent_insert_dir(
+        &args.rawdata_dir,
+        Some(args.dbpath.unwrap_or(PathBuf::new()).as_path()),
+        args.start,
+        args.end,
+    )
+    .await;
     let elapsed = start.elapsed();
 
     println!("total insert time: {} minutes", elapsed.as_secs_f32() / 60.,);

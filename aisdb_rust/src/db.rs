@@ -19,7 +19,7 @@ use crate::VesselData;
 use util::glob_dir;
 
 /// open a new database connection at the specified path
-pub fn get_db_conn(path: Option<&str>) -> Result<Connection> {
+pub fn get_db_conn(path: Option<&std::path::Path>) -> Result<Connection> {
     let conn = match path {
         Some(p) => Connection::open(p).unwrap(),
         None => Connection::open_in_memory().unwrap(),
@@ -218,7 +218,7 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
 /// parse files and insert into DB using concurrent asynchronous runners
 pub async fn concurrent_insert_dir(
     rawdata_dir: &str,
-    dbpath: Option<&str>,
+    dbpath: Option<&std::path::Path>,
     start: usize,
     end: usize,
 ) -> Result<()> {
@@ -241,7 +241,6 @@ pub async fn concurrent_insert_dir(
                 .expect("insert positions");
 
             let _ = t.unwrap().commit();
-            println!("\tmstr: {}", &mstr);
             let t = c.transaction().expect("new tx");
 
             let _newtab1 =
@@ -262,6 +261,7 @@ pub async fn concurrent_insert_dir(
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
 
     use super::*;
     use crate::decodemsgs;
@@ -269,30 +269,30 @@ mod tests {
     use util::parse_args;
 
     fn testing_dbpaths() -> (
-        Option<&'static str>,
-        Option<&'static str>,
-        Option<&'static str>,
+        //Option<&'static str>,
+        //Option<&'static str>,
+        //Option<&'static str>,
+        Option<&'static std::path::Path>,
+        Option<&'static std::path::Path>,
+        Option<&'static std::path::Path>,
     ) {
+        /*(
+        None,
+        Some("/home/matt/ais/ais.db"),
+        Some("/run/media/matt/My Passport/rust_db_test.db"),
+        )
+        */
         (
             None,
-            Some("~/ais/ais.db"),
-            Some("/run/media/matt/My Passport/rust_db_test.db"),
+            Some(Path::new("/home/matt/ais/ais.db")),
+            Some(Path::new("/run/media/matt/My Passport/rust_db_test.db")),
         )
     }
 
     #[test]
     fn test_create_dynamictable() -> Result<()> {
-        let pargs = parse_args();
-        let args = match pargs {
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("error: {}", e);
-                std::process::exit(1);
-            }
-        };
-
         let mstr = "00test00";
-        let mut conn = get_db_conn(Some(&args.dbpath)).expect("getting db conn"); // memory db
+        let mut conn = get_db_conn(None).expect("getting db conn"); // memory db
 
         println!("/* creating table */");
         let tx = conn.transaction().expect("begin transaction");
@@ -307,13 +307,19 @@ mod tests {
         let pargs = parse_args();
         let args = match pargs {
             Ok(v) => v,
-            Err(e) => {
-                eprintln!("error: {}", e);
-                std::process::exit(1);
+            Err(ref e) => {
+                eprintln!("need to input dbpath!: {}", e);
+                //std::process::exit(1);
+                util::AppArgs {
+                    dbpath: None,
+                    rawdata_dir: pargs.unwrap().rawdata_dir,
+                    start: 0,
+                    end: 3,
+                }
             }
         };
 
-        let mut conn = get_db_conn(Some(&args.dbpath)).expect("getting db conn");
+        let mut conn = get_db_conn(None).expect("getting db conn");
         let tx = conn.transaction().expect("begin transaction");
         let _ = sqlite_createtable_staticreport(&tx, mstr).expect("creating tables");
         tx.commit().expect("commit to DB!");
@@ -322,9 +328,9 @@ mod tests {
 
         let fpaths = glob_dir(&args.rawdata_dir, "nm4", 0).unwrap();
 
-        let mut conn = get_db_conn(Some(&args.dbpath)).expect("getting db conn");
+        let mut conn = get_db_conn(None).expect("getting db conn");
         for filepath in fpaths {
-            if n > 5 {
+            if n > 2 {
                 break;
             }
             n += 1;
@@ -340,26 +346,17 @@ mod tests {
     #[test]
     fn test_insert_dynamic_msgs() -> Result<()> {
         let mstr = "00test00";
-        let pargs = parse_args();
-        let args = match pargs {
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("error: {}", e);
-                std::process::exit(1);
-            }
-        };
-        let mut conn = get_db_conn(Some(&args.dbpath)).expect("getting db conn");
+        let mut conn = get_db_conn(None).expect("getting db conn");
         let tx = conn.transaction().expect("begin transaction");
         let _ = sqlite_createtable_dynamicreport(&tx, mstr).expect("creating tables");
         tx.commit().expect("commit to DB!");
 
         let mut n = 0;
 
-        let fpaths = glob_dir(&args.rawdata_dir, "nm4", 0).unwrap();
+        let fpaths = glob_dir("testdata/", "nm4", 0).unwrap();
 
-        let mut conn = get_db_conn(Some(&args.dbpath)).expect("getting db conn");
         for filepath in fpaths {
-            if n > 5 {
+            if n > 3 {
                 break;
             }
             n += 1;
@@ -377,6 +374,15 @@ mod tests {
         //let dbpath = Some("testdata/test.db");
         //let rawdata_dir = "testdata/";
         //let (dbpath, rawdata_dir) = (&args[1], &args[2]);
-        let _ = concurrent_insert_dir(&args.rawdata_dir, Some(&args.dbpath), 0, 5).await;
+        let dbpaths = &testing_dbpaths();
+
+        println!("\nTESTING DATABASE {:?}", &dbpaths.0);
+        let _ = concurrent_insert_dir(&args.rawdata_dir, dbpaths.0, 0, 5).await;
+
+        println!("\nTESTING DATABASE {:?}", &dbpaths.1);
+        let _ = concurrent_insert_dir(&args.rawdata_dir, dbpaths.1, 0, 5).await;
+
+        println!("\nTESTING DATABASE {:?}", &dbpaths.2);
+        let _ = concurrent_insert_dir(&args.rawdata_dir, dbpaths.2, 0, 5).await;
     }
 }

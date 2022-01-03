@@ -30,9 +30,9 @@ use crate::decode::VesselData;
 
 #[derive(Debug)]
 pub struct AppArgs {
-    //pub dbpath: std::path::PathBuf,
-    //pub rawdata_dir: std::path::PathBuf,
-    pub dbpath: String,
+    //pub dbpath: std::path::Path,
+    //pub rawdata_dir: std::path::Path,
+    pub dbpath: Option<std::path::PathBuf>,
     pub rawdata_dir: String,
     pub start: usize,
     pub end: usize,
@@ -52,8 +52,11 @@ pub fn parse_args() -> Result<AppArgs, pico_args::Error> {
     }
 
     let args = AppArgs {
-        dbpath: pargs.value_from_str("--dbpath")?,
-        rawdata_dir: pargs.value_from_str("--rawdata_dir")?,
+        dbpath: pargs.opt_value_from_str("--dbpath").unwrap(),
+        rawdata_dir: pargs
+            .opt_value_from_str("--rawdata_dir")
+            .unwrap()
+            .unwrap_or("testdata/".to_string()),
         start: pargs
             .opt_value_from_fn("--start", str::parse)
             .unwrap()
