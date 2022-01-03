@@ -226,6 +226,7 @@ pub async fn concurrent_insert_dir(
     let fpaths_rng = &fpaths.as_slice()[start..min(end, fpaths.len())];
 
     iter(fpaths_rng)
+        // TODO: clean this up
         .for_each_concurrent(2, |f| async move {
             let (positions, stat_msgs) = decodemsgs(&f);
             let filedate: DateTime<Utc> = DateTime::<Utc>::from_utc(
@@ -269,19 +270,10 @@ mod tests {
     use util::parse_args;
 
     fn testing_dbpaths() -> (
-        //Option<&'static str>,
-        //Option<&'static str>,
-        //Option<&'static str>,
         Option<&'static std::path::Path>,
         Option<&'static std::path::Path>,
         Option<&'static std::path::Path>,
     ) {
-        /*(
-        None,
-        Some("/home/matt/ais/ais.db"),
-        Some("/run/media/matt/My Passport/rust_db_test.db"),
-        )
-        */
         (
             None,
             Some(Path::new("/home/matt/ais/ais.db")),
@@ -292,7 +284,7 @@ mod tests {
     #[test]
     fn test_create_dynamictable() -> Result<()> {
         let mstr = "00test00";
-        let mut conn = get_db_conn(None).expect("getting db conn"); // memory db
+        let mut conn = get_db_conn(None).expect("getting db conn");
 
         println!("/* creating table */");
         let tx = conn.transaction().expect("begin transaction");
@@ -311,7 +303,7 @@ mod tests {
                 eprintln!("need to input dbpath!: {}", e);
                 //std::process::exit(1);
                 util::AppArgs {
-                    dbpath: None,
+                    dbpath: Path::new(":memory:").to_path_buf(),
                     rawdata_dir: pargs.unwrap().rawdata_dir,
                     start: 0,
                     end: 3,
@@ -371,9 +363,6 @@ mod tests {
     #[async_std::test]
     async fn test_concurrent_insert() {
         let args = parse_args().unwrap();
-        //let dbpath = Some("testdata/test.db");
-        //let rawdata_dir = "testdata/";
-        //let (dbpath, rawdata_dir) = (&args[1], &args[2]);
         let dbpaths = &testing_dbpaths();
 
         println!("\nTESTING DATABASE {:?}", &dbpaths.0);

@@ -23,6 +23,7 @@ OPTIONS:
 ";
 
 use std::fs::read_dir;
+use std::path::Path;
 
 use nmea_parser::ParsedMessage;
 
@@ -30,9 +31,8 @@ use crate::decode::VesselData;
 
 #[derive(Debug)]
 pub struct AppArgs {
-    //pub dbpath: std::path::Path,
+    pub dbpath: std::path::PathBuf,
     //pub rawdata_dir: std::path::Path,
-    pub dbpath: Option<std::path::PathBuf>,
     pub rawdata_dir: String,
     pub start: usize,
     pub end: usize,
@@ -46,13 +46,16 @@ pub fn parse_path(s: &std::ffi::OsStr) -> Result<std::path::PathBuf, &'static st
 pub fn parse_args() -> Result<AppArgs, pico_args::Error> {
     let mut pargs = pico_args::Arguments::from_env();
 
-    if pargs.contains(["-h", "--help"]) {
+    if pargs.contains(["-h", "--help"]) || pargs.clone().finish().is_empty() {
         print!("{}", HELP);
         std::process::exit(0);
     }
 
     let args = AppArgs {
-        dbpath: pargs.opt_value_from_str("--dbpath").unwrap(),
+        dbpath: pargs
+            .opt_value_from_str("--dbpath")
+            .unwrap()
+            .unwrap_or(Path::new(":memory:").to_path_buf()),
         rawdata_dir: pargs
             .opt_value_from_str("--rawdata_dir")
             .unwrap()
@@ -72,7 +75,6 @@ pub fn parse_args() -> Result<AppArgs, pico_args::Error> {
         eprintln!("unused args {:?}", remaining);
     }
     Ok(args)
-    //(dbpath.to_string(), rawdata_dir.to_string())
 }
 
 /// yields sorted vector of files in dirname with a matching file extension.
