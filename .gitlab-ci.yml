@@ -1,0 +1,15 @@
+stages:
+  - build
+
+before_script:
+  - apk add --no-cache gcc python3
+  - python3 -m ensurepip && python3 -m pip install --upgrade setuptools wheel pip Cython
+  - mkdir -p ~/ais && export DATA_DIR=~/ais
+
+create-package:
+  type: build
+  stage: build
+  only: 
+    - test-ci
+  script:
+    - python3 setup.py sdist

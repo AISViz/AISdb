@@ -10,7 +10,16 @@ version: '3.9'
 
 services:
 
-  aisdb:
+  aisdb_base:
+    container_name: aisdb_base
+    build:
+      target: aisdb
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        - USERNAME=ais_env
+
+  aisdb_sshd:
     container_name: aisdb_sshd
     build: 
       target: sshhost
@@ -28,7 +37,7 @@ services:
     networks:
       - ipv6_private 
 
-  docs:
+  aisdb_docs:
     container_name: aisdb_docs
     build: 
       target: webserv
@@ -41,7 +50,7 @@ services:
     networks:
       - ipv6_private
 
-  rust_build_test:
+  aisdb_rust:
     container_name: aisdb_rust
     environment:
       - RUST_BACKTRACE=1
@@ -56,7 +65,7 @@ services:
     networks:
       - ipv6_private
 
-  test:
+  aisdb_test:
     container_name: aisdb_test
     build:
       target: runtest
