@@ -15,6 +15,7 @@ test = false
 [[bin]]
 name = 'aisdb_bin'
 path = 'src/bin.rs'
+doc = true
 doctest = false
 
 [dependencies]

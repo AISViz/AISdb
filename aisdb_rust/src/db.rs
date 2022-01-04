@@ -93,10 +93,7 @@ pub fn sqlite_createtable_dynamicreport(
         mstr
     );
 
-    //let tx = tx.transaction().expect("creating tx");
     Ok(tx.execute(&sql, []).expect("creating static tables"))
-    //tx.commit().expect("committing tx");
-    //Ok(())
 }
 
 pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
@@ -249,8 +246,7 @@ pub async fn concurrent_insert_dir(
             let _ = t.commit();
 
             let t = c.transaction();
-            let _insert1 =
-                sqlite_insert_static(&t.unwrap(), stat_msgs, &mstr).expect("static insert");
+            let _insert1 = sqlite_insert_static(&t.unwrap(), stat_msgs, &mstr).expect("insert");
             //let _results = t.commit().expect("commit to db");
         })
         .await;
@@ -263,6 +259,7 @@ pub async fn concurrent_insert_dir(
 #[cfg(test)]
 mod tests {
     use std::path::Path;
+    use std::path::PathBuf;
 
     use super::*;
     use crate::decodemsgs;
@@ -279,6 +276,14 @@ mod tests {
             Some(Path::new("/home/matt/ais/ais.db")),
             Some(Path::new("/run/media/matt/My Passport/rust_db_test.db")),
         )
+    }
+    fn newtestpaths() -> [std::path::PathBuf; 2] {
+        [
+            Path::new(":memory:").to_path_buf(),
+            [std::env::current_dir().unwrap().to_str().unwrap(), "ais.db"]
+                .iter()
+                .collect::<PathBuf>(),
+        ]
     }
 
     #[test]
@@ -363,15 +368,18 @@ mod tests {
     #[async_std::test]
     async fn test_concurrent_insert() {
         let args = parse_args().unwrap();
-        let dbpaths = &testing_dbpaths();
 
-        println!("\nTESTING DATABASE {:?}", &dbpaths.0);
-        let _ = concurrent_insert_dir(&args.rawdata_dir, dbpaths.0, 0, 5).await;
+        //let _ = concurrent_insert_dir(&args.rawdata_dir, dbpaths.0, 0, 5).await;
 
-        println!("\nTESTING DATABASE {:?}", &dbpaths.1);
-        let _ = concurrent_insert_dir(&args.rawdata_dir, dbpaths.1, 0, 5).await;
+        //println!("\nTESTING DATABASE {:?}", &dbpaths.1);
+        //let _ = concurrent_insert_dir(&args.rawdata_dir, dbpaths.1, 0, 5).await;
 
-        println!("\nTESTING DATABASE {:?}", &dbpaths.2);
-        let _ = concurrent_insert_dir(&args.rawdata_dir, dbpaths.2, 0, 5).await;
+        //println!("\nTESTING DATABASE {:?}", &dbpaths.2);
+        //let _ = concurrent_insert_dir(&args.rawdata_dir, dbpaths.2, 0, 5).await;
+
+        for p in newtestpaths() {
+            println!("\nTESTING DATABASE {:?}", &p);
+            let _ = concurrent_insert_dir(&args.rawdata_dir, Some(&p), 0, 5).await;
+        }
     }
 }

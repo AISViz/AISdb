@@ -1,5 +1,4 @@
 pub use std::{
-    env,
     fs::{create_dir_all, read_dir, File},
     io::{BufRead, BufReader, Error, Write},
     time::{Duration, Instant},

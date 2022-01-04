@@ -9,7 +9,7 @@ pub const HELP: &str = "\
 AISDB
 
 USAGE:
-  cargo run --release -- [DBPATH] [RAWDATA_DIR]
+  aisdb_bin --dbpath [DBPATH] --rawdata_dir [RAWDATA_DIR]
 
 FLAGS:
   -h, --help      Prints this message
