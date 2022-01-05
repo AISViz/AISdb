@@ -37,8 +37,7 @@ pub async fn main() -> Result<(), Error> {
     );
 
     let start = Instant::now();
-    let _ =
-        concurrent_insert_dir(&args.rawdata_dir, Some(&args.dbpath), args.start, args.end).await;
+    let _ = concurrent_insert_dir(&args.rawdata_dir, &args.dbpath, args.start, args.end).await;
     let elapsed = start.elapsed();
 
     println!(
@@ -51,7 +50,7 @@ pub async fn main() -> Result<(), Error> {
         "VACUUM INTO '{}.vacuum'",
         &args.dbpath.as_os_str().to_str().unwrap()
     );
-    let conn = get_db_conn(Some(&args.dbpath)).unwrap();
+    let conn = get_db_conn(&args.dbpath).unwrap();
     conn.execute(&sql, []).unwrap();
 
     Ok(())
