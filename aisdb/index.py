@@ -52,7 +52,7 @@ class index():
                     'bottom':   5000,       'top':      0,
                     'start':    datetime(2000, 1, 1, 0, 0),
                     'end':      datetime(2000, 1, 2, 0, 0)
-                }
+                    }
 
         >>> # here kwargs will split into 21 function calls using default spatial bin sizes
             with index(bins=True, store=True, inmemory=False, **kwargs) as scheduler:
@@ -201,9 +201,10 @@ class index():
 
                 **kwargs (dict)
                     boundary arguments, e.g.
-                    >>> kwargs = {
-                    ... 'south': 43.21, 'north': 46.54, 'west': -123.45, 'east': -110.01, 'top': 0, 'bottom': 5000,
-                    ... 'start': datetime(2000, 1, 1, 0, 0), 'end': datetime(2000, 1, 2, 0, 0)}
+
+            >>> kwargs = {
+                ... 'south': 43.21, 'north': 46.54, 'west': -123.45, 'east': -110.01, 'top': 0, 'bottom': 5000,
+                ... 'start': datetime(2000, 1, 1, 0, 0), 'end': datetime(2000, 1, 2, 0, 0)}
 
             yields:
                 dictionary containing args as a subset of input boundaries
@@ -227,7 +228,7 @@ class index():
                     for t in arange(kwargs['start'].date(), kwargs['end'], dt).astype(datetime):
 
                         yield dict(zip(('west', 'east', 'south', 'north', 'top', 'bottom', 'start', 'end',),
-                                       (x, x+dx, y, y+dy, z, z+dz, t, t+dt,)))
+                            (x, x+dx, y, y+dy, z, z+dz, t, t+dt,)))
 
 
 

@@ -7,6 +7,6 @@ Rust API
      <br>
      <br>
      <h3>
-     <a href="./rust/doc/aisdb_bin/index.html">Rust API</a>
+     <a href="./rust/doc/aisdb/index.html">Rust API</a>
      </h3>
      <br>

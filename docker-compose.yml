@@ -18,8 +18,8 @@ services:
       dockerfile: ./docker/Dockerfile
       args:
         - USERNAME=ais_env
-    networks:
-      - ipv6_private
+    #networks:
+    #  - ipv6_private
 
   aisdb_sshd:
     container_name: aisdb_sshd
