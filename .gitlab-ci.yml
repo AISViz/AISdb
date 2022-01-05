@@ -13,8 +13,6 @@ before_script:
 
 stages:
   - build
-  - test
-  - docs
 
 build image:
   stage: build
