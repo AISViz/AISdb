@@ -1,18 +1,17 @@
-image: matt24smith/aisdb
+default:
+  image: matt24smith/aisdb
 
 stages:
   - build
 
 before_script:
+  - pacman -S docker docker-compose
   #- echo test
   # push docker image to dockerhub
   # docker push matt24smith/aisdb:tagname
-  - pacman -S docker docker-compose
 
 create-package:
   type: build
   stage: build
   only: 
     - test-ci
-  script:
-    - python3 setup.py sdist
