@@ -146,7 +146,7 @@ pub fn decodemsgs(filename: &String) -> (Vec<VesselData>, Vec<VesselData>) {
 pub mod tests {
     use super::*;
     use crate::util::glob_dir;
-    use crate::util::parse_args;
+    //use crate::util::parse_args;
 
     #[test]
     pub fn testingdata() -> Result<(), &'static str> {
@@ -213,10 +213,9 @@ pub mod tests {
     pub fn test_files() -> Result<(), Error> {
         let _ = testingdata();
 
-        let args = parse_args().unwrap();
-        //let fpaths = glob_dir("testdata/", "nm4", 0).unwrap();
-        //let (_dbpath, rawdata_dir) = parse_args();
-        let fpaths = glob_dir(&args.rawdata_dir, "nm4", 0).unwrap();
+        // TODO: update this path with some config file
+        let fpaths =
+            glob_dir(std::env::current_dir().unwrap().to_str().unwrap(), "nm4", 0).unwrap();
 
         let mut n = 0;
         for filepath in fpaths {
