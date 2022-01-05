@@ -17,3 +17,5 @@ create-package:
   only: 
     - test-ci
     - submodule
+  script:
+    - docker-compose up aisdb_test --build 
