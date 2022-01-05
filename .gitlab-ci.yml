@@ -1,10 +1,13 @@
+image: matt24smith/aisdb
+
 stages:
   - build
 
 before_script:
-  - apk add --no-cache gcc python3
-  - python3 -m ensurepip && python3 -m pip install --upgrade setuptools wheel pip Cython
-  - mkdir -p ~/ais && export DATA_DIR=~/ais
+  #- echo test
+  # push docker image to dockerhub
+  # docker push matt24smith/aisdb:tagname
+  - pacman -S docker docker-compose
 
 create-package:
   type: build
