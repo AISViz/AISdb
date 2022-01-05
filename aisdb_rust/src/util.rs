@@ -1,39 +1,88 @@
 #![allow(dead_code)]
 
+///
+/// AISDB Rust CLI
+/// Create new SQLite databases from AIS data
+///
+
+pub const HELP: &str = "\
+AISDB
+
+USAGE:
+  aisdb_bin --dbpath [DBPATH] --rawdata_dir [RAWDATA_DIR]
+
+FLAGS:
+  -h, --help      Prints this message
+
+OPTIONS:
+  --dbpath        SQLite database path
+  --rawdata_dir   Path to .nm4 data files
+  --start         Optionally skip the first N files     [default=0]
+  --end           Optionally skip files after index N   [default=usize::MAX]
+
+";
+
 use std::fs::read_dir;
+use std::path::Path;
 
 use nmea_parser::ParsedMessage;
 
 use crate::decode::VesselData;
 
+#[derive(Debug)]
+pub struct AppArgs {
+    pub dbpath: std::path::PathBuf,
+    //pub rawdata_dir: std::path::Path,
+    pub rawdata_dir: String,
+    pub start: usize,
+    pub end: usize,
+}
+
+pub fn parse_path(s: &std::ffi::OsStr) -> Result<std::path::PathBuf, &'static str> {
+    Ok(s.into())
+}
+
+/// collect --dbpath and --rawdata_dir args from command line
+pub fn parse_args() -> Result<AppArgs, pico_args::Error> {
+    let mut pargs = pico_args::Arguments::from_env();
+
+    if pargs.contains(["-h", "--help"]) || pargs.clone().finish().is_empty() {
+        print!("{}", HELP);
+        std::process::exit(0);
+    }
+
+    let args = AppArgs {
+        dbpath: pargs
+            .opt_value_from_str("--dbpath")
+            .unwrap()
+            .unwrap_or(Path::new(":memory:").to_path_buf()),
+        rawdata_dir: pargs
+            .opt_value_from_str("--rawdata_dir")
+            .unwrap()
+            .unwrap_or("testdata/".to_string()),
+        start: pargs
+            .opt_value_from_fn("--start", str::parse)
+            .unwrap()
+            .unwrap_or(0),
+        end: pargs
+            .opt_value_from_fn("--end", str::parse)
+            .unwrap()
+            .unwrap_or(usize::MAX),
+    };
+
+    let remaining = pargs.finish();
+    if !remaining.is_empty() {
+        eprintln!("unused args {:?}", remaining);
+    }
+    Ok(args)
+}
+
 /// yields sorted vector of files in dirname with a matching file extension.
 /// Optionally, skip the first N results
 pub fn glob_dir(dirname: &str, matching: &str, skip: usize) -> Option<Vec<String>> {
-    //    let mut fpaths = read_dir("testdata/")
-    //        .unwrap()
-    //        .map(|f| f.unwrap().path().display().to_string())
-    //        .collect::<Vec<String>>();
-    //    fpaths.sort();
-    /*
-       let files = read_dir(dirname).unwrap();
-       let mut fnames: Vec<String> = [].to_vec();
-       for f in files {
-    //let path_str = f.ok()?.path().to_str().unwrap();
-    //match path_str.rsplit_once(".") {
-    match f.ok()?.path().to_str().unwrap().rsplit_once(".") {
-    Some((pattern, "nm4")) | Some((pattern, "NM4")) => {
-    let fname = format!("{}.{}", pattern, matching);
-    fnames.push(fname);
-    }
-    q => {
-    println!("skipping path {}", q.unwrap().0);
-    continue;
-    }
-    }
-    }
-    */
+    println!("{}", dirname);
     let mut fnames = read_dir(dirname)
-        .unwrap()
+        .expect("glob dir")
         .map(|f| f.unwrap().path().display().to_string())
         .filter(|f| &f[f.len() - matching.chars().count()..] == matching)
         .collect::<Vec<String>>()
@@ -106,21 +155,6 @@ pub fn msgs_transpose(
     });
 
     Some((v0, v1, v2, v3, v4, v5, v6, v7, v8, v9))
-    /*
-
-                   let qry = query(&sql)
-                   .bind(&v0.into())
-                   .bind(&v1.into())
-                   .bind(&v2.into())
-                   .bind(&v3.into())
-                   .bind(&v4.into())
-                   .bind(&v5.into())
-                   .bind(&v6.into())
-                   .bind(&v7.into())
-                   .bind(&v8.into())
-                   .bind(&v9.into());
-
-    */
 }
 
 #[cfg(test)]

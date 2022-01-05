@@ -65,11 +65,21 @@ pub fn filter_vesseldata(
 pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
     match line.unwrap().rsplit_once("\\")? {
         (meta, payload) => {
-            for tag in meta.split(",") {
-                if &tag[0..2] != "c:" {
-                    continue;
-                } else if let Ok(i) = tag[2..].parse::<i32>() {
-                    return Some((payload.to_string(), i));
+            for tag_outer in meta.split(",") {
+                for tag in tag_outer.split("*") {
+                    //if &tag[0..2] != "c:" && &tag[0..3] != "\\c:"  {
+                    if !&tag.contains("c:") {
+                        continue;
+                    } else if tag.len() <= 3 {
+                        continue;
+                    } else if let Ok(i) = tag[2..].parse::<i32>() {
+                        return Some((payload.to_string(), i));
+                    } else if let Ok(i) = tag[3..].parse::<i32>() {
+                        return Some((payload.to_string(), i));
+                    } else {
+                        //panic!("parsing error: {}", meta);
+                        return None;
+                    }
                 }
             }
             return None;
@@ -136,6 +146,7 @@ pub fn decodemsgs(filename: &String) -> (Vec<VesselData>, Vec<VesselData>) {
 pub mod tests {
     use super::*;
     use crate::util::glob_dir;
+    //use crate::util::parse_args;
 
     #[test]
     pub fn testingdata() -> Result<(), &'static str> {
@@ -173,7 +184,10 @@ pub mod tests {
 \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;g9tT:6O@0Ujsr<mCJCwnAG83cv?,0*0A
 \s:42958,c1635809454,t:1635809521*6F\!AIVDM,1,1,,,;h3woll47wk?0<tSF0l4Q@000P00,0*4B
 \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;i<rac5sg@;huMi4QhiWacTLEQj<,0*71
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,2,1,4,,54sc8041SAu`uDPr220dU<56222222222222221618@247?m07SUEBp1,0*0C"#;
+\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,2,1,4,,54sc8041SAu`uDPr220dU<56222222222222221618@247?m07SUEBp1,0*0C
+\c:1617253215*5A\!AIVDM,1,1,,,13nWPR0003K7<OsQsrGW1K>L0881,0*68
+\c:1617284347*56\!AIVDM,1,1,,,13n7aN0wQnsN4lfE8nEUgDf:0<00,0*18
+\c:1617289692*56\!AIVDM,1,1,,,C4N6S1005=6h:aw8::=9CwTHL:`<BVAWWWKQa1111110CP81110W,0*7A"#;
 
         if create_dir_all("testdata/").is_ok() {
             let mut output = File::create("testdata/testingdata.nm4").unwrap();
@@ -198,7 +212,10 @@ pub mod tests {
     #[test]
     pub fn test_files() -> Result<(), Error> {
         let _ = testingdata();
-        let fpaths = glob_dir("testdata/", "nm4", 0).unwrap();
+
+        // TODO: update this path with some config file
+        let fpaths =
+            glob_dir(std::env::current_dir().unwrap().to_str().unwrap(), "nm4", 0).unwrap();
 
         let mut n = 0;
         for filepath in fpaths {

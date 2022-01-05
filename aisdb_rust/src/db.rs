@@ -1,13 +1,11 @@
 use futures::stream::iter;
 use futures::StreamExt;
-//use futures::stream::{self, StreamExt};
-//use futures::StreamExt;
 
-//use std::fs::read_dir;
+use std::cmp::min;
 use std::time::Instant;
 
-//use futures::stream::iter;
-use rusqlite::{Connection, Error, Result, Transaction};
+use chrono::{DateTime, NaiveDateTime, Utc, MIN_DATETIME};
+use rusqlite::{params, Connection, Result, Transaction};
 
 #[path = "util.rs"]
 mod util;
@@ -17,12 +15,12 @@ use crate::VesselData;
 use util::glob_dir;
 
 /// open a new database connection at the specified path
-pub fn get_db_conn(path: Option<&str>) -> Result<Connection> {
-    let conn = match path {
-        Some(p) => Connection::open(p).unwrap(),
-        None => Connection::open_in_memory().unwrap(),
+pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
+    let conn = match path.to_str().unwrap() {
+        //Some([":memory:"].iter().collect()) =
+        ":memory:" => Connection::open_in_memory().unwrap(),
+        _ => Connection::open(path).unwrap(),
     };
-    println!("instantiating db connection: {:?}", path);
     conn.execute_batch(
         "
         PRAGMA journal_mode = OFF;
@@ -37,68 +35,140 @@ pub fn get_db_conn(path: Option<&str>) -> Result<Connection> {
     Ok(conn)
 }
 
-/// TODO
-//pub fn sqlite_createtable_staticreport(tx: &Transaction, mstr: &str) -> String {
-//    format!("{}", mstr)
-//}
+pub fn sqlite_createtable_staticreport(
+    tx: &Transaction,
+    mstr: &str,
+) -> Result<usize, rusqlite::Error> {
+    let sql = format!(
+        "
+        CREATE TABLE IF NOT EXISTS ais_{}_msg_static (
+            mmsi INTEGER,
+            time INTEGER,
+            vessel_name TEXT,
+            call_sign TEXT,
+            imo INTEGER,
+            dim_bow INTEGER,
+            dim_stern INTEGER,
+            dim_port INTEGER,
+            dim_star INTEGER,
+            draught INTEGER,
+            destination TEXT,
+            ais_version TEXT,
+            fixing_device STRING,
+            eta_month INTEGER,
+            eta_day INTEGER,
+            eta_hour INTEGER,
+            eta_minute INTEGER,
+            PRIMARY KEY (mmsi, time, imo)
+        ) WITHOUT ROWID;
+        ",
+        mstr
+    )
+    .replace("\n", " ");
+    tx.execute(&sql, [])
+}
 
 /// create position reports table
-pub fn sqlite_createtable_dynamicreport(tx: &Transaction, mstr: &str) -> Result<()> {
+pub fn sqlite_createtable_dynamicreport(
+    tx: &Transaction,
+    mstr: &str,
+) -> Result<usize, rusqlite::Error> {
     let sql = format!(
-        "CREATE TABLE IF NOT EXISTS ais_{}_msg_dynamic(
+        "CREATE TABLE IF NOT EXISTS ais_{}_msg_dynamic (
             mmsi integer NOT NULL,
             time INTEGER,
-            rot double precision,
-            sog real,
-            longitude double precision,
-            latitude double precision,
-            cog real,
-            heading real,
-            maneuver char,
-            utc_second smallint,
+            rot FLOAT,
+            sog FLOAT,
+            longitude FLOAT,
+            latitude FLOAT,
+            cog FLOAT,
+            heading FLOAT,
+            maneuver TEXT,
+            utc_second INTEGER,
             PRIMARY KEY (mmsi, time, longitude, latitude)
-            --PRIMARY KEY (mmsi, time)
-            )
-        WITHOUT ROWID;",
+        ) WITHOUT ROWID;",
         mstr
     );
 
-    //let tx = tx.transaction().expect("creating tx");
-    tx.execute(&sql, []).expect("executing in tx");
-    //tx.commit().expect("committing tx");
-    println!("/* creating table */\n{}", sql);
-    Ok(())
+    Ok(tx.execute(&sql, []).expect("creating static tables"))
 }
 
-/// TODO
-/*
-pub async fn sqlite_insert_static(
-pool: &SqlitePool,
-msgs: Vec<VesselData>,
-mstr: &str,
-) -> Result<(), Error> {
-(pool, msgs, mstr);
-Ok(())
+pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
+    let sql = format!(
+        "INSERT OR IGNORE INTO ais_{}_msg_static
+            (
+            mmsi,
+            time,
+            vessel_name,
+            call_sign ,
+            imo ,
+            dim_bow ,
+            dim_stern ,
+            dim_port ,
+            dim_star ,
+            draught ,
+            destination ,
+            ais_version ,
+            fixing_device ,
+            eta_month ,
+            eta_day ,
+            eta_hour ,
+            eta_minute
+            )
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ",
+        mstr
+    );
+
+    let mut stmt = tx.prepare_cached(&sql)?;
+    for msg in msgs {
+        let (p, e) = msg.staticdata();
+        //let _ = stmt
+        let eta = p.eta.unwrap_or(MIN_DATETIME);
+        stmt.execute(params![
+            p.mmsi,
+            e,
+            p.name.unwrap_or("".to_string()),
+            p.call_sign.unwrap_or("".to_string()),
+            p.imo_number.unwrap_or(0),
+            //p.ship_type,
+            p.dimension_to_bow.unwrap_or(0),
+            p.dimension_to_stern.unwrap_or(0),
+            p.dimension_to_port.unwrap_or(0),
+            p.dimension_to_starboard.unwrap_or(0),
+            p.draught10.unwrap_or(0),
+            p.destination.unwrap_or("".to_string()),
+            p.ais_version_indicator,
+            p.equipment_vendor_id.unwrap_or("".to_string()),
+            eta.format("%m").to_string(),
+            eta.format("%d").to_string(),
+            eta.format("%H").to_string(),
+            eta.format("%M").to_string(),
+        ])?;
+    }
+    //tx.commit().expect("commit");
+    Ok(())
+
+    //tx.execute(&sql, [mstr])
 }
-*/
 
 /// insert position reports into database
 pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
     let sql = format!(
         "INSERT OR IGNORE INTO ais_{}_msg_dynamic
-            (
-              mmsi,
-              time,
-              longitude,
-              latitude,
-              rot,
-              sog,
-              cog,
-              heading,
-              maneuver,
-              utc_second
-            )
-          VALUES (?,?,?,?,?,?,?,?,?,?)",
+        (
+            mmsi,
+            time,
+            longitude,
+            latitude,
+            rot,
+            sog,
+            cog,
+            heading,
+            maneuver,
+            utc_second
+        )
+        VALUES (?,?,?,?,?,?,?,?,?,?)",
         mstr
     );
     let start = Instant::now();
@@ -112,17 +182,17 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
     for msg in msgs {
         let (p, e) = msg.dynamicdata();
         let _ = stmt
-            .execute([
+            .execute(params![
                 p.mmsi,
-                e as u32,
-                p.longitude.unwrap_or(0.) as u32,
-                p.latitude.unwrap_or(0.) as u32,
-                p.rot.unwrap_or(-1.) as u32,
-                p.sog_knots.unwrap_or(-1.) as u32,
-                p.cog.unwrap_or(-1.) as u32,
-                p.heading_true.unwrap_or(-1.) as u32,
-                p.special_manoeuvre.unwrap_or(false) as u32,
-                p.timestamp_seconds.into(),
+                e,
+                p.longitude.unwrap_or(0.),
+                p.latitude.unwrap_or(0.),
+                p.rot.unwrap_or(-1.),
+                p.sog_knots.unwrap_or(-1.),
+                p.cog.unwrap_or(-1.),
+                p.heading_true.unwrap_or(-1.),
+                p.special_manoeuvre.unwrap_or(false),
+                p.timestamp_seconds,
             ])
             .expect("executing prepared row");
         n += 1;
@@ -142,31 +212,39 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
 /// parse files and insert into DB using concurrent asynchronous runners
 pub async fn concurrent_insert_dir(
     rawdata_dir: &str,
-    dbpath: Option<&str>,
-    start: Option<usize>,
-) -> Result<(), Error> {
-    assert_eq!(rawdata_dir.rsplit_once("/").unwrap().1, "");
+    dbpath: &std::path::Path,
+    start: usize,
+    end: usize,
+) -> Result<()> {
+    let fpaths: Vec<String> = glob_dir(rawdata_dir, "nm4", 0).expect("globbing");
+    let fpaths_rng = &fpaths.as_slice()[start..min(end, fpaths.len())];
 
-    let mstr = "202111"; // TODO: parse from filepaths
-
-    let mut conn = get_db_conn(dbpath).expect("getting db conn");
-    let tx = conn.transaction().expect("begin transaction");
-    let _ = sqlite_createtable_dynamicreport(&tx, mstr).expect("creating table!");
-    tx.commit().expect("commit to DB!");
-
-    let fpaths: Vec<String> = glob_dir("testdata/", "nm4", 0).expect("globbing");
-    //let f_db_paths: Vec<(&String, Option<&str>)> = fpaths.iter().map(|f| (f, dbpath)).collect();
-    let fpaths_conn: Vec<(&String, Connection)> = fpaths
-        .iter()
-        .map(|f| (f, get_db_conn(dbpath).expect("getting db conn")))
-        .collect();
-
-    let _stream = iter(fpaths_conn)
-        .for_each_concurrent(4, |(f, mut c)| async move {
+    iter(fpaths_rng)
+        // TODO: clean this up
+        .for_each_concurrent(2, |f| async move {
             let (positions, stat_msgs) = decodemsgs(&f);
-            let t = c.transaction().expect("begin transaction");
-            sqlite_insert_dynamic(&t, positions, mstr).expect("couldnt insert position reports");
-            t.commit().expect("commit to DB!");
+            let filedate: DateTime<Utc> = DateTime::<Utc>::from_utc(
+                NaiveDateTime::from_timestamp(*positions[0].epoch.as_ref().unwrap() as i64, 0),
+                Utc,
+            );
+            let mstr = filedate.format("%Y%m").to_string();
+            let mut c = get_db_conn(dbpath).expect("getting db conn");
+            let t = c.transaction();
+            let _newtab2 = sqlite_createtable_dynamicreport(&t.as_ref().unwrap(), &mstr)
+                .expect("creating dynamic table");
+            let _insert2 = sqlite_insert_dynamic(&t.as_ref().unwrap(), positions, &mstr)
+                .expect("insert positions");
+
+            let _ = t.unwrap().commit();
+            let t = c.transaction().expect("new tx");
+
+            let _newtab1 =
+                sqlite_createtable_staticreport(&t, &mstr).expect("creating static table");
+            let _ = t.commit();
+
+            let t = c.transaction();
+            let _insert1 = sqlite_insert_static(&t.unwrap(), stat_msgs, &mstr).expect("insert");
+            //let _results = t.commit().expect("commit to db");
         })
         .await;
 
@@ -177,38 +255,84 @@ pub async fn concurrent_insert_dir(
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+    use std::path::PathBuf;
 
     use super::*;
     use crate::decodemsgs;
     use util::glob_dir;
 
-    //#[tokio::test]
-    //#[async_std::test]
-    #[test]
-    fn test_create_dynamictable() -> Result<(), Error> {
-        //let sqlite_pool = get_db_pool(None).await.expect("connecting to db");
-        let mstr = "202111";
-        let mut conn = get_db_conn(None).expect("getting db conn"); // memory db
+    fn testing_dbpaths() -> [std::path::PathBuf; 2] {
+        [
+            Path::new(":memory:").to_path_buf(),
+            [std::env::current_dir().unwrap().to_str().unwrap(), "ais.db"]
+                .iter()
+                .collect::<PathBuf>(),
+        ]
+    }
 
+    #[test]
+    fn test_create_dynamictable() -> Result<()> {
+        let mstr = "00test00";
+        let mut conn = get_db_conn(Path::new(":memory:")).expect("getting db conn");
+
+        println!("/* creating table */");
         let tx = conn.transaction().expect("begin transaction");
         let _ = sqlite_createtable_dynamicreport(&tx, mstr).expect("creating tables");
         tx.commit().expect("commit to DB!");
 
-        //sqlite_pool.close().await;
-        //conn.close();
-
         Ok(())
     }
 
-    #[test]
-    fn test_insert_dynamic_msgs() -> Result<(), Error> {
-        //let sqlite_pool = get_db_pool(Some("testdata/test.db"))
-        //let sqlite_pool = get_db_pool(None).await.expect("connecting to db");
-        //let conn = get_db_conn(None).unwrap(); // memory db
-        let mstr = "202111";
-        let dbpath = Some("testdata/test.db");
+    /// TODO: update this test
+    /*
+       #[test]
+       fn test_insert_static_msgs() -> Result<()> {
+       let mstr = "00test00";
+       let pargs = parse_args();
+       let args = match pargs {
+       Ok(v) => v,
+       Err(ref e) => {
+       eprintln!("need to input dbpath!: {}", e);
+    //std::process::exit(1);
+    util::AppArgs {
+    dbpath: Path::new(":memory:").to_path_buf(),
+    rawdata_dir: pargs.unwrap().rawdata_dir,
+    start: 0,
+    end: 3,
+    }
+    }
+    };
 
-        let mut conn = get_db_conn(dbpath).expect("getting db conn");
+    let mut conn = get_db_conn(None).expect("getting db conn");
+    let tx = conn.transaction().expect("begin transaction");
+    let _ = sqlite_createtable_staticreport(&tx, mstr).expect("creating tables");
+    tx.commit().expect("commit to DB!");
+
+    let mut n = 0;
+
+    let fpaths = glob_dir(&args.rawdata_dir, "nm4", 0).unwrap();
+
+    let mut conn = get_db_conn(None).expect("getting db conn");
+    for filepath in fpaths {
+    if n > 2 {
+    break;
+    }
+    n += 1;
+    let (_, stat_msgs) = decodemsgs(&filepath);
+    let tx = conn.transaction().expect("begin transaction");
+    let _ = sqlite_insert_static(&tx, stat_msgs, mstr);
+    tx.commit().expect("commit to DB!");
+    }
+
+    Ok(())
+    }
+    */
+
+    #[test]
+    fn test_insert_dynamic_msgs() -> Result<()> {
+        let mstr = "00test00";
+        let mut conn = get_db_conn(Path::new(":memory:")).expect("getting db conn");
         let tx = conn.transaction().expect("begin transaction");
         let _ = sqlite_createtable_dynamicreport(&tx, mstr).expect("creating tables");
         tx.commit().expect("commit to DB!");
@@ -217,9 +341,8 @@ mod tests {
 
         let fpaths = glob_dir("testdata/", "nm4", 0).unwrap();
 
-        let mut conn = get_db_conn(dbpath).expect("getting db conn");
         for filepath in fpaths {
-            if n > 5 {
+            if n > 3 {
                 break;
             }
             n += 1;
@@ -227,27 +350,26 @@ mod tests {
             let tx = conn.transaction().expect("begin transaction");
             let _ = sqlite_insert_dynamic(&tx, positions, mstr);
             tx.commit().expect("commit to DB!");
-            /*
-               if &filepath[filepath.len() - 4..] == ".nm4" {
-            //let _ = sqlite_insert_dynamic(
-            //    get_db_conn(dbpath).expect("getting db conn"),
-            //    positions,
-            //    mstr,
-            //);
-            let _ = sqlite_insert_dynamic(tx, positions, mstr);
-            tx.commit().expect("commit to DB!");
-            } else {
-            continue;
-            };
-            */
         }
 
         Ok(())
     }
+
     #[async_std::test]
     async fn test_concurrent_insert() {
-        let dbpath = Some("testdata/test.db");
-        let rawdata_dir = "testdata/";
-        let _ = concurrent_insert_dir(rawdata_dir, dbpath, Some(0)).await;
+        for p in testing_dbpaths() {
+            println!("\nTESTING DATABASE {:?}", &p);
+            let _ = concurrent_insert_dir(
+                std::env::current_dir()
+                    .unwrap()
+                    .to_path_buf()
+                    .to_str()
+                    .unwrap(),
+                &p,
+                0,
+                5,
+            )
+            .await;
+        }
     }
 }

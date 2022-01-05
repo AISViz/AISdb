@@ -1,7 +1,4 @@
-use std::time::Instant;
-
 use async_std;
-use std::env;
 
 #[path = "db.rs"]
 pub mod db;
@@ -21,16 +18,40 @@ pub use util::*;
 /// the specified path
 #[async_std::main]
 pub async fn main() -> Result<(), Error> {
-    let args: Vec<String> = env::args().collect();
-    let (dbpath, rawdata_dir) = (&args[1], &args[2]);
+    //let args: Vec<String> = env::args().collect();
+    //let (dbpath, rawdata_dir) = (&args[1], &args[2]);
 
-    println!("creating database {} from files in {}", dbpath, rawdata_dir);
+    let args = match parse_args() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("error: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    println!("{:#?}", args);
+
+    println!(
+        "creating database {:?} from files in {:?}",
+        args.dbpath, args.rawdata_dir,
+    );
 
     let start = Instant::now();
-    let _ = concurrent_insert_dir(rawdata_dir, Some(dbpath), Some(0)).await;
+    let _ = concurrent_insert_dir(&args.rawdata_dir, &args.dbpath, args.start, args.end).await;
     let elapsed = start.elapsed();
 
-    println!("total insert time: {} minutes", elapsed.as_secs_f32() / 60.);
+    println!(
+        "total insert time: {} minutes\nvacuuming...",
+        elapsed.as_secs_f32() / 60.,
+    );
+
+    //let sql = "VACUUM INTO '/run/media/matt/My Passport/test_vacuum_rust.db'";
+    let sql = format!(
+        "VACUUM INTO '{}.vacuum'",
+        &args.dbpath.as_os_str().to_str().unwrap()
+    );
+    let conn = get_db_conn(&args.dbpath).unwrap();
+    conn.execute(&sql, []).unwrap();
 
     Ok(())
 }

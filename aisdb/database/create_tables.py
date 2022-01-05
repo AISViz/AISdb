@@ -462,7 +462,7 @@ if table_prefix == 'ais_':
         'msg27': create_table_msg27
     }
 else:
-    from create_tables_postgres import *
+    from database.create_tables_postgres import *
     createfcns = {
         'msg1': create_table_msg123,
         #'msg2' : create_table_msg123,
