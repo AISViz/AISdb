@@ -1,20 +1,20 @@
 default:
-  image: docker/compose:latest
-  #entrypoint: ["/bin/sh", "-c"]
-
-services:
-  - docker:dind
-
-before_script:
-  - service docker start
-  #- sudo dockerd
-  - docker version
-  - docker-compose version
+  image: matt24smith/aisdb
 
 stages:
   - build
 
-build image:
+before_script:
+  - pacman -S docker docker-compose
+  #- echo test
+  # push docker image to dockerhub
+  # docker push matt24smith/aisdb:tagname
+
+create-package:
+  type: build
   stage: build
+  only: 
+    - test-ci
+    - submodule
   script:
-    - docker-compose up --build aisdb_base
+    - docker-compose up aisdb_test
