@@ -1,7 +1,3 @@
-//use futures::stream::iter;
-//use futures::StreamExt;
-
-//use std::cmp::min;
 use std::time::Instant;
 
 use chrono::MIN_DATETIME;
@@ -10,7 +6,6 @@ use rusqlite::{params, Connection, Result, Transaction};
 #[path = "util.rs"]
 mod util;
 use crate::VesselData;
-//use util::{epoch_2_dt, glob_dir};
 
 /// open a new database connection at the specified path
 pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
@@ -195,10 +190,7 @@ pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str)
             eta.format("%M").to_string(),
         ])?;
     }
-    //tx.commit().expect("commit");
     Ok(())
-
-    //tx.execute(&sql, [mstr])
 }
 
 /// insert position reports into database
@@ -257,51 +249,6 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
 
     Ok(())
 }
-
-/// parse files and insert into DB using concurrent asynchronous runners
-/*
-pub async fn concurrent_insert_dir(
-    rawdata_dir: &str,
-    dbpath: &std::path::Path,
-    start: usize,
-    end: usize,
-) -> Result<()> {
-    let fpaths: Vec<String> = glob_dir(rawdata_dir, "nm4", 0).expect("globbing");
-    let fpaths_rng = &fpaths.as_slice()[start..min(end, fpaths.len())];
-
-    iter(fpaths_rng)
-        // TODO: clean this up
-        .for_each_concurrent(2, |f| async move {
-            let (positions, stat_msgs) = decodemsgs(&f);
-            //let filedate: DateTime<Utc> = DateTime::<Utc>::from_utc(
-            //    NaiveDateTime::from_timestamp(*positions[0].epoch.as_ref().unwrap() as i64, 0),
-            //    Utc,
-            //);
-            let filedate = epoch_2_dt(*positions[0].epoch.as_ref().unwrap() as i64);
-            let mstr = filedate.format("%Y%m").to_string();
-            let mut c = get_db_conn(dbpath).expect("getting db conn");
-            let t = c.transaction();
-            let _newtab2 = sqlite_createtable_dynamicreport(&t.as_ref().unwrap(), &mstr)
-                .expect("creating dynamic table");
-            let _insert2 = sqlite_insert_dynamic(&t.as_ref().unwrap(), positions, &mstr)
-                .expect("insert positions");
-
-            let _ = t.unwrap().commit();
-            let t = c.transaction().expect("new tx");
-
-            let _newtab1 =
-                sqlite_createtable_staticreport(&t, &mstr).expect("creating static table");
-            let _ = t.commit();
-
-            let t = c.transaction();
-            let _insert1 = sqlite_insert_static(&t.unwrap(), stat_msgs, &mstr).expect("insert");
-            //let _results = t.commit().expect("commit to db");
-        })
-        .await;
-
-    Ok(())
-}
-*/
 
 /* --------------------------------------------------------------------------------------------- */
 
@@ -391,7 +338,7 @@ mod tests {
 
         let mut n = 0;
 
-        let fpaths = glob_dir("testdata/", "nm4", 0).unwrap();
+        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").unwrap();
 
         for filepath in fpaths {
             if n > 3 {

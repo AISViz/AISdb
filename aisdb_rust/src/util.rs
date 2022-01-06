@@ -19,7 +19,7 @@ FLAGS:
   --dbpath        SQLite database path
 
 OPTIONS:
-  --file          Path to .nm4 file. Can be repeated 
+  --file          Path to .nm4 file. Can be repeated
   --rawdata_dir   Path to .nm4 data directory.          [default=./]
   --start         Optionally skip the first N files     [default=0]
   --end           Optionally skip files after index N   [default=usize::MAX]
@@ -85,8 +85,8 @@ pub fn parse_args() -> Result<AppArgs, pico_args::Error> {
 
 /// yields sorted vector of files in dirname with a matching file extension.
 /// Optionally, skip the first N results
-pub fn glob_dir(dirname: &str, matching: &str, skip: usize) -> Option<Vec<String>> {
-    println!("{}", dirname);
+pub fn glob_dir(dirname: std::path::PathBuf, matching: &str) -> Option<Vec<String>> {
+    println!("{:?}", dirname);
     let mut fnames = read_dir(dirname)
         .expect("glob dir")
         .map(|f| f.unwrap().path().display().to_string())
@@ -94,7 +94,7 @@ pub fn glob_dir(dirname: &str, matching: &str, skip: usize) -> Option<Vec<String
         .collect::<Vec<String>>()
         .to_vec();
     fnames.sort();
-    Some(fnames[skip..].to_vec())
+    Some(fnames)
 }
 
 pub fn epoch_2_dt(e: i64) -> DateTime<Utc> {
@@ -108,6 +108,6 @@ mod tests {
 
     #[test]
     fn test_glob_dir() {
-        let _ = glob_dir("src", "rs", 0);
+        let _ = glob_dir(std::path::PathBuf::from("src/"), "rs");
     }
 }

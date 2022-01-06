@@ -1,3 +1,6 @@
+use futures::stream::iter;
+use futures::StreamExt;
+
 #[path = "db.rs"]
 pub mod db;
 
@@ -61,6 +64,23 @@ pub async fn main() -> Result<(), Error> {
     //    .map(async_std::task::spawn)
     //    .collect::<Vec<_>>();
     //let _results = futures::future::join_all(handles).await;
+
+    //let fpaths: Vec<_> = glob_dir(args.rawdata_dir.unwrap(), "nm4").expect("globbing");
+    //iter(glob_dir(args.rawdata_dir.unwrap(), "nm4").expect("globbing"))
+
+    // same thing but iterating over files in rawdata_dir
+    // uses different futures aggregation method
+    let fpaths = std::fs::read_dir(&args.rawdata_dir.unwrap())
+        .unwrap()
+        .map(|f| (std::path::PathBuf::from(&args.dbpath), f));
+
+    iter(fpaths)
+        .for_each_concurrent(2, |(d, f)| async move {
+            decode_insert_msgs(&d, &f.unwrap().path())
+                .await
+                .expect("decoding")
+        })
+        .await;
 
     let elapsed = start.elapsed();
     println!(

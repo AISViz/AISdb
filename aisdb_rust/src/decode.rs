@@ -300,7 +300,7 @@ pub mod tests {
         // TODO: update this path with some config file
         //let fpaths =
         //    glob_dir(std::env::current_dir().unwrap().to_str().unwrap(), "nm4", 0).unwrap();
-        let fpaths = glob_dir("testdata/", "nm4", 0).expect("globbing");
+        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
 
         let mut n = 0;
         for filepath in fpaths {
@@ -324,7 +324,7 @@ pub mod tests {
     }
 
     pub fn test_decode_insert_msgs() -> Result<(), Error> {
-        let fpaths = glob_dir("testdata/", "nm4", 0).expect("globbing");
+        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
         for filepath in fpaths {
             let _ = decode_insert_msgs(
                 &std::path::Path::new("testdata/ais.db").to_path_buf(),
