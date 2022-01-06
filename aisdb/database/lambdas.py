@@ -13,7 +13,16 @@ from common import table_prefix
 if table_prefix == 'ais_s_':
     in_poly     = lambda poly,alias='m123',**_: f'ST_Contains(\n    ST_GeomFromText(\'{poly}\'),\n    ST_MakePoint({alias}.longitude, {alias}.latitude)\n  )'
     in_radius   = lambda *,x,y,radius,alias='m123',**_: f'ST_DWithin(Geography({alias}.ais_geom), Geography(ST_MakePoint({x}, {y})), {radius})'
-    in_radius_time  = lambda *,x,y,radius,alias='m123',**kwargs: f'ST_DWithin(Geography({alias}.ais_geom), Geography(ST_MakePoint({x}, {y})), {radius}) AND {alias}.time BETWEEN \'{kwargs["start"].strftime("%Y-%m-%d %H:%M:%S")}\'::date AND \'{kwargs["end"].strftime("%Y-%m-%d %H:%M:%S")}\'::date'
+
+
+
+    in_radius_time  = lambda *,x,y,radius,alias='m123',**kwargs: f'''
+        ST_DWithin(Geography({alias}.ais_geom), Geography(ST_MakePoint({x}, {y})), {radius}) 
+            AND {alias}.time BETWEEN \'{kwargs["start"].strftime("%Y-%m-%d %H:%M:%S")}\'::timestamp
+                                 AND \'{kwargs["end"].strftime("%Y-%m-%d %H:%M:%S")}\'::timestamp '''
+
+
+
     in_bbox     = lambda south, north, west, east,**_:    f'ais_geom && ST_MakeEnvelope({west},{south},{east},{north})'
 
 else:
