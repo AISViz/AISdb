@@ -24,13 +24,6 @@ Package features:
         onerror="this.onerror=null; this.src=''; this.width='0'"
       ></img>
    </a>
-   <a href='_images/scriptoutput.png'>
-      <img 
-        src='_images/scriptoutput.png' 
-        width="800"
-        onerror="this.onerror=null; this.src=''; this.width='0'"
-      ></img>
-  </a>
 
 
 | Source Code: 
