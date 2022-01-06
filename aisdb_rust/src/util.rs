@@ -5,7 +5,7 @@
 /// Create new SQLite databases from AIS data
 ///
 
-pub const HELP: &str = "\
+pub const HELP: &str = "
 AISDB
   convert AIS data in .nm4 format to an SQLite database containing
   vessel position reports and static data reports
@@ -14,13 +14,13 @@ AISDB
 USAGE:
   aisdb --dbpath DBPATH ... [OPTIONS]
 
-FLAGS:
-  -h, --help      Prints this message
+ARGS:
   --dbpath        SQLite database path
 
 OPTIONS:
-  --file          Path to .nm4 file. Can be repeated
-  --rawdata_dir   Path to .nm4 data directory.          [default=./]
+  -h, --help      Prints this message
+  --file          Path to .nm4 file. Can be repeated multiple times
+  --rawdata_dir   Path to .nm4 data directory
   --start         Optionally skip the first N files     [default=0]
   --end           Optionally skip files after index N   [default=usize::MAX]
 
@@ -31,10 +31,8 @@ use std::path::Path;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 
-#[derive(Debug)]
 pub struct AppArgs {
     pub dbpath: std::path::PathBuf,
-    //pub rawdata_dir: std::path::Path,
     pub files: Vec<std::path::PathBuf>,
     pub rawdata_dir: Option<std::path::PathBuf>,
     pub start: usize,
@@ -58,13 +56,10 @@ pub fn parse_args() -> Result<AppArgs, pico_args::Error> {
         dbpath: pargs
             .opt_value_from_str("--dbpath")
             .unwrap()
-            //.unwrap_or(Path::new(":memory:").to_path_buf()),
             .unwrap_or_else(|| Path::new(":memory:").to_path_buf()),
         rawdata_dir: pargs
             .opt_value_from_os_str("--rawdata_dir", parse_path)
             .unwrap(),
-        //.unwrap()
-        //.unwrap_or("/tmp/aisdb/".to_string()),
         files: pargs.values_from_os_str("--file", parse_path).unwrap(),
         start: pargs
             .opt_value_from_fn("--start", str::parse)
@@ -104,10 +99,17 @@ pub fn epoch_2_dt(e: i64) -> DateTime<Utc> {
 #[cfg(test)]
 
 mod tests {
-    use super::*;
+    use super::glob_dir;
+    use crate::HELP;
 
     #[test]
     fn test_glob_dir() {
         let _ = glob_dir(std::path::PathBuf::from("src/"), "rs");
+    }
+
+    #[test]
+    fn write_readme() {
+        let txtfile = format!("{}{}", "benchmarking rust for SQLite DB inserts\n\ncompiles a CLI executable at ./target/release/aisdb\n\n", HELP);
+        let _ = std::fs::write("./readme.txt", txtfile);
     }
 }

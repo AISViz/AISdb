@@ -28,10 +28,7 @@ pub async fn main() -> Result<(), Error> {
         }
     };
 
-    println!(
-        "creating database {:?} from files in {:?}",
-        args.dbpath, args.rawdata_dir,
-    );
+    println!("loading database file {:?}", args.dbpath);
     let start = Instant::now();
 
     // array tuples containing (dbpath, filepath)
@@ -65,22 +62,21 @@ pub async fn main() -> Result<(), Error> {
     //    .collect::<Vec<_>>();
     //let _results = futures::future::join_all(handles).await;
 
-    //let fpaths: Vec<_> = glob_dir(args.rawdata_dir.unwrap(), "nm4").expect("globbing");
-    //iter(glob_dir(args.rawdata_dir.unwrap(), "nm4").expect("globbing"))
-
     // same thing but iterating over files in rawdata_dir
-    // uses different futures aggregation method
-    let fpaths = std::fs::read_dir(&args.rawdata_dir.unwrap())
-        .unwrap()
-        .map(|f| (std::path::PathBuf::from(&args.dbpath), f));
+    // uses different futures aggregation method ??
+    if args.rawdata_dir.is_some() {
+        let fpaths = std::fs::read_dir(&args.rawdata_dir.unwrap())
+            .unwrap()
+            .map(|f| (std::path::PathBuf::from(&args.dbpath), f));
 
-    iter(fpaths)
-        .for_each_concurrent(2, |(d, f)| async move {
-            decode_insert_msgs(&d, &f.unwrap().path())
-                .await
-                .expect("decoding")
-        })
-        .await;
+        iter(fpaths)
+            .for_each_concurrent(2, |(d, f)| async move {
+                decode_insert_msgs(&d, &f.unwrap().path())
+                    .await
+                    .expect("decoding")
+            })
+            .await;
+    }
 
     let elapsed = start.elapsed();
     println!(
@@ -89,14 +85,14 @@ pub async fn main() -> Result<(), Error> {
     );
 
     //let sql = "VACUUM INTO '/run/media/matt/My Passport/test_vacuum_rust.db'";
-    /*
     let sql = format!(
-    "VACUUM INTO '{}.vacuum'",
-    &args.dbpath.as_os_str().to_str().unwrap()
+        "VACUUM INTO '{}.vacuum'",
+        &args.dbpath.as_os_str().to_str().unwrap()
     );
-    let conn = get_db_conn(&args.dbpath).unwrap();
-    conn.execute(&sql, []).unwrap();
-    */
+    let mut conn = get_db_conn(&args.dbpath).expect("get db conn");
+    let tx = conn.transaction().unwrap();
+    let _ = tx.execute(&sql, []);
+    let _ = tx.commit();
 
     Ok(())
 }

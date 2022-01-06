@@ -5,19 +5,11 @@ authors = ['MERIDIAN // Matt Smith matthew.smith@dal.ca']
 edition = '2021'
 include = ['/src', ]
 
-[lib]
-name = 'aisdb_lib'
-crate-type = ['cdylib']
-path = 'src/lib.rs'
-doc = true
-test = true
-doctest = false
-
 [[bin]]
 name = 'aisdb'
 path = 'src/bin.rs'
 doc = true
-test = false
+test = true
 doctest = false
 
 [dependencies]
