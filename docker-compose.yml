@@ -10,17 +10,6 @@ version: '3.9'
 
 services:
 
-  aisdb_base:
-    container_name: aisdb_base
-    build:
-      target: aisdb
-      context: .
-      dockerfile: ./docker/Dockerfile
-      args:
-        - USERNAME=ais_env
-    #networks:
-    #  - ipv6_private
-
   aisdb_sshd:
     container_name: aisdb_sshd
     build: 
