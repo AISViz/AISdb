@@ -1,6 +1,6 @@
 benchmarking rust for SQLite DB inserts
 
-compiles a CLI executable at ./target/release/aisdb
+compiles to ./target/release/aisdb
 
 
 AISDB
@@ -18,6 +18,4 @@ OPTIONS:
   -h, --help      Prints this message
   --file          Path to .nm4 file. Can be repeated multiple times
   --rawdata_dir   Path to .nm4 data directory
-  --start         Optionally skip the first N files     [default=0]
-  --end           Optionally skip files after index N   [default=usize::MAX]
 

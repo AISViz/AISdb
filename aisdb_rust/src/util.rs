@@ -21,8 +21,6 @@ OPTIONS:
   -h, --help      Prints this message
   --file          Path to .nm4 file. Can be repeated multiple times
   --rawdata_dir   Path to .nm4 data directory
-  --start         Optionally skip the first N files     [default=0]
-  --end           Optionally skip files after index N   [default=usize::MAX]
 
 ";
 
@@ -109,7 +107,11 @@ mod tests {
 
     #[test]
     fn write_readme() {
-        let txtfile = format!("{}{}", "benchmarking rust for SQLite DB inserts\n\ncompiles a CLI executable at ./target/release/aisdb\n\n", HELP);
+        let txtfile = format!(
+            "{}{}",
+            "benchmarking rust for SQLite DB inserts\n\ncompiles to ./target/release/aisdb\n\n",
+            HELP
+        );
         let _ = std::fs::write("./readme.txt", txtfile);
     }
 }
