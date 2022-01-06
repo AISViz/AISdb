@@ -13,12 +13,6 @@ rtree_dynamic = lambda month, callback, kwargs: (f'''
       FROM rtree_{month}_msg_18 AS m18
       WHERE {callback(month=month, alias='m18', **kwargs)} ''')
 
-dynamic = lambda month, callback, kwargs: (f'''
-    SELECT CAST(d.mmsi AS INT) as d.mmsi, d.time, d.longitude, d.latitude, d.cog, d.sog
-      FROM ais_{month}_dynamic AS d
-      WHERE {callback(month=month, alias='d', **kwargs)}
-''')
-
 
 # query static vessel data from monthly aggregate tables
 static = lambda month, **_: (f'''
