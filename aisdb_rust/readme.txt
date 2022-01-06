@@ -1,6 +1,6 @@
 benchmarking rust for SQLite DB inserts
 
-compiles a CLI executable at ./target/release/aisdb
+compiles to ./target/release/aisdb
 
 
 AISDB

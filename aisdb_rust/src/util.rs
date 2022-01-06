@@ -109,7 +109,11 @@ mod tests {
 
     #[test]
     fn write_readme() {
-        let txtfile = format!("{}{}", "benchmarking rust for SQLite DB inserts\n\ncompiles a CLI executable at ./target/release/aisdb\n\n", HELP);
+        let txtfile = format!(
+            "{}{}",
+            "benchmarking rust for SQLite DB inserts\n\ncompiles to ./target/release/aisdb\n\n",
+            HELP
+        );
         let _ = std::fs::write("./readme.txt", txtfile);
     }
 }
