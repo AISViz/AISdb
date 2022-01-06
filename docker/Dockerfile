@@ -39,8 +39,7 @@ RUN pacman -S --noconfirm --needed nodejs npm python python-sphinx python-sphinx
 ARG USERNAME
 USER "$USERNAME"
 RUN mkdir -p aisdb aisdb_rust/src \
-  && echo 'fn main(){}' > aisdb_rust/src/bin.rs \
-  && echo 'fn main(){}' > aisdb_rust/src/lib.rs 
+  && echo 'fn main(){}' > aisdb_rust/src/bin.rs
 COPY --chown="$USERNAME" aisdb_rust/Cargo.toml aisdb_rust/Cargo.toml
 RUN cargo build \
     --manifest-path=/home/"$USERNAME"/aisdb_rust/Cargo.toml \
