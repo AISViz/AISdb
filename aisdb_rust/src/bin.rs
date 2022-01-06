@@ -33,9 +33,9 @@ pub mod decode;
 #[path = "util.rs"]
 pub mod util;
 
-pub use db::*;
-pub use decode::*;
-pub use util::*;
+use db::*;
+use decode::*;
+use util::*;
 
 /// Accepts command line args for dbpath and rawdata_dir.
 /// A new database will be created from decoded messages at
