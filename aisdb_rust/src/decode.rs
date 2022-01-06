@@ -9,11 +9,20 @@ use nmea_parser::{
     NmeaParser, ParsedMessage,
 };
 
+use crate::db::{
+    get_db_conn, sqlite_createtable_dynamicreport, sqlite_createtable_staticreport,
+    sqlite_insert_dynamic, sqlite_insert_static,
+};
+
+use crate::util::epoch_2_dt;
+
+/// optionally collect decoded messages and epoch timestamps
 pub struct VesselData {
     pub payload: Option<ParsedMessage>,
     pub epoch: Option<i32>,
 }
 
+/// explicit type conversion in decode_msgs fn
 impl VesselData {
     pub fn dynamicdata(self) -> (VesselDynamicData, i32) {
         let p = self.payload.unwrap();
@@ -39,7 +48,7 @@ pub fn filter_vesseldata(
     epoch: &i32,
     parser: &mut NmeaParser,
 ) -> Option<(ParsedMessage, i32, bool)> {
-    match parser.parse_sentence(&sentence).ok()? {
+    match parser.parse_sentence(sentence).ok()? {
         ParsedMessage::VesselDynamicData(vdd) => {
             Some((ParsedMessage::VesselDynamicData(vdd), *epoch, true))
         }
@@ -63,26 +72,22 @@ pub fn filter_vesseldata(
 /// ("!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64", 1635883083)
 /// ```
 pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
-    match line.unwrap().rsplit_once("\\")? {
+    match line.unwrap().rsplit_once('\\')? {
         (meta, payload) => {
-            for tag_outer in meta.split(",") {
-                for tag in tag_outer.split("*") {
-                    //if &tag[0..2] != "c:" && &tag[0..3] != "\\c:"  {
-                    if !&tag.contains("c:") {
-                        continue;
-                    } else if tag.len() <= 3 {
+            for tag_outer in meta.split(',') {
+                for tag in tag_outer.split('*') {
+                    if tag.len() <= 3 || !&tag.contains("c:") {
                         continue;
                     } else if let Ok(i) = tag[2..].parse::<i32>() {
                         return Some((payload.to_string(), i));
                     } else if let Ok(i) = tag[3..].parse::<i32>() {
                         return Some((payload.to_string(), i));
                     } else {
-                        //panic!("parsing error: {}", meta);
                         return None;
                     }
                 }
             }
-            return None;
+            None
         }
     }
 }
@@ -103,18 +108,19 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
 
 /// open .nm4 file and decode each line, keeping only vessel data
 /// returns vector of static and dynamic reports
-pub fn decodemsgs(filename: &String) -> (Vec<VesselData>, Vec<VesselData>) {
+pub fn decodemsgs(filename: &str) -> (Vec<VesselData>, Vec<VesselData>) {
     assert_eq!(&filename[&filename.len() - 4..], ".nm4");
-    //println!("opening file {}...", filename);
 
     let reader = BufReader::new(File::open(filename).expect("Cannot open file"));
     let mut parser = NmeaParser::new();
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
 
+    // for async do {
+    // in 100k batches
     for (payload, epoch, is_dynamic) in reader
         .lines()
-        .filter_map(|l| parse_headers(l))
+        .filter_map(parse_headers)
         .filter_map(|(s, e)| skipmsg(&s, &e))
         .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
         .collect::<Vec<(ParsedMessage, i32, bool)>>()
@@ -133,19 +139,97 @@ pub fn decodemsgs(filename: &String) -> (Vec<VesselData>, Vec<VesselData>) {
 
     println!(
         "{}    dynamic: {}    static: {}",
-        filename.rsplit_once("/").unwrap().1,
+        filename.rsplit_once('/').unwrap().1,
         positions.len(),
         stat_msgs.len(),
     );
-    return (positions, stat_msgs);
+
+    (positions, stat_msgs)
+}
+
+/// open .nm4 file and decode each line, keeping only vessel data
+/// returns vector of static and dynamic reports
+pub async fn decode_insert_msgs(
+    dbpath: &std::path::Path,
+    filename: &std::path::Path,
+) -> Result<(), Error> {
+    let fstr = &filename.to_str().unwrap();
+    assert_eq!(&fstr[&fstr.len() - 4..], ".nm4");
+
+    let reader = BufReader::new(
+        File::open(filename)
+            .unwrap_or_else(|_| panic!("Cannot open .nm4 file {}", filename.to_str().unwrap())),
+    );
+    let mut parser = NmeaParser::new();
+    let mut stat_msgs = <Vec<VesselData>>::new();
+    let mut positions = <Vec<VesselData>>::new();
+
+    let mut c = get_db_conn(dbpath).expect("getting db conn");
+
+    // in 500k batches
+    for (payload, epoch, is_dynamic) in reader
+        .lines()
+        .filter_map(parse_headers)
+        .filter_map(|(s, e)| skipmsg(&s, &e))
+        .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
+        .collect::<Vec<(ParsedMessage, i32, bool)>>()
+    {
+        let message = VesselData {
+            epoch: Some(epoch),
+            payload: Some(payload),
+        };
+
+        if is_dynamic {
+            positions.push(message);
+        } else {
+            stat_msgs.push(message);
+        }
+
+        if positions.len() >= 500000 {
+            let t = c.transaction().unwrap();
+            let mstr = epoch_2_dt(*positions[0].epoch.as_ref().unwrap() as i64)
+                .format("%Y%m")
+                .to_string();
+            let _c = sqlite_createtable_dynamicreport(&t, &mstr);
+            let _d = sqlite_insert_dynamic(&t, positions, &mstr).expect("inserting chunk");
+            let _ = t.commit();
+            positions = vec![];
+        };
+    }
+
+    println!(
+        "{}    dynamic: {}    static: {}",
+        filename.to_str().unwrap().rsplit_once('/').unwrap().1,
+        positions.len(),
+        stat_msgs.len(),
+    );
+
+    // insert static and remaining dynamic
+    let mstr1 = epoch_2_dt(*positions[0].epoch.as_ref().unwrap() as i64)
+        .format("%Y%m")
+        .to_string();
+    //let t1 = c.transaction().expect("create tx");
+    let t1 = c.transaction().unwrap();
+    let _d1 = sqlite_insert_dynamic(&t1, positions, &mstr1).expect("inserting chunk");
+    let _c1 = sqlite_createtable_staticreport(&t1, &mstr1);
+    let _s1 = sqlite_insert_static(&t1, stat_msgs, &mstr1).expect("insert");
+    let _ = t1.commit();
+
+    Ok(())
 }
 
 /* --------------------------------------------------------------------------------------------- */
 
 #[cfg(test)]
 pub mod tests {
-    use super::*;
+    //use super::*;
+    use super::{decode_insert_msgs, decodemsgs, parse_headers};
     use crate::util::glob_dir;
+    use crate::Error;
+    use std::fs::create_dir_all;
+    use std::fs::File;
+    use std::io::Write;
+    use std::time::Instant;
     //use crate::util::parse_args;
 
     #[test]
@@ -214,8 +298,9 @@ pub mod tests {
         let _ = testingdata();
 
         // TODO: update this path with some config file
-        let fpaths =
-            glob_dir(std::env::current_dir().unwrap().to_str().unwrap(), "nm4", 0).unwrap();
+        //let fpaths =
+        //    glob_dir(std::env::current_dir().unwrap().to_str().unwrap(), "nm4", 0).unwrap();
+        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
 
         let mut n = 0;
         for filepath in fpaths {
@@ -224,8 +309,6 @@ pub mod tests {
             }
             let start = Instant::now();
             let (positions, stat_msgs) = decodemsgs(&filepath);
-            //assert_ne!(positions.len(), 0);
-            //assert_ne!(stat_msgs.len(), 0);
             let elapsed = start.elapsed();
             println!(
                 "{}\tdecoded {} msgs/s",
@@ -233,6 +316,18 @@ pub mod tests {
                 ((positions.len() + stat_msgs.len()) as f64 / elapsed.as_secs_f64())
             );
             n += 1;
+        }
+
+        Ok(())
+    }
+
+    pub fn test_decode_insert_msgs() -> Result<(), Error> {
+        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
+        for filepath in fpaths {
+            let _ = decode_insert_msgs(
+                &std::path::Path::new("testdata/ais.db").to_path_buf(),
+                &std::path::Path::new(&filepath).to_path_buf(),
+            );
         }
 
         Ok(())

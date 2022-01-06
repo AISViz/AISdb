@@ -18,6 +18,9 @@
 ais/webdata/webdriver*
 aisdb_rust/target
 aisdb_rust/testdata
+aisdb_rust/.git
+aisdb_rust/.gitignore
+aisdb_rust/.git/**
 docker-compose.override.yml
 docs/html/*
 docs/source/api/*
