@@ -33,7 +33,7 @@ app.listen(port, '::', () => {
       else 
         continue loop2;
 
-      console.log(`Docs available at http://${addr}:${port}`);
+      console.log(`Docs available at http://${addr}:${port}\n`);
 
       break loop1;
     }

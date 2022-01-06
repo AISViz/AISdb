@@ -1,3 +1,0 @@
-[submodule "aisdb_rust"]
-	path = aisdb_rust
-	url = https://github.com/matt24smith/aisdb_rust
