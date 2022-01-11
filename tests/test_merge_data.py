@@ -1,44 +1,52 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
-import numpy as np
-import shapely.wkt
-
-from aisdb import *
-#from database import *
-#from shapely.geometry import Polygon, LineString, MultiPoint
-#from gis import *
-#from track_gen import *
-#from network_graph import *
-
-
-#shapefilepaths = sorted([os.path.abspath(os.path.join( zones_dir, f)) for f in os.listdir(zones_dir) if 'txt' in f])
-#zonegeoms = {z.name : z for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]} 
-from tests.create_testing_data import zonegeoms_or_randompoly
-zonegeoms = zonegeoms_or_randompoly()
-domain = Domain('testdomain', zonegeoms, cache=False)
+from aisdb.database.qrygen import DBQuery
+from aisdb.track_gen import trackgen
+from aisdb.webdata.merge_data import (
+    merge_layers,
+    merge_tracks_bathymetry,
+    merge_tracks_hullgeom,
+    merge_tracks_shoredist,
+)
+from aisdb.database.lambdas import in_bbox_time
 
 
-def test_output_mergerows_bathy_shoredist_vesselgeom():
+def prepare_qry():
+    start = datetime(2021, 11, 1)
+    end = datetime(2021, 11, 2)
 
-    start   = datetime(2020,9,1)
-    end     = datetime(2020,10,1)
+    rowgen = DBQuery(
+        start=start,
+        end=end,
+        xmin=-60,
+        xmax=-45,
+        ymin=40,
+        ymax=60,
+        callback=in_bbox_time,
+    ).gen_qry()
 
-    start   = datetime(2018,6,1)
-    end     = datetime(2018,7,1)
+    return rowgen
 
-    rowgen = qrygen(
-            #xy = merge(canvaspoly.boundary.coords.xy),
-            start   = start,
-            end     = end,
-            xmin    = domain.minX, 
-            xmax    = domain.maxX, 
-            ymin    = domain.minY, 
-            ymax    = domain.maxY,
-        ).gen_qry(dbpath, callback=rtree_in_bbox, qryfcn=leftjoin_dynamic_static)
 
-    tracks = (next(trackgen(r)) for r in rowgen)
+def test_merge_shoredist():
+    merged = merge_tracks_shoredist(trackgen(prepare_qry()))
+    test = next(merged)
+    print(test)
 
-    merged = merge_layers(rowgen, dbpath)
 
-    return
+def test_merge_bathymetry():
+    merged = merge_tracks_bathymetry(trackgen(prepare_qry()))
+    test = next(merged)
+    print(test)
 
+
+def test_merge_hullgeom():
+    merged = merge_tracks_hullgeom(trackgen(prepare_qry()))
+    test = next(merged)
+    print(test)
+
+
+def test_merge_layers_all():
+    merged = merge_layers(trackgen(prepare_qry()))
+    test = next(merged)
+    print(test)

@@ -190,7 +190,7 @@ pub async fn decode_insert_msgs(
             let mstr = epoch_2_dt(*positions[0].epoch.as_ref().unwrap() as i64)
                 .format("%Y%m")
                 .to_string();
-            let _c = sqlite_createtable_dynamicreport(&t, &mstr);
+            let _c = sqlite_createtable_dynamicreport(&t, &mstr).expect("creating dynamic table");
             let _d = sqlite_insert_dynamic(&t, positions, &mstr).expect("inserting chunk");
             let _ = t.commit();
             positions = vec![];

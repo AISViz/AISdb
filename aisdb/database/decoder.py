@@ -14,7 +14,7 @@ import numpy as np
 import pyais
 
 from aisdb.common import tmp_dir
-from database.create_tables import createfcns, aggregate_static_msg5_msg24
+from database.create_tables import createfcns, aggregate_static_msgs
 from database.insert_tables import insertfcns
 from gis import dt_2_epoch
 from database.dbconn import DBConn
@@ -92,10 +92,10 @@ def decode_raw_pyais(fpath, tmp_dir=tmp_dir):
     filedate = getfiledate(fpath)
     picklefile = os.path.join(
         tmp_dir, f'''{
-            filedate.strftime("%Y%m%d")
-            }_{
-            fpath.rsplit(".",1)[0].rsplit(os.path.sep, 1)[1]
-            }''')
+                filedate.strftime("%Y%m%d")
+                }_{
+                    fpath.rsplit(".",1)[0].rsplit(os.path.sep, 1)[1]
+                    }''')
 
     n = 0
     skipped = 0
@@ -154,12 +154,13 @@ def decode_raw_pyais(fpath, tmp_dir=tmp_dir):
         append_file(picklefile, batch)
 
     print(f'''{
-            fpath.split(os.path.sep)[-1]
-            }\tprocessed {n} messages in {
+        fpath.split(os.path.sep)[-1]
+        }\tprocessed {n} messages in {
             (datetime.now() - t0).total_seconds():.0f}s.\tskipped: {
-            skipped
-            }\tfailed: {
-            failed}''')
+                skipped
+                }\tfailed: {
+                    failed}\trate: {
+                        n / (datetime.now() - t0).total_seconds():.1f}/s''')
 
 
 def insert_serialized(dbpath, delete=True):
@@ -182,10 +183,8 @@ def insert_serialized(dbpath, delete=True):
             os.remove(os.path.join(tmp_dir, serialized))
             continue
 
-        cur.execute(
-            'SELECT name FROM sqlite_master WHERE type="table" '
-            f'AND name="rtree_{mstr}_msg_1_2_3" '
-        )
+        cur.execute('SELECT name FROM sqlite_master WHERE type="table" '
+                    f'AND name="rtree_{mstr}_msg_1_2_3" ')
         if not cur.fetchall():
             print(f'creating database tables for month {mstr}...')
             for fcn in createfcns.values():
@@ -214,26 +213,11 @@ def insert_serialized(dbpath, delete=True):
     conn.close()
 
     # aggregate and index static reports: msg5, msg24
-    aggregate_static_msg5_msg24(dbpath, months_str)
+    aggregate_static_msgs(dbpath, months_str)
 
 
 def decode_msgs(filepaths, dbpath, processes=12, delete=True):
     ''' decode NMEA binary message format and store in an SQLite database
-
-        messages will be decoded and prepared for insertion in parallel, and
-        parsed results will be serialized and stored in a temporary directory
-        'tmp_parsing' in the same directory as the dbpath file.
-        the serialized results will then be ingested into the database in
-        sequence.
-        after the messages are loaded into preliminary tables in the database,
-        database triggers are used to update the intermediary tables for the
-        dynamic message data.
-        this function will also call aggregate_static_msg5_msg24() to
-        generate an aggregate result table from the static report data
-
-        the intended usage is to store and preprocess messages for an entire
-        month at one time, since the intermediary tables require context of the
-        entire month when building indexes
 
         args:
             filepaths (list)
@@ -302,51 +286,3 @@ def decode_msgs(filepaths, dbpath, processes=12, delete=True):
     with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
         for fpath in filepaths:
             dbindex.insert_hash(seed=os.path.abspath(fpath))
-
-
-'''
-# old code for decoding with inferred timestamps instead of using receiver report
-# may be useful for data that arrives without a receiver timestmap
-
-def decode_chunk(conn, msgs, stamps):
-    # convert 2-digit year values to 4-digit
-    for msg in msgs:
-        if 'year' in msg.keys() and msg['year'] + 2000 == fpathdate.year:
-            msg['year'] += 2000
-
-    # get indexes of base station reports
-    msg4idx = np.array(range(len(msgs)))[np.array(['type' in msg.keys() and msg['type'] == 4 for msg in msgs])]
-    msg11idx = np.array(range(len(msgs)))[np.array(['type' in msg.keys() and msg['type'] == 11 for msg in msgs])]
-    base_reports = lambda msgs, msg4idx: np.array([datetime(**{key: msg[key] for key in ('year', 'month', 'day', 'hour', 'minute', 'second')}) for msg in msgs[msg4idx]])
-
-    if len(msg11idx) > 0:
-        logging.debug(f'warning: skipped {len(msg11idx)} UTC date responses (msg 11)')
-
-    # validate base station reports
-    validated = np.array([is_valid_date(**msg) for msg in msgs[msg4idx]])
-    msg4idx = msg4idx[validated]
-
-    # check if base station report is within 36h of filepath timestamp
-    reports1 = base_reports(msgs, msg4idx)
-    in_filetime = np.array([(report - fpathdate) < timedelta(hours=36) for report in reports1])
-    msg4idx = msg4idx[in_filetime]
-
-    # check that the timestamp is greater than the preceding message and less than the following message
-    reports2 = base_reports(msgs, msg4idx)
-    is_sequential = [0]
-    for i in range(1, len(reports2)-1):
-        if reports2[i] >= reports2[i-1] and reports2[i] <= reports2[i+1]:
-            is_sequential.append(i)
-    if reports2[-2] <= reports2[-1]:
-        is_sequential.append(len(msg4idx)-1)
-    msg4idx = msg4idx[is_sequential]
-
-
-    # filter messages according to type, get time of nearest base station report,
-    #batch = {f'msg{i}' : np.ndarray(shape=(0,2)) for i in (1, 2, 3, 5, 11, 18, 19, 24, 27)}
-    batch = {f'msg{i}' : [] for i in (1, 2, 3, 5, 11, 18, 19, 24, 27)}
-    for msg, stamp in zip(msgs, stamps):
-        #batch[f'msg{msg["type"]}'] = np.vstack((batch[f'msg{msg["type"]}'], [msg, basetime]))
-        batch[f'msg{msg["type"]}'].append([msg, basetime])
-
-'''

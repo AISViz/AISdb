@@ -6,7 +6,6 @@ import time
 
 from common import dbpath, rawdata_dir, host_addr, host_port
 
-
 unix_origin = datetime(1970, 1, 1)
 
 
@@ -25,8 +24,10 @@ class _AISMessageStreamReader():
     def __call__(self):
 
         if self.s == None: self.__enter__()
-        
-        tmpfilepath = lambda: os.path.join(rawdata_dir, datetime.strftime(datetime.utcnow(), '%Y-%m-%d') + '.nm4.tmp')
+
+        tmpfilepath = lambda: os.path.join(
+            rawdata_dir,
+            datetime.strftime(datetime.utcnow(), '%Y-%m-%d') + '.nm4.tmp')
         msgfile = tmpfilepath()
         print(f'logging messages to {rawdata_dir}')
 
@@ -36,14 +37,16 @@ class _AISMessageStreamReader():
                 os.rename(msgfile, msgfile[:-4])
                 msgfile = tmpfilepath()
 
-            # TODO: preserve last portion of first and first portion of last 
-            # messages from s.recv() call, attempt to reassemble messages from 
+            # TODO: preserve last portion of first and first portion of last
+            # messages from s.recv() call, attempt to reassemble messages from
             # in between calls
             with open(msgfile, 'ab') as nm4:
-                epoch = str(int((datetime.utcnow() - unix_origin).total_seconds()))
+                epoch = str(
+                    int((datetime.utcnow() - unix_origin).total_seconds()))
                 prefix = b'\\c:' + bytes(epoch, encoding='utf-8') + b',\\'
                 streamdata = self.s.recv(262114).split(b'\r\n')[:-1]
-                msgs = (prefix + msg for msg in filter(lambda rawmsg: rawmsg[:6] == b'!AIVDM', streamdata))
+                msgs = (prefix + msg for msg in filter(
+                    lambda rawmsg: rawmsg[:6] == b'!AIVDM', streamdata))
                 for msg in msgs:
                     _ = nm4.write(msg + b'\r\n')
 
@@ -67,8 +70,13 @@ class _AISDatabaseBuilder():
             os.system(f'taskset -cp 0-{self.processes-1} {os.getpid()}')
 
         while self.enabled:
-            filepaths = [os.path.join(rawdata_dir, f) for f in os.listdir(rawdata_dir) if f[-4:]=='.nm4' or f[-4:]=='.csv']
-            decode_msgs(filepaths, dbpath=self.dbpath, processes=self.processes)
+            filepaths = [
+                os.path.join(rawdata_dir, f) for f in os.listdir(rawdata_dir)
+                if f[-4:] == '.nm4' or f[-4:] == '.csv'
+            ]
+            decode_msgs(filepaths,
+                        dbpath=self.dbpath,
+                        processes=self.processes)
             time.sleep(10)
 
 
@@ -78,20 +86,25 @@ class MessageLogger():
     def run(self, dbpath=dbpath, processes=0):
         try:
             self.msgtarget = _AISMessageStreamReader()
-            self.msgthread = threading.Thread(target=self.msgtarget, name='AIS_messages_thread')
+            self.msgthread = threading.Thread(target=self.msgtarget,
+                                              name='AIS_messages_thread')
             self.msgthread.start()
 
             self.buildtarget = _AISDatabaseBuilder(dbpath, processes)
-            self.dbthread = threading.Thread(target=self.buildtarget, name='database_thread')
+            self.dbthread = threading.Thread(target=self.buildtarget,
+                                             name='database_thread')
             self.dbthread.start()
 
             # this will cause program to block until database operations complete
-            while input('type "stop" to terminate message logging\n') != 'stop':
+            while input(
+                    'type "stop" to terminate message logging\n') != 'stop':
                 print(end='', flush=True)
             self.stop()
 
         except KeyboardInterrupt as err:
-            print('caught KeyboardInterrupt, shutting down gracefully... press again to force shutdown')
+            print(
+                'caught KeyboardInterrupt, shutting down gracefully... press again to force shutdown'
+            )
             self.stop()
         except Exception as err:
             raise err
@@ -100,7 +113,9 @@ class MessageLogger():
         self.msgtarget.enabled = False
         self.buildtarget.enabled = False
 
-        print('stopping message logging... please wait for database operations to finish')
+        print(
+            'stopping message logging... please wait for database operations to finish'
+        )
 
         self.msgthread.join()
         self.dbthread.join()

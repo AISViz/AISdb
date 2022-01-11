@@ -27,14 +27,14 @@
 .git
 .pytest_cache
 LICENSE.txt
+aisdb_rust/.git
+aisdb_rust/.gitignore
 aisdb_rust/target
 aisdb_rust/target/*
 aisdb_rust/target/**
 aisdb_rust/testdata
 aisdb_rust/testdata/*
 aisdb_rust/testdata/**
-aisdb_rust/.git
-aisdb_rust/.gitignore
 docker/node_modules
 docker/node_modules/**
 docker/package-lock.json
