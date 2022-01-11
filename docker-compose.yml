@@ -51,8 +51,8 @@ services:
       dockerfile: ./docker/Dockerfile
       args:
           - USERNAME=ais_env
-    volumes:
-      - ${DATA_DIR}:/home/ais_env/ais
+    #volumes:
+    #  - ${DATA_DIR}:/home/ais_env/ais
     networks:
       - ipv6_private
 
@@ -64,8 +64,8 @@ services:
       dockerfile: ./docker/Dockerfile
       args:
         - USERNAME=ais_env
-    volumes:
-      - ${DATA_DIR}:/home/ais_env/ais
+    #volumes:
+    #  - ${DATA_DIR}:/home/ais_env/ais
     networks:
       - ipv6_private
 
