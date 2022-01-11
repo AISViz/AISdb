@@ -13,43 +13,47 @@
 import os
 
 from PIL import Image
-import requests
-import tqdm
 
+from aisdb import data_dir
 from aisdb.webdata.load_raster import load_raster_pixel
-from common import *
+
 
 class shore_dist_gfw():
 
-    def __enter__(self, shorerasterfile=f'distance-from-shore.tif', portrasterfile='distance-from-port-v20201104.tiff'):
+    def __enter__(self,
+                  shorerasterfile='distance-from-shore.tif',
+                  portrasterfile='distance-from-port-v20201104.tiff'):
         ''' load rasters into memory '''
-        Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError warning
+        # suppress DecompressionBombError warning
+        Image.MAX_IMAGE_PIXELS = 650000000
 
         shorerasterpath = os.path.join(data_dir, shorerasterfile)
-        assert os.path.isfile(shorerasterpath), ' raster file not found! see docstring for download URL'
+        assert os.path.isfile(
+            shorerasterpath
+        ), ' raster file not found! see docstring for download URL'
         self.shoreimg = Image.open(shorerasterpath)
 
         portrasterpath = os.path.join(data_dir, portrasterfile)
-        assert os.path.isfile(portrasterpath), ' raster file not found! see docstring for download URL'
+        assert os.path.isfile(
+            portrasterpath
+        ), ' raster file not found! see docstring for download URL'
         self.portimg = Image.open(portrasterpath)
 
         return self
 
-
     def __exit__(self, exc_type, exc_val, exc_tb):
-        ''' close raster files upon exit from context ''' 
+        ''' close raster files upon exit from context '''
         self.shoreimg.close()
         self.portimg.close()
-
 
     def getdist(self, lon, lat):
         ''' get approximate shore distance for coordinates (kilometres) '''
         return load_raster_pixel(lon, lat, img=self.shoreimg)
 
-
     def getportdist(self, lon, lat):
         ''' get approximate port distance for coordinates (kilometres) '''
         return load_raster_pixel(lon, lat, img=self.portimg)
+
 
 '''
 with shore_dist_gfw() as sdist:

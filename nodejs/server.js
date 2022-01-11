@@ -24,13 +24,13 @@ app.listen(port, '::', () => {
 
     loop2: for (net of networkInterfaces()[key].reverse()) {
 
-      if (net['family'] == 'IPv4') 
+      if (net['family'] == 'IPv4')
         addr = net['address'];
 
-      else if (net['family'] == 'IPv6' && net['scopeid'] == 0) 
+      else if (net['family'] == 'IPv6' && net['scopeid'] == 0)
         addr = `[${net['address']}]`;
 
-      else 
+      else
         continue loop2;
 
       console.log(`Docs available at http://${addr}:${port}\n`);
