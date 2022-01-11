@@ -108,10 +108,7 @@ pub async fn main() -> Result<(), Error> {
     );
 
     //let sql = "VACUUM INTO '/run/media/matt/My Passport/test_vacuum_rust.db'";
-    let sql = format!(
-        "VACUUM INTO '{}.vacuum'",
-        &args.dbpath.as_os_str().to_str().unwrap()
-    );
+    let sql = "VACUUM";
     let mut conn = get_db_conn(&args.dbpath).expect("get db conn");
     let tx = conn.transaction().unwrap();
     let _ = tx.execute(&sql, []);
