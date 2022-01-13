@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from aisdb.database.dbqry import DBQuery
-from aisdb.track_gen import trackgen
+from aisdb.track_gen import TrackGen
 from aisdb.webdata.merge_data import (
     merge_layers,
     merge_tracks_bathymetry,
@@ -29,24 +29,24 @@ def prepare_qry():
 
 
 def test_merge_shoredist():
-    merged = merge_tracks_shoredist(trackgen(prepare_qry()))
+    merged = merge_tracks_shoredist(TrackGen(prepare_qry()))
     test = next(merged)
     print(test)
 
 
 def test_merge_bathymetry():
-    merged = merge_tracks_bathymetry(trackgen(prepare_qry()))
+    merged = merge_tracks_bathymetry(TrackGen(prepare_qry()))
     test = next(merged)
     print(test)
 
 
 def test_merge_hullgeom():
-    merged = merge_tracks_hullgeom(trackgen(prepare_qry()))
+    merged = merge_tracks_hullgeom(TrackGen(prepare_qry()))
     test = next(merged)
     print(test)
 
 
 def test_merge_layers_all():
-    merged = merge_layers(trackgen(prepare_qry()))
+    merged = merge_layers(TrackGen(prepare_qry()))
     test = next(merged)
     print(test)

@@ -12,7 +12,7 @@ from aisdb.database.dbqry import DBQuery
 from aisdb.database.lambdas import in_bbox
 from aisdb.gis import Domain
 from aisdb.qgis_window import ApplicationWindow
-from aisdb.track_gen import trackgen, segment_tracks_encode_greatcircledistance
+from aisdb.track_gen import TrackGen, segment_tracks_encode_greatcircledistance
 from tests.create_testing_data import zonegeoms_or_randompoly
 
 # Available platform plugins are: eglfs, linuxfb, minimal, minimalegl,
@@ -73,8 +73,8 @@ def plot_processed_track(viz):
                         cuttime=timedelta(weeks=1),
                         cutknots=45,
                         minscore=5e-07)
-    tracks = distsplit(trackgen(rowgen))
-    #tracks = distsplit(trackgen(mmsifilter(rowgen, mmsis=testmmsi)))
+    tracks = distsplit(TrackGen(rowgen))
+    #tracks = distsplit(TrackGen(mmsifilter(rowgen, mmsis=testmmsi)))
 
     n = 0
     for track in tracks:

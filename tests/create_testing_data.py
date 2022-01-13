@@ -23,7 +23,7 @@ def sample_track_pickle():
 
     maxlen = 0
     maxmmsi = ''
-    tracks = {track['mmsi']: track for track in trackgen(rows)}
+    tracks = {track['mmsi']: track for track in TrackGen(rows)}
     for track in tracks.values():
         if (m := len(track['lon'])) > maxlen:
             maxlen = m

@@ -8,7 +8,7 @@ from aisdb.gis import Domain
 from aisdb.track_gen import (
     fence_tracks,
     segment_tracks_encode_greatcircledistance,
-    trackgen,
+    TrackGen,
 )
 #from aisdb.network_graph import serialize_network_edge
 from tests.create_testing_data import zonegeoms_or_randompoly
@@ -44,7 +44,7 @@ def test_network_graph():
                         minscore=5e-07)
     geofenced = partial(fence_tracks, domain=domain)
     #serialize = partial(serialize_network_edge, domain=domain)
-    gen = trackgen(rows)
+    gen = TrackGen(rows)
     next(gen)
     #pipeline = serialize(geofenced(distsplit(gen)))
     #next(pipeline)
@@ -58,7 +58,7 @@ def test_network_graph():
     #    merge_tracks_bathymetry(
     #        merge_tracks_shoredist(
     #            merge_tracks_hullgeom(geofenced(distsplit(
-    #                trackgen(rowgen)))))))
+    #                TrackGen(rowgen)))))))
     # cProfile.run('test2 = next(pipeline)', sort='tottime')
 
 
