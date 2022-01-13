@@ -120,22 +120,21 @@ with import_handler() as importconfigs:
         sqlite_createtable_staticreport,
     )
 
-    from .database.dbconn import (DBConn)
+    from .database.dbconn import DBConn
 
-    from .database.decoder import (
-        decode_msgs, )
+    from .database.decoder import decode_msgs
+
+    from .database.dbqry import DBQuery
 
     from .database import lambdas
 
-    from .database import qryfcn
+    from .database import sqlfcn
 
-    from .database.qrygen import DBQuery
+    from .webdata import merge_data
 
     from .webdata.bathymetry import Gebco
 
     from .webdata.shore_dist import shore_dist_gfw
-
-    from .webdata import merge_data
 
     from .webdata.merge_data import (
         merge_layers,
@@ -174,11 +173,8 @@ with import_handler() as importconfigs:
     from .track_gen import (
         trackgen,
         segment_tracks_timesplits,
-        #segment_tracks_dbscan,
         fence_tracks,
         max_tracklength,
-        #segment,
-        #filtermask,
     )
 
     from .wsa import wsa

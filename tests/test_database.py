@@ -3,7 +3,7 @@ from datetime import datetime
 
 from aisdb.common import data_dir
 from aisdb.database.dbconn import DBConn
-from aisdb.database.qrygen import DBQuery
+from aisdb.database.dbqry import DBQuery
 from aisdb.database.lambdas import in_timerange_validmmsi
 from aisdb.database.create_tables import (
     aggregate_static_msgs,
@@ -50,20 +50,19 @@ def test_create_static_aggregate_table():
 
 
 def test_query_emptytable():
-    aisdatabase = DBConn(dbpath=db)
-    cur = aisdatabase.cur
-    sqlite_createtable_staticreport(cur, month="202009")
-    sqlite_createtable_dynamicreport(cur, month="202009")
-    aisdatabase.conn.commit()
+    #aisdatabase = DBConn(dbpath=db)
+    #sqlite_createtable_staticreport(aisdatabase.cur, month="202009")
+    #sqlite_createtable_dynamicreport(aisdatabase.cur, month="202009")
+    #aisdatabase.conn.commit()
 
     dt = datetime.now()
-    rowgen = DBQuery(
+    q = DBQuery(
         start=start,
         end=end,
         callback=in_timerange_validmmsi,
     )
-    #rowgen.run_qry(dbpath=db, qryfcn=static)
-    rows = rowgen.gen_qry(dbpath=db)
+    q.check_idx(dbpath=db)
+    _rows = q.run_qry(dbpath=db)
     delta = datetime.now() - dt
     print(f'query time: {delta.total_seconds():.2f}s')
-    aisdatabase.conn.close()
+    #aisdatabase.conn.close()

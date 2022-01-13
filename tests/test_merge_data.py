@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from aisdb.database.qrygen import DBQuery
+from aisdb.database.dbqry import DBQuery
 from aisdb.track_gen import trackgen
 from aisdb.webdata.merge_data import (
     merge_layers,

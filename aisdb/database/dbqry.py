@@ -1,25 +1,60 @@
 ''' class to convert a dictionary of input parameters into SQL code, and generate queries '''
 
-import os
 from collections import UserDict
 from datetime import datetime
 
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb.common import dbpath, data_dir
-from database.qryfcn import crawl
+from aisdb.common import dbpath
+from database.sqlfcn import crawl
 from database.dbconn import DBConn
 from database.lambdas import dt2monthstr, arr2polytxt, epoch2monthstr
 from database.create_tables import (
     aggregate_static_msgs,
-    createfcns,
     sqlite_createtable_dynamicreport,
     sqlite_createtable_staticreport,
 )
 
 
 class DBQuery(UserDict):
+    ''' A database abstraction allowing the creation of SQL code via arguments
+        passed to __init__(). Args are stored as a dictionary (UserDict).
+
+        Args:
+            callback: function
+                anonymous function yielding SQL code specifying "WHERE" clauses.
+                common queries are included in aisdb.database.lambdas; for example
+                aisdb.database.lambdas.in_timerange_validmmsi filters on columns
+                (mmsi, time), accepts arguments start(datetime), end(datetime),
+                and filters results within the timerange and known valid
+                vessel MMSI range i.e. (201000000, 776000000).
+                callback is then passed to the query function as an argument; by
+                default sqlfcn = aisdb.database.sqlfcn.crawl().
+            **kwargs:
+                more arguments that will be supplied to the query function
+                and callback function
+
+        The run_qry() function will return all rows matching the query, and
+        gen_qry() yields sets of rows ordered by MMSI (uses less memory for
+        large queries)
+
+        example:
+
+        >>> from datetime import datetime
+        >>> from aisdb import dbpath, DBQuery
+        >>> from aisdb.database.lamdas import in_timerange_validmmsi
+
+        >>> q = DBQuery(callback=in_timerange_validmmsi,
+        ...             start=datetime(2022, 1, 1),
+        ...             end=datetime(2022, 1, 7),
+        ...             )
+
+        >>> q.check_idx()  # build index if necessary
+        >>> print(f'iterating over rows returned from {dbpath}')
+        >>> for rows in q.gen_qry():
+        ...     print(rows)
+    '''
 
     def __init__(self, **kwargs):
 
@@ -55,6 +90,9 @@ class DBQuery(UserDict):
                 assert 'radius' in self.keys(), 'undefined radius'
 
     def check_idx(self, dbpath=dbpath):
+        ''' ensure that all tables exist, and indexes are built, for the
+            timespan covered by the DBQuery
+        '''
         aisdatabase = DBConn(dbpath)
         cur = aisdatabase.cur
         for month in self.data['months']:
@@ -88,8 +126,11 @@ class DBQuery(UserDict):
                     f'CREATE INDEX IF NOT EXISTS idx_{month}_t_x_y '
                     f'ON ais_{month}_dynamic (time, longitude, latitude)')
 
+        aisdatabase.conn.commit()
+        aisdatabase.conn.close()
+
     def run_qry(self, fcn=crawl, dbpath=dbpath, printqry=True):
-        ''' queries the database using the supplied sql function and dbpath
+        ''' queries the database using the supplied sql function and dbpath.
 
             self: UserDict
                 dictionary containing kwargs
@@ -116,8 +157,8 @@ class DBQuery(UserDict):
         return np.array(res)
 
     def gen_qry(self, fcn=crawl, dbpath=dbpath):
-        ''' similar to run_qry, but in a generator format
-            only stores one item in memory at a time
+        ''' queries the database using the supplied SQL function and dbpath.
+            generator only stores one item at at time before yielding
 
             yields:
                 numpy array of rows for each unique MMSI
@@ -163,35 +204,5 @@ class DBQuery(UserDict):
             res = aisdatabase.cur.fetchmany(10**5)
 
         yield np.array(mmsi_rows, dtype=object)
-
+        aisdatabase.conn.close()
         print('\ndone')
-
-    def gen_dbfile(self,
-                   newdb=os.path.join(data_dir, 'export.db'),
-                   dbpath=dbpath):
-        ''' export rows matching the callback into a new sqlite database file '''
-
-        assert 'callback' in self.data.keys()
-        exportdb = DBConn(newdb)
-        aisdatabase = DBConn(dbpath)
-
-        for mstr in self['months']:  #exportdb.cur.execute()
-            for msg, fcn in createfcns.items():
-                exportdb.cur.execute(
-                    'SELECT * FROM sqlite_master WHERE type="table" AND name LIKE ?',
-                    [f'%{mstr}%msg_' + msg.split('msg')[1] + '%'])
-                if not exportdb.cur.fetchall():
-                    fcn(exportdb.cur, mstr)
-
-            for tablename, alias in zip([f'rtree_{mstr}_msg_1_2_3'],
-                                        ['m123', 'm18']):
-                aisdatabase.cur.execute(
-                    f'SELECT * FROM ? WHERE {self["callback"](month=mstr,alias=alias)}',
-                    [tablename])
-                res = aisdatabase.cur.fetchmany(10**5)
-                while len(res) > 0:
-                    exportdb.cur.executemany(
-                        f'INSERT {",".join(["?" for _ in range(len(res[0]))])} INTO {tablename}',
-                        res)
-                    res = aisdatabase.cur.fetchmany(10**5)
-            exportdb.conn.commit()

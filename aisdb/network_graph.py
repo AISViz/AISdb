@@ -239,8 +239,8 @@ def graph(rowgen, domain, parallel=0, **params):
         written to 'output.csv' inside the data_dir directory
 
         args:
-            rowgen: generator from aisdb.database.qrygen.DBQuery().gen_qry()
-                see qrygen.py for more info
+            rowgen: generator from aisdb.database.dbqry.DBQuery().gen_qry()
+                see dbqry.py for more info
             domain: aisdb.gis.Domain() class object
                 collection of zones defined as polygons, these will
                 be used as nodes in the network graph

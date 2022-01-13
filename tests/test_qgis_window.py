@@ -8,8 +8,8 @@ from shapely.geometry import Point, LineString, MultiPoint
 import requests
 
 from aisdb import output_dir
+from aisdb.database.dbqry import DBQuery
 from aisdb.database.lambdas import in_bbox
-from aisdb.database.qrygen import DBQuery
 from aisdb.gis import Domain
 from aisdb.qgis_window import ApplicationWindow
 from aisdb.track_gen import trackgen, segment_tracks_encode_greatcircledistance

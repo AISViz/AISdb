@@ -52,7 +52,6 @@ COPY --chown="$USERNAME" aisdb_rust/ aisdb_rust/
 RUN cargo build \
     --manifest-path=/home/"$USERNAME"/aisdb_rust/Cargo.toml \
     --release
-RUN mkdir -p testdata/ && chmod -R "$USERNAME" .
 CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--release", "--color=always", "--", "--nocapture" ]
 
 

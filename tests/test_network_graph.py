@@ -2,15 +2,15 @@ from datetime import datetime, timedelta
 from functools import partial
 # import cProfile
 
-from aisdb.database.qrygen import DBQuery
-from aisdb.database.lambdas import in_bbox
+from aisdb.database.dbqry import DBQuery
+from aisdb.database.lambdas import in_bbox_time_validmmsi
 from aisdb.gis import Domain
 from aisdb.track_gen import (
     fence_tracks,
     segment_tracks_encode_greatcircledistance,
     trackgen,
 )
-from aisdb.network_graph import serialize_network_edge
+#from aisdb.network_graph import serialize_network_edge
 from tests.create_testing_data import zonegeoms_or_randompoly
 
 start = datetime(2021, 11, 1)
@@ -29,12 +29,13 @@ def test_network_graph():
         xmax=domain.maxX,
         ymin=domain.minY,
         ymax=domain.maxY,
-        callback=in_bbox,
+        callback=in_bbox_time_validmmsi,
     )
-    rows = args.run_qry()
-    if len(rows) == 0:
-        print('no rows found in bbox, exiting...')
-        return
+    rowgen = args.gen_qry()
+    rows = [next(rowgen)]
+    #if len(rows) == 0:
+    #    print('no rows found in bbox, exiting...')
+    #    return
 
     distsplit = partial(segment_tracks_encode_greatcircledistance,
                         maxdistance=250000,
@@ -47,7 +48,7 @@ def test_network_graph():
     next(gen)
     #pipeline = serialize(geofenced(distsplit(gen)))
     #next(pipeline)
-    next(geofenced(distsplit(gen)))
+    next(geofenced(distsplit(rowgen)))
 
     # cProfile.run('test = gen.__anext__().send(None)', sort='tottime')
     # cProfile.run('test = next(gen)', sort='tottime')

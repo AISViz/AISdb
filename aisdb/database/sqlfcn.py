@@ -44,9 +44,3 @@ crawl = lambda months, callback, **kwargs: ('WITH' + ','.join([
     aliases(month=month, callback=callback, kwargs=kwargs) for month in months
 ]) + '\nUNION'.join([leftjoin(month=month)
                      for month in months]) + '\nORDER BY 1, 2')
-#crawl = lambda months, callback, **kwargs: (
-#    '\nUNION'.join([
-#        # leftjoin(month=month) for month in months
-#        testfcn(month=month, callback=callback, kwargs=kwargs)
-#        for month in months
-#    ]) + '\nORDER BY 1, 2')
