@@ -89,21 +89,22 @@ Code examples
 -------------
 
 1. `Parsing raw format messages into a
-   database <examples/example01_create_db_from_rawmsgs.py>`__
+   database <./api/aisdb.database.decoder.html#aisdb.database.decoder.decode_msgs>`__
 
 2. `Automatically generate SQL database
-   queries <examples/example02_query_the_database.py>`__
+   queries <./api/aisdb.database.dbqry.html#aisdb.database.dbqry.DBQuery>`__
 
-3. | Compute vessel trajectories 
+3. `Compute trajectories from database rows <./api/aisdb.track_gen.html#aisdb.track_gen.TrackGen>`__
+
+4. `Vessel trajectory cleaning and MMSI deduplication <./api/aisdb.track_gen.html#aisdb.track_gen.segment_tracks_encode_greatcircledistance>`__
+
+5. | Integrating web data layers
    | TODO: add documentation
 
-4. | Integrating data from public data sources
-   | TODO: add documentation
+6. `Compute network graph of vessel movements between
+   polygons <./api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
 
-5. `Compute network graph of vessel movements between
-   polygons <examples/example04_network_graph.py>`__
-
-6. | Plot with QGIS
+7. | Plot with QGIS
    | TODO: add documentation
 
 Collecting AIS Data

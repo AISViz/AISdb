@@ -3,6 +3,7 @@
 from functools import reduce
 from datetime import timedelta
 import json
+import warnings
 
 from gis import delta_knots
 
@@ -47,7 +48,7 @@ def segment_rng(track: dict, maxdelta: timedelta, minsize: int) -> filter:
 ''' chainable track generators '''
 
 
-def trackgen(
+def TrackGen(
     rowgen: iter,
     colnames: list = [
         'mmsi',
@@ -66,15 +67,43 @@ def trackgen(
         # 'ship_type',
         # 'ship_type_txt',
     ],
-    deduplicate_timestamps: bool = True,
+    deduplicate_timestamps: bool = False,
 ) -> dict:
-    '''
+    ''' generator converting sets of rows sorted by MMSI to a
+        dictionary containing track column vectors.
         each row contains columns from database: mmsi time lon lat name ...
         rows must be sorted by first by mmsi, then time
 
-        colnames is a description of each column in rows.
-        first two columns must be ['mmsi', 'time']
+        args:
+            colnames: list of strings
+                description of each column in rows.
+                first two columns must be ['mmsi', 'time']
+            deduplicate_timestamps: bool
+                deprecated, this feature may be removed in a future version
 
+        yields:
+            dictionary containing track column vectors.
+            static data (e.g. mmsi, name, geometry) will be stored as
+            scalar values
+
+        >>> from datetime import datetime
+        >>> from aisdb import dbpath, DBQuery
+        >>> from aisdb.database.lamdas import in_timerange_validmmsi
+
+        >>> q = DBQuery(callback=in_timerange_validmmsi,
+        ...             start=datetime(2022, 1, 1),
+        ...             end=datetime(2022, 1, 7),
+        ...             )
+
+        >>> q.check_idx()  # build index if necessary
+        >>> print(f'iterating over rows returned from {dbpath}')
+        >>> rowgen = q.gen_qry()
+
+        >>> from aisdb import TrackGen
+        >>> for track in TrackGen(rowgen):
+        ...     print(track['mmsi'])
+        ...     print(f'messages in track segment: {track["time"].size}')
+        ...     print(f'keys: {track.keys()}')
     '''
     mmsi_col = [
         i for i, c in zip(range(len(colnames)), colnames)
@@ -108,6 +137,7 @@ def trackgen(
     for rows in rowgen:
 
         if deduplicate_timestamps:
+            warnings.warn('timestamps deduplication is deprecated')
             dupe_idx = np.append(
                 [False],
                 np.logical_and(

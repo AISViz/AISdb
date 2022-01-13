@@ -171,7 +171,7 @@ with import_handler() as importconfigs:
     )
 
     from .track_gen import (
-        trackgen,
+        TrackGen,
         segment_tracks_timesplits,
         fence_tracks,
         max_tracklength,

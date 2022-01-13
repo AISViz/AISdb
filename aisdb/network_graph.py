@@ -15,10 +15,10 @@ from gis import (
     epoch_2_dt,
 )
 from track_gen import (
+    TrackGen,
     fence_tracks,
     segment_rng,
     segment_tracks_encode_greatcircledistance,
-    trackgen,
     # max_tracklength,
     # segment_tracks_timesplits,
 )
@@ -121,7 +121,7 @@ def serialize_network_edge(tracks,
         args:
             tracks: dict
                 dictionary of vessel trajectory data, as output by
-                ais.track_gen.trackgen() or its wrapper functions
+                ais.track_gen.TrackGen() or its wrapper functions
 
         returns: None
     '''
@@ -223,8 +223,8 @@ def graph_cpu_bound(track, domain, **params):
 
 def graph_blocking_io(rowgen, domain):
     ''' will probably be removed in a later version '''
-    #for x in merge_layers(trackgen(rowgen)):
-    for x in trackgen(rowgen):
+    #for x in merge_layers(TrackGen(rowgen)):
+    for x in TrackGen(rowgen):
         yield x
 
 
