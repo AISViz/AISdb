@@ -1,27 +1,27 @@
 image: matt24smith/aisdb:latest
 
 stages:
-  - python-build
-  - python-test
   - rust-build
+  - python-build
   - rust-test
-
-python-build:
-  stage: python-build
-  script:
-    - python -m pip install -e .
-
-python-tests:
-  stage: python-test
-  script:
-    - python -m pytest --color=yes --tb=native -s tests/ -k "not qgis and not merge"
+  - python-test
 
 rust-build:
   stage: rust-build
   script:
     - cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release
 
+python-build:
+  stage: python-build
+  script:
+    - python -m pip install -e .
+
 rust-test:
   stage: rust-test
   script:
     - cargo test --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release --color=always -- --nocapture
+
+python-tests:
+  stage: python-test
+  script:
+    - python -m pytest --color=yes --tb=native -s tests/ -k "not qgis and not merge"
