@@ -4,7 +4,7 @@ from datetime import datetime
 from aisdb.common import data_dir
 from aisdb.database.dbconn import DBConn
 from aisdb.database.dbqry import DBQuery
-from aisdb.database.lambdas import in_timerange_validmmsi
+from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 from aisdb.database.create_tables import (
     aggregate_static_msgs,
     sqlite_createtable_dynamicreport,

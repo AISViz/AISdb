@@ -3,7 +3,7 @@ from functools import partial
 # import cProfile
 
 from aisdb.database.dbqry import DBQuery
-from aisdb.database.lambdas import in_bbox_time_validmmsi
+from aisdb.database.sqlfcn_callbacks import in_bbox_time_validmmsi
 from aisdb.gis import Domain
 from aisdb.track_gen import (
     fence_tracks,

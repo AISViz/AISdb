@@ -7,7 +7,7 @@ import numpy as np
 from shapely.geometry import Polygon
 
 from aisdb import zones_dir
-from aisdb.database.lambdas import boxpoly
+from aisdb.database.sqlfcn_callbacks import boxpoly
 from aisdb.gis import shiftcoord, ZoneGeom, ZoneGeomFromTxt
 from aisdb.proc_util import glob_files
 

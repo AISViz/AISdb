@@ -9,7 +9,7 @@ import requests
 
 from aisdb import output_dir
 from aisdb.database.dbqry import DBQuery
-from aisdb.database.lambdas import in_bbox
+from aisdb.database.sqlfcn_callbacks import in_bbox
 from aisdb.gis import Domain
 from aisdb.qgis_window import ApplicationWindow
 from aisdb.track_gen import TrackGen, segment_tracks_encode_greatcircledistance

@@ -8,7 +8,7 @@ from aisdb.webdata.merge_data import (
     merge_tracks_hullgeom,
     merge_tracks_shoredist,
 )
-from aisdb.database.lambdas import in_bbox_time
+from aisdb.database.sqlfcn_callbacks import in_bbox_time
 
 
 def prepare_qry():
