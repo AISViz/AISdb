@@ -9,7 +9,7 @@ from shapely.geometry import Polygon
 from aisdb.common import dbpath
 from database.sqlfcn import crawl
 from database.dbconn import DBConn
-from database.lambdas import dt2monthstr, arr2polytxt, epoch2monthstr
+from database.sqlfcn_callbacks import dt2monthstr, arr2polytxt, epoch2monthstr
 from database.create_tables import (
     aggregate_static_msgs,
     sqlite_createtable_dynamicreport,
@@ -22,15 +22,22 @@ class DBQuery(UserDict):
         passed to __init__(). Args are stored as a dictionary (UserDict).
 
         Args:
-            callback: function
+            callback: (function)
                 anonymous function yielding SQL code specifying "WHERE" clauses.
-                common queries are included in aisdb.database.lambdas; for example
-                aisdb.database.lambdas.in_timerange_validmmsi filters on columns
-                (mmsi, time), accepts arguments start(datetime), end(datetime),
-                and filters results within the timerange and known valid
-                vessel MMSI range i.e. (201000000, 776000000).
-                callback is then passed to the query function as an argument; by
-                default sqlfcn = aisdb.database.sqlfcn.crawl().
+                common queries are included in aisdb.database.sqlfcn_callbacks,
+                e.g.
+
+                >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
+
+                this generates SQL code to apply filtering on columns (mmsi, time),
+                and requires (start, end) as arguments in datetime format.
+
+                >>> q = DBQuery(callback=in_timerange_validmmsi,
+                ...             start=datetime(2022, 1, 1),
+                ...             end=datetime(2022, 1, 7),
+                ...             )
+
+                Resulting SQL is then passed to the query function as an argument.
             **kwargs:
                 more arguments that will be supplied to the query function
                 and callback function
@@ -38,6 +45,9 @@ class DBQuery(UserDict):
         The run_qry() function will return all rows matching the query, and
         gen_qry() yields sets of rows ordered by MMSI (uses less memory for
         large queries)
+
+        Custom SQL queries are supported by modifying the fcn supplied to .run_qry()
+        or .gen_qry(), or by supplying a custom callback function
 
         example:
 

@@ -126,9 +126,9 @@ with import_handler() as importconfigs:
 
     from .database.dbqry import DBQuery
 
-    from .database import lambdas
-
     from .database import sqlfcn
+
+    from .database import sqlfcn_callbacks
 
     from .webdata import merge_data
 

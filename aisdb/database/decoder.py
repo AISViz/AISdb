@@ -70,9 +70,9 @@ def decode_raw_pyais(fpath, tmp_dir=tmp_dir):
     ''' parallel process worker function. see decode_msgs() for usage
 
         arg:
-            fpath: string
+            fpath: (string)
                 filepath to .nm4 AIS binary data
-            tmp_dir: string
+            tmp_dir: (string)
                 filepath to temporary directory for storing serialized decoded
                 binary
 
@@ -156,11 +156,11 @@ def decode_raw_pyais(fpath, tmp_dir=tmp_dir):
     print(f'''{
         fpath.split(os.path.sep)[-1]
         }\tprocessed {n} messages in {
-            (datetime.now() - t0).total_seconds():.0f}s.\tskipped: {
-                skipped
-                }\tfailed: {
-                    failed}\trate: {
-                        n / (datetime.now() - t0).total_seconds():.1f}/s''')
+        (datetime.now() - t0).total_seconds():.0f}s.\tskipped: {
+        skipped
+        }\tfailed: {
+        failed}\trate: {
+        n / (datetime.now() - t0).total_seconds():.1f}/s''')
 
 
 def insert_serialized(dbpath, delete=True):
@@ -225,15 +225,31 @@ def decode_msgs(filepaths, dbpath, processes=12, delete=True):
                 ingested into the database
             dbpath (string)
                 location of where the created database should be saved
-            processes: int
+            processes: (int)
                 number of processes to run in parallel. Set to 0 or False to
-                disable concurrency
-            delete: boolean
-                if True, decoded data in tmp_dir will be removed
+                disable parallelization.
+                If Rust is installed, this option is ignored.
+            delete: (boolean)
+                if True, decoded data in tmp_dir will be removed.
+                If Rust is installed, this option is ignored
 
         returns:
             None
+
+        example:
+
+        >>> from aisdb import dbpath, decode_msgs
+        >>> filepaths = ['~/ais/rawdata_dir/20220101.nm4',
+        ...              '~/ais/rawdata_dir/20220102.nm4']
+        >>> decode_msgs(filepaths, dbpath)
     '''
+    rustbinary = os.path.join(os.path.dirname(__file__), '..', '..',
+                              'aisdb_rust', 'target', 'release', 'aisdb')
+    if os.path.isfile(rustbinary):
+        files_str = ' --file '.join(["'" + f + "'" for f in filepaths])
+        x = (f"{rustbinary} --dbpath '{dbpath}' --file {files_str}")
+        os.system(x)
+        return
 
     assert os.listdir(tmp_dir) == [], (
         '''error: tmp directory not empty! '''

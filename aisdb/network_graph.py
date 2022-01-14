@@ -260,7 +260,7 @@ def graph(rowgen, domain, parallel=0, **params):
         ...     merge_layers,
         ...     )
         >>> from aisdb import network_graph
-        >>> from aisdb.database.lambdas import in_bbox_time
+        >>> from aisdb.database.sqlfcn_callbacks import in_bbox_time
 
         configure query area using Domain to compute region boundary
 
