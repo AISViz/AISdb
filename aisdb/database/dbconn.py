@@ -62,13 +62,13 @@ class DBConn():
         not yet exist
 
         args:
-            dbpath: (string)
+            dbpath (string)
                 defaults to dbpath as configured in ~/.config/ais.cfg
 
         attributes:
-            conn: (sqlite3.Connection)
+            conn (sqlite3.Connection)
                 database connection object
-            cur: (sqlite3.Cursor)
+            cur (sqlite3.Cursor)
                 database cursor object
     '''
 

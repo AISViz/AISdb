@@ -190,8 +190,23 @@ def segment_tracks_encode_greatcircledistance(tracks,
                                               cuttime,
                                               cutknots=50,
                                               minscore=1e-6):
-    ''' if the distance between two consecutive points in the track exceeds
-        given threshold, the track will be segmented '''
+    ''' partitions tracks where delta speeds exceed cutknots.
+        concatenates track segments with the highest likelihood of being
+        sequential, as encoded by a distance/time score function
+
+        args:
+            tracks (aisdb.track_gen.TrackGen)
+                track vectors generator
+            maxdistance (int)
+                distance in meters that will be used as a
+                speed score numerator
+            cuttime (datetime)
+                will be converted to epoch and used as a speed
+                score denominator
+            minscore (float)
+                minimum score threshold at which to allow track
+                segments to be linked
+    '''
     '''
     score_fcn = lambda xy1,xy2,t1,t2,distance_meters=maxdistance: (
                             #((distance_meters) / max(5, haversine(*xy1, *xy2))) / max(2, np.abs(t2-t1))

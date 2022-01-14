@@ -225,11 +225,11 @@ def decode_msgs(filepaths, dbpath, processes=12, delete=True):
                 ingested into the database
             dbpath (string)
                 location of where the created database should be saved
-            processes: (int)
+            processes (int)
                 number of processes to run in parallel. Set to 0 or False to
                 disable parallelization.
                 If Rust is installed, this option is ignored.
-            delete: (boolean)
+            delete (boolean)
                 if True, decoded data in tmp_dir will be removed.
                 If Rust is installed, this option is ignored
 

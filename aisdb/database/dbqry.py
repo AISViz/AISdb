@@ -180,12 +180,12 @@ class DBQuery(UserDict):
             generator only stores one item at at time before yielding
 
             args:
-                self: (UserDict)
+                self (UserDict)
                     dictionary containing kwargs
-                fcn: (function)
+                fcn (function)
                     callback function that will generate SQL code using
                     the args stored in self
-                dbpath: (string)
+                dbpath (string)
                     defaults to the database path configured in ~/.config/ais.cfg
 
             yields:
