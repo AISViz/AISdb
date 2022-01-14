@@ -7,7 +7,7 @@ import numpy as np
 from shapely.geometry import Polygon
 
 from aisdb import zones_dir
-from aisdb.database.lambdas import boxpoly
+from aisdb.database.sqlfcn_callbacks import boxpoly
 from aisdb.gis import shiftcoord, ZoneGeom, ZoneGeomFromTxt
 from aisdb.proc_util import glob_files
 
@@ -23,7 +23,7 @@ def sample_track_pickle():
 
     maxlen = 0
     maxmmsi = ''
-    tracks = {track['mmsi']: track for track in trackgen(rows)}
+    tracks = {track['mmsi']: track for track in TrackGen(rows)}
     for track in tracks.values():
         if (m := len(track['lon'])) > maxlen:
             maxlen = m

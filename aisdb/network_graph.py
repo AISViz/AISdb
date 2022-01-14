@@ -15,10 +15,10 @@ from gis import (
     epoch_2_dt,
 )
 from track_gen import (
+    TrackGen,
     fence_tracks,
     segment_rng,
     segment_tracks_encode_greatcircledistance,
-    trackgen,
     # max_tracklength,
     # segment_tracks_timesplits,
 )
@@ -121,7 +121,7 @@ def serialize_network_edge(tracks,
         args:
             tracks: dict
                 dictionary of vessel trajectory data, as output by
-                ais.track_gen.trackgen() or its wrapper functions
+                ais.track_gen.TrackGen() or its wrapper functions
 
         returns: None
     '''
@@ -223,8 +223,8 @@ def graph_cpu_bound(track, domain, **params):
 
 def graph_blocking_io(rowgen, domain):
     ''' will probably be removed in a later version '''
-    #for x in merge_layers(trackgen(rowgen)):
-    for x in trackgen(rowgen):
+    #for x in merge_layers(TrackGen(rowgen)):
+    for x in TrackGen(rowgen):
         yield x
 
 
@@ -239,8 +239,8 @@ def graph(rowgen, domain, parallel=0, **params):
         written to 'output.csv' inside the data_dir directory
 
         args:
-            rowgen: generator from aisdb.database.qrygen.DBQuery().gen_qry()
-                see qrygen.py for more info
+            rowgen: generator from aisdb.database.dbqry.DBQuery().gen_qry()
+                see dbqry.py for more info
             domain: aisdb.gis.Domain() class object
                 collection of zones defined as polygons, these will
                 be used as nodes in the network graph
@@ -249,6 +249,55 @@ def graph(rowgen, domain, parallel=0, **params):
                 if set to 0 or False, no parallelization will be used
 
         returns: None
+
+        example:
+
+        >>> from datetime import datetime
+        >>> from aisdb import (
+        ...     DBQuery,
+        ...     Domain,
+        ...     ZoneGeom,
+        ...     merge_layers,
+        ...     )
+        >>> from aisdb import network_graph
+        >>> from aisdb.database.sqlfcn_callbacks import in_bbox_time
+
+        configure query area using Domain to compute region boundary
+
+        >>> zonegeoms = {
+        ...     'Zone1': ZoneGeom(name='Zone1',
+        ...                       x=[-170.24, -170.24, -38.5, -38.5, -170.24],
+        ...                       y=[29.0, 75.2, 75.2, 29.0, 29.0])
+        ...     }
+        >>> domain = Domain(name='new_domain', geoms=zonegeoms, cache=False)
+
+        query db for points in domain
+
+        >>> qry = DBQuery(
+        ...     start=datetime(2020, 9, 1),
+        ...     end=datetime(2020, 9, 3),
+        ...     xmin=domain.minX,
+        ...     xmax=domain.maxX,
+        ...     ymin=domain.minY,
+        ...     ymax=domain.maxY,
+        ...     callback=in_bbox_time,
+        ...     )
+        >>> rowgen = qry.gen_qry()
+
+        append raster data from web sources.
+        this can also be modified to clean and process trajectories
+        before adding raster data via the generator functions
+        in the track_gen module
+
+        >>> merged = merge_layers(TrackGen(rowgen), dbpath)
+
+        process the graph data using 12 processes in parallel
+
+        >>> network_graph.graph(merged, domain, parallel=12)
+
+        aggregate the results as csv
+
+        >>> network_graph.aggregate_output(filename='output.csv')
     '''
     if not parallel:
         #for track in graph_blocking_io(fpath, domain):

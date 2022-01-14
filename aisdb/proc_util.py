@@ -129,3 +129,66 @@ def glob_files(dirpath, ext='.txt', keyorder=lambda key: key):
     ], np.array([], dtype=object))
 
     return sorted(extpaths, key=keyorder)
+
+
+from shapely.geometry import Point, MultiPoint, LineString
+
+
+def serialize_geomwkb(tracks):
+    ''' for each track dictionary, serialize the geometry as WKB to the output directory '''
+    wkbdir = os.path.join(output_dir, 'wkb/')
+    if not os.path.isdir(wkbdir):
+        os.mkdir(wkbdir)
+
+    for track in tracks:
+        if len(track['time']) == 1:
+            geom = MultiPoint([
+                Point(x, y, t)
+                for x, y, t in zip(track['lon'], track['lat'], track['time'])
+            ])
+        else:
+            geom = LineString(zip(track['lon'], track['lat'], track['time']))
+        fname = os.path.join(
+            wkbdir,
+            f'mmsi={track["mmsi"]}_epoch={int(track["time"][0])}-{int(track["time"][-1])}_{geom.type}.wkb'
+        )
+        with open(fname, 'wb') as f:
+            f.write(geom.wkb)
+
+    return
+
+
+'''
+def cpu_bound(track, domain, cutdistance, maxdistance, cuttime, minscore):
+    timesplit = partial(segment_tracks_timesplits, maxdelta=cuttime)
+    distsplit = partial(segment_tracks_encode_greatcircledistance,
+                        cutdistance=cutdistance,
+                        maxdistance=maxdistance,
+                        cuttime=cuttime,
+                        minscore=minscore)
+    geofenced = partial(fence_tracks, domain=domain)
+    split_len = partial(max_tracklength, max_track_length=10000)
+    print('processing mmsi', track['mmsi'], end='\r')
+    serialize_geomwkb(split_len(distsplit(timesplit([track]))))
+    return
+
+
+def serialize_geoms(tracks,
+                    domain,
+                    processes,
+                    cutdistance=5000,
+                    maxdistance=125000,
+                    cuttime=timedelta(hours=6),
+                    minscore=0.0001):
+    with Pool(processes=processes) as p:
+        fcn = partial(cpu_bound,
+                      domain=domain,
+                      cutdistance=cutdistance,
+                      maxdistance=maxdistance,
+                      cuttime=cuttime,
+                      minscore=minscore)
+        p.imap_unordered(fcn, tracks, chunksize=1)
+        p.close()
+        p.join()
+    print()
+'''

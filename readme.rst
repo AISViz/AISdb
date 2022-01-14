@@ -21,7 +21,7 @@ Package features:
       <img 
         src='docs/source/scriptoutput.png' 
         width="800"
-        onerror="this.onerror=null; this.src=''; this.width='0'"
+        onerror="this.src='_images/scriptoutput.png'"
       ></img>
    </a>
 
@@ -46,6 +46,14 @@ What is AIS?
 Installing
 ----------
 
+Database creation with Rust can be enabled by installing the Rust compiler
+(Optional). 
+If installed, a rust executable will be compiled during pip install
+
+.. code-block:: sh
+
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
 The package can be installed using pip:
 
 .. code-block:: sh
@@ -53,7 +61,6 @@ The package can be installed using pip:
   python3 -m venv env_aisdb --upgrade
   source env_aisdb/bin/activate
   python3 -m pip install 'git+https://gitlab.meridian.cs.dal.ca/matt_s/aisdb#egg=aisdb'
-
 
 Although the graphical interface is still a work in progress, it can be
 enabled by `installing QGIS <https://qgis.org/en/site/forusers/download.html>`__. Note that
@@ -89,21 +96,22 @@ Code examples
 -------------
 
 1. `Parsing raw format messages into a
-   database <examples/example01_create_db_from_rawmsgs.py>`__
+   database <./api/aisdb.database.decoder.html#aisdb.database.decoder.decode_msgs>`__
 
 2. `Automatically generate SQL database
-   queries <examples/example02_query_the_database.py>`__
+   queries <./api/aisdb.database.dbqry.html#aisdb.database.dbqry.DBQuery>`__
 
-3. | Compute vessel trajectories 
+3. `Compute trajectories from database rows <./api/aisdb.track_gen.html#aisdb.track_gen.TrackGen>`__
+
+4. `Vessel trajectory cleaning and MMSI deduplication <./api/aisdb.track_gen.html#aisdb.track_gen.segment_tracks_encode_greatcircledistance>`__
+
+5. | Integrating web data layers
    | TODO: add documentation
 
-4. | Integrating data from public data sources
-   | TODO: add documentation
+6. `Compute network graph of vessel movements between
+   polygons <./api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
 
-5. `Compute network graph of vessel movements between
-   polygons <examples/example04_network_graph.py>`__
-
-6. | Plot with QGIS
+7. | Plot with QGIS
    | TODO: add documentation
 
 Collecting AIS Data
