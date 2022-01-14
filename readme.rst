@@ -54,6 +54,11 @@ The package can be installed using pip:
   source env_aisdb/bin/activate
   python3 -m pip install 'git+https://gitlab.meridian.cs.dal.ca/matt_s/aisdb#egg=aisdb'
 
+Database creation with Rust can be enabled by installing the Rust compiler
+
+.. code-block:: sh
+
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 Although the graphical interface is still a work in progress, it can be
 enabled by `installing QGIS <https://qgis.org/en/site/forusers/download.html>`__. Note that
