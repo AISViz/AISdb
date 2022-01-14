@@ -88,7 +88,7 @@ def TrackGen(
 
         >>> from datetime import datetime
         >>> from aisdb import dbpath, DBQuery
-        >>> from aisdb.database.lamdas import in_timerange_validmmsi
+        >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 
         >>> q = DBQuery(callback=in_timerange_validmmsi,
         ...             start=datetime(2022, 1, 1),
