@@ -19,6 +19,7 @@ ARG USERNAME
 USER "$USERNAME"
 RUN python -m ensurepip && python -m pip install --no-warn-script-location --upgrade wheel pip numpy pytest
 COPY --chown="$USERNAME" ./setup.py "/home/$USERNAME/setup.py"
+COPY --chown="$USERNAME" aisdb_rust/ aisdb_rust/
 RUN mkdir -p ais ais/tmp_parsing ais/zones ais/rawdata_dir ais/scriptoutput aisdb/database aisdb/webdata \
   && python -m pip install . --no-warn-script-location 
 COPY --chown="$USERNAME" tests/ tests/
@@ -52,6 +53,13 @@ COPY --chown="$USERNAME" aisdb_rust/ aisdb_rust/
 RUN cargo build \
     --manifest-path=/home/"$USERNAME"/aisdb_rust/Cargo.toml \
     --release
+#RUN cargo doc \
+#  --document-private-items \
+#  --manifest-path="aisdb_rust/Cargo.toml" \
+#  --no-deps \
+#  --package=aisdb \
+#  --release \
+#  --target-dir="rustdoc/" 
 CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--release", "--color=always", "--", "--nocapture" ]
 
 
@@ -63,6 +71,7 @@ RUN npm install express
 COPY --chown="$USERNAME" nodejs/ nodejs/
 COPY --chown="$USERNAME" docs/ docs/
 COPY --chown="$USERNAME" readme.rst ./readme.rst
-COPY --chown="$USERNAME" aisdb_rust/ aisdb_rust/
+#COPY --chown="$USERNAME" aisdb_rust/ aisdb_rust/
+#COPY --from=compile /home/ais_env/rustdoc/ docs/html/rust/
 RUN /bin/bash /home/"$USERNAME"/docs/sphinxbuild.sh
 CMD ["npm", "--prefix", "nodejs/", "start"]

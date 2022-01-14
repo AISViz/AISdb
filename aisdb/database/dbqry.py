@@ -42,14 +42,13 @@ class DBQuery(UserDict):
                 more arguments that will be supplied to the query function
                 and callback function
 
-        The run_qry() function will return all rows matching the query, and
-        gen_qry() yields sets of rows ordered by MMSI (uses less memory for
-        large queries)
 
         Custom SQL queries are supported by modifying the fcn supplied to .run_qry()
-        or .gen_qry(), or by supplying a custom callback function
+        and .gen_qry(), or by supplying a custom callback function.
+        Alternatively, the database can also be queried directly, see
+        DBConn.py for more info
 
-        example:
+        complete example:
 
         >>> from datetime import datetime
         >>> from aisdb import dbpath, DBQuery
@@ -140,14 +139,24 @@ class DBQuery(UserDict):
         aisdatabase.conn.close()
 
     def run_qry(self, fcn=crawl, dbpath=dbpath, printqry=True):
-        ''' queries the database using the supplied sql function and dbpath.
+        ''' queries the database
 
-            self: UserDict
-                dictionary containing kwargs
+            args:
+                self: (UserDict)
+                    dictionary containing kwargs
+                fcn: (function)
+                    callback function that will generate SQL code using
+                    the args stored in self
+                dbpath: (string)
+                    defaults to the database path configured in ~/.config/ais.cfg
+                printqry: (boolean)
+                    Optionally silence the messages printing SQL code to be
+                    executed
 
-            returns resulting rows
+            returns:
+                resulting rows in array format
 
-            CAUTION: may use an excessive amount of memory for large queries
+            CAUTION: may use an excessive amount of memory for large queries.
             consider using gen_qry instead
         '''
 
@@ -170,11 +179,19 @@ class DBQuery(UserDict):
         ''' queries the database using the supplied SQL function and dbpath.
             generator only stores one item at at time before yielding
 
+            args:
+                self: (UserDict)
+                    dictionary containing kwargs
+                fcn: (function)
+                    callback function that will generate SQL code using
+                    the args stored in self
+                dbpath: (string)
+                    defaults to the database path configured in ~/.config/ais.cfg
+
             yields:
                 numpy array of rows for each unique MMSI
                 arrays are sorted by MMSI
                 rows are sorted by time
-
         '''
         self.check_idx()
         qry = fcn(**self)
