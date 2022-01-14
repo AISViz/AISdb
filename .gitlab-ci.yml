@@ -1,23 +1,27 @@
-image: docker:latest
-
-variables: 
-  DOCKER_DRIVER: overlay
-
-services:
-  - docker:dind
-
-before_script:
-  - docker info
-  - curl -L "https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-  - chmod +x /usr/local/bin/docker-compose
-  - export PATH=/usr/local/bin/:$PATH
-  - echo $PATH
+image: matt24smith/aisdb:latest
 
 stages:
-  - build
-  - test
+  - python-build
+  - python-test
+  - rust-build
+  - rust-test
+
+python-build:
+  stage: python-build
+  script:
+    - python -m pip install -e .
 
 python-tests:
-  stage: test
+  stage: python-test
   script:
-    - docker-compose up aisdb_test --build 
+    - python -m pytest --color=yes --tb=native -s tests/ -k "not qgis and not merge"
+
+rust-build:
+  stage: rust-build
+  script:
+    - cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release
+
+rust-test:
+  stage: rust-test
+  script:
+    - cargo test --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release --color=always -- --nocapture
