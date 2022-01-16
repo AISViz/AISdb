@@ -10,6 +10,43 @@ version: '3.9'
 
 services:
 
+  aisdb_rust:
+    container_name: test_rust
+    environment:
+      - RUST_BACKTRACE=1
+    build:
+      target: test_rust
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+          - USERNAME=ais_env
+    networks:
+      - ipv6_private
+
+  aisdb_test:
+    container_name: test_python
+    build:
+      target: test_python
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        - USERNAME=ais_env
+    networks:
+      - ipv6_private
+
+  aisdb_docs:
+    container_name: aisdb_docs
+    build: 
+      target: webserv
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        - USERNAME=ais_env
+    expose:
+      - "8085"
+    networks:
+      - ipv6_private
+
   aisdb_sshd:
     container_name: aisdb_sshd
     build: 
@@ -27,47 +64,6 @@ services:
       - ${DATA_DIR}:/home/ais_env/ais
     networks:
       - ipv6_private 
-
-  aisdb_docs:
-    container_name: aisdb_docs
-    build: 
-      target: webserv
-      context: .
-      dockerfile: ./docker/Dockerfile
-      args:
-        - USERNAME=ais_env
-    expose:
-      - "8085"
-    networks:
-      - ipv6_private
-
-  aisdb_rust:
-    container_name: aisdb_rust
-    environment:
-      - RUST_BACKTRACE=1
-    build:
-      target: compile
-      context: .
-      dockerfile: ./docker/Dockerfile
-      args:
-          - USERNAME=ais_env
-    #volumes:
-    #  - ${DATA_DIR}:/home/ais_env/ais
-    networks:
-      - ipv6_private
-
-  aisdb_test:
-    container_name: aisdb_test
-    build:
-      target: runtest
-      context: .
-      dockerfile: ./docker/Dockerfile
-      args:
-        - USERNAME=ais_env
-    #volumes:
-    #  - ${DATA_DIR}:/home/ais_env/ais
-    networks:
-      - ipv6_private
 
 
 secrets:

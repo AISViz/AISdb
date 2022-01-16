@@ -24,4 +24,5 @@ rust-test:
 python-tests:
   stage: python-test
   script:
+    # skip tests that require a desktop environment or call on remote endpoints
     - python -m pytest --color=yes --tb=native -s tests/ -k "not qgis and not merge"

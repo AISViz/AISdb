@@ -27,6 +27,7 @@
 .git
 .pytest_cache
 LICENSE.txt
+aisdb.egg_info
 aisdb_rust/.git
 aisdb_rust/.gitignore
 aisdb_rust/target
@@ -43,6 +44,7 @@ docs/html/*
 docs/html/**
 docs/html/rust/**
 docs/source/api
+tag_img.sh
 testdata
 testdata/*
 tests/data
