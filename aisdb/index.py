@@ -4,12 +4,10 @@ import os
 import json
 import pickle
 import sqlite3
-#import pysqlite3 as sqlite3
 import logging
 from hashlib import md5
 from multiprocessing import Pool
 from datetime import datetime, timedelta
-from collections.abc import Iterable
 
 from numpy import arange
 
@@ -19,7 +17,7 @@ class index():
 
         An SQL database for caching arbitrary binary.  Intended to be used as a
         wrapper for arbitrary function calls, where the result of the function
-        is stored as a binary BLOB in the database. A hash of the function name,
+        is stored as a binary BLOB in the db. A hash of the function name,
         path, and input arguments will be interpreted as a 16-bit integer to be
         used as primary key on a clustered index.
 
@@ -30,39 +28,45 @@ class index():
         Example:
 
         >>> import os
-            import time
-            import json
-            from datetime import datetime, timedelta
+        >>> import time
+        >>> import json
+        >>> from datetime import datetime, timedelta
 
         >>> def callback(**kwargs):
-                print(f'hello from {os.getpid()}\\n{json.dumps(kwargs, default=str, indent=1)}')
-                time.sleep(0.5)
-                return str(datetime.now().time())
+        ...     print(f'hello from {os.getpid()}\\n{json.dumps(kwargs, default=str, indent=1)}')
+        ...     time.sleep(0.5)
+        ...     return str(datetime.now().time())
 
         >>> def parallelized_callback(**kwargs):
-                print(f'hello from {os.getpid()}\t{kwargs}')
-                time.sleep(1)
-                return None
+        ...     print(f'hello from {os.getpid()}\t{kwargs}')
+        ...     time.sleep(1)
+        ...     return None
 
 
-        >>> # define some boundaries using or subsetting these dict keys (only used when bins=True)
-            kwargs = {
-                    'west':    -123.45,     'east':    -110.01,
-                    'south':    43.21,      'north':    46.54,
-                    'bottom':   5000,       'top':      0,
-                    'start':    datetime(2000, 1, 1, 0, 0),
-                    'end':      datetime(2000, 1, 2, 0, 0)
-                    }
+        define some boundaries using or subsetting these dict keys
+        (only used when bins=True)
 
-        >>> # here kwargs will split into 21 function calls using default spatial bin sizes
-            with index(bins=True, store=True, inmemory=False, **kwargs) as scheduler:
-                results = scheduler(callback=callback, testarg='some arg', anotherarg='changing this will invalidate results hash')
-            print(results)
+        >>> kwargs = {
+        ...         'west':    -123.45,     'east':    -110.01,
+        ...         'south':    43.21,      'north':    46.54,
+        ...         'bottom':   5000,       'top':      0,
+        ...         'start':    datetime(2000, 1, 1, 0, 0),
+        ...         'end':      datetime(2000, 1, 2, 0, 0)
+        ...         }
 
-        >>> # and again, but this time in parallel
-            with parallelindex(pool=10, **kwargs) as scheduler:
-                scheduler(callback=parallelized_callback, newargument='test')
+        here kwargs will define 21 function calls using default
+        2-degree coordinate binning
 
+        >>> with index(bins=True, store=True, **kwargs) as scheduler:
+        ...     results = scheduler(callback=callback,
+        ...                         testarg='some arg',
+        ...                         anotherarg='args will salt hashes')
+        >>> print(results)
+
+        and again, but this time in parallel
+
+        >>> with parallelindex(pool=10, **kwargs) as scheduler:
+        ...     scheduler(callback=parallelized_callback, newargument='test')
     '''
 
     # each data blob in the database assumed to be uniquely described by a function
