@@ -11,7 +11,6 @@ RUN pacman -Syyuu --noconfirm \
     qgis \
     rust \
     xorg-xauth
-ARG USERNAME
 RUN useradd -m "ais_env" --shell /bin/python
 WORKDIR "/home/ais_env"
 USER "ais_env"
