@@ -1,30 +1,26 @@
-#!/bin/sh
+#!/usr/bin/python
+'''
+Automated version incrementing whenever a commit is added.
+Copy this file to .git/hooks/ to enable versioning.
 
-# automated version incrementing whenever a commit is added
-# 
-# copy this file to .git/hooks/ to enable versioning
-# 
-# minor and major release versions require manually editing aisdb/version.py
+Major and minor release versions require manually editing aisdb/version.py
+'''
 
-bumpversion=`cat << EOF
+import os
 import subprocess
 from packaging import version
 import aisdb
 
 v = version.Version(aisdb.__version__)
-bumpv = f'__version__ = \'{v.major}.{v.minor}.{v.micro+1}\''
+bumpv = f'__version__ = "{v.major}.{v.minor}.{v.micro+1}"'
 
-
-import os
 projdir = subprocess.check_output('git rev-parse --show-toplevel'.split()).decode().rstrip()
 versionfile = os.path.join(projdir, 'aisdb', 'version.py')
 
 print(f'\nbumping package version:\t{bumpv}\nwriting to file: {versionfile}\n')
+
 with open(versionfile, 'w') as f:
     f.write(bumpv)
-EOF
-`
 
-python -c "${bumpversion}"
+os.system('git add ./aisdb/version.py')
 
-git add ./aisdb/version.py
