@@ -78,7 +78,9 @@ def zonegeoms_or_randompoly(randomize=False, count=10):
 
 
 def create_testing_aisdata():
-    with open(os.path.join(rawdata_dir, 'testingdata.nm4'), 'w') as f:
+    fpath = os.path.join(rawdata_dir, 'testingdata.nm4')
+    print(f'creating testing data: {fpath}')
+    with open(fpath, 'w') as f:
         f.write(r'''
 \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;I=i:8f0D4l>niTdDO`cO3jGqrlQ,0*67
 \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,another_error!!;wqlirf
