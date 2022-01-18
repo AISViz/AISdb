@@ -18,11 +18,13 @@ import aisdb
 print(sys.argv)
 commitmessagefile = sys.argv[1]
 commitsource = sys.argv[2]
-sha1checksum = sys.argv[3]
+#sha1checksum = sys.argv[3]
 v = version.Version(aisdb.__version__)
 
 with open(commitmessagefile, 'r') as f:
     commitmessage = f.read()
+
+print(commitmessage)
 
 # parse commit message
 if 'version:major' in commitmessage.lower():
@@ -70,11 +72,11 @@ with open(changelogpath, 'w') as f:
     f.write(newchangelog)
 
 # add the new version file to commit 
-subprocess.run('''
+subprocess.run(f'''
     git
         --git-dir={projdir}
         --work-tree={projdir}
         add ./aisdb/version.py
         add ./changelog.rst
-'''.split())
+'''.split(), check=True)
 
