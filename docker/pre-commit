@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# automated version incrementing whenever a commit is added
+# 
+# copy this file to .git/hooks/ to enable versioning
+# 
+# minor and major release versions require manually editing aisdb/version.py
+
 bumpversion=`cat << EOF
 import subprocess
 from packaging import version
