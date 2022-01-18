@@ -22,4 +22,4 @@ EOF
 python -c "${bumpversion}"
 
 git add ./aisdb/version.py
-git rebase --autosquash --set-upstream-to=branch `git branch --show-current`
+git rebase --autosquash --set-upstream origin `git branch --show-current`
