@@ -172,6 +172,9 @@ def insert_serialized(dbpath, delete=True):
     months_str = []
 
     for serialized in sorted(os.listdir(tmp_dir)):
+        if '_' not in serialized:
+            print(f'skipping {serialized}...')
+            continue
         msgtype = serialized.rsplit('_', 1)[1]
         serialdate = getfiledate(serialized)
         mstr = serialdate.strftime('%Y%m')
