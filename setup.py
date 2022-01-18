@@ -16,13 +16,11 @@ if majorver < 21:
     reload(pip)
 
 cargopath = shutil.which('cargo')
+thispath = os.path.dirname(__file__)
 if cargopath:
-    projpath = os.path.join(os.path.dirname(__file__), 'aisdb_rust',
-                            'Cargo.toml')
-    print(
-        subprocess.run(
-            f'{cargopath} build --manifest-path={projpath} --release'.split(),
-            capture_output=True))
+    projpath = os.path.join(thispath, 'aisdb_rust', 'Cargo.toml')
+    subprocess.run(
+        f'{cargopath} build --manifest-path={projpath} --release'.split())
 
 setup(
     name='aisdb',

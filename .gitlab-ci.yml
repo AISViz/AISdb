@@ -21,9 +21,9 @@ rust-test:
   script:
     - cargo test --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release --color=always -- --nocapture
 
-python-tests:
+# skip tests requiring a desktop environment or web data sources
+python-test:
   stage: python-test
   script:
     - python -m pip install .
-    # skip tests that require a desktop environment or call on remote endpoints
     - python -m pytest --color=yes --tb=native tests/ -k "not qgis and not merge"
