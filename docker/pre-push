@@ -1,0 +1,25 @@
+#!/bin/sh
+
+bumpversion=`cat << EOF
+import subprocess
+from packaging import version
+import aisdb
+
+v = version.Version(aisdb.__version__)
+bumpv = f'__version__ = \'{v.major}.{v.minor}.{v.micro+1}\''
+
+
+import os
+projdir = subprocess.check_output('git rev-parse --show-toplevel'.split()).decode().rstrip()
+versionfile = os.path.join(projdir, 'aisdb', 'version.py')
+
+print(f'\nbumping package version:\t{bumpv}\nwriting to file: {versionfile}\n')
+with open(versionfile, 'w') as f:
+    f.write(bumpv)
+EOF
+`
+
+python -c "${bumpversion}"
+
+git add ./aisdb/version.py
+git commit -m 'automated version bump'
