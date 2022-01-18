@@ -29,11 +29,13 @@ RUN python -m ensurepip \
     wheel
 COPY --chown="ais_env" aisdb_rust/Cargo.toml aisdb_rust/Cargo.toml
 COPY --chown="ais_env" ./setup.py "/home/ais_env/setup.py"
+RUN cargo build --manifest-path=/home/"ais_env"/aisdb_rust/Cargo.toml
+RUN mkdir -p aisdb aisdb/webdata aisdb/database aisdb_rust \
+  && python -m pip install --no-warn-script-location .  
 
 
 # build rust target
 FROM aisdb as build_rust
-RUN cargo build --manifest-path=/home/"ais_env"/aisdb_rust/Cargo.toml
 COPY --chown="ais_env" aisdb_rust/ aisdb_rust/
 RUN cargo build --manifest-path=/home/"ais_env"/aisdb_rust/Cargo.toml 
 
