@@ -72,11 +72,10 @@ with open(changelogpath, 'w') as f:
     f.write(newchangelog)
 
 # add the new version file to commit 
-subprocess.run(f'''
-    git
-        --git-dir={projdir}
+cmd = 'git add ./aisdb/version.py ./changelog.rst'.split()
+subprocess.run(cmd, check=True)
+'''
+        --git-dir={projdir}{os.path.sep}git
         --work-tree={projdir}
-        add ./aisdb/version.py
-        add ./changelog.rst
-'''.split(), check=True)
+'''
 
