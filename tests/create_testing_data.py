@@ -79,7 +79,7 @@ def zonegeoms_or_randompoly(randomize=False, count=10):
 
 def create_testing_aisdata():
     if not os.path.isdir(rawdata_dir):
-        os.path.mkdir(rawdata_dir)
+        os.mkdir(rawdata_dir)
     assert os.path.isdir(rawdata_dir)
     fpath = os.path.join(rawdata_dir, 'testingdata.nm4')
     print(f'creating testing data: {fpath}')
