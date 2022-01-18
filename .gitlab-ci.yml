@@ -1,4 +1,4 @@
-image: matt24smith/aisdb:latest
+image: meridiancfi/aisdb:latest
 
 stages:
   - rust-build

@@ -10,56 +10,57 @@ from aisdb.track_gen import (
     segment_tracks_encode_greatcircledistance,
     TrackGen,
 )
-#from aisdb.network_graph import serialize_network_edge
+from aisdb.network_graph import serialize_network_edge
 from tests.create_testing_data import zonegeoms_or_randompoly
 
+# query configs
 start = datetime(2021, 11, 1)
 end = datetime(2021, 12, 1)
+zonegeoms = zonegeoms_or_randompoly(randomize=True, count=10)
+domain = Domain(name='test', geoms=zonegeoms, cache=False)
+args = DBQuery(
+    start=start,
+    end=end,
+    xmin=domain.minX,
+    xmax=domain.maxX,
+    ymin=domain.minY,
+    ymax=domain.maxY,
+    callback=in_bbox_time_validmmsi,
+)
+
+# processing configs
+distsplit = partial(
+    segment_tracks_encode_greatcircledistance,
+    maxdistance=250000,
+    cuttime=timedelta(weeks=1),
+    cutknots=45,
+    minscore=5e-07,
+)
+geofenced = partial(fence_tracks, domain=domain)
 
 
-def test_network_graph():
-    zonegeoms = zonegeoms_or_randompoly(randomize=True, count=10)
-    domain = Domain(name='test', geoms=zonegeoms, cache=False)
-
+def test_network_graph_pipeline():
     # query db for points in domain bounding box
-    args = DBQuery(
-        start=start,
-        end=end,
-        xmin=domain.minX,
-        xmax=domain.maxX,
-        ymin=domain.minY,
-        ymax=domain.maxY,
-        callback=in_bbox_time_validmmsi,
-    )
     rowgen = args.gen_qry()
     rows = [next(rowgen)]
-    #if len(rows) == 0:
-    #    print('no rows found in bbox, exiting...')
-    #    return
+    test = next(TrackGen(rows))
 
-    distsplit = partial(segment_tracks_encode_greatcircledistance,
-                        maxdistance=250000,
-                        cuttime=timedelta(weeks=1),
-                        cutknots=45,
-                        minscore=5e-07)
-    geofenced = partial(fence_tracks, domain=domain)
     #serialize = partial(serialize_network_edge, domain=domain)
-    gen = TrackGen(rows)
-    next(gen)
-    #pipeline = serialize(geofenced(distsplit(gen)))
-    #next(pipeline)
-    next(geofenced(distsplit(rowgen)))
+    test2 = next(geofenced(distsplit(TrackGen(rows))))
+    print(test2)
 
-    # cProfile.run('test = gen.__anext__().send(None)', sort='tottime')
-    # cProfile.run('test = next(gen)', sort='tottime')
-    #
+    serialized = partial(serialize_network_edge, domain=domain)
+    test3 = next(serialized(geofenced(distsplit(TrackGen(rows)))))
+
+
+def test_network_graph_pipeline_merged():
     # rowgen = picklegen(fpath)
     # pipeline = serialize(
     #    merge_tracks_bathymetry(
     #        merge_tracks_shoredist(
     #            merge_tracks_hullgeom(geofenced(distsplit(
     #                TrackGen(rowgen)))))))
-    # cProfile.run('test2 = next(pipeline)', sort='tottime')
+    pass
 
 
 '''

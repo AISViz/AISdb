@@ -16,7 +16,11 @@ def test_cleanup_decodetest():
     db = testdbs + 'test_12h.db'
     if os.path.isfile(db):
         os.remove(db)
-    filepaths = os.listdir(tmp_dir)
+
+    if os.path.isdir(tmp_dir):
+        filepaths = os.listdir(tmp_dir)
+    else:
+        return
 
     if len(filepaths) == 0:
         return

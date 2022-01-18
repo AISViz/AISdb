@@ -46,14 +46,13 @@ CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--color=always"]
 FROM aisdb as build_python
 COPY --chown="ais_env" aisdb_rust/ aisdb_rust/
 COPY --chown="ais_env" aisdb/ aisdb/ 
-RUN mkdir -p ais ais/tmp_parsing ais/zones ais/rawdata_dir ais/scriptoutput aisdb/database aisdb/webdata \
-  && python -m pip install --no-warn-script-location .  
+RUN python -m pip install --no-warn-script-location .  
 
 
 # python tests
-# disable tests that require X11 or web data sources
 FROM build_python as test_python
 COPY --chown="ais_env" tests/ tests/
+# disable tests that require X11 or web data sources
 CMD ["python", "-m", "pytest", "--color=yes", "--tb=native", "-k", "not qgis and not merge", "tests/" ]
 
 
