@@ -22,4 +22,5 @@ EOF
 python -c "${bumpversion}"
 
 git add ./aisdb/version.py
-#git commit -m 'automated version bump'
+#git commit --amend
+git rebase --autosquash
