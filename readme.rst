@@ -76,9 +76,9 @@ Configuring
 
 | A config file can be used to specify storage location for the database
   as well as directory paths for where to look for additional data. The
-  package will look for configs in the file ``$HOME/.config/ais.cfg``,
-  where $HOME is the user’s home directory. If no config file is found,
-  the following defaults will be used
+  package will look for configs in ``$HOME/.config/ais.cfg``,
+  where $HOME is the user’s home directory. The following defaults will be 
+  used for missing values
 
 .. code-block:: sh
 
@@ -105,14 +105,14 @@ Code examples
 
 4. `Vessel trajectory cleaning and MMSI deduplication <./api/aisdb.track_gen.html#aisdb.track_gen.segment_tracks_encode_greatcircledistance>`__
 
-5. | Integrating web data layers
-   | TODO: add documentation
-
-6. `Compute network graph of vessel movements between
+5. `Compute network graph of vessel movements between
    polygons <./api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
 
+6. | Integrating data from web sources, such as depth charts, shore distance, etc.
+   | Planned for v1.1 
+
 7. | Plot with QGIS
-   | TODO: add documentation
+   | Upcoming in a future version
 
 Collecting AIS Data
 -------------------
