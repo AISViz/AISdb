@@ -3,11 +3,12 @@ import sys
 import ensurepip
 
 ensurepip.bootstrap(upgrade=True)
-import pip
 from setuptools import setup
+import pip
 import shutil
 import subprocess
 
+# upgrade pip if necessary
 majorver = int(pip.__version__.split('.')[0])
 if majorver < 21:
     print('pip version too low! pip will now be upgraded')
@@ -15,6 +16,7 @@ if majorver < 21:
     from importlib import reload
     reload(pip)
 
+# compile rust target
 cargopath = shutil.which('cargo')
 thispath = os.path.dirname(__file__)
 if cargopath:
@@ -22,9 +24,15 @@ if cargopath:
     subprocess.run(
         f'{cargopath} build --manifest-path={projpath} --release'.split())
 
+# parse pkg version file
+versionfile = os.path.join(thispath, 'aisdb', 'version.py')
+with open(versionfile, 'r') as f:
+    pkgversion = f.read()
+exec(pkgversion)
+
 setup(
     name='aisdb',
-    version='0.1',
+    version=__version__,
     description='AIS Database and Processing Utils',
     author='Matt Smith',
     author_email='matthew.smith@dal.ca',
