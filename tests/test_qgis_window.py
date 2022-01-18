@@ -9,7 +9,7 @@ import requests
 
 from aisdb import output_dir
 from aisdb.database.dbqry import DBQuery
-from aisdb.database.sqlfcn_callbacks import in_bbox
+from aisdb.database.sqlfcn_callbacks import in_validmmsi_bbox
 from aisdb.gis import Domain
 from aisdb.qgis_window import ApplicationWindow
 from aisdb.track_gen import TrackGen, segment_tracks_encode_greatcircledistance
@@ -64,7 +64,7 @@ def plot_processed_track(viz):
         xmax=domain.maxX,
         ymin=domain.minY,
         ymax=domain.maxY,
-        callback=in_bbox,
+        callback=in_validmmsi_bbox,
     )
     rowgen = args.gen_qry()
 
@@ -89,7 +89,7 @@ def plot_processed_track(viz):
             viz.add_feature_line(linegeom, ident=track['mmsi'] + 1000)
         n += 1
         print(f'{n}', end='|')
-        if n > 25:
+        if n > 250:
             break
     # viz.focus_canvas_item(domain=domain)
 
@@ -109,6 +109,7 @@ def test_run_QGIS_tests():
     plot_pointfeature(viz)
     plot_polygon_geometry(viz)
     plot_processed_track(viz)
+    input("press 'enter' to close QGIS window and continue")
     viz.exit()
 
 

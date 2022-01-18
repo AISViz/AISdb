@@ -30,7 +30,13 @@ def regexdate_2_dt(reg, fmt='%Y%m%d'):
 
 
 def getfiledate(fpath, fmt='%Y%m%d'):
-    return regexdate_2_dt(datefcn(fpath), fmt=fmt)
+    d = datefcn(fpath)
+    if d is None:
+        print(f'warning: could not parse YYYYmmdd format date from {fpath}!')
+        print('warning: defaulting to epoch zero!')
+        return datetime(1970, 1, 1)
+    fdate = regexdate_2_dt(d, fmt=fmt)
+    return fdate
 
 
 def is_valid_date(year, month, day, hour=0, minute=0, second=0, **_):

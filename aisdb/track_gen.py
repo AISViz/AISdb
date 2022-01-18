@@ -147,6 +147,12 @@ def TrackGen(
                     rows[:, mmsi_col].astype(float).astype(int)[1:]))
             rows = np.delete(rows, dupe_idx, axis=0)
 
+        if rows == np.array(None, dtype=object):
+            # print(f'warning: skipping empty rows {rows = }')
+            # continue
+            raise ValueError(
+                'cannot create vector from zero-size track segment')
+
         tracks_idx = np.append(
             np.append([0],
                       np.nonzero(rows[:, mmsi_col].astype(int)[1:] !=
