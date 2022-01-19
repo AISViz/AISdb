@@ -2,10 +2,16 @@
 Changelog
 =========
 
-v1.0.11
+v1.0.12
+-------
+
+automated changelog updates with git post-commit hook
+
+
+v1.0.12
 ------
 
-update changelog script
+automated versioning with git pre-commit hook
 
 
 v1.0.11

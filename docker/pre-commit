@@ -1,10 +1,7 @@
 #!/usr/bin/python
 '''
-Automated version incrementing whenever a commit is added.
+Automates version incrementing when a commit is added.
 Copy this file to .git/hooks/ to enable versioning.
-
-Add 'version:major' or 'version:minor' to the commit message to bump the
-version accordingly. Defaults to incrementing version patch level
 '''
 
 import os
@@ -12,61 +9,27 @@ import subprocess
 
 from packaging import version
 
-import aisdb
 
 projdir = subprocess.check_output(
             'git rev-parse --show-toplevel'.split()
             ).decode().rstrip()
 
-
 # parse package version
-v = version.Version(aisdb.__version__)
-vstr = f'{v.major}.{v.minor}.{v.micro}'
+versionfilepath = os.path.join(projdir, 'aisdb', 'version.py')
+with open(versionfilepath, 'r') as f:
+    exec(f.read())
+v = version.Version(__version__)
+
+# increment version number
 bump = f'{v.major}.{v.minor}.{v.micro+1}'
 bumpv = f'__version__ = "{bump}"\n'
 print(f'\nbumping package version:\t{bumpv}\n')
 
-# parse commit message
-commitmessage = subprocess.check_output(
-    'git log -1 --pretty=%B'.split()
-    ).decode().rstrip()
-
-# update changelog
-changelogpath = os.path.join(projdir, 'changelog.rst')
-if os.path.isfile(changelogpath):
-    with open(changelogpath, 'r') as f:
-        log = f.readlines()[3:]
-else:
-    log = []
-
-header = '''
-Changelog
-=========
-'''
-
-changes = f'''
-v{vstr}
-------
-
-{commitmessage}
-
-'''
-
-newchangelog = header + changes + ''.join(log)
-
-with open(changelogpath, 'w') as f:
-    f.write(newchangelog)
-
-
 # update aisdb/version.py
-versionfilepath = os.path.join(projdir, 'aisdb', 'version.py')
 with open(versionfilepath, 'w') as f:
     f.write(bumpv)
 
-# add the new version file to commit
-cmd = 'git add ./aisdb/version.py ./changelog.rst'.split()
+# add to commit
+cmd = 'git add aisdb/version.py'.split()
 subprocess.run(cmd, check=True)
-'''
-        --git-dir={projdir}{os.path.sep}git
-        --work-tree={projdir}
-'''
+#os.system('git commit')
