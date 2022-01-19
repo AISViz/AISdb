@@ -2,6 +2,13 @@
 Changelog
 =========
 
+v1.0.9
+------
+
+fix formatting in changelog
+
+
+
 v1.0.8
 ------
 

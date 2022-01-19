@@ -25,7 +25,6 @@ bump = f'{v.major}.{v.minor}.{v.micro+1}'
 bumpv = f'__version__ = "{bump}"\n'
 print(f'\nbumping package version:\t{bumpv}\n')
 
-
 # update aisdb/version.py
 versionfilepath = os.path.join(projdir, 'aisdb', 'version.py')
 with open(versionfilepath, 'w') as f:

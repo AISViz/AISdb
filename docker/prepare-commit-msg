@@ -16,9 +16,9 @@ projdir = subprocess.check_output(
             ).decode().rstrip()
 
 # parse commit message
-commitmessagefile = os.path.join(projdir, '.git', 'COMMIT_EDITMSG')
-with open(commitmessagefile, 'r') as f:
-    commitmessage = f.read()
+commitmessage = subprocess.check_output(
+    'git log -1 --pretty=%B'.split()
+    ).decode().rstrip()
 
 # update changelog
 changelogpath = os.path.join(projdir, 'changelog.rst')
