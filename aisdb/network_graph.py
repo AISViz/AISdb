@@ -1,6 +1,7 @@
 ''' collect vessel transits between zones (nodes), and aggregate various trajectory statistics '''
 
 import os
+import re
 from multiprocessing import Pool
 import pickle
 from functools import partial, reduce
@@ -59,8 +60,9 @@ staticinfo = lambda track: dict(
 
 # collect aggregated statistics on vessel positional data
 transitinfo = lambda track, zoneset: dict(
-    src_zone=f"{int(track['in_zone'][zoneset][0].split('Z')[1]):03}",
-    rcv_zone=f"{int(track['in_zone'][zoneset][-1].split('Z')[1]):03}",
+    src_zone=f"{re.sub('[^0-9]', '', track['in_zone'][zoneset][0])}",
+    #rcv_zone=f"{int(track['in_zone'][zoneset][-1].split('Z')[1]):03}",
+    rcv_zone=f"{re.sub('[^0-9]', '', track['in_zone'][zoneset][-1])}",
     transit_nodes=
     f"{track['in_zone'][zoneset][0]}_{track['in_zone'][zoneset][-1]}",
     num_datapoints=len(track['time'][zoneset]),

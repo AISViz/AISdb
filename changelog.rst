@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.18
+-------
+
+data generation for testing, update network graph test, bathymetry and shore distance now passing tests
+
+
 v1.0.17
 -------
 

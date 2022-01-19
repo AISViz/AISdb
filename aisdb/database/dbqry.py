@@ -127,13 +127,14 @@ class DBQuery(UserDict):
 
             cur.execute(
                 'SELECT * FROM sqlite_master WHERE type="index" and name=?',
-                [f'idx_{month}_t_x_y'])
+                [f'idx_{month}_m_t_x_y'])
 
             if len(cur.fetchall()) == 0:
                 print(f'building dynamic index for month {month}...')
                 cur.execute(
-                    f'CREATE INDEX IF NOT EXISTS idx_{month}_t_x_y '
-                    f'ON ais_{month}_dynamic (time, longitude, latitude)')
+                    f'CREATE INDEX IF NOT EXISTS idx_{month}_m_t_x_y '
+                    f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude)'
+                )
 
         aisdatabase.conn.commit()
         aisdatabase.conn.close()

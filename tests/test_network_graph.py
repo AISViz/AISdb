@@ -2,8 +2,12 @@ from datetime import datetime, timedelta
 from functools import partial
 # import cProfile
 
+from aisdb import dbpath
 from aisdb.database.dbqry import DBQuery
-from aisdb.database.sqlfcn_callbacks import in_bbox_time_validmmsi
+from aisdb.database.sqlfcn_callbacks import (
+    in_bbox_time,
+    in_bbox_time_validmmsi,
+)
 from aisdb.gis import Domain
 from aisdb.track_gen import (
     fence_tracks,
@@ -11,14 +15,18 @@ from aisdb.track_gen import (
     TrackGen,
 )
 from aisdb.network_graph import serialize_network_edge
-from tests.create_testing_data import zonegeoms_or_randompoly
+from tests.create_testing_data import (
+    sample_dynamictable_insertdata,
+    sample_gulfstlawrence_zonegeometry,
+)
 
 
 def test_network_graph_pipeline():
     # query configs
-    start = datetime(2021, 11, 1)
-    end = datetime(2021, 12, 1)
-    zonegeoms = zonegeoms_or_randompoly(randomize=True, count=10)
+    start = datetime(2000, 1, 1)
+    end = datetime(2000, 2, 1)
+    #zonegeoms = zonegeoms_or_randompoly(randomize=True, count=10)
+    zonegeoms = {'z1': sample_gulfstlawrence_zonegeometry()}
     domain = Domain(name='test', geoms=zonegeoms, cache=False)
     args = DBQuery(
         start=start,
@@ -27,9 +35,12 @@ def test_network_graph_pipeline():
         xmax=domain.maxX,
         ymin=domain.minY,
         ymax=domain.maxY,
-        callback=in_bbox_time_validmmsi,
+        callback=in_bbox_time,
     )
 
+    args.check_idx()
+
+    sample_dynamictable_insertdata()
     # processing configs
     distsplit = partial(
         segment_tracks_encode_greatcircledistance,
@@ -42,11 +53,11 @@ def test_network_graph_pipeline():
     serialized = partial(serialize_network_edge, domain=domain)
 
     # query db for points in domain bounding box
-    rowgen = args.gen_qry()
     try:
         _test = next(TrackGen(args.gen_qry()))
-        _test2 = next(geofenced(distsplit(TrackGen(rowgen))))
-        _test3 = next(serialized(geofenced(distsplit(TrackGen(rowgen)))))
+        _test2 = next(geofenced(distsplit(TrackGen(args.gen_qry()))))
+        _test3 = next(
+            serialized(geofenced(distsplit(TrackGen(args.gen_qry())))))
     except ValueError as err:
         print('suppressed error due to DBQuery returning empty rows:'
               f'\t{err.with_traceback(None)}')

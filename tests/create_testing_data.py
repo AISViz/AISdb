@@ -1,51 +1,42 @@
 import os
-import pickle
 from hashlib import sha256
 from functools import reduce
+from datetime import datetime
 
 import numpy as np
 from shapely.geometry import Polygon
 
 from aisdb import zones_dir, rawdata_dir, dbpath
-from aisdb.database.sqlfcn_callbacks import boxpoly
-from aisdb.gis import shiftcoord, ZoneGeom, ZoneGeomFromTxt
+from aisdb.gis import ZoneGeom, ZoneGeomFromTxt
 from aisdb.proc_util import glob_files
+from aisdb.database.sqlfcn_callbacks import in_timerange
+from aisdb.database.dbqry import DBQuery
+from aisdb.database.dbconn import DBConn
+# from aisdb.database.sqlfcn_callbacks import boxpoly
 
 arrayhash = lambda matrix, nbytes=2: sha256(
     reduce(np.append, matrix).tobytes()).hexdigest()[nbytes * -8:]
 
 
-def sample_track_pickle():
-    fpath = 'scripts/dfo_project/test_query_october.pickle'
-    if os.path.isfile(fpath):
-        with open(fpath, 'rb') as f:
-            return pickle.load(f)
+def sample_dynamictable_insertdata():
+    args = DBQuery(
+        start=datetime(2000, 1, 1),
+        end=datetime(2000, 2, 1),
+        callback=in_timerange,
+    )
+    args.check_idx()
 
-    maxlen = 0
-    maxmmsi = ''
-    tracks = {track['mmsi']: track for track in TrackGen(rows)}
-    for track in tracks.values():
-        if (m := len(track['lon'])) > maxlen:
-            maxlen = m
-            maxmmsi = track['mmsi']
-        print(track['mmsi'], m)
-
-    testrows = np.array([
-        [tracks[maxmmsi]['mmsi'] for _ in range(maxlen)],
-        tracks[maxmmsi]['time'],
-        tracks[maxmmsi]['lon'],
-        tracks[maxmmsi]['lat'],
-        tracks[maxmmsi]['cog'],
-        tracks[maxmmsi]['sog'],
-        [tracks[maxmmsi]['name'] for _ in range(maxlen)],
-        [tracks[maxmmsi]['type'] for _ in range(maxlen)],
-    ],
-                        dtype=object).T
-
-    with open(fpath, 'wb') as f:
-        pickle.dump(testrows, f)
-
-    return testrows
+    db = DBConn(dbpath)
+    db.cur.execute(
+        'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702800, -60.994833, 47.434647238127695, -1, -1)'
+    )
+    db.cur.execute(
+        'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702820, -60.994833, 47.434647238127695, -1, -1)'
+    )
+    db.cur.execute(
+        'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702840, -60.994833, 47.434647238127695, -1, -1)'
+    )
+    db.conn.commit()
 
 
 def sample_random_polygon(xscale=20, yscale=20):
