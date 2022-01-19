@@ -2,27 +2,13 @@
 Changelog
 =========
 
-v1.0.10
+v1.0.11
 ------
 
-updated prepare-commit-msg
+update changelog script
 
 
-v1.0.10
-------
-
-fix formatting in changelog
-
-
-
-v1.0.9
-------
-
-add prepare-commit-msg hook
-
-
-
-v1.0.8
+v1.0.11
 ------
 
 add changelog
