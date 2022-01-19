@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.17
+-------
+
+bump dependency version requirement
+
+
 v1.0.16
 -------
 

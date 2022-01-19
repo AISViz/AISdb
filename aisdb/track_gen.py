@@ -75,7 +75,10 @@ def TrackGen(
         rows must be sorted by first by mmsi, then time
 
         args:
-            colnames: list of strings
+            rowgen (aisdb.database.dbqry.DBQuery.gen_qry())
+                DBQuery rows generator. Yields rows returned
+                by a database query
+            colnames (list of strings)
                 description of each column in rows.
                 first two columns must be ['mmsi', 'time']
             deduplicate_timestamps: bool
