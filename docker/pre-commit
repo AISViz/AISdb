@@ -1,0 +1,41 @@
+#!/usr/bin/python
+'''
+Automated version incrementing whenever a commit is added.
+Copy this file to .git/hooks/ to enable versioning.
+
+Add 'version:major' or 'version:minor' to the commit message to bump the
+version accordingly. Defaults to incrementing version patch level
+'''
+
+import os
+import subprocess
+
+from packaging import version
+
+import aisdb
+
+projdir = subprocess.check_output(
+            'git rev-parse --show-toplevel'.split()
+            ).decode().rstrip()
+
+
+# parse package version
+v = version.Version(aisdb.__version__)
+bump = f'{v.major}.{v.minor}.{v.micro+1}'
+bumpv = f'__version__ = "{bump}"\n'
+print(f'\nbumping package version:\t{bumpv}\n')
+
+
+# update aisdb/version.py
+versionfilepath = os.path.join(projdir, 'aisdb', 'version.py')
+with open(versionfilepath, 'w') as f:
+    f.write(bumpv)
+
+# add the new version file to commit 
+cmd = 'git add ./aisdb/version.py ./changelog.rst'.split()
+subprocess.run(cmd, check=True)
+'''
+        --git-dir={projdir}{os.path.sep}git
+        --work-tree={projdir}
+'''
+
