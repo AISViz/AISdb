@@ -45,7 +45,7 @@ Changelog
 '''
 
 changes = f'''
-v{bumped}
+v{bumped.major}.{bumped.minor}.{bumped.patch +1}
 -------
 
 {commitmessage}
