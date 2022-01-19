@@ -5,12 +5,10 @@ Changelog
 v1.0.16
 -------
 
-rebase bad commit
+merging pre-commit and post-commit hooks
 
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
-#
-# Date:      Wed Jan 19 02:10:03 2022 -0400
 #
 # interactive rebase in progress; onto 49c0d55
 # Last commands done (2 commands done):
@@ -22,8 +20,6 @@ rebase bad commit
 # Changes to be committed:
 #	modified:   aisdb/version.py
 #	modified:   changelog.rst
-#	deleted:    docker/post-commit
-#	deleted:    docker/pre-commit
 #
 
 
