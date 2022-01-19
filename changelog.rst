@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.19
+-------
+
+prevent network_graph from failing if tmp_dir doesnt exist
+
+
 v1.0.18
 -------
 

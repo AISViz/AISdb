@@ -127,6 +127,8 @@ def serialize_network_edge(tracks,
 
         returns: None
     '''
+    if not os.path.isdir(tmp_dir):
+        os.mkdir(tmp_dir)
 
     for track in tracks:
         filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
