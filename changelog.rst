@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.15
+-------
+
+add changelog to sphinx docs
+
+
 v1.0.14
 -------
 
@@ -21,7 +27,7 @@ automated version incrementing and changelog updates
 
 
 v1.0.11
-------
+-------
 
 add changelog
 

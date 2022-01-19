@@ -16,9 +16,9 @@ cargo doc \
   --package=aisdb \
   --release \
   --target-dir="$HTMLOUTPUTDIR/rust" 
-#[[ ! -z `ls -A "${HTMLOUTPUTDIR}/rust"` ]] && >&2 echo 'ensure that rust docs are built!' && exit 1
 
 cp "$ROOTDIR/readme.rst" "${RSTSOURCEDIR}/readme.rst"
+cp "$ROOTDIR/changelog.rst" "${RSTSOURCEDIR}/changelog.rst"
 sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o "${RSTSOURCEDIR}/api" "${PKGDIR}"
 python -m sphinx -a -j auto -q -b=html "${RSTSOURCEDIR}" "${HTMLOUTPUTDIR}"
 cp "${RSTSOURCEDIR}/db_schema.png" "$HTMLOUTPUTDIR/_images/"

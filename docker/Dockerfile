@@ -15,11 +15,12 @@ RUN useradd -m "ais_env" --shell /bin/python
 WORKDIR "/home/ais_env"
 USER "ais_env"
 RUN npm install express
-RUN mkdir -p aisdb_rust/src \
+RUN mkdir -p aisdb aisdb_rust/src \
   && echo 'fn main(){}' > aisdb_rust/src/db.rs \
   && echo 'fn main(){}' > aisdb_rust/src/decode.rs \
   && echo 'fn main(){}' > aisdb_rust/src/util.rs \
-  && echo 'fn main(){}' > aisdb_rust/src/bin.rs
+  && echo 'fn main(){}' > aisdb_rust/src/bin.rs \
+  && echo '__version__ = "0.0.0"' > aisdb/version.py
 RUN python -m ensurepip \
   && python -m pip install --no-warn-script-location --upgrade \
     numpy \
@@ -62,6 +63,7 @@ FROM build_python AS webserv
 COPY --chown=ais_env nodejs/ nodejs/
 COPY --chown=ais_env readme.rst ./readme.rst
 COPY --chown=ais_env docs/ docs/
+COPY --chown=ais_env changelog.rst ./changelog.rst
 RUN /bin/bash ./docs/sphinxbuild.sh
 CMD ["npm", "--prefix", "nodejs/", "start"]
 

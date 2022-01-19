@@ -44,8 +44,6 @@ services:
     secrets:
       - host_ssh_key
       - host_authorized_keys
-    volumes:
-      - ${DATA_DIR}:/home/ais_env/ais
     networks:
       - ipv6_private 
 
