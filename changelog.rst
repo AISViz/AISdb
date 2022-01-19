@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.13
+-------
+
+add post-commit hook to repo
+
+
 v1.0.12
 -------
 
