@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.16
+-------
+
+bug fix, error handling when modeling vessel trajectories, and updated testing for additional data sources
+
+
 v1.0.15
 -------
 

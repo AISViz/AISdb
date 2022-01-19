@@ -399,6 +399,13 @@ class ApplicationWindow(QMainWindow):
         self.set_canvas_boundary(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax)
         return
 
+    def get_canvas_markers_xy(self, clear_points=False):
+        ''' return map marker vertices as (x, y) tuples '''
+        markers = [(xy.x(), xy.y()) for xy in self.toolcoord.pts]
+        if clear_points:
+            self.clear_coord()
+        return markers
+
     def split_feature_over_meridian(self, meridian, geom):
         ''' '''
         adjust = lambda x: ((np.array(x) + 180) % 360) - 180

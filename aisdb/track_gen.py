@@ -136,6 +136,9 @@ def TrackGen(
 
     for rows in rowgen:
 
+        assert rows.size > 1 or rows != np.array(
+            None, dtype=object), 'cannot create track vectors from empty set'
+
         if deduplicate_timestamps:
             warnings.warn('timestamps deduplication is deprecated')
             dupe_idx = np.append(
@@ -147,9 +150,7 @@ def TrackGen(
                     rows[:, mmsi_col].astype(float).astype(int)[1:]))
             rows = np.delete(rows, dupe_idx, axis=0)
 
-        if rows == np.array(None, dtype=object):
-            # print(f'warning: skipping empty rows {rows = }')
-            # continue
+        if len(rows) == 0 or (len(rows) == 1 and rows[0] is None):
             raise ValueError(
                 'cannot create vector from zero-size track segment')
 

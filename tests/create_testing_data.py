@@ -58,8 +58,20 @@ def sample_random_polygon(xscale=20, yscale=20):
         y = (np.random.random(vertices) * yscale) + (170 *
                                                      (np.random.random() - .5))
 
-    #return geom
     return x, y
+
+
+def sample_gulfstlawrence_zonegeometry():
+    gulfstlawrence_bbox_xy = np.array([
+        (-71.64440346704974, 43.18445256159233),
+        (-71.2966623933639, 52.344721551389526),
+        (-51.2146153880073, 51.68484191466307),
+        (-50.345262703792734, 42.95158299927571),
+        (-71.64440346704974, 43.18445256159233),
+    ])
+
+    z1 = ZoneGeom('gulf st lawrence', *gulfstlawrence_bbox_xy.T)
+    return z1
 
 
 def zonegeoms_or_randompoly(randomize=False, count=10):
