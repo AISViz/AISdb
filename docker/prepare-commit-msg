@@ -41,7 +41,7 @@ v{vstring}
 
 '''
 
-newchangelog = header + changes + ''.join(log) + '\n'
+newchangelog = header + changes + ''.join(log)
 
 with open(changelogpath, 'w') as f:
     f.write(newchangelog)
