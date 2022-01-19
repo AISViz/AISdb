@@ -45,7 +45,11 @@ Changelog
 '''
 
 changes = f'''
+<<<<<<< HEAD
 v{bumped.major}.{bumped.minor}.{bumped.patch +1}
+=======
+v{bumped.major}.{bumped.minor}.{bumped.micro+1}
+>>>>>>> 55777c3 (fix bug in changelog hook)
 -------
 
 {commitmessage}

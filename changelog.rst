@@ -2,7 +2,13 @@
 Changelog
 =========
 
-v1.0.12
+v1.0.14
+-------
+
+merge git commit hooks
+
+
+v1.0.13
 -------
 
 automated changelog updates with git post-commit hook
