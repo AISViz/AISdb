@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.20
+-------
+
+fix bug with decoding ship_type properly
+
+
 v1.0.19
 -------
 

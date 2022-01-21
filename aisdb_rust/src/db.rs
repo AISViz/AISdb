@@ -35,6 +35,7 @@ pub fn sqlite_createtable_staticreport(
             mmsi INTEGER,
             time INTEGER,
             vessel_name TEXT,
+            ship_type INT,
             call_sign TEXT,
             imo INTEGER,
             dim_bow INTEGER,
@@ -163,7 +164,7 @@ pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str)
             mmsi,
             time,
             vessel_name,
-            --ship_type,
+            ship_type,
             call_sign,
             imo,
             dim_bow,
@@ -179,7 +180,7 @@ pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str)
             eta_hour,
             eta_minute
             )
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ",
         mstr
     );
@@ -187,15 +188,15 @@ pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str)
     let mut stmt = tx.prepare_cached(&sql)?;
     for msg in msgs {
         let (p, e) = msg.staticdata();
-        //let _ = stmt
+
         let eta = p.eta.unwrap_or(MIN_DATETIME);
         stmt.execute(params![
             p.mmsi,
             e,
             p.name.unwrap_or_else(|| "".to_string()),
+            p.ship_type as i32,
             p.call_sign.unwrap_or_else(|| "".to_string()),
             p.imo_number.unwrap_or(0),
-            //p.ship_type,
             p.dimension_to_bow.unwrap_or(0),
             p.dimension_to_stern.unwrap_or(0),
             p.dimension_to_port.unwrap_or(0),

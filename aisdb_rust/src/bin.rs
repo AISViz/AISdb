@@ -88,15 +88,16 @@ pub async fn main() -> Result<(), Error> {
     // same thing but iterating over files in rawdata_dir
     // uses different futures aggregation method ??
     if args.rawdata_dir.is_some() {
-        let fpaths = std::fs::read_dir(&args.rawdata_dir.unwrap())
+        let mut fpaths: Vec<_> = std::fs::read_dir(&args.rawdata_dir.unwrap())
             .unwrap()
-            .map(|f| (std::path::PathBuf::from(&args.dbpath), f));
+            .map(|p| (std::path::PathBuf::from(&args.dbpath), p.unwrap()))
+            .collect();
+
+        fpaths.sort_by_key(|t| t.1.path());
 
         iter(fpaths)
             .for_each_concurrent(2, |(d, f)| async move {
-                decode_insert_msgs(&d, &f.unwrap().path())
-                    .await
-                    .expect("decoding")
+                decode_insert_msgs(&d, &f.path()).await.expect("decoding")
             })
             .await;
     }

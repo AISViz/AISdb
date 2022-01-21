@@ -211,7 +211,7 @@ pub async fn decode_insert_msgs(
     //let t1 = c.transaction().expect("create tx");
     let t1 = c.transaction().unwrap();
     let _d1 = sqlite_insert_dynamic(&t1, positions, &mstr1).expect("inserting chunk");
-    let _c1 = sqlite_createtable_staticreport(&t1, &mstr1);
+    let _c1 = sqlite_createtable_staticreport(&t1, &mstr1).expect("create static table");
     let _s1 = sqlite_insert_static(&t1, stat_msgs, &mstr1).expect("insert");
     let _ = t1.commit();
 

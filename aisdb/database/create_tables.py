@@ -43,6 +43,7 @@ def sqlite_createtable_staticreport(cur, month):
             mmsi INTEGER,
             time INTEGER,
             vessel_name TEXT,
+            ship_type INT,
             call_sign TEXT,
             imo INTEGER,
             dim_bow INTEGER,
@@ -103,11 +104,8 @@ def aggregate_static_msgs(dbpath, months_str):
         for mmsi in mmsis:
             _ = cur.execute(
                 f"""
-            SELECT s.mmsi, s.vessel_name,
-                --s.ship_type,
-                0 as ship_type,
-                s.dim_bow,
-                s.dim_stern, s.dim_port, s.dim_star, s.imo
+            SELECT s.mmsi, s.vessel_name, s.ship_type,
+                s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.imo
               FROM ais_{month}_static AS s
               WHERE s.mmsi = ?
             """, [mmsi])
