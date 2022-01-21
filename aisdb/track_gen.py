@@ -64,8 +64,7 @@ def TrackGen(
         'dim_stern',
         'dim_port',
         'dim_star',
-        # 'ship_type',
-        # 'ship_type_txt',
+        'ship_type',
     ],
     deduplicate_timestamps: bool = False,
 ) -> dict:
@@ -120,7 +119,7 @@ def TrackGen(
     staticcols = set(colnames) & set([
         'mmsi',
         'vessel_name',
-        # 'ship_type',
+        'ship_type',
         # 'ship_type_txt',
         'dim_bow',
         'dim_stern',

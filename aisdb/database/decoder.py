@@ -59,21 +59,15 @@ def append_file(picklefile, batch):
         # skip empty rows
         if len(rows) == 0:
             continue
-        # skip duplicate epoch-minute timestamps for each mmsi
-        #skipidx = np.nonzero([x['mmsi']==y['mmsi'] and x['epoch']==y['epoch'] for x,y in zip(rows[1:], rows[:-1])])[0]-1
-        skipidx = np.nonzero([
-            x['mmsi'] == y['mmsi'] and x['type'] == y['type']
-            and x['epoch'] == y['epoch'] for x, y in zip(rows[1:], rows[:-1])
-        ])[0]
-
         # write to disk
         with open(f'{picklefile}_{key}', 'ab') as f:
-            pickle.dump(rows[~skipidx], f)
+            pickle.dump(rows, f)
 
 
 # def decode_raw_pyais(fpath, tmpdir):
 def decode_raw_pyais(fpath, tmp_dir=tmp_dir):
-    ''' parallel process worker function. see decode_msgs() for usage
+    ''' parallel process worker function. see decode_msgs() for usage.
+        if Rust is installed, this function will be ignored.
 
         arg:
             fpath: (string)
@@ -226,7 +220,9 @@ def insert_serialized(dbpath, delete=True):
 
 
 def decode_msgs(filepaths, dbpath, processes=12, delete=True):
-    ''' decode NMEA binary message format and store in an SQLite database
+    ''' Decode NMEA format AIS messages and store in an SQLite database.
+        To speed up decoding, create the database on a different hard drive
+        from where the raw data is stored.
 
         args:
             filepaths (list)
@@ -292,9 +288,8 @@ def decode_msgs(filepaths, dbpath, processes=12, delete=True):
     proc = partial(decode_raw_pyais)
 
     # parallelize decoding step
-    print(
-        f'decoding messages... results will be placed temporarily in {tmp_dir} until database insert'
-    )
+    print('decoding messages... results will be placed temporarily '
+          f'in {tmp_dir} until database insert')
     if processes:
         with Pool(processes) as p:
             list(p.imap_unordered(proc, filepaths))

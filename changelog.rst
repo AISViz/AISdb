@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.22
+-------
+
+add ship_type when generating track vectors and update docstrings
+
+
 v1.0.21
 -------
 
