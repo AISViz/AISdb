@@ -55,10 +55,11 @@ pub async fn main() -> Result<(), Error> {
     let start = Instant::now();
 
     // array tuples containing (dbpath, filepath)
-    let mut n = 0;
+    //let mut n = 0;
     let mut path_arr = vec![];
     for file in args.files {
-        n += 1;
+        //n += 1;
+        /*
         if n <= args.start {
             continue;
         } else if n > args.end {
@@ -66,6 +67,8 @@ pub async fn main() -> Result<(), Error> {
         } else {
             path_arr.push((std::path::PathBuf::from(&args.dbpath), file));
         }
+        */
+        path_arr.push((std::path::PathBuf::from(&args.dbpath), file));
     }
 
     // create a future for the database call
@@ -85,8 +88,6 @@ pub async fn main() -> Result<(), Error> {
     //    .collect::<Vec<_>>();
     //let _results = futures::future::join_all(handles).await;
 
-    // same thing but iterating over files in rawdata_dir
-    // uses different futures aggregation method ??
     if args.rawdata_dir.is_some() {
         let mut fpaths: Vec<_> = std::fs::read_dir(&args.rawdata_dir.unwrap())
             .unwrap()
@@ -94,7 +95,8 @@ pub async fn main() -> Result<(), Error> {
             .collect();
 
         fpaths.sort_by_key(|t| t.1.path());
-
+        // same thing but iterating over files in rawdata_dir
+        // uses different futures aggregation method ??
         iter(fpaths)
             .for_each_concurrent(2, |(d, f)| async move {
                 decode_insert_msgs(&d, &f.path()).await.expect("decoding")
@@ -104,11 +106,10 @@ pub async fn main() -> Result<(), Error> {
 
     let elapsed = start.elapsed();
     println!(
-        "total insert time: {} minutes\n",
+        "total insert time: {} minutes\nvacuuming...",
         elapsed.as_secs_f32() / 60.,
     );
 
-    //let sql = "VACUUM INTO '/run/media/matt/My Passport/test_vacuum_rust.db'";
     let sql = "VACUUM";
     let mut conn = get_db_conn(&args.dbpath).expect("get db conn");
     let tx = conn.transaction().unwrap();

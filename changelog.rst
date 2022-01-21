@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.21
+-------
+
+improved status messages when decoding
+
+
 v1.0.20
 -------
 

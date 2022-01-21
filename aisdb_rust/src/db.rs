@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use chrono::MIN_DATETIME;
 use rusqlite::{params, Connection, Result, Transaction};
 
@@ -233,13 +231,10 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
         VALUES (?,?,?,?,?,?,?,?,?,?)",
         mstr
     );
-    let start = Instant::now();
 
     let mut stmt = tx
         .prepare_cached(sql.as_str())
         .expect("preparing statement");
-
-    let mut n = 0;
 
     for msg in msgs {
         let (p, e) = msg.dynamicdata();
@@ -257,16 +252,7 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
                 p.timestamp_seconds,
             ])
             .expect("executing prepared row");
-        n += 1;
     }
-
-    let elapsed = start.elapsed();
-    println!(
-        "inserted: {} msgs/s    elapsed: {}s    count: {}",
-        n as f32 / elapsed.as_secs_f32(),
-        elapsed.as_secs_f32(),
-        n,
-    );
 
     Ok(())
 }
@@ -276,7 +262,6 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
 #[cfg(test)]
 mod tests {
     use std::path::Path;
-    use std::path::PathBuf;
 
     use super::Result;
     use crate::decodemsgs;
@@ -286,15 +271,6 @@ mod tests {
     use crate::sqlite_createtable_staticreport;
     use crate::sqlite_insert_dynamic;
     use crate::sqlite_insert_static;
-
-    fn testing_dbpaths() -> [std::path::PathBuf; 2] {
-        [
-            Path::new(":memory:").to_path_buf(),
-            [std::env::current_dir().unwrap().to_str().unwrap(), "ais.db"]
-                .iter()
-                .collect::<PathBuf>(),
-        ]
-    }
 
     #[test]
     fn test_create_statictable() -> Result<()> {

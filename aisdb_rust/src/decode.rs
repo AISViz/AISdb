@@ -155,6 +155,7 @@ pub async fn decode_insert_msgs(
 ) -> Result<(), Error> {
     let fstr = &filename.to_str().unwrap();
     assert_eq!(&fstr[&fstr.len() - 4..], ".nm4");
+    let start = Instant::now();
 
     let reader = BufReader::new(
         File::open(filename)
@@ -163,6 +164,7 @@ pub async fn decode_insert_msgs(
     let mut parser = NmeaParser::new();
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
+    let mut count = 0;
 
     let mut c = get_db_conn(dbpath).expect("getting db conn");
 
@@ -181,8 +183,10 @@ pub async fn decode_insert_msgs(
 
         if is_dynamic {
             positions.push(message);
+            count += 1;
         } else {
             stat_msgs.push(message);
+            count += 1;
         }
 
         if positions.len() >= 500000 {
@@ -197,23 +201,25 @@ pub async fn decode_insert_msgs(
         };
     }
 
-    println!(
-        "{}    dynamic: {}    static: {}",
-        filename.to_str().unwrap().rsplit_once('/').unwrap().1,
-        positions.len(),
-        stat_msgs.len(),
-    );
-
     // insert static and remaining dynamic
     let mstr1 = epoch_2_dt(*positions[0].epoch.as_ref().unwrap() as i64)
         .format("%Y%m")
         .to_string();
-    //let t1 = c.transaction().expect("create tx");
     let t1 = c.transaction().unwrap();
     let _d1 = sqlite_insert_dynamic(&t1, positions, &mstr1).expect("inserting chunk");
     let _c1 = sqlite_createtable_staticreport(&t1, &mstr1).expect("create static table");
     let _s1 = sqlite_insert_static(&t1, stat_msgs, &mstr1).expect("insert");
     let _ = t1.commit();
+
+    let elapsed = start.elapsed();
+
+    println!(
+        "{}    count:{: >8}    elapsed: {:0.4 }s    rate: {:.0}/s",
+        filename.to_str().unwrap().rsplit_once('/').unwrap().1,
+        count,
+        elapsed.as_secs_f32(),
+        count as f32 / elapsed.as_secs_f32(),
+    );
 
     Ok(())
 }
