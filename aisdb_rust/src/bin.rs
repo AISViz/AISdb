@@ -61,11 +61,11 @@ pub async fn main() -> Result<(), Error> {
         //n += 1;
         /*
         if n <= args.start {
-            continue;
+        continue;
         } else if n > args.end {
-            break;
+        break;
         } else {
-            path_arr.push((std::path::PathBuf::from(&args.dbpath), file));
+        path_arr.push((std::path::PathBuf::from(&args.dbpath), file));
         }
         */
         path_arr.push((std::path::PathBuf::from(&args.dbpath), file));
@@ -110,11 +110,9 @@ pub async fn main() -> Result<(), Error> {
         elapsed.as_secs_f32() / 60.,
     );
 
-    let sql = "VACUUM";
-    let mut conn = get_db_conn(&args.dbpath).expect("get db conn");
-    let tx = conn.transaction().unwrap();
-    let _ = tx.execute(&sql, []);
-    let _ = tx.commit();
+    let conn = get_db_conn(&args.dbpath).expect("get db conn");
+    let _v = conn.execute("VACUUM;", []).expect("vacuum");
+    let _r = conn.close();
 
     Ok(())
 }

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.30
+-------
+
+fix SQL error during database creation
+
+
 v1.0.29
 -------
 

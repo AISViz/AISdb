@@ -191,7 +191,7 @@ pub async fn decode_insert_msgs(
 
         if positions.len() >= 500000 {
             let t = c.transaction().unwrap();
-            let mstr = epoch_2_dt(*positions[0].epoch.as_ref().unwrap() as i64)
+            let mstr = epoch_2_dt(*positions[positions.len() - 1].epoch.as_ref().unwrap() as i64)
                 .format("%Y%m")
                 .to_string();
             let _c = sqlite_createtable_dynamicreport(&t, &mstr).expect("creating dynamic table");
