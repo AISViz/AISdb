@@ -17,16 +17,21 @@ SELECT dynamic_{month}.mmsi, dynamic_{month}.time,
             static_{month}.imo, static_{month}.vessel_name,
             static_{month}.dim_bow, static_{month}.dim_stern,
             static_{month}.dim_port, static_{month}.dim_star,
-            static_{month}.ship_type
+            static_{month}.ship_type, ref.coarse_type_txt
         FROM dynamic_{month}
     LEFT JOIN static_{month}
-        ON dynamic_{month}.mmsi = static_{month}.mmsi ''')
+        ON dynamic_{month}.mmsi = static_{month}.mmsi
+    LEFT JOIN ref
+        ON static_{month}.ship_type = ref.coarse_type''')
 
 # declare common table expressions for use in SQL 'WITH' statements
 aliases = lambda month, callback, kwargs: (f'''
 dynamic_{month} AS ( {dynamic(month, callback, kwargs)}
 ),
 static_{month} AS ( {static(month)}
+),
+ref AS MATERIALIZED ( SELECT coarse_type, coarse_type_txt
+        FROM coarsetype_ref
 )
 ''')
 

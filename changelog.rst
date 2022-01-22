@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.23
+-------
+
+include ship type as string in database query by default
+
+
 v1.0.22
 -------
 

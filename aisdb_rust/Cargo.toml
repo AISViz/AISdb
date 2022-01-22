@@ -1,6 +1,6 @@
 [package]
+version = '1.0.0'
 name = 'aisdb'
-version = '0.1.0'
 authors = ['MERIDIAN // Matt Smith matthew.smith@dal.ca']
 edition = '2021'
 include = ['/src', ]
