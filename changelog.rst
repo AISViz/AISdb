@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.24
+-------
+
+refactor network graph CSV columns
+
+
 v1.0.23
 -------
 
