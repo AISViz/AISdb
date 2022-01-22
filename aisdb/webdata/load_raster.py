@@ -28,7 +28,8 @@ def pixelindex(x1, y1, im):
         i, j, k, x, y, z = im.tag_v2[33922]  # ModelTiepointTag
         dx, dy, dz = im.tag_v2[33550]  # ModelPixelScaleTag
         lat = np.arange(y, y + (dy * im.size[1]), dy)[::-1] - 90
-        if sum(lat > 91): lat -= 90
+        if np.sum(lat > 91):
+            lat -= 90
 
     # NASA JPL tags
     elif 34264 in im.tag.tagdata.keys():

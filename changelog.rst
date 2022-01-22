@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.27
+-------
+
+improvement to loading raster data
+
+
 v1.0.26
 -------
 
