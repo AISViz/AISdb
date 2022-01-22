@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.26
+-------
+
+update loading data from marinetraffic.com API
+
+
 v1.0.25
 -------
 

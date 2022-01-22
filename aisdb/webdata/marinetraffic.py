@@ -1,10 +1,15 @@
 ''' scrape vessel information such as deadweight tonnage from marinetraffic.com '''
 
-import os
+import json
 
-from common import *
+import requests
+
+from common import data_dir, marinetraffic_VD02_key
 from index import index
-from webdata.scraper import *
+from webdata.scraper import (
+    init_webdriver,
+    WebDriverWait,
+)
 
 
 class scrape_tonnage():
@@ -84,29 +89,34 @@ class scrape_tonnage():
         self.driver.close()
 
 
-def api_shipsearch_bymmsi(mmsi):
+def api_shipsearch_bymmsi(mmsis):
+    ''' Access the marinetraffic API to search master vessel data for vessel
+        particulars
+
+        To use this, register a VD02 API token at marinetraffic.com, and store
+        the token in your config file, e.g.
+        ```
+        marinetraffic_VD02_key = e82589918dc450bc712f6f2eec3840c8b4f25206
+        ```
+
+        more info:
+        https://servicedocs.marinetraffic.com/tag/Vessel-Information#operation/vesselmasterdata
+
+        args:
+            mmsis (list of integers)
+                search for vessels by MMSI
+
+        returns:
+            dict
     '''
-    https://services.marinetraffic.com/api/shipsearch/YOUR-API-KEY/mmsi:value/protocol:value
-    '''
-    url = f'https://services.marinetraffic.com/api/shipsearch/{YOUR_API_KEY}/mmsi:{mmsi}/protocol:json'
-    requests.get(url)
-    pass
+    api = 'https://services.marinetraffic.com/api'
+    url = f'{api}/vesselmasterdata/{marinetraffic_VD02_key}/mmsi:{",".join(mmsis)}/protocol:json'
+    req = requests.get(url)
+    res = json.loads(req.content.decode())
 
+    if 'errors' in res.keys():
+        for error in res['errors']:
+            raise RuntimeError(
+                f'Problem calling Marinetraffic API:  {error["detail"]}')
 
-'''
-import pickle
-# load cookies
-cookiefile = os.path.join(os.path.dirname(__file__), 'webdata.cookie')
-if os.path.isfile(cookiefile):
-    for cookie in pickle.load(open(cookiefile, 'rb')): driver.add_cookie(cookie)
-    driver.refresh()
-
-
-# save cookies
-pickle.dump(driver.get_cookies(), open(cookiefile, 'wb'))
-
-mmsi = 566970000
-imo = 9604110
-
-get_tonnage_mmsi_imo(mmsi, imo)
-'''
+    return res
