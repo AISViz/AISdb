@@ -19,6 +19,18 @@ def merge_tracks_shoredist(tracks):
             yield track
 
 
+def merge_tracks_portdist(tracks):
+    with shore_dist_gfw() as sdist:
+        for track in tracks:
+            track['km_from_port'] = np.array([
+                sdist.getportdist(x, y)
+                for x, y in zip(track['lon'], track['lat'])
+            ])
+            track['dynamic'] = set(track['dynamic']).union(
+                set(['km_from_port']))
+            yield track
+
+
 def merge_tracks_bathymetry(tracks):
     with Gebco() as bathymetry:
         for track in tracks:
@@ -61,19 +73,18 @@ def merge_layers(tracks):
         #    set_start_method('forkserver')
 
     '''
-    #from webdata import marinetraffic
-
     # read data layers from disk to merge with AIS
     print('aggregating ais, shore distance, bathymetry, vessel geometry...')
     with shore_dist_gfw() as sdist, Gebco(
     ) as bathymetry, marinetraffic.scrape_tonnage() as hullgeom:
 
-        #for rows in list(rowgen):
         for track in tracks:
 
-            # vessel tonnage from marinetraffic.com and hull submerged surface area regression
+            # vessel tonnage from marinetraffic.com
             track['deadweight_tonnage'] = hullgeom.get_tonnage_mmsi_imo(
                 track['mmsi'], track['imo'] or 0)
+
+            # hull submerged surface area regression on tonnage
             track['submerged_hull_m^2'] = wsa(track['deadweight_tonnage'],
                                               track['ship_type'] or 0)
 
@@ -86,7 +97,7 @@ def merge_layers(tracks):
                 for x, y in zip(track['lon'], track['lat'])
             ])
 
-            # seafloor depth from cell grid, and depths of surrounding gridcells
+            # seafloor depth from raster, and depths of surrounding grid cells
             track['depth_metres'] = np.array([
                 bathymetry.getdepth(x, y)
                 for x, y in zip(track['lon'], track['lat'])
@@ -101,7 +112,7 @@ def merge_layers(tracks):
                 set(['submerged_hull_m^2', 'deadweight_tonnage']))
             track['dynamic'] = set(track['dynamic']).union(
                 set([
-                    'km_from_shore', 'depth_metres',
+                    'km_from_shore', 'km_from_port', 'depth_metres',
                     'depth_border_cells_average'
                 ]))
 
