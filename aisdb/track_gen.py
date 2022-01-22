@@ -65,6 +65,7 @@ def TrackGen(
         'dim_port',
         'dim_star',
         'ship_type',
+        'ship_type_txt',
     ],
     deduplicate_timestamps: bool = False,
 ) -> dict:
@@ -120,7 +121,7 @@ def TrackGen(
         'mmsi',
         'vessel_name',
         'ship_type',
-        # 'ship_type_txt',
+        'ship_type_txt',
         'dim_bow',
         'dim_stern',
         'dim_port',
@@ -326,9 +327,11 @@ def segment_tracks_encode_greatcircledistance(tracks,
 
 def mmsirange(tracks, low=200000000, high=780000000):
     for track in tracks:
-        if low <= track['mmsi'] <= high:
+        if track['mmsi'] < low:
+            continue
+        elif low <= track['mmsi'] <= high:
             yield track
-        elif track['mmsi'] > high:
+        else:  # track['mmsi'] > high:
             return
 
 

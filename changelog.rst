@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.28
+-------
+
+docstrings, testing, and formatting
+
+
 v1.0.27
 -------
 

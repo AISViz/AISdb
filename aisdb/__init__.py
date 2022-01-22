@@ -32,9 +32,9 @@ cfgnames = [
     'zones_dir',
     'rawdata_dir',
     'output_dir',
+    'marinetraffic_VD02_key',
     'host_addr',
     'host_port',
-    #'marinetraffic_VD02_key',
 ]
 
 # legacy support
@@ -61,7 +61,7 @@ if os.path.isfile(cfgfile):
     # initialize config settings as variables
     for setting in cfgnames:
         exec(
-            f'''{setting} = settings['{setting}'] if '{setting}' in settings.keys() else {setting}'''
+            f'''{setting} = settings['{setting.lower()}'] if '{setting.lower()}' in settings.keys() else {setting}'''
         )
         if setting[-4:] == '_dir' and not os.path.isdir(settings[setting]):
             print(f'creating directory {settings[setting]}')

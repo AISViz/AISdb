@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from functools import partial
 # import cProfile
 
-from aisdb import dbpath
 from aisdb.database.dbqry import DBQuery
 from aisdb.database.sqlfcn_callbacks import (
     in_bbox_time,
@@ -19,9 +18,16 @@ from tests.create_testing_data import (
     sample_dynamictable_insertdata,
     sample_gulfstlawrence_zonegeometry,
 )
+from aisdb.webdata.merge_data import (
+    merge_tracks_bathymetry,
+    merge_tracks_hullgeom,
+    merge_tracks_portdist,
+    merge_tracks_shoredist,
+    # merge_layers,
+)
 
 
-def test_network_graph_pipeline():
+def test_network_graph_geofencing():
     # query configs
     start = datetime(2000, 1, 1)
     end = datetime(2000, 2, 1)
@@ -50,14 +56,13 @@ def test_network_graph_pipeline():
         minscore=5e-07,
     )
     geofenced = partial(fence_tracks, domain=domain)
-    serialized = partial(serialize_network_edge, domain=domain)
 
     # query db for points in domain bounding box
     try:
         _test = next(TrackGen(args.gen_qry()))
         _test2 = next(geofenced(distsplit(TrackGen(args.gen_qry()))))
-        _test3 = next(
-            serialized(geofenced(distsplit(TrackGen(args.gen_qry())))))
+        #_test3 = next(
+        #    serialized(geofenced(distsplit(TrackGen(args.gen_qry())))))
     except ValueError as err:
         print('suppressed error due to DBQuery returning empty rows:'
               f'\t{err.with_traceback(None)}')
@@ -65,14 +70,41 @@ def test_network_graph_pipeline():
         raise err
 
 
-def test_network_graph_pipeline_merged():
+def test_network_graph_merged_serialized():
+    start = datetime(2000, 1, 1)
+    end = datetime(2000, 2, 1)
+    #zonegeoms = zonegeoms_or_randompoly(randomize=True, count=10)
+    zonegeoms = {'z1': sample_gulfstlawrence_zonegeometry()}
+    domain = Domain(name='test', geoms=zonegeoms, cache=False)
+    args = DBQuery(
+        start=start,
+        end=end,
+        xmin=domain.minX,
+        xmax=domain.maxX,
+        ymin=domain.minY,
+        ymax=domain.maxY,
+        callback=in_bbox_time,
+    )
+
+    args.check_idx()
+
+    distsplit = partial(
+        segment_tracks_encode_greatcircledistance,
+        maxdistance=250000,
+        cuttime=timedelta(weeks=1),
+        cutknots=45,
+        minscore=5e-07,
+    )
+    geofenced = partial(fence_tracks, domain=domain)
+    serialized = partial(serialize_network_edge, domain=domain)
     # rowgen = picklegen(fpath)
-    # pipeline = serialize(
-    #    merge_tracks_bathymetry(
-    #        merge_tracks_shoredist(
-    #            merge_tracks_hullgeom(geofenced(distsplit(
-    #                TrackGen(rowgen)))))))
-    pass
+    pipeline = serialized(
+        merge_tracks_bathymetry(
+            merge_tracks_shoredist(
+                merge_tracks_portdist(
+                    merge_tracks_hullgeom(
+                        geofenced(distsplit(TrackGen(args.gen_qry()))))))))
+    next(pipeline)
 
 
 '''

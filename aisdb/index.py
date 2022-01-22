@@ -241,8 +241,11 @@ class index():
                     boundary arguments, e.g.
 
             >>> kwargs = {
-                ... 'south': 43.21, 'north': 46.54, 'west': -123.45, 'east': -110.01, 'top': 0, 'bottom': 5000,
-                ... 'start': datetime(2000, 1, 1, 0, 0), 'end': datetime(2000, 1, 2, 0, 0)}
+            ...     'south': 43.21, 'north': 46.54,
+            ...     'west': -123.45, 'east': -110.01,
+            ...     'top': 0, 'bottom': 5000,
+            ...     'start': datetime(2000, 1, 1), 'end': datetime(2000, 1, 2)
+            ... }
 
             yields:
                 dictionary containing args as a subset of input boundaries
