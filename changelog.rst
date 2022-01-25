@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.31
+-------
+
+fix divide by zero error when computing vessel speed
+
+
 v1.0.30
 -------
 

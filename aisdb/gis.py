@@ -63,9 +63,10 @@ def delta_seconds(track, rng):
 
 
 def delta_knots(track, rng=None):
-    if rng is None:
-        rng = range(len(track['time']))
-    return delta_meters(track, rng) / delta_seconds(track, rng) * 1.9438445
+    rng = range(len(track['time'])) if rng is None else rng
+    ds = np.array([np.max((1, s)) for s in delta_seconds(track, rng)],
+                  dtype=object)
+    return delta_meters(track, rng) / ds * 1.9438445
 
 
 def delta_reported_knots(track, rng):
