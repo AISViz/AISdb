@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.33
+-------
+
+qgis plotting: add line/marker size customization, docstrings, and application window button placeholders
+
+
 v1.0.32
 -------
 
