@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.35
+-------
+
+rename variable for clarity
+
+
 v1.0.34
 -------
 

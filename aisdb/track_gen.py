@@ -347,7 +347,7 @@ def mmsifilter(rowgen, mmsis=[]):
             return
 
 
-def max_tracklength(tracks, max_track_length=100000):
+def max_tracklength(tracks, max_length=100000):
     ''' applies a maximum track length to avoid excess memory consumption
 
         args:
@@ -361,11 +361,11 @@ def max_tracklength(tracks, max_track_length=100000):
 
     for track in tracks:
         # apply upper limit to track size to improve memory performance in worst-case scenario
-        while (track['time'].size > max_track_length):
+        while (track['time'].size > max_length):
             yield dict(
                 **{k: track[k]
                    for k in track['static']},
-                **{k: track[k][:max_track_length]
+                **{k: track[k][:max_length]
                    for k in track['dynamic']},
                 static=track['static'],
                 dynamic=set(track['dynamic']),
@@ -373,7 +373,7 @@ def max_tracklength(tracks, max_track_length=100000):
             track = dict(
                 **{k: track[k]
                    for k in track['static']},
-                **{k: track[k][max_track_length:]
+                **{k: track[k][max_length:]
                    for k in track['dynamic']},
                 static=track['static'],
                 dynamic=set(track['dynamic']),
