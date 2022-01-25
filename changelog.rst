@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.32
+-------
+
+fix binarysearch to return an index even if search is out of range
+
+
 v1.0.31
 -------
 

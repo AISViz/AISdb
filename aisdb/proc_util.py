@@ -31,10 +31,17 @@ def fast_unzip(zipfilenames, dirname='.', processes=12):
 
 
 def binarysearch(arr, search, descending=False):
-    ''' fast indexing of ordered arrays '''
+    ''' fast indexing of ordered arrays
+
+        caution: will return nearest index in out-of-bounds cases
+    '''
     low, high = 0, arr.size - 1
     if descending:
         arr = arr[::-1]
+    if search < arr[0]:
+        return 0
+    elif search >= arr[-1]:
+        return len(arr) - 1
     while (low <= high):
         mid = (low + high) // 2
         if search >= arr[mid - 1] and search <= arr[mid + 1]:
