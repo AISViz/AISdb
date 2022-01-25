@@ -102,18 +102,20 @@ def merge_layers(tracks):
                 bathymetry.getdepth(x, y)
                 for x, y in zip(track['lon'], track['lat'])
             ])
-            track['depth_border_cells_average'] = np.array([
-                bathymetry.getdepth_cellborders_nonnegative_avg(x, y)
-                for x, y in zip(track['lon'], track['lat'])
-            ])
+            #track['depth_border_cells_average'] = np.array([
+            #    bathymetry.getdepth_cellborders_nonnegative_avg(x, y)
+            #    for x, y in zip(track['lon'], track['lat'])
+            #])
 
             # update indices
             track['static'] = set(track['static']).union(
                 set(['submerged_hull_m^2', 'deadweight_tonnage']))
             track['dynamic'] = set(track['dynamic']).union(
                 set([
-                    'km_from_shore', 'km_from_port', 'depth_metres',
-                    'depth_border_cells_average'
+                    'km_from_shore',
+                    'km_from_port',
+                    'depth_metres',
+                    # 'depth_border_cells_average'
                 ]))
 
             yield track
