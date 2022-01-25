@@ -21,8 +21,8 @@ from track_gen import (
     mmsirange,
     segment_rng,
     segment_tracks_encode_greatcircledistance,
+    segment_tracks_timesplits,
     # max_tracklength,
-    # segment_tracks_timesplits,
 )
 from webdata.merge_data import (
     merge_tracks_bathymetry,
@@ -75,8 +75,8 @@ def transitinfo(track, zoneset):
     return dict(
 
         # geofencing
-        src_zone=fstr(re.sub('[^0-9]', '', track['in_zone'][zoneset][0])),
-        rcv_zone=fstr(re.sub('[^0-9]', '', track['in_zone'][zoneset][-1])),
+        src_zone=int(re.sub('[^0-9]', '', track['in_zone'][zoneset][0])),
+        rcv_zone=int(re.sub('[^0-9]', '', track['in_zone'][zoneset][-1])),
         transit_nodes=
         f"{track['in_zone'][zoneset][0]}_{track['in_zone'][zoneset][-1]}",
         num_datapoints=len(track['time'][zoneset]),
@@ -117,9 +117,9 @@ def transitinfo(track, zoneset):
         if 'depth_metres' in track.keys() else None,
         max_depth=fstr(np.max(depth_nonnegative(track, zoneset)))
         if 'depth_metres' in track.keys() else None,
-        avg_avg_depth_border_cells=fstr(
-            np.average(track['depth_border_cells_average'][zoneset]))
-        if 'depth_border_cells_average' in track.keys() else None,
+        #avg_avg_depth_border_cells=fstr(
+        #    np.average(track['depth_border_cells_average'][zoneset]))
+        #if 'depth_border_cells_average' in track.keys() else None,
 
         # computed velocity (knots)
         velocity_knots_min=f"{np.min(delta_knots(track, zoneset)):.2f}"
@@ -250,20 +250,17 @@ def aggregate_output(filename='output.csv',
 
 def graph_cpu_bound(track, domain, **params):
     ''' will probably be removed in a later version '''
-    #timesplit = partial(segment_tracks_timesplits, maxdelta=cuttime)
+    timesplit = partial(segment_tracks_timesplits, maxdelta=params['cuttime'])
     distsplit = partial(segment_tracks_encode_greatcircledistance, **params)
     geofenced = partial(fence_tracks, domain=domain)
-    #split_len = partial(max_tracklength,              max_track_length=10000)
     serialize = partial(serialize_network_edge, domain=domain)
-    print('processing mmsi', track['mmsi'], end='\r')
     #list(serialize(geofenced(split_len(distsplit(timesplit([track]))))))
     #for t in serialize(geofenced(distsplit([track]))):
     #    pass
-    for done in serialize(geofenced(distsplit([track]))):
+    for done in serialize(geofenced(distsplit(timesplit([track])))):
         if done is not None:
             raise RuntimeError()
-        #print(done, end='\r')
-    #return
+    return
 
 
 def graph_blocking_io(tracks, domain):

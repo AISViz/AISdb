@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.34
+-------
+
+add time segmenting to network graph processing
+
+
 v1.0.33
 -------
 
