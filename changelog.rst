@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.37
+-------
+
+rust tests for reading from csv
+
+
 v1.0.36
 -------
 

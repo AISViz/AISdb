@@ -13,9 +13,10 @@ test = true
 doctest = false
 
 [dependencies]
-nmea-parser = {version = "0.9.0"}
-rusqlite    = {version = "0.26"}
 async-std   = {version = "1.10", features = ["attributes"] }
-futures     = {version = "0.3"}
 chrono      = {version = "0.4"}
+csv         = {version = "1.1"}
+futures     = {version = "0.3"}
+nmea-parser = {version = "0.9.0"}
 pico-args   = {version = "0.4.2", features = ["eq-separator"]}
+rusqlite    = {version = "0.26"}
