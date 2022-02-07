@@ -17,17 +17,16 @@ class Gebco():
     def fetch_bathymetry_grid(self):
         """ download geotiff zip archive and extract it """
 
-        zipf = os.path.join(data_dir, "gebco_2020_geotiff.zip")
+        zipf = os.path.join(data_dir, "gebco_2021_geotiff.zip")
 
         # download the file if necessary
         if not os.path.isfile(zipf):
-            print(
-                'downloading gebco bathymetry (geotiff ~8GB decompressed)... ')
-            url = 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2020/geotiff/'
+            print('downloading gebco bathymetry...')
+            url = 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2021/geotiff/'
             with requests.get(url, stream=True) as payload:
                 assert payload.status_code == 200, 'error fetching file'
                 with open(zipf, 'wb') as f:
-                    with tqdm(total=3730631664,
+                    with tqdm(total=4011413504,
                               desc=zipf,
                               unit='B',
                               unit_scale=True) as t:
@@ -35,19 +34,22 @@ class Gebco():
                             _ = t.update(f.write(chunk))
 
             # unzip the downloaded file
+            exists = set(sorted(os.listdir(data_dir)))
             with zipfile.ZipFile(zipf, 'r') as zip_ref:
+                contents = set(zip_ref.namelist())
+                members = list(contents - exists)
                 print('extracting bathymetry data...')
-                zip_ref.extractall(path=data_dir)
+                zip_ref.extractall(path=data_dir, members=members)
 
         return
 
     def __enter__(self):
         self.fetch_bathymetry_grid()  # download bathymetry rasters if missing
-        Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError warning
+        Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError
 
         filebounds = lambda fpath: {
             f[0]: float(f[1:])
-            for f in fpath.split('gebco_2020_', 1)[1].rsplit('.tif', 1)[0].
+            for f in fpath.split('gebco_2021_', 1)[1].rsplit('.tif', 1)[0].
             split('_')
         }
 

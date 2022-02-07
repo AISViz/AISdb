@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.39
+-------
+
+update gebco bathymetry rasters to latest dataset
+
+
 v1.0.38
 -------
 
