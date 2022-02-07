@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.38
+-------
+
+update rust package for CSV decoder dependency
+
+
 v1.0.37
 -------
 

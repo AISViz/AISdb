@@ -6,14 +6,45 @@ pub use std::{
 
 use nmea_parser::ais::{VesselDynamicData, VesselStaticData};
 
+use csv::StringRecord;
+
+use chrono::DateTime;
+
 use crate::db::{
     get_db_conn, sqlite_createtable_dynamicreport, sqlite_createtable_staticreport,
     sqlite_insert_dynamic, sqlite_insert_static,
 };
 use crate::decode::VesselData;
 
+pub fn csvdt_2_epoch(dt: &str) -> i64 {
+    DateTime::parse_from_str(dt, "%Y%m%d_%H%M%S")
+        .unwrap()
+        .timestamp()
+}
+
 // TODO: write new epoch_2_dt for exactearth timestamp
 //use crate::util::epoch_2_dt;
+pub fn filter_vesseldata_csv(row: StringRecord) -> Option<(StringRecord, i32, bool)> {
+    //let msgtype = row.get(1);
+    //let msgtime = row.get(3);
+    /*
+    match msgtype {
+    Some("1") | Some("2") | Some("3") | Some("18") | Some("19") | Some("27") => {
+    println!("dynamic {:?}", row);
+    Some((row, csvdt_2_epoch(msgtime.as_ref().unwrap()) as i32, true))
+    }
+    Some("5") | Some("24") => {
+    println!("static {:?}", row);
+    Some((row, csvdt_2_epoch(msgtime.as_ref().unwrap()) as i32, false))
+    }
+    _ => None,
+    }
+    */
+    match row {
+        StringRecord([mmsi, "1", ..]) => Some((StringRecord([]), 0, true)),
+        _ => None,
+    }
+}
 
 pub fn decodemsgs_ee_csv(filename: &str) -> (Vec<VesselData>, Vec<VesselData>) {
     assert_eq!(&filename[&filename.len() - 4..], ".csv");
@@ -24,8 +55,16 @@ pub fn decodemsgs_ee_csv(filename: &str) -> (Vec<VesselData>, Vec<VesselData>) {
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
 
-    for row in reader.records() {
-        println!("{:?}", row.unwrap());
+    let mut n = 0;
+    for row in reader
+        .records()
+        .filter_map(|r| filter_vesseldata_csv(r.unwrap()))
+    {
+        n += 1;
+        if n == 1 {
+            continue;
+        }
+        //println!("{:?}", row.unwrap());
     }
 
     (stat_msgs, positions)

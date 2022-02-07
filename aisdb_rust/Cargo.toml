@@ -17,6 +17,6 @@ async-std   = {version = "1.10", features = ["attributes"] }
 chrono      = {version = "0.4"}
 csv         = {version = "1.1"}
 futures     = {version = "0.3"}
-nmea-parser = {version = "0.9.0"}
+nmea-parser = {version = "0.9"}
 pico-args   = {version = "0.4.2", features = ["eq-separator"]}
 rusqlite    = {version = "0.26"}

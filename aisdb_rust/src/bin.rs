@@ -24,8 +24,8 @@
 use futures::stream::iter;
 use futures::StreamExt;
 
-#[path = "csvparser.rs"]
-pub mod csvparser;
+#[path = "csvdecode.rs"]
+pub mod csvdecode;
 
 #[path = "db.rs"]
 pub mod db;
@@ -36,7 +36,7 @@ pub mod decode;
 #[path = "util.rs"]
 pub mod util;
 
-use csvparser::*;
+use csvdecode::*;
 use db::*;
 use decode::*;
 use util::*;
