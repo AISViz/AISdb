@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.41
+-------
+
+support for reading exactearth CSV format
+
+
 v1.0.40
 -------
 

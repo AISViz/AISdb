@@ -79,7 +79,11 @@ pub async fn main() -> Result<(), Error> {
     let mut insertfile = vec![];
     for (d, f) in path_arr {
         insertfile.push(async move {
-            decode_insert_msgs(&d, &f).await.expect("decoding");
+            if f.to_str().unwrap().contains(&".nm4") || f.to_str().unwrap().contains(&".NM4") {
+                decode_insert_msgs(&d, &f).await.expect("decoding");
+            } else {
+                decodemsgs_ee_csv(&d, &f).await.expect("decoding CSV");
+            }
         });
     }
     let _results = futures::future::join_all(insertfile).await;
@@ -103,7 +107,16 @@ pub async fn main() -> Result<(), Error> {
         // uses different futures aggregation method ??
         iter(fpaths)
             .for_each_concurrent(2, |(d, f)| async move {
-                decode_insert_msgs(&d, &f.path()).await.expect("decoding")
+                //decode_insert_msgs(&d, &f.path()).await.expect("decoding")
+                if f.path().to_str().unwrap().contains(&".nm4")
+                    || f.path().to_str().unwrap().contains(&".NM4")
+                {
+                    decode_insert_msgs(&d, &f.path()).await.expect("decoding");
+                } else {
+                    decodemsgs_ee_csv(&d, &f.path())
+                        .await
+                        .expect("decoding CSV");
+                }
             })
             .await;
     }

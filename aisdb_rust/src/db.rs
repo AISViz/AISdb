@@ -24,18 +24,19 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
     Ok(conn)
 }
 
+/// get absolute path to SQL source code
 pub fn sqlfiles_abspath(fname: &str) -> std::path::PathBuf {
-    current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join(Path::new(format!("aisdb_sql/{}", fname).as_str()))
+    let mut exepath = current_exe().unwrap();
+    while &exepath.to_str().unwrap()[&exepath.to_str().unwrap().len() - 10..] != "aisdb_rust" {
+        exepath = exepath.parent().unwrap().to_path_buf();
+    }
+    exepath = exepath.parent().unwrap().to_path_buf();
+
+    let mut exename = exepath.to_str().unwrap().to_string();
+    exename += "/";
+    exename += &format!("aisdb_sql/{}", fname).to_string();
+
+    std::path::PathBuf::from(exename)
 }
 
 /// create position reports table
