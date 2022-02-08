@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.40
+-------
+
+move SQL code to aisdb_sql/
+
+
 v1.0.39
 -------
 

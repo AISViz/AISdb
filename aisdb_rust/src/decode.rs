@@ -206,6 +206,7 @@ pub async fn decode_insert_msgs(
         .format("%Y%m")
         .to_string();
     let t1 = c.transaction().unwrap();
+    let _c0 = sqlite_createtable_dynamicreport(&t1, &mstr1).expect("creating dynamic table");
     let _d1 = sqlite_insert_dynamic(&t1, positions, &mstr1).expect("inserting chunk");
     let _c1 = sqlite_createtable_staticreport(&t1, &mstr1).expect("create static table");
     let _s1 = sqlite_insert_static(&t1, stat_msgs, &mstr1).expect("insert");
@@ -331,7 +332,7 @@ pub mod tests {
         let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
         for filepath in fpaths {
             let _ = decode_insert_msgs(
-                &std::path::Path::new("testdata/ais.db").to_path_buf(),
+                &std::path::Path::new("testdata/test.db").to_path_buf(),
                 &std::path::Path::new(&filepath).to_path_buf(),
             );
         }

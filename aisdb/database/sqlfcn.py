@@ -1,3 +1,7 @@
+import os
+
+aisdb_sql = os.path.abspath(os.path.join(__file__, '..', '..', 'aisdb_sql/'))
+
 # query position reports using rtree indexes
 dynamic = lambda month, callback, kwargs: (f'''
     SELECT d.mmsi, d.time, d.longitude, d.latitude

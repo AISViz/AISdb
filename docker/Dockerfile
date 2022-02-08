@@ -36,6 +36,7 @@ RUN mkdir -p aisdb aisdb/webdata aisdb/database aisdb_rust \
 
 # build rust target
 FROM aisdb as build_rust
+COPY --chown="ais_env" aisdb_sql/ aisdb_sql/
 COPY --chown="ais_env" aisdb_rust/ aisdb_rust/
 RUN cargo build --manifest-path=/home/"ais_env"/aisdb_rust/Cargo.toml 
 
@@ -46,6 +47,7 @@ CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--color=always"]
 
 # build python target
 FROM aisdb as build_python
+COPY --chown="ais_env" aisdb_sql/ aisdb_sql/
 COPY --chown="ais_env" aisdb_rust/ aisdb_rust/
 COPY --chown="ais_env" aisdb/ aisdb/ 
 RUN python -m pip install --no-warn-script-location .  

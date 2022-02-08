@@ -1,3 +1,7 @@
+use std::env::current_exe;
+use std::fs::read_to_string;
+use std::path::Path;
+
 use chrono::MIN_DATETIME;
 use rusqlite::{params, Connection, Result, Transaction};
 
@@ -11,8 +15,6 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
     };
     conn.execute_batch(
         "
-        --PRAGMA cache_size = 10000000;
-        --PRAGMA mmap_size = 30000000000;
         PRAGMA synchronous = 0;
         PRAGMA temp_store = MEMORY;
         ",
@@ -22,39 +24,18 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
     Ok(conn)
 }
 
-/// create SQLite table for monthly static vessel reports
-pub fn sqlite_createtable_staticreport(
-    tx: &Transaction,
-    mstr: &str,
-) -> Result<usize, rusqlite::Error> {
-    let sql = format!(
-        "
-        CREATE TABLE IF NOT EXISTS ais_{}_static (
-            mmsi INTEGER,
-            time INTEGER,
-            vessel_name TEXT,
-            ship_type INT,
-            call_sign TEXT,
-            imo INTEGER,
-            dim_bow INTEGER,
-            dim_stern INTEGER,
-            dim_port INTEGER,
-            dim_star INTEGER,
-            draught INTEGER,
-            destination TEXT,
-            ais_version TEXT,
-            fixing_device STRING,
-            eta_month INTEGER,
-            eta_day INTEGER,
-            eta_hour INTEGER,
-            eta_minute INTEGER,
-            PRIMARY KEY (mmsi, time, imo)
-        ) WITHOUT ROWID;
-        ",
-        mstr
-    )
-    .replace('\n', " ");
-    tx.execute(&sql, [])
+pub fn sqlfiles_abspath(fname: &str) -> std::path::PathBuf {
+    current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join(Path::new(format!("aisdb_sql/{}", fname).as_str()))
 }
 
 /// create position reports table
@@ -62,126 +43,57 @@ pub fn sqlite_createtable_dynamicreport(
     tx: &Transaction,
     mstr: &str,
 ) -> Result<usize, rusqlite::Error> {
-    let sql = format!(
-        "CREATE TABLE IF NOT EXISTS ais_{}_dynamic (
-            mmsi integer NOT NULL,
-            time INTEGER,
-            longitude FLOAT,
-            latitude FLOAT,
-            rot FLOAT,
-            sog FLOAT,
-            cog FLOAT,
-            heading FLOAT,
-            maneuver TEXT,
-            utc_second INTEGER,
-            PRIMARY KEY (mmsi, time, longitude, latitude)
-        ) WITHOUT ROWID;",
-        mstr
+    let sqlfile = read_to_string(sqlfiles_abspath("createtable_dynamic_clustered.sql")).expect(
+        format!(
+            "Error reading SQL from file: {:?}",
+            sqlfiles_abspath("createtable_dynamic_clustered.sql")
+        )
+        .as_str(),
     );
+    let sql = sqlfile.replace("{}", mstr);
 
-    Ok(tx.execute(&sql, []).expect("creating dynamic tables"))
+    Ok(tx.execute(&sql, []).expect("creating dynamic table"))
+}
+
+/// create SQLite table for monthly static vessel reports
+pub fn sqlite_createtable_staticreport(
+    tx: &Transaction,
+    mstr: &str,
+) -> Result<usize, rusqlite::Error> {
+    let sqlfile =
+        read_to_string(sqlfiles_abspath("createtable_static.sql")).expect("reading SQL from file");
+    let sql = sqlfile.replace("{}", mstr);
+    Ok(tx.execute(&sql, []).expect("creating static table"))
 }
 
 /// rtree index alternative to ais_month_dynamic clustered index.
 /// faster read performance at the cost of up to 10x slower write and more disk space
 /// currently not used
 pub fn sqlite_create_rtree(tx: &Transaction, mstr: &str) -> Result<usize, rusqlite::Error> {
-    let vtab = format!(
-        "CREATE VIRTUAL TABLE IF NOT EXISTS rtree_{}_dynamic USING rtree(
-            id,
-            mmsi0, mmsi1,
-            t0, t1,
-            x0, x1,
-            y0, y1,
-            --+region smallint,
-            --+country smallint,
-            --+msgtype integer,
-            --+navigational_status smallint,
-            +rot double precision,
-            +sog real,
-            +cog real,
-            +heading real,
-            +maneuver text,
-            +utc_second smallint
-        ); ",
-        mstr
-    );
+    // create rtree index as virtual table
+    let sqlfile1 = read_to_string(sqlfiles_abspath("createtable_dynamic_rtree.sql"))
+        .expect("reading SQL from file");
+    let sql1 = sqlfile1.replace("{}", mstr);
+    tx.execute(&sql1, []).expect("creating rtree table");
 
-    let idx = format!(
-        "
-            CREATE TRIGGER IF NOT EXISTS idx_rtree_{}_dynamic
-            AFTER INSERT ON ais_{}_dynamic
-            BEGIN
-                INSERT INTO rtree_{}_dynamic(
-                    --id,
-                    mmsi0, mmsi1, t0, t1, x0, x1, y0, y1,
-                    --navigational_status,
-                    rot, sog, cog,
-                    heading, utc_second
-                )
-                VALUES (
-                    --new.ROWID,
-                    new.mmsi, new.mmsi, new.time, new.time,
-                    new.longitude, new.longitude, new.latitude, new.latitude,
-                    --new.navigational_status,
-                    new.rot, new.sog, new.cog,
-                    new.heading, new.utc_second
-                )
-            ; END
-        ",
-        mstr, mstr, mstr
-    );
-    let genvtab = format!(
-        "
-        INSERT INTO rtree_{}_dynamic (
-                mmsi0, mmsi1, t0, t1,
-                x0, x1, y0, y1,
-                rot, sog, cog,
-                heading, utc_second
-        )
-        SELECT mmsi, mmsi, time, time,
-                longitude, longitude, latitude, latitude,
-                rot, sog, cog,
-                heading, utc_second
-        FROM ais_{}_dynamic
-        ORDER BY 1, 3, 5, 7 ",
-        mstr, mstr
-    );
-    tx.execute(&vtab, [])
-        .expect("creating dynamic virtual tables");
-    tx.execute(&idx, [])
-        .expect("creating dynamic virtual index");
-    Ok(tx.execute(&genvtab, []).expect("creating rtree"))
+    // populate rtree index automatically in the future
+    let sqlfile2 = read_to_string(sqlfiles_abspath("createtrigger_dynamic_rtreeidx.sql"))
+        .expect("reading SQL from file");
+    let sql2 = sqlfile2.replace("{}", mstr);
+    tx.execute(&sql2, []).expect("creating rtree trigger");
+
+    // populate rtree index manually from existing
+    let sqlfile3 = read_to_string(sqlfiles_abspath("insert_dynamic_rtreeidx.sql"))
+        .expect("reading SQL from file");
+    let sql3 = sqlfile3.replace("{}", mstr);
+    Ok(tx.execute(&sql3, []).expect("inserting into rtree"))
 }
 
 /// insert static reports into database
 pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
-    let sql = format!(
-        "INSERT OR IGNORE INTO ais_{}_static
-            (
-            mmsi,
-            time,
-            vessel_name,
-            ship_type,
-            call_sign,
-            imo,
-            dim_bow,
-            dim_stern,
-            dim_port,
-            dim_star,
-            draught,
-            destination,
-            ais_version,
-            fixing_device,
-            eta_month,
-            eta_day,
-            eta_hour,
-            eta_minute
-            )
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        ",
-        mstr
-    );
+    let sqlfile =
+        read_to_string(Path::new("../aisdb_sql/insert_static.sql")).expect("reading SQL from file");
+    let sql = sqlfile.replace("{}", mstr);
 
     let mut stmt = tx.prepare_cached(&sql)?;
     for msg in msgs {
@@ -214,27 +126,13 @@ pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str)
 
 /// insert position reports into database
 pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
-    let sql = format!(
-        "INSERT OR IGNORE INTO ais_{}_dynamic
-        (
-            mmsi,
-            time,
-            longitude,
-            latitude,
-            rot,
-            sog,
-            cog,
-            heading,
-            maneuver,
-            utc_second
-        )
-        VALUES (?,?,?,?,?,?,?,?,?,?)",
-        mstr
-    );
+    let sqlfile = read_to_string(sqlfiles_abspath("insert_dynamic_clusteredidx.sql"))
+        .expect("reading SQL from file");
+    let sql = sqlfile.replace("{}", mstr);
 
     let mut stmt = tx
         .prepare_cached(sql.as_str())
-        .expect("preparing statement");
+        .expect(format!("preparing SQL statement:\n{}", sql).as_str());
 
     for msg in msgs {
         let (p, e) = msg.dynamicdata();

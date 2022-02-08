@@ -1,65 +1,31 @@
+import os
 from collections import Counter
 
 import numpy as np
 
 from database.dbconn import DBConn
-#from aisdb.common import table_prefix
+
+SQLPATH = os.path.join('aisdb_sql')
 
 
 def sqlite_create_table_polygons(cur):
-    cur.execute('''
-            CREATE VIRTUAL TABLE IF NOT EXISTS rtree_polygons USING rtree(
-                id,
-                minX, maxX,
-                minY, maxY,
-                +objname TEXT,
-                +domain TEXT,
-                +binary BLOB
-        );
-    ''')
+    with open(os.path.join(SQLPATH, 'createtable_polygon_rtree.sql'),
+              'r') as f:
+        sql = f.read()
+    cur.execute(sql)
 
 
 def sqlite_createtable_dynamicreport(cur, month):
-    ''' sqlite schema for vessel position reports '''
-    cur.execute(f'''
-        CREATE TABLE IF NOT EXISTS ais_{month}_dynamic (
-            mmsi integer NOT NULL,
-            time INTEGER,
-            longitude FLOAT,
-            latitude FLOAT,
-            rot FLOAT,
-            sog FLOAT,
-            cog FLOAT,
-            heading FLOAT,
-            maneuver TEXT,
-            utc_second INTEGER,
-            PRIMARY KEY (mmsi, time, longitude, latitude)
-        ) WITHOUT ROWID ''')
+    with open(os.path.join(SQLPATH, 'createtable_dynamic_clustered.sql'),
+              'r') as f:
+        sql = f.read().format(month)
+    cur.execute(sql)
 
 
 def sqlite_createtable_staticreport(cur, month):
-    cur.execute(f'''
-        CREATE TABLE IF NOT EXISTS ais_{month}_static (
-            mmsi INTEGER,
-            time INTEGER,
-            vessel_name TEXT,
-            ship_type INT,
-            call_sign TEXT,
-            imo INTEGER,
-            dim_bow INTEGER,
-            dim_stern INTEGER,
-            dim_port INTEGER,
-            dim_star INTEGER,
-            draught INTEGER,
-            destination TEXT,
-            ais_version TEXT,
-            fixing_device STRING,
-            eta_month INTEGER,
-            eta_day INTEGER,
-            eta_hour INTEGER,
-            eta_minute INTEGER,
-            PRIMARY KEY (mmsi, time, imo)
-        ) WITHOUT ROWID ''')
+    with open(os.path.join(SQLPATH, 'createtable_static.sql'), 'r') as f:
+        sql = f.read().format(month)
+    cur.execute(sql)
 
 
 def aggregate_static_msgs(dbpath, months_str):
@@ -100,15 +66,13 @@ def aggregate_static_msgs(dbpath, months_str):
         ]
         print(fancyprint(colnames))
 
+        with open(os.path.join(SQLPATH, 'select_columns_static.sql'),
+                  'r') as f:
+            sql_select = f.read().format(month)
+
         agg_rows = []
         for mmsi in mmsis:
-            _ = cur.execute(
-                f"""
-            SELECT s.mmsi, s.vessel_name, s.ship_type,
-                s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.imo
-              FROM ais_{month}_static AS s
-              WHERE s.mmsi = ?
-            """, [mmsi])
+            _ = cur.execute(sql_select, [mmsi])
             cols = np.array(cur.fetchall(), dtype=object).T
             assert len(cols) > 0
             filtercols = np.array([
@@ -130,17 +94,10 @@ def aggregate_static_msgs(dbpath, months_str):
 
         print()
 
-        cur.execute(f'''
-            CREATE TABLE IF NOT EXISTS static_{month}_aggregate (
-                mmsi INTEGER PRIMARY KEY,
-                vessel_name TEXT,
-                ship_type INTEGER,
-                dim_bow INTEGER,
-                dim_stern INTEGER,
-                dim_port INTEGER,
-                dim_star INTEGER,
-                imo INTEGER
-            ) ''')
+        with open(os.path.join(SQLPATH, 'createtable_static_aggregate.sql'),
+                  'r') as f:
+            sql_aggregate = f.read().format(month)
+        cur.execute(sql_aggregate)
 
         if len(agg_rows) == 0:
             print(f'no rows to aggregate for table static_{month}_aggregate !')

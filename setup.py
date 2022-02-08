@@ -44,6 +44,7 @@ setup(
         'aisdb.database',
         'aisdb.webdata',
         'aisdb_rust',
+        'aisdb_sql',
     ],
     setup_requires=[
         'numpy',
