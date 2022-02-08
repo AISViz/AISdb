@@ -36,7 +36,7 @@ setup(
     description='AIS Database and Processing Utils',
     author='Matt Smith',
     author_email='matthew.smith@dal.ca',
-    url='https://gitlab.meridian.cs.dal.ca/matt_s/ais_public',
+    url='https://gitlab.meridian.cs.dal.ca/public_projects/aisdb',
     license='GNU General Public License v3.0',
     python_requires='>=3.8',
     packages=[
@@ -57,6 +57,7 @@ setup(
         'pillow',
         'pip>=21.1.0',
         'pyais>=1.6.1',
+        'PyQt5',
         'requests',
         'selenium',
         'shapely',

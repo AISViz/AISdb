@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.42
+-------
+
+update project URL
+
+
 v1.0.41
 -------
 
