@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.47
+-------
+
+update testing for database creation
+
+
 v1.0.46
 -------
 

@@ -27,7 +27,7 @@ def test_sort_1d():
         if getfiledate(f) - getfiledate(filepaths[0]) <= timedelta(hours=12)
     ]
     dt = datetime.now()
-    decode_msgs(testset, db, delete=True)
+    decode_msgs(testset, db)
     delta = datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 
