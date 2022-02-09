@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.45
+-------
+
+update setup.py and sphinxbuild, rename csvreader.rs
+
+
 v1.0.44
 -------
 

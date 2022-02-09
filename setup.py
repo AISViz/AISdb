@@ -1,10 +1,11 @@
 import os
 import sys
-
-from setuptools import setup
 import pip
 import shutil
 import subprocess
+from setuptools import setup
+
+thispath = os.path.dirname(__file__)
 
 # upgrade pip if necessary
 majorver = int(pip.__version__.split('.')[0])
@@ -16,7 +17,6 @@ if majorver < 21:
 
 # compile rust target
 cargopath = shutil.which('cargo')
-thispath = os.path.dirname(__file__)
 if cargopath:
     projpath = os.path.join(thispath, 'aisdb_rust', 'Cargo.toml')
     subprocess.run(
@@ -54,7 +54,6 @@ setup(
         'packaging',
         'pillow',
         'pip>=21.1.0',
-        'pyais>=1.6.1',
         'PyQt5',
         'requests',
         'selenium',
@@ -64,10 +63,6 @@ setup(
     extras_require={
         'testing': [
             'pytest',
-        ],
-        'monitor': [
-            'pytest',
-            'pytest-monitor',
         ],
         'docs': [
             'sphinx',
