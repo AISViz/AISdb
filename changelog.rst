@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.46
+-------
+
+fix path resolution errors when creating database from raw data
+
+
 v1.0.45
 -------
 

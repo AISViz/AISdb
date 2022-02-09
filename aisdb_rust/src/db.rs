@@ -93,7 +93,7 @@ pub fn sqlite_create_rtree(tx: &Transaction, mstr: &str) -> Result<usize, rusqli
 /// insert static reports into database
 pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
     let sqlfile =
-        read_to_string(Path::new("../aisdb_sql/insert_static.sql")).expect("reading SQL from file");
+        read_to_string(sqlfiles_abspath("insert_static.sql")).expect("reading SQL from file");
     let sql = sqlfile.replace("{}", mstr);
 
     let mut stmt = tx.prepare_cached(&sql)?;
