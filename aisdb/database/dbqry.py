@@ -174,7 +174,7 @@ class DBQuery(UserDict):
         aisdatabase.cur.execute(q)
         res = aisdatabase.cur.fetchall()
         aisdatabase.conn.close()
-        return np.array(res)
+        return np.array(res, dtype=object)
 
     def gen_qry(self, fcn=crawl, dbpath=dbpath):
         ''' queries the database using the supplied SQL function and dbpath.

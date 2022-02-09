@@ -11,6 +11,8 @@ import requests
 from aisdb.webdata.load_raster import pixelindex, load_raster_pixel
 from aisdb import data_dir
 
+url = 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2021/geotiff/'
+
 
 class Gebco():
 
@@ -22,7 +24,6 @@ class Gebco():
         # download the file if necessary
         if not os.path.isfile(zipf):
             print('downloading gebco bathymetry...')
-            url = 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2021/geotiff/'
             with requests.get(url, stream=True) as payload:
                 assert payload.status_code == 200, 'error fetching file'
                 with open(zipf, 'wb') as f:
@@ -72,24 +73,27 @@ class Gebco():
                 bounds['img'].close()
 
     def getdepth(self, lon, lat):
-        ''' get grid cell elevation value for given coordinate. negative values are below sealevel '''
+        ''' get grid cell elevation value for given coordinate.
+            negative values indicate below sealevel
+        '''
         for filepath, bounds in self.rasterfiles.items():
             if bounds['w'] <= lon <= bounds['e'] and bounds[
                     's'] <= lat <= bounds['n']:
-                if not 'img' in bounds.keys():
+                if 'img' not in bounds.keys():
                     bounds.update(
                         {'img': Image.open(os.path.join(data_dir, filepath))})
                 return load_raster_pixel(lon, lat, img=bounds['img']) * -1
 
     def getdepth_cellborders_nonnegative_avg(self, lon, lat):
-        ''' get the average depth of surrounding grid cells from the given coordinate
+        ''' get the average depth of surrounding grid cells from the given
+            coordinate.
             the absolute value of depths below sea level will be averaged
         '''
 
         for filepath, bounds in self.rasterfiles.items():
             if bounds['w'] <= lon <= bounds['e'] and bounds[
                     's'] <= lat <= bounds['n']:
-                if not 'img' in bounds.keys():
+                if 'img' not in bounds.keys():
                     bounds.update(
                         {'img': Image.open(os.path.join(data_dir, filepath))})
 
@@ -104,11 +108,3 @@ class Gebco():
                 ])
 
                 return np.average(depths * -1)
-
-
-'''
-with Gebco() as bathymetry:
-    bathymetry.getdepth(lon=-63.3, lat=44.5)
-    bathymetry.getdepth_cellborders_nonnegative_avg(lon=-63.3, lat=44.5)
-
-'''

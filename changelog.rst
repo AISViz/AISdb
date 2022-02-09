@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.48
+-------
+
+fix bug in DBQuery.run_qry() and improved bathymetry raster memory management
+
+
 v1.0.47
 -------
 

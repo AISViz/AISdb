@@ -31,8 +31,19 @@ def merge_tracks_portdist(tracks):
             yield track
 
 
-def merge_tracks_bathymetry(tracks):
-    with Gebco() as bathymetry:
+def merge_tracks_bathymetry(tracks, context=None):
+    if context is None:
+        with Gebco() as bathymetry:
+            for track in tracks:
+                track['depth_metres'] = np.array([
+                    bathymetry.getdepth(x, y)
+                    for x, y in zip(track['lon'], track['lat'])
+                ]) * -1
+                track['dynamic'] = set(track['dynamic']).union(
+                    set(['depth_metres']))
+                yield track
+    else:
+        bathymetry = context
         for track in tracks:
             track['depth_metres'] = np.array([
                 bathymetry.getdepth(x, y)
