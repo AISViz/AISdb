@@ -1,6 +1,7 @@
 SQL Database Info
 =================
 
+
 Table Naming
 ------------
 
@@ -11,21 +12,20 @@ table month in the format YYYYMM
 
 .. code:: sql
 
-   ais_MONTH_msg_1_2_3
-   ais_MONTH_msg_18
-   ais_MONTH_msg_5
-   ais_MONTH_msg_24
-   static_MONTH_aggregate
+   ais_MONTH_static
+   ais_MONTH_dynamic
 
-Virtual tables will also be created from the position reports tables
-using INSERT triggers. These tables are effectively a covering index,
-but can be queried as if it were a normal table. For more info, see
+Some additional tables containing computed data may be created
+depending on the indexes used. For example, an aggregate of vessel static data
+by month, or a virtual table used as a covering index. 
+For more info, see
 `SQLite R\* Tree Indexes <https://sqlite.org/rtree.html>`__
 
-.. code:: sql
+.. code:: sql 
 
-   rtree_MONTH_msg_1_2_3
-   rtree_MONTH_msg_18
+   static_MONTH_aggregate
+   rtree_MONTH_dynamic
+
 
 Additional tables are also included for storing data not directly
 derived from AIS message reports.
@@ -35,6 +35,7 @@ derived from AIS message reports.
    rtree_polygons 
    coarsetype_ref
    hashmap
+
 
 Custom SQL Queries
 ------------------
@@ -57,15 +58,10 @@ Timestamps are stored as epoch-minutes in the database. For convenience,
 import the ``dt_2_epoch`` and ``epoch_2_dt`` functions for conversion
 between datetime format when querying the database manually.
 
+
 Schema
 ------
 
-See `create_tables.py <../ais/database/create_tables.py>`__ to see the
-SQL code used to create the database tables. This is represented
-approximately by the below diagram (click to enlarge)  
-
-.. raw:: html
-
-   <a href='_images/db_schema.png'><img src='_images/db_schema.png'></img></a>
-
+See ``aisdb_sql/`` to see the SQL code used to create database tables and
+associated queries.
 

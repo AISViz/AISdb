@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.44
+-------
+
+update SQL documentation
+
+
 v1.0.43
 -------
 
