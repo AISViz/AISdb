@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.43
+-------
+
+add docstrings and reformatting SQL code
+
+
 v1.0.42
 -------
 

@@ -1,8 +1,6 @@
 import os
 import sys
-import ensurepip
 
-ensurepip.bootstrap(upgrade=True)
 from setuptools import setup
 import pip
 import shutil
