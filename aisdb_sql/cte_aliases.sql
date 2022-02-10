@@ -3,8 +3,8 @@ dynamic_{} AS ( {}
 static_{} AS ( {}
 ),
 ref AS MATERIALIZED ( 
-    SELECT 
-        coarse_type, 
-        coarse_type_txt
-      FROM coarsetype_ref
+  SELECT 
+    r.coarse_type, 
+    r.coarse_type_txt
+  FROM coarsetype_ref as r
 )

@@ -187,7 +187,8 @@ class DBQuery(UserDict):
                     callback function that will generate SQL code using
                     the args stored in self
                 dbpath (string)
-                    defaults to the database path configured in ~/.config/ais.cfg
+                    database location. defaults to the path configured
+                    in ~/.config/ais.cfg
 
             yields:
                 numpy array of rows for each unique MMSI
