@@ -27,6 +27,8 @@ class scrape_tonnage():
             self.driver.quit()
 
     def tonnage_callback(self, mmsi, imo=0, **_):
+        # do not return 0 while testing output without calling the API
+        # this will pollute the tonnage database
         if self.driver is None:
             self.driver = init_webdriver()
 
@@ -68,14 +70,22 @@ class scrape_tonnage():
             print(0)
             return 0
 
-    def get_tonnage_mmsi_imo(self, mmsi, imo):
-        #if not 201000000 <= mmsi < 776000000: return 0
+    def get_tonnage_mmsi_imo(self, mmsi, imo, retry_zero=False):
+        # if not 201000000 <= mmsi < 776000000: return 0
+        # return 0
         if not 1000000 <= imo < 9999999: imo = 0
 
         with index(bins=False,
                    store=True,
                    storagedir=data_dir,
                    filename=self.filename) as web:
+            # TODO: prune bad checksums in local db
+            '''
+            exists = web.serialized(
+                dict(mmsi=mmsi, imo=imo),
+                seed='dwt marinetraffic.com',
+            )
+            '''
             tonnage = web(callback=self.tonnage_callback,
                           mmsi=mmsi,
                           imo=imo,

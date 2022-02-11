@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.55
+-------
+
+comments in marinetraffic module; committing before merge
+
+
 v1.0.54
 -------
 
