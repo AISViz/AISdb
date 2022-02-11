@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.54
+-------
+
+fix bug in SQL query generation when querying multiple months at a time
+
+
 v1.0.53
 -------
 

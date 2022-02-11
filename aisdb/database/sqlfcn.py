@@ -41,8 +41,13 @@ def aliases(month, callback, kwargs):
 
 def crawl(months, callback, **kwargs):
     ''' iterate over tables to create SQL query spanning desired time range '''
-    return ('WITH\n' + ','.join([
+    sqlfile = 'cte_coarsetype.sql'
+    with open(os.path.join('aisdb_sql', sqlfile), 'r') as f:
+        sql_coarsetype = f.read()
+    sql_aliases = ''.join([
         aliases(month=month, callback=callback, kwargs=kwargs)
         for month in months
-    ]) + '\nUNION'.join([leftjoin(month=month)
-                         for month in months]) + '\nORDER BY 1, 2')
+    ])
+    sql_union = '\nUNION\n'.join([leftjoin(month=month) for month in months])
+    sql_qry = f'WITH\n{sql_aliases}\n{sql_coarsetype}\n{sql_union}'
+    return sql_qry

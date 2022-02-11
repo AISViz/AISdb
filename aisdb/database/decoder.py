@@ -10,7 +10,7 @@ from aisdb.index import index
 from aisdb.database.dbconn import DBConn
 
 
-def decode_msgs(filepaths, dbpath, vacuum=True):
+def decode_msgs(filepaths, dbpath, vacuum=True, batchsize=25):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
@@ -25,15 +25,20 @@ def decode_msgs(filepaths, dbpath, vacuum=True):
                 ingested into the database
             dbpath (string)
                 location of where the created database should be saved
+            vacuum (boolean)
+                if True, the database will be vacuumed after completion
+            batchsize (int)
+                number of files to process at once before recording the
+                checksums
 
         returns:
             None
 
         example:
 
-            >>> from aisdb import dbpath, decode_msgs
+        >>> from aisdb import dbpath, decode_msgs
         >>> filepaths = ['~/ais/rawdata_dir/20220101.nm4',
-                ...              '~/ais/rawdata_dir/20220102.nm4']
+        ...              '~/ais/rawdata_dir/20220102.nm4']
         >>> decode_msgs(filepaths, dbpath)
     '''
     assert len(filepaths) > 0
@@ -55,7 +60,6 @@ def decode_msgs(filepaths, dbpath, vacuum=True):
                       f'checksum: {signature}')
                 filepaths.pop(i)
 
-        batchsize = 25
         for j in range(0, len(filepaths), batchsize):
             cmd = [rustbinary, '--dbpath', dbpath]
             for file in filepaths[j:j + batchsize]:
