@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.50
+-------
+
+docstrings and formatting in index.py
+
+
 v1.0.49
 -------
 
