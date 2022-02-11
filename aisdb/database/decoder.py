@@ -10,7 +10,7 @@ from aisdb.index import index
 from aisdb.database.dbconn import DBConn
 
 
-def decode_msgs(filepaths, dbpath):
+def decode_msgs(filepaths, dbpath, vacuum=True):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
@@ -31,9 +31,9 @@ def decode_msgs(filepaths, dbpath):
 
         example:
 
-        >>> from aisdb import dbpath, decode_msgs
+            >>> from aisdb import dbpath, decode_msgs
         >>> filepaths = ['~/ais/rawdata_dir/20220101.nm4',
-        ...              '~/ais/rawdata_dir/20220102.nm4']
+                ...              '~/ais/rawdata_dir/20220102.nm4']
         >>> decode_msgs(filepaths, dbpath)
     '''
     assert len(filepaths) > 0
@@ -43,26 +43,36 @@ def decode_msgs(filepaths, dbpath):
     assert os.path.isfile(rustbinary), 'cant find rust executable!'
     dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
 
-    # decode the raw data files, skipping any with matching checksums
-    for file in filepaths:
-        with open(os.path.abspath(file), 'rb') as f:
-            signature = md5(f.read(1000)).hexdigest()
+    print('checking file signatures...')
 
-        with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
+    with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
+        for i in range(len(filepaths) - 1, -1, -1):
+            with open(os.path.abspath(filepaths[i]), 'rb') as f:
+                signature = md5(f.read(1000)).hexdigest()
+
             if dbindex.serialized(seed=signature):
-                print(f'found matching checksum, skipping {file}')
-                continue
+                print(f'found matching checksum, skipping {filepaths[i]}\t'
+                      f'checksum: {signature}')
+                filepaths.pop(i)
 
-        x = [rustbinary, '--dbpath', dbpath, '--file', file]
-        subprocess.run(x, check=True)
+        batchsize = 25
+        for j in range(0, len(filepaths), batchsize):
+            cmd = [rustbinary, '--dbpath', dbpath]
+            for file in filepaths[j:j + batchsize]:
+                cmd += ['--file', file]
 
-        with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
-            dbindex.insert_hash(seed=signature)
+            subprocess.run(cmd, check=True)
 
-    print("finished parsing data\nvacuuming...")
-    db = DBConn(dbpath)
-    db.cur.execute("VACUUM")
-    db.conn.commit()
-    db.conn.close()
+            for file in filepaths[j:j + batchsize]:
+                with open(os.path.abspath(file), 'rb') as f:
+                    signature = md5(f.read(1000)).hexdigest()
+                dbindex.insert_hash(seed=signature)
+
+    if vacuum:
+        print("finished parsing data\nvacuuming...")
+        db = DBConn(dbpath)
+        db.cur.execute("VACUUM")
+        db.conn.commit()
+        db.conn.close()
 
     return

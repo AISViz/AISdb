@@ -178,7 +178,8 @@ class index():
                     bytes BLOB
                 )
                 WITHOUT ROWID;''')
-            #db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_map on hashmap(hash)')
+            db.execute('CREATE UNIQUE INDEX IF NOT EXISTS '
+                       'idx_map on hashmap(hash)')
             zeros = ''.join(['0' for _ in range(32)])
             ones = ''.join(['f' for _ in range(32)])
             minval = (int(zeros, base=16) >> 64) - (2**63)

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.53
+-------
+
+file checksums performance tuning
+
+
 v1.0.52
 -------
 
