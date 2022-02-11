@@ -11,12 +11,8 @@ use nmea_parser::ais::{
 };
 use nmea_parser::ParsedMessage;
 
-use crate::db::{
-    get_db_conn, sqlite_createtable_dynamicreport, sqlite_createtable_staticreport,
-    sqlite_insert_dynamic, sqlite_insert_static,
-};
+use crate::db::{get_db_conn, prepare_tx_dynamic, prepare_tx_static};
 use crate::decode::VesselData;
-use crate::util::epoch_2_dt;
 
 /// convert time string to epoch seconds
 pub fn csvdt_2_epoch(dt: &str) -> i64 {
@@ -134,27 +130,21 @@ pub async fn decodemsgs_ee_csv(
         }
 
         if positions.len() >= 500000 {
-            let t = c.transaction().unwrap();
-            let mstr = epoch_2_dt(*positions[positions.len() - 1].epoch.as_ref().unwrap() as i64)
-                .format("%Y%m")
-                .to_string();
-            let _c = sqlite_createtable_dynamicreport(&t, &mstr).expect("creating dynamic table");
-            let _d = sqlite_insert_dynamic(&t, positions, &mstr).expect("inserting chunk");
-            let _ = t.commit();
+            let _d = prepare_tx_dynamic(&mut c, positions);
             positions = vec![];
         };
+        if stat_msgs.len() >= 500000 {
+            let _s = prepare_tx_static(&mut c, stat_msgs);
+            stat_msgs = vec![];
+        }
     }
 
-    // insert static and remaining dynamic
-    let mstr1 = epoch_2_dt(*positions[0].epoch.as_ref().unwrap() as i64)
-        .format("%Y%m")
-        .to_string();
-    let t1 = c.transaction().unwrap();
-    let _c0 = sqlite_createtable_dynamicreport(&t1, &mstr1).expect("creating dynamic table");
-    let _d1 = sqlite_insert_dynamic(&t1, positions, &mstr1).expect("inserting chunk");
-    let _c1 = sqlite_createtable_staticreport(&t1, &mstr1).expect("create static table");
-    let _s1 = sqlite_insert_static(&t1, stat_msgs, &mstr1).expect("insert");
-    let _ = t1.commit();
+    if positions.len() > 0 {
+        let _d = prepare_tx_dynamic(&mut c, positions);
+    }
+    if stat_msgs.len() > 0 {
+        let _s = prepare_tx_static(&mut c, stat_msgs);
+    }
 
     let elapsed = start.elapsed();
     println!(

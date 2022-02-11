@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.52
+-------
+
+prevent rust executable from crashing when trying to decode empty data files
+
+
 v1.0.51
 -------
 

@@ -37,7 +37,6 @@ pub mod decode;
 pub mod util;
 
 use csvreader::*;
-use db::*;
 use decode::*;
 use util::*;
 
@@ -54,9 +53,6 @@ pub async fn main() -> Result<(), Error> {
             std::process::exit(1);
         }
     };
-
-    println!("loading database file {:?}", args.dbpath);
-    let start = Instant::now();
 
     // array tuples containing (dbpath, filepath)
     //let mut n = 0;
@@ -120,16 +116,6 @@ pub async fn main() -> Result<(), Error> {
             })
             .await;
     }
-
-    let elapsed = start.elapsed();
-    println!(
-        "total insert time: {} minutes\nvacuuming...",
-        elapsed.as_secs_f32() / 60.,
-    );
-
-    let conn = get_db_conn(&args.dbpath).expect("get db conn");
-    let _v = conn.execute("VACUUM;", []).expect("vacuum");
-    let _r = conn.close();
 
     Ok(())
 }

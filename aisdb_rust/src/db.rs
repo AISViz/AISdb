@@ -1,10 +1,10 @@
 use std::env::current_exe;
 use std::fs::read_to_string;
-use std::path::Path;
 
 use chrono::MIN_DATETIME;
 use rusqlite::{params, Connection, Result, Transaction};
 
+use crate::util::epoch_2_dt;
 use crate::VesselData;
 
 /// open a new database connection at the specified path
@@ -156,20 +156,39 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
     Ok(())
 }
 
+/// prepare a new transaction, ensure tables are created, and insert dynamic messages
+pub fn prepare_tx_dynamic(c: &mut Connection, positions: Vec<VesselData>) -> Result<()> {
+    let mstr = epoch_2_dt(*positions[positions.len() - 1].epoch.as_ref().unwrap() as i64)
+        .format("%Y%m")
+        .to_string();
+    let t = c.transaction().unwrap();
+    let _c = sqlite_createtable_dynamicreport(&t, &mstr).expect("creating dynamic table");
+    let _d = sqlite_insert_dynamic(&t, positions, &mstr).expect("insert dynamic");
+    let _ = t.commit();
+    Ok(())
+}
+
+/// prepare a new transaction, ensure tables are created, and insert static messages
+pub fn prepare_tx_static(c: &mut Connection, stat_msgs: Vec<VesselData>) -> Result<()> {
+    let mstr = epoch_2_dt(*stat_msgs[stat_msgs.len() - 1].epoch.as_ref().unwrap() as i64)
+        .format("%Y%m")
+        .to_string();
+    let t = c.transaction().unwrap();
+    let _c = sqlite_createtable_staticreport(&t, &mstr).expect("create static table");
+    let _s = sqlite_insert_static(&t, stat_msgs, &mstr).expect("insert static");
+    let _ = t.commit();
+    Ok(())
+}
+
 /* --------------------------------------------------------------------------------------------- */
 
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
-    use super::Result;
-    use crate::decodemsgs;
-    use crate::get_db_conn;
-    use crate::glob_dir;
-    use crate::sqlite_createtable_dynamicreport;
-    use crate::sqlite_createtable_staticreport;
-    use crate::sqlite_insert_dynamic;
-    use crate::sqlite_insert_static;
+    use super::*;
+    use crate::decode::decodemsgs;
+    use crate::util::glob_dir;
 
     #[test]
     fn test_create_statictable() -> Result<()> {
