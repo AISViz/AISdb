@@ -3,37 +3,19 @@
 '''
 
 import os
-import re
-from datetime import datetime
-import logging
 import subprocess
+from hashlib import md5
 
-from aisdb.common import tmp_dir
 from aisdb.index import index
-
-
-def datefcn(fpath):
-    return re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(fpath)
-
-
-def regexdate_2_dt(reg, fmt='%Y%m%d'):
-    return datetime.strptime(reg.string[reg.start():reg.end()], fmt)
-
-
-def getfiledate(fpath, fmt='%Y%m%d'):
-    d = datefcn(fpath)
-    if d is None:
-        print(f'warning: could not parse YYYYmmdd format date from {fpath}!')
-        print('warning: defaulting to epoch zero!')
-        return datetime(1970, 1, 1)
-    fdate = regexdate_2_dt(d, fmt=fmt)
-    return fdate
+from aisdb.database.dbconn import DBConn
 
 
 def decode_msgs(filepaths, dbpath):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
+        A checksum of the first kilobyte of every file will be stored to
+        prevent loading the same file twice.
 
         Rust must be installed for this function to work.
 
@@ -51,7 +33,7 @@ def decode_msgs(filepaths, dbpath):
 
         >>> from aisdb import dbpath, decode_msgs
         >>> filepaths = ['~/ais/rawdata_dir/20220101.nm4',
-                ...              '~/ais/rawdata_dir/20220102.nm4']
+        ...              '~/ais/rawdata_dir/20220102.nm4']
         >>> decode_msgs(filepaths, dbpath)
     '''
     assert len(filepaths) > 0
@@ -59,26 +41,28 @@ def decode_msgs(filepaths, dbpath):
         os.path.join(os.path.dirname(__file__), '..', '..', 'aisdb_rust',
                      'target', 'release', 'aisdb'))
     assert os.path.isfile(rustbinary), 'cant find rust executable!'
-
-    # skip filepaths which were already inserted into the database
     dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
-    with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
-        for i in range(len(filepaths) - 1, -1, -1):
-            if dbindex.serialized(seed=os.path.abspath(filepaths[i])):
-                skipfile = filepaths.pop(i)
-                logging.info(f'skipping {skipfile}')
-            else:
-                logging.debug(f'preparing {filepaths[i]}')
 
-    files_str = []
-    for f in filepaths:
-        files_str += ['--file', f]
-    x = [rustbinary, '--dbpath', dbpath] + files_str
-    subprocess.run(x, check=True)
+    # decode the raw data files, skipping any with matching checksums
+    for file in filepaths:
+        with open(os.path.abspath(file), 'rb') as f:
+            signature = md5(f.read(1000)).hexdigest()
 
-    dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
-    with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
-        for fpath in filepaths:
-            dbindex.insert_hash(seed=os.path.abspath(fpath))
+        with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
+            if dbindex.serialized(seed=signature):
+                print(f'found matching checksum, skipping {file}')
+                continue
+
+        x = [rustbinary, '--dbpath', dbpath, '--file', file]
+        subprocess.run(x, check=True)
+
+        with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
+            dbindex.insert_hash(seed=signature)
+
+    print("finished parsing data\nvacuuming...")
+    db = DBConn(dbpath)
+    db.cur.execute("VACUUM")
+    db.conn.commit()
+    db.conn.close()
 
     return

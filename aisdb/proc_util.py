@@ -2,8 +2,9 @@ import os
 import zipfile
 from multiprocessing import Pool
 from functools import partial, reduce
-from datetime import datetime, timedelta
+from datetime import datetime
 import pickle
+import re
 
 import numpy as np
 
@@ -163,6 +164,24 @@ def serialize_geomwkb(tracks):
             f.write(geom.wkb)
 
     return
+
+
+def datefcn(fpath):
+    return re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(fpath)
+
+
+def regexdate_2_dt(reg, fmt='%Y%m%d'):
+    return datetime.strptime(reg.string[reg.start():reg.end()], fmt)
+
+
+def getfiledate(fpath, fmt='%Y%m%d'):
+    d = datefcn(fpath)
+    if d is None:
+        print(f'warning: could not parse YYYYmmdd format date from {fpath}!')
+        print('warning: defaulting to epoch zero!')
+        return datetime(1970, 1, 1)
+    fdate = regexdate_2_dt(d, fmt=fmt)
+    return fdate
 
 
 '''

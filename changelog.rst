@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.51
+-------
+
+store a checksum for every decoded data file; skip decoding if the checksum exists
+
+
 v1.0.50
 -------
 

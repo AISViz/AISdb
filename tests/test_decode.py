@@ -2,10 +2,9 @@ import os
 from datetime import timedelta, datetime
 
 from aisdb import dbpath, rawdata_dir, tmp_dir
-#from aisdb.database.decoder import decode_msgs, getfiledate, insert_serialized
-from aisdb.database.decoder import decode_msgs, getfiledate
+from aisdb.database.decoder import decode_msgs
 
-from aisdb.proc_util import glob_files
+from aisdb.proc_util import glob_files, getfiledate
 
 from tests.create_testing_data import create_testing_aisdata
 
