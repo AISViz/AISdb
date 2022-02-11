@@ -56,8 +56,7 @@ def decode_msgs(filepaths, dbpath, vacuum=True, batchsize=25):
                 signature = md5(f.read(1000)).hexdigest()
 
             if dbindex.serialized(seed=signature):
-                print(f'found matching checksum, skipping {filepaths[i]}\t'
-                      f'checksum: {signature}')
+                print(f'found matching checksum, skipping {filepaths[i]}')
                 filepaths.pop(i)
 
         for j in range(0, len(filepaths), batchsize):

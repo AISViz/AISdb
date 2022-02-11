@@ -37,7 +37,8 @@ cfgnames = [
     'host_port',
 ]
 
-sqlpath = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_sql'))
+sqlpath = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_sql'))
 
 printdefault = lambda cfgnames, quote='': '\n'.join(
     [f'{c} = {quote}{eval(c)}{quote}' for c in cfgnames])
@@ -58,10 +59,8 @@ if os.path.isfile(cfgfile):
 
     # initialize config settings as variables
     for setting in cfgnames:
-        exec(
-            f'''{setting} = settings['{setting.lower()}'] '''
-            f'''if '{setting.lower()}' in settings.keys() else {setting}'''
-        )
+        exec(f'''{setting} = settings['{setting.lower()}'] '''
+             f'''if '{setting.lower()}' in settings.keys() else {setting}''')
         if setting[-4:] == '_dir' and not os.path.isdir(settings[setting]):
             print(f'creating directory {settings[setting]}')
             os.mkdir(settings[setting])
@@ -176,5 +175,7 @@ with import_handler() as importconfigs:
     from .wsa import wsa
 
 import sqlite3
-assert sqlite3.sqlite_version_info[0] >= 3, 'SQLite version too low! version 3.35 or newer required'
-assert sqlite3.sqlite_version_info[2] >= 35, 'SQLite version too low! version 3.35 or newer required'
+assert sqlite3.sqlite_version_info[
+    0] >= 3, 'SQLite version too low! version 3.35 or newer required'
+assert sqlite3.sqlite_version_info[
+    1] >= 35, 'SQLite version too low! version 3.35 or newer required'

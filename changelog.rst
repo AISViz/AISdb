@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.56
+-------
+
+update minimum required SQLite version
+
+
 v1.0.55
 -------
 
