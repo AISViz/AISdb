@@ -1,10 +1,12 @@
 import os
 
+from aisdb import sqlpath
+
 
 def dynamic(month, callback, kwargs):
     ''' SQL common table expression for selecting from dynamic tables '''
     sqlfile = 'cte_dynamic_clusteredidx.sql'
-    with open(os.path.join('aisdb_sql', sqlfile), 'r') as f:
+    with open(os.path.join(sqlpath, sqlfile), 'r') as f:
         sql = f.read()
     args = [month for _ in range(len(sql.split('{}')) - 1)]
     return sql.format(*args) + callback(month=month, alias='d', **kwargs)
@@ -13,7 +15,7 @@ def dynamic(month, callback, kwargs):
 def static(month='197001', **_):
     ''' SQL common table expression for selecting from static tables '''
     sqlfile = 'cte_static_aggregate.sql'
-    with open(os.path.join('aisdb_sql', sqlfile), 'r') as f:
+    with open(os.path.join(sqlpath, sqlfile), 'r') as f:
         sql = f.read()
     args = [month for _ in range(len(sql.split('{}')) - 1)]
     return sql.format(*args)
@@ -24,7 +26,7 @@ def leftjoin(month='197001'):
         Joins columns from dynamic, static, and coarsetype_ref tables.
     '''
     sqlfile = 'select_join_dynamic_static_clusteredidx.sql'
-    with open(os.path.join('aisdb_sql', sqlfile), 'r') as f:
+    with open(os.path.join(sqlpath, sqlfile), 'r') as f:
         sql = f.read()
     args = [month for _ in range(len(sql.split('{}')) - 1)]
     return sql.format(*args)
@@ -33,7 +35,7 @@ def leftjoin(month='197001'):
 def aliases(month, callback, kwargs):
     ''' declare common table expression aliases '''
     sqlfile = 'cte_aliases.sql'
-    with open(os.path.join('aisdb_sql', sqlfile), 'r') as f:
+    with open(os.path.join(sqlpath, sqlfile), 'r') as f:
         sql = f.read()
     args = (month, dynamic(month, callback, kwargs), month, static(month))
     return sql.format(*args)
@@ -42,7 +44,7 @@ def aliases(month, callback, kwargs):
 def crawl(months, callback, **kwargs):
     ''' iterate over tables to create SQL query spanning desired time range '''
     sqlfile = 'cte_coarsetype.sql'
-    with open(os.path.join('aisdb_sql', sqlfile), 'r') as f:
+    with open(os.path.join(sqlpath, sqlfile), 'r') as f:
         sql_coarsetype = f.read()
     sql_aliases = ''.join([
         aliases(month=month, callback=callback, kwargs=kwargs)

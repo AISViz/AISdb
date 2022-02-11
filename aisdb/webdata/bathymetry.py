@@ -2,6 +2,7 @@
 
 import os
 import zipfile
+import time
 
 from PIL import Image
 from tqdm import tqdm
@@ -42,6 +43,9 @@ class Gebco():
                 print('extracting bathymetry data...')
                 zip_ref.extractall(path=data_dir, members=members)
 
+        # zzz
+        time.sleep(5)
+
         return
 
     def __enter__(self):
@@ -60,7 +64,7 @@ class Gebco():
                 k: None
                 for k in sorted([
                     f for f in os.listdir(data_dir)
-                    if f[-4:] == '.tif' and 'gebco' in f
+                    if f[-4:] == '.tif' and 'gebco_2021' in f
                 ])
             }
         }
