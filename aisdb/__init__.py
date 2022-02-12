@@ -175,6 +175,11 @@ with import_handler() as importconfigs:
     from .wsa import wsa
 
 import sqlite3
+if (sqlite3.sqlite_version_info[0] < 3
+        or (sqlite3.sqlite_version_info[0] <= 3
+            and sqlite3.sqlite_version_info[1] < 35)):
+    import pysqlite3 as sqlite3
+
 assert sqlite3.sqlite_version_info[
     0] >= 3, 'SQLite version too low! version 3.35 or newer required'
 assert sqlite3.sqlite_version_info[

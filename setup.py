@@ -55,6 +55,7 @@ setup(
         'pillow',
         'pip>=21.1.0',
         'PyQt5',
+        'pysqlite3',
         'requests',
         'selenium',
         'shapely',

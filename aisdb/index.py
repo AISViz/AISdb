@@ -11,6 +11,11 @@ from datetime import datetime, timedelta
 
 from numpy import arange
 
+if (sqlite3.sqlite_version_info[0] < 3
+        or (sqlite3.sqlite_version_info[0] <= 3
+            and sqlite3.sqlite_version_info[1] < 35)):
+    import pysqlite3 as sqlite3
+
 
 class index():
     ''' database and process management utility

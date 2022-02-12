@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.58
+-------
+
+include sqlite3 binaries in package preventing issues with outdated software on ubuntu
+
+
 v1.0.57
 -------
 
