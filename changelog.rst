@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.57
+-------
+
+prevent rust executable from crashing due to malformed message payload
+
+
 v1.0.56
 -------
 

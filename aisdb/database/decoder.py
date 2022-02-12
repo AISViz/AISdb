@@ -52,14 +52,15 @@ def decode_msgs(filepaths, dbpath, vacuum=True, batchsize=25):
 
     with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
         for i in range(len(filepaths) - 1, -1, -1):
+
             with open(os.path.abspath(filepaths[i]), 'rb') as f:
                 signature = md5(f.read(1000)).hexdigest()
 
             if dbindex.serialized(seed=signature):
-                print(f'found matching checksum, skipping {filepaths[i]}')
-                filepaths.pop(i)
+                print(f'found matching checksum, skipping {filepaths.pop(i)}')
 
         for j in range(0, len(filepaths), batchsize):
+
             cmd = [rustbinary, '--dbpath', dbpath]
             for file in filepaths[j:j + batchsize]:
                 cmd += ['--file', file]

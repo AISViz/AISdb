@@ -94,6 +94,8 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
     if msg.contains("!AIVDM,1,1,,,;")
         || msg.contains("!AIVDM,1,1,,,I")
         || msg.contains("!AIVDM,1,1,,,J")
+        || msg.contains("!AIVDM,1,1,,A,I")
+        || msg.contains("!AIVDM,1,1,,B,I")
     {
         None
     } else {
