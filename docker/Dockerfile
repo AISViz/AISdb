@@ -50,7 +50,7 @@ FROM aisdb as build_python
 COPY --chown="ais_env" aisdb_sql/ aisdb_sql/
 COPY --chown="ais_env" aisdb_rust/ aisdb_rust/
 COPY --chown="ais_env" aisdb/ aisdb/ 
-RUN python -m pip install --no-warn-script-location .  
+RUN python -m pip install --no-warn-script-location --verbose .
 
 
 # python tests

@@ -60,7 +60,7 @@ The package can be installed using pip:
 
   python3 -m venv env_aisdb --upgrade
   source env_aisdb/bin/activate
-  python3 -m pip install 'git+https://gitlab.meridian.cs.dal.ca/public_projects/aisdb#egg=aisdb'
+  python3 -m pip install --verbose 'git+https://gitlab.meridian.cs.dal.ca/public_projects/aisdb#egg=aisdb'
 
 Although the graphical interface is still a work in progress, it can be
 enabled by `installing QGIS <https://qgis.org/en/site/forusers/download.html>`__. Note that

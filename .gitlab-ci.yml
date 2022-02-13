@@ -5,6 +5,7 @@ stages:
   - python-build
   - rust-test
   - python-test
+  - docs
 
 rust-build:
   stage: rust-build
@@ -27,3 +28,15 @@ python-test:
   script:
     - python -m pip install .
     - python -m pytest --color=yes --tb=native tests/ -k "not qgis and not merge"
+
+docs:
+  stage: docs
+  only: master
+  script:
+    - /bin/bash docs/sphinxbuild.sh
+  artifacts:
+    paths:
+      - docs/html
+  cache:
+    paths:
+      - nodejs/node_modules/

@@ -72,9 +72,11 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
 
 /// workaround for panic from nmea_parser library,
 /// caused by malformed base station timestamps / binary application messages?
-/// discards all base station reports and binary payloads before decoding them
+/// discards all UTC date response and binary application payloads before
+/// decoding them
 pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
-    if &msg[..12] == "!AIVDM,1,1,," {
+    //println!("{:?}", msg);
+    if &msg.chars().count() >= &15 && &msg[..12] == "!AIVDM,1,1,," {
         match &msg[12..13] {
             "0" | "1" | "2" | "3" | "A" | "B" => match &msg[14..15] {
                 ";" | "I" | "J" => None,
