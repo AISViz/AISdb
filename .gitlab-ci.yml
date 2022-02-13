@@ -35,6 +35,7 @@ docs:
     - master
   script:
     - /bin/bash docs/sphinxbuild.sh
+    - npm --prefix nodejs/ install
   artifacts:
     paths:
       - docs/html
