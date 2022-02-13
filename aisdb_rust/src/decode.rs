@@ -37,23 +37,6 @@ impl VesselData {
     }
 }
 
-/// discard all other message types, sort filtered categories
-pub fn filter_vesseldata(
-    sentence: &str,
-    epoch: &i32,
-    parser: &mut NmeaParser,
-) -> Option<(ParsedMessage, i32, bool)> {
-    match parser.parse_sentence(sentence).ok()? {
-        ParsedMessage::VesselDynamicData(vdd) => {
-            Some((ParsedMessage::VesselDynamicData(vdd), *epoch, true))
-        }
-        ParsedMessage::VesselStaticData(vsd) => {
-            Some((ParsedMessage::VesselStaticData(vsd), *epoch, false))
-        }
-        _ => None,
-    }
-}
-
 /// collect base station timestamp and NMEA payload
 /// as derived from NMEA string with metadata header
 ///
@@ -87,19 +70,37 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
     }
 }
 
-/// work around panic bug in chrono library / indexing bug in nmea_parser library ???
-/// <https://github.com/zaari/nmea-parser/issues/25>
+/// workaround for panic from nmea_parser library,
+/// caused by malformed base station timestamps / binary application messages?
+/// discards all base station reports and binary payloads before decoding them
 pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
-    /* true for base station reports and binary application data */
-    if msg.contains("!AIVDM,1,1,,,;")
-        || msg.contains("!AIVDM,1,1,,,I")
-        || msg.contains("!AIVDM,1,1,,,J")
-        || msg.contains("!AIVDM,1,1,,A,I")
-        || msg.contains("!AIVDM,1,1,,B,I")
-    {
-        None
+    if &msg[..12] == "!AIVDM,1,1,," {
+        match &msg[12..13] {
+            "0" | "1" | "2" | "3" | "A" | "B" => match &msg[14..15] {
+                ";" | "I" | "J" => None,
+                _ => Some((msg.to_string(), *epoch)),
+            },
+            _ => Some((msg.to_string(), *epoch)),
+        }
     } else {
         Some((msg.to_string(), *epoch))
+    }
+}
+
+/// discard all other message types, sort filtered categories
+pub fn filter_vesseldata(
+    sentence: &str,
+    epoch: &i32,
+    parser: &mut NmeaParser,
+) -> Option<(ParsedMessage, i32, bool)> {
+    match parser.parse_sentence(sentence).ok()? {
+        ParsedMessage::VesselDynamicData(vdd) => {
+            Some((ParsedMessage::VesselDynamicData(vdd), *epoch, true))
+        }
+        ParsedMessage::VesselStaticData(vsd) => {
+            Some((ParsedMessage::VesselStaticData(vsd), *epoch, false))
+        }
+        _ => None,
     }
 }
 

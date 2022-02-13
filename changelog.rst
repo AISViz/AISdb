@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.59
+-------
+
+filter malformed payloads in rust decoder
+
+
 v1.0.58
 -------
 
