@@ -31,7 +31,8 @@ python-test:
 
 docs:
   stage: docs
-  only: master
+  only: 
+    - master
   script:
     - /bin/bash docs/sphinxbuild.sh
   artifacts:
