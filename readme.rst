@@ -1,6 +1,11 @@
 AISDB
 =====
 
+.. raw:: html
+
+    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
+
+
 .. description:
 
 Description
