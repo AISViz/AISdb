@@ -39,7 +39,7 @@ docs:
     #- npm --prefix nodejs/ install
   artifacts:
     paths:
-      - docs/html
+      #- docs/html
       - public
   cache:
     paths:
