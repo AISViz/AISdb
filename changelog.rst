@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.61
+-------
+
+improved cross-platform support in rust executable
+
+
 v1.0.60
 -------
 

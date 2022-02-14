@@ -148,8 +148,13 @@ pub async fn decodemsgs_ee_csv(
 
     let elapsed = start.elapsed();
     println!(
-        "{}    count:{: >8}    elapsed: {:0.4 }s    rate: {:.0}/s",
-        filename.to_str().unwrap().rsplit_once('/').unwrap().1,
+        "{}    count:{: >8}    elapsed: {:0.2 }s    rate: {:.0} msgs/s",
+        filename
+            .to_str()
+            .unwrap()
+            .rsplit_once(std::path::MAIN_SEPARATOR)
+            .unwrap()
+            .1,
         count,
         elapsed.as_secs_f32(),
         count as f32 / elapsed.as_secs_f32(),

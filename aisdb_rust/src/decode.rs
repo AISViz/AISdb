@@ -11,7 +11,7 @@ use nmea_parser::{
 
 use crate::db::{get_db_conn, prepare_tx_dynamic, prepare_tx_static};
 
-/// optionally collect decoded messages and epoch timestamps
+/// collect decoded messages and epoch timestamps
 pub struct VesselData {
     pub payload: Option<ParsedMessage>,
     pub epoch: Option<i32>,
@@ -106,49 +106,9 @@ pub fn filter_vesseldata(
     }
 }
 
-/// open .nm4 file and decode each line, keeping only vessel data
-/// returns vector of static and dynamic reports
-pub fn decodemsgs(filename: &str) -> (Vec<VesselData>, Vec<VesselData>) {
-    assert_eq!(&filename[&filename.len() - 4..], ".nm4");
-
-    let reader = BufReader::new(File::open(filename).expect("Cannot open file"));
-    let mut parser = NmeaParser::new();
-    let mut stat_msgs = <Vec<VesselData>>::new();
-    let mut positions = <Vec<VesselData>>::new();
-
-    // for async do {
-    // in 100k batches
-    for (payload, epoch, is_dynamic) in reader
-        .lines()
-        .filter_map(parse_headers)
-        .filter_map(|(s, e)| skipmsg(&s, &e))
-        .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
-        .collect::<Vec<(ParsedMessage, i32, bool)>>()
-    {
-        let message = VesselData {
-            epoch: Some(epoch),
-            payload: Some(payload),
-        };
-
-        if is_dynamic {
-            positions.push(message);
-        } else {
-            stat_msgs.push(message);
-        }
-    }
-
-    println!(
-        "{}    dynamic: {}    static: {}",
-        filename.rsplit_once('/').unwrap().1,
-        positions.len(),
-        stat_msgs.len(),
-    );
-
-    (positions, stat_msgs)
-}
-
-/// open .nm4 file and decode each line, keeping only vessel data
-/// returns vector of static and dynamic reports
+/// open .nm4 file and decode each line, keeping only vessel data.
+/// decoded vessel data will be inserted into the SQLite database
+/// located at dbpath
 pub async fn decode_insert_msgs(
     dbpath: &std::path::Path,
     filename: &std::path::Path,
@@ -211,8 +171,13 @@ pub async fn decode_insert_msgs(
     let elapsed = start.elapsed();
 
     println!(
-        "{}    count:{: >8}    elapsed: {:0.4 }s    rate: {:.0}/s",
-        filename.to_str().unwrap().rsplit_once('/').unwrap().1,
+        "{}    count:{: >8}    elapsed: {:0.2 }s    rate: {:.0} msgs/s",
+        filename
+            .to_str()
+            .unwrap()
+            .rsplit_once(std::path::MAIN_SEPARATOR)
+            .unwrap()
+            .1,
         count,
         elapsed.as_secs_f32(),
         count as f32 / elapsed.as_secs_f32(),
@@ -225,15 +190,13 @@ pub async fn decode_insert_msgs(
 
 #[cfg(test)]
 pub mod tests {
-    //use super::*;
-    use super::{decode_insert_msgs, decodemsgs, parse_headers};
+
+    use super::{decode_insert_msgs, parse_headers};
     use crate::util::glob_dir;
     use crate::Error;
     use std::fs::create_dir_all;
     use std::fs::File;
     use std::io::Write;
-    use std::time::Instant;
-    //use crate::util::parse_args;
 
     #[test]
     pub fn testingdata() -> Result<(), &'static str> {
@@ -294,34 +257,6 @@ pub mod tests {
             1635883083,
         );
         assert_eq!(expected, result);
-    }
-
-    #[test]
-    pub fn test_files() -> Result<(), Error> {
-        let _ = testingdata();
-
-        // TODO: update this path with some config file
-        //let fpaths =
-        //    glob_dir(std::env::current_dir().unwrap().to_str().unwrap(), "nm4", 0).unwrap();
-        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
-
-        let mut n = 0;
-        for filepath in fpaths {
-            if n > 10 {
-                break;
-            }
-            let start = Instant::now();
-            let (positions, stat_msgs) = decodemsgs(&filepath);
-            let elapsed = start.elapsed();
-            println!(
-                "{}\tdecoded {} msgs/s",
-                n,
-                ((positions.len() + stat_msgs.len()) as f64 / elapsed.as_secs_f64())
-            );
-            n += 1;
-        }
-
-        Ok(())
     }
 
     pub fn test_decode_insert_msgs() -> Result<(), Error> {
