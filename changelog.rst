@@ -5,6 +5,12 @@ Changelog
 v1.0.63
 -------
 
+update gitlab CI
+
+
+v1.0.62
+-------
+
 removing unnecessary code
 
 
