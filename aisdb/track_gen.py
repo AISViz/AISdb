@@ -2,50 +2,12 @@
 
 from functools import reduce
 from datetime import timedelta
-import json
 import warnings
 
-from gis import delta_knots
-
 import numpy as np
+
 from gis import haversine, delta_knots
-
-#
-# utility functions
-
-
-def filtermask(track, rng, filters, first_val=False):
-    '''
-    >>>
-        from .gis import compute_knots
-        filters=[
-                lambda track, rng: track['time'][rng][:-1] != track['time'][rng][1:],
-                #lambda track, rng: compute_knots(track, rng) < 40,
-                lambda track, rng: (compute_knots(track, rng[:-1]) < 40) & (compute_knots(track, rng[1:]),
-                lambda track, rng: np.full(len(rng)-1, 201000000 <= track['mmsi'] < 776000000, dtype=np.bool),
-            ]
-
-    '''
-    mask = reduce(np.logical_and, map(lambda f: f(track, rng), filters))
-    #return np.logical_and(np.append([True], mask), np.append(mask, [True]))
-    return np.append([first_val], mask).astype(bool)
-
-
-def segment_rng(track: dict, maxdelta: timedelta, minsize: int) -> filter:
-    assert isinstance(track, dict), f'wrong track type {type(track)}:\n{track}'
-    splits_idx = lambda track: np.append(
-        np.append([0],
-                  np.nonzero(track['time'][1:] - track['time'][:-1] >= maxdelta
-                             .total_seconds() / 60)[0] + 1),
-        [track['time'].size])
-    return filter(
-        lambda seg: len(seg) >= minsize,
-        list(map(range,
-                 splits_idx(track)[:-1],
-                 splits_idx(track)[1:])))
-
-
-''' chainable track generators '''
+from proc_util import _segment_rng
 
 
 def TrackGen(
@@ -55,9 +17,6 @@ def TrackGen(
         'time',
         'lon',
         'lat',
-        # 'cog',
-        # 'sog',
-        # 'msgtype',
         'imo',
         'vessel_name',
         'dim_bow',
@@ -173,9 +132,18 @@ def TrackGen(
             )
 
 
-def segment_tracks_timesplits(tracks, maxdelta=timedelta(hours=2), minsize=1):
+def segment_tracks_timesplits(tracks, maxdelta=timedelta(weeks=2)):
+    ''' partitions tracks where delta time exceedds maxdelta
+
+        args:
+            tracks (aisdb.track_gen.TrackGen)
+                track vectors generator
+            maxdelta (datetime.timedelta)
+                threshold at which tracks should be
+                partitioned
+    '''
     for track in tracks:
-        for rng in segment_rng(track, maxdelta, minsize):
+        for rng in _segment_rng(track, maxdelta, minsize=1):
             yield dict(
                 **{k: track[k]
                    for k in track['static']},
@@ -314,11 +282,10 @@ def segment_tracks_encode_greatcircledistance(tracks,
         for pathway, label in zip(pathways, range(n, len(pathways) + n)):
             pathway['label'] = label
             pathway['static'] = set(pathway['static']).union({'label'})
-            #for i in range(pathway['time'].size-1):
-            #    assert pathway['time'][i] < pathway['time'][i+1]
             yield pathway
 
 
+'''
 def mmsirange(tracks, low=200000000, high=780000000):
     for track in tracks:
         if track['mmsi'] < low:
@@ -339,10 +306,12 @@ def mmsifilter(rowgen, mmsis=[]):
         elif sum([row[0][0] > mmsi for mmsi in mmsis]) == len(mmsis):
             print()
             return
+'''
 
 
 def max_tracklength(tracks, max_length=100000):
-    ''' applies a maximum track length to avoid excess memory consumption
+    ''' applies a maximum track length to track vectors.
+        can be used to avoid excess memory consumption
 
         args:
             tracks: generator
@@ -354,7 +323,6 @@ def max_tracklength(tracks, max_length=100000):
     '''
 
     for track in tracks:
-        # apply upper limit to track size to improve memory performance in worst-case scenario
         while (track['time'].size > max_length):
             yield dict(
                 **{k: track[k]
@@ -376,7 +344,9 @@ def max_tracklength(tracks, max_length=100000):
 
 
 def concat_realisticspeed(tracks, knots_threshold=50):
-    ''' if two consecutive tracks are within a realistic speed threshold, they will be concatenated '''
+    ''' if two consecutive tracks are within a realistic speed threshold, they
+        will be concatenated
+    '''
     segment = next(tracks)
     for track in tracks:
         deltas = {
@@ -431,22 +401,11 @@ def concat_occurs_after(tracks, grace_period=300):
 
 
 def fence_tracks(tracks, domain):
-    ''' compute points-in-polygons for track positional reports in domain polygons
+    ''' compute points-in-polygons for track positional reports in domain
+        polygons
 
         yields track dictionaries
     '''
-    for track in tracks:
-        if not 'in_zone' in track.keys():
-            track['in_zone'] = np.array([
-                domain.point_in_polygon(x, y)
-                for x, y in zip(track['lon'], track['lat'])
-            ],
-                                        dtype=object)
-            track['dynamic'] = set(track['dynamic']).union(set(['in_zone']))
-        yield track
-
-
-def tracks_transit_frequency(tracks, domain):
     for track in tracks:
         if 'in_zone' not in track.keys():
             track['in_zone'] = np.array([
@@ -455,34 +414,4 @@ def tracks_transit_frequency(tracks, domain):
             ],
                                         dtype=object)
             track['dynamic'] = set(track['dynamic']).union(set(['in_zone']))
-
-        count_transit_nodes = sum(
-            np.nonzero(track['in_zone'][1:] != track['in_zone'][:-1])[0])
-        delta_minutes = (track['time'][-1] - track['time'][0]) or 1
-        track['hourly_transits_avg'] = count_transit_nodes / (delta_minutes /
-                                                              60)
-        track['static'] = set(track['static']).union(
-            set(['hourly_transits_avg']))
-        yield track.copy()
-
-
-def log_track(track):
-
-    default = lambda obj: str(obj) if not isinstance(obj, (list, np.ndarray)
-                                                     ) else list(obj)
-    jsonify = lambda obj: json.dumps(obj, default=default, sort_keys=True)
-
-    pass
-
-
-def filter_tracks(
-        tracks,
-        filter_callback=lambda track: track['hourly_transits_avg'] > 6,
-        logging_callback=lambda track: False):
-    for track in tracks:
-        if logging_callback(track):
-            log_track(track)
-        if filter_callback(track):
-            continue
-        else:
-            yield track
+        yield track

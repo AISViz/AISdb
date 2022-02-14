@@ -220,12 +220,6 @@ class DBQuery(UserDict):
 
             while len(mmsi_rows) > 1 and int(mmsi_rows[0][0]) != int(
                     mmsi_rows[-1][0]):
-                if not isinstance(mmsi_rows[0][0], (float, int)):
-                    print(f'error: MMSI not an integer! {mmsi_rows[0]}')
-                    breakpoint()
-                if not isinstance(mmsi_rows, np.ndarray):
-                    print(f'not an array: {mmsi_rows}')
-                    breakpoint()
                 ummsi_idx = np.where(mmsi_rows[:, 0] != mmsi_rows[0, 0])[0][0]
                 yield np.array(mmsi_rows[0:ummsi_idx], dtype=object)
                 mmsi_rows = mmsi_rows[ummsi_idx:]

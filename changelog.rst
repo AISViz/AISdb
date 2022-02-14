@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.62
+-------
+
+removing unnecessary code
+
+
 v1.0.61
 -------
 

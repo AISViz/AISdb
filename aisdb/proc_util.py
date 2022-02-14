@@ -2,7 +2,7 @@ import os
 import zipfile
 from multiprocessing import Pool
 from functools import partial, reduce
-from datetime import datetime
+from datetime import datetime, timedelta
 import pickle
 import re
 
@@ -55,6 +55,20 @@ def binarysearch(arr, search, descending=False):
         return arr.size - mid - 1
     else:
         return mid
+
+
+def _segment_rng(track: dict, maxdelta: timedelta, minsize: int) -> filter:
+    assert isinstance(track, dict), f'wrong track type {type(track)}:\n{track}'
+    splits_idx = lambda track: np.append(
+        np.append([0],
+                  np.nonzero(track['time'][1:] - track['time'][:-1] >= maxdelta
+                             .total_seconds() / 60)[0] + 1),
+        [track['time'].size])
+    return filter(
+        lambda seg: len(seg) >= minsize,
+        list(map(range,
+                 splits_idx(track)[:-1],
+                 splits_idx(track)[1:])))
 
 
 def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):

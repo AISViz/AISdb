@@ -95,9 +95,8 @@ class DBConn():
         self.conn.commit()
 
         self.cur = self.conn.cursor()
-        self.cur.execute(
-            'SELECT name FROM sqlite_master WHERE type="table" AND name="coarsetype_ref";'
-        )
+        self.cur.execute('SELECT name FROM sqlite_master '
+                         'WHERE type="table" AND name="coarsetype_ref";')
         if not self.cur.fetchall():
             create_table_coarsetype(self.cur)
         self.conn.commit()

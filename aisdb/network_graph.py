@@ -16,54 +16,51 @@ from gis import (
     epoch_2_dt,
 )
 from track_gen import (
-    TrackGen,
     fence_tracks,
-    mmsirange,
-    segment_rng,
     segment_tracks_encode_greatcircledistance,
     segment_tracks_timesplits,
-    # max_tracklength,
 )
-from webdata.merge_data import (
-    merge_tracks_bathymetry,
-    merge_tracks_portdist,
-    merge_tracks_shoredist,
-    merge_layers,
-    # merge_tracks_hullgeom,
-)
+from webdata.merge_data import merge_layers
+from proc_util import _segment_rng
 
-# returns absolute value of bathymetric depths with topographic heights converted to 0
-depth_nonnegative = lambda track, zoneset: np.array(
-    [d if d >= 0 else 0 for d in track['depth_metres'][zoneset]])
 
-# returns minutes spent within kilometers range from shore
-time_in_shoredist_rng = lambda track, subset, dist0=0.01, dist1=5: np.sum(
-    t for t in map(
+def depth_nonnegative(track, zoneset):
+    ''' returns absolute value of bathymetric depths with topographic heights
+        converted to 0
+    '''
+    return np.array(
+        [d if d >= 0 else 0 for d in track['depth_metres'][zoneset]])
+
+
+def time_in_shoredist_rng(track, subset, dist0=0.01, dist1=5):
+    ''' returns minutes spent within kilometers range from shore '''
+    return sum(t for t in map(
         len,
-        segment_rng(
+        _segment_rng(
             {
                 'time':
                 track['time'][subset]
                 [[dist0 <= d <= dist1 for d in track['km_from_shore'][subset]]]
             },
             maxdelta=timedelta(minutes=1),
-            minsize=1)))
+            minsize=1),
+    ))
 
-# categorical vessel data
-#staticinfo = lambda track, domain: dict(
-staticinfo = lambda track: dict(
-    mmsi=track['mmsi'],
-    imo=track['imo'] or '',
-    label=track['label'] if 'label' in track.keys() else '',
-    vessel_name=str(track['vessel_name']).replace("'", '').replace('"', '').
-    replace(',', '').replace('`', '') or '',
-    vessel_type=track['ship_type_txt'] or '',
-    #domainname                          =   domain.name,
-    vessel_length=(track['dim_bow'] + track['dim_stern']) or '',
-    hull_submerged_surface_area=track['submerged_hull_m^2']
-    if 'submerged_hull_m^2' in track.keys() else '',
-    #ballast                             =   None,
-)
+
+def staticinfo(track):
+    ''' collect categorical vessel data as a dictionary '''
+    return dict(
+        mmsi=track['mmsi'],
+        imo=track['imo'] or '',
+        label=track['label'] if 'label' in track.keys() else '',
+        vessel_name=str(track['vessel_name']).replace("'", '').replace(
+            '"', '').replace(',', '').replace('`', '') or '',
+        vessel_type=track['ship_type_txt'] or '',
+        vessel_length=(track['dim_bow'] + track['dim_stern']) or '',
+        hull_submerged_surface_area=track['submerged_hull_m^2']
+        if 'submerged_hull_m^2' in track.keys() else '',
+    )
+
 
 fstr = lambda s: f'{float(s):.4f}'
 

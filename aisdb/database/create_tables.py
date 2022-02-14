@@ -54,18 +54,6 @@ def aggregate_static_msgs(dbpath, months_str):
 
         cur.execute(f'DROP TABLE IF EXISTS static_{month}_aggregate')
 
-        fancyprint = lambda cols, widths=[
-            12, 24, 12, 12, 12, 12, 12, 12
-        ]: ''.join([
-            str(c) + ''.join([' ' for _ in range(w - len(str(c)))])
-            for c, w in zip(cols, widths)
-        ])
-        colnames = [
-            'mmsi', 'vessel_name', 'ship_type', 'dim_bow', 'dim_stern',
-            'dim_port', 'dim_star', 'imo'
-        ]
-        print(fancyprint(colnames))
-
         with open(os.path.join(SQLPATH, 'select_columns_static.sql'),
                   'r') as f:
             sql_select = f.read().format(month)
@@ -75,22 +63,24 @@ def aggregate_static_msgs(dbpath, months_str):
             _ = cur.execute(sql_select, [mmsi])
             cols = np.array(cur.fetchall(), dtype=object).T
             assert len(cols) > 0
-            filtercols = np.array([
-                np.array(list(filter(None, col)), dtype=object) for col in cols
-            ],
-                                  dtype=object)
+            filtercols = np.array(
+                [
+                    np.array(list(filter(None, col)), dtype=object)
+                    for col in cols
+                ],
+                dtype=object,
+            )
 
             paddedcols = np.array(
                 [col if len(col) > 0 else [None] for col in filtercols],
-                dtype=object)
+                dtype=object,
+            )
 
             aggregated = [
                 Counter(col).most_common(1)[0][0] for col in paddedcols
             ]
 
             agg_rows.append(aggregated)
-
-            print('\r' + fancyprint(aggregated), end='       ')
 
         print()
 

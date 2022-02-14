@@ -4,8 +4,8 @@ from datetime import timedelta
 
 import numpy as np
 
-from aisdb.gis import dt_2_epoch
-from track_gen import segment_rng
+from gis import dt_2_epoch
+from proc_util import _segment_rng
 
 
 def interp_time(tracks,
@@ -68,4 +68,4 @@ def interp_time(tracks,
         ],
     }
     for track in tracks:
-        yield interpfcn(track, list(segment_rng(track, maxdelta, minsize)))
+        yield interpfcn(track, list(_segment_rng(track, maxdelta, minsize)))

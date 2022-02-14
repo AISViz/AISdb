@@ -119,11 +119,3 @@ class MessageLogger():
 
         self.msgthread.join()
         self.dbthread.join()
-
-
-'''
-agent = MessageLogger()
-agent.run(processes=6)
-
-agent.stop()
-'''
