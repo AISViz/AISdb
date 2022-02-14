@@ -40,6 +40,8 @@ docs:
   artifacts:
     paths:
       - docs/html
+      - public
   cache:
     paths:
-      - nodejs/node_modules/
+      - public
+      #- nodejs/node_modules/
