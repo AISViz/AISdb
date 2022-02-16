@@ -80,9 +80,22 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
         match &msg[12..13] {
             "0" | "1" | "2" | "3" | "A" | "B" => match &msg[14..15] {
                 ";" | "I" | "J" => None,
-                _ => Some((msg.to_string(), *epoch)),
+                _ => {
+                    //println!("14..15: {:?}", &msg[14..15]);
+                    Some((msg.to_string(), *epoch))
+                }
             },
-            _ => Some((msg.to_string(), *epoch)),
+            "," => match &msg[13..14] {
+                ";" | "I" | "J" => None,
+                _ => {
+                    //println!("13..14: {:?}", &msg[13..14]);
+                    Some((msg.to_string(), *epoch))
+                }
+            },
+            _ => {
+                //println!("12..13: {:?}", &msg[12..13]);
+                Some((msg.to_string(), *epoch))
+            }
         }
     } else {
         Some((msg.to_string(), *epoch))
