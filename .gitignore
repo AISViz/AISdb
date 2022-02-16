@@ -25,6 +25,7 @@ aisdb_rust/testdata
 docker-compose.override.yml
 docs/html/*
 docs/source/api/*
+docs/source/changelog.rst
 docs/source/readme.rst
 tests/output/*
 tmp/*

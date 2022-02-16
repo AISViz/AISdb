@@ -35,13 +35,10 @@ docs:
     - master
   script:
     - /bin/bash docs/sphinxbuild.sh
-    - cp -r docs/html public
-    #- npm --prefix nodejs/ install
+    - rm -rf public && cp -r docs/html public
   artifacts:
     paths:
-      #- docs/html
       - public
   cache:
     paths:
       - public
-      #- nodejs/node_modules/
