@@ -40,5 +40,6 @@ docs:
     paths:
       - public
   cache:
+    key: "$CI_COMMIT_REF_SLUG"
     paths:
       - public

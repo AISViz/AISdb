@@ -38,7 +38,7 @@ def pixelindex(x1, y1, im):
         lat = np.arange(y, y + (dy * im.size[1]), dy)
 
     else:
-        assert False, f'error {filepath}: unknown metadata tag encoding'
+        assert False, 'error: unknown metadata tag encoding'
 
     lon = np.arange(x, x + (dx * im.size[0]), dx)
 
