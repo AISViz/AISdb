@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.65
+-------
+
+update message logging; fix bugs in rust decoder
+
+
 v1.0.64
 -------
 

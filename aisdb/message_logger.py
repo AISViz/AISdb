@@ -4,6 +4,7 @@ import threading
 from datetime import datetime
 import time
 
+from aisdb.database.decoder import decode_msgs
 from common import dbpath, rawdata_dir, host_addr, host_port
 
 unix_origin = datetime(1970, 1, 1)
@@ -18,12 +19,14 @@ class _AISMessageStreamReader():
 
     def __enter__(self):
         # TODO: read host address and port number from config file
+        assert int(host_port), f'host_port {host_port} is not an integer'
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect((host_addr, host_port))
+        self.s.connect((host_addr, int(host_port)))
 
     def __call__(self):
 
-        if self.s == None: self.__enter__()
+        if self.s is None:
+            self.__enter__()
 
         tmpfilepath = lambda: os.path.join(
             rawdata_dir,
@@ -58,54 +61,68 @@ class _AISMessageStreamReader():
 
 
 class _AISDatabaseBuilder():
-    ''' periodically check the rawdata_dir folder for new .nm4 files, and add them to the database '''
+    ''' periodically check rawdata_dir for new .nm4 files,
+        new files will be added to the database
+    '''
 
-    def __init__(self, dbpath=dbpath, processes=0):
+    def __init__(self, dbpath=dbpath):
         self.dbpath = dbpath
-        self.processes = processes
         self.enabled = True
 
     def __call__(self):
-        if os.name == 'posix' and self.processes > 0:
-            os.system(f'taskset -cp 0-{self.processes-1} {os.getpid()}')
-
         while self.enabled:
             filepaths = [
                 os.path.join(rawdata_dir, f) for f in os.listdir(rawdata_dir)
                 if f[-4:] == '.nm4' or f[-4:] == '.csv'
             ]
-            decode_msgs(filepaths,
-                        dbpath=self.dbpath,
-                        processes=self.processes)
+
+            if len(filepaths) == 0:
+                print('empty rawdata_dir, skipping database build...')
+                return
+
+            decode_msgs(
+                filepaths,
+                dbpath=self.dbpath,
+            )
             time.sleep(10)
 
 
 class MessageLogger():
-    ''' extends upon _AISMessageStreamReader() and _AISDatabaseBuilder() to run them in separate threads in parallel '''
+    ''' log NMEA data stream from host_addr:host_port.
 
-    def run(self, dbpath=dbpath, processes=0):
+        appends timestamps and raw payload data to files in rawdata_dir
+
+        >>> from aisdb.message_logger import MessageLogger
+        >>> msglog = MessageLogger()
+        >>> msglog.run()
+    '''
+
+    def run(self, dbpath=dbpath):
         try:
             self.msgtarget = _AISMessageStreamReader()
-            self.msgthread = threading.Thread(target=self.msgtarget,
-                                              name='AIS_messages_thread')
+            self.msgthread = threading.Thread(
+                target=self.msgtarget,
+                name='AIS_messages_thread',
+            )
             self.msgthread.start()
 
-            self.buildtarget = _AISDatabaseBuilder(dbpath, processes)
-            self.dbthread = threading.Thread(target=self.buildtarget,
-                                             name='database_thread')
+            self.buildtarget = _AISDatabaseBuilder(dbpath)
+            self.dbthread = threading.Thread(
+                target=self.buildtarget,
+                name='database_thread',
+            )
             self.dbthread.start()
 
-            # this will cause program to block until database operations complete
-            while input(
-                    'type "stop" to terminate message logging\n') != 'stop':
+            # this will block until database operations complete
+            while input('type "stop" to terminate logging\n') != 'stop':
                 print(end='', flush=True)
             self.stop()
 
-        except KeyboardInterrupt as err:
-            print(
-                'caught KeyboardInterrupt, shutting down gracefully... press again to force shutdown'
-            )
+        except KeyboardInterrupt:
+            print('caught KeyboardInterrupt, shutting down gracefully... '
+                  'press again to force shutdown')
             self.stop()
+
         except Exception as err:
             raise err
 
@@ -113,9 +130,8 @@ class MessageLogger():
         self.msgtarget.enabled = False
         self.buildtarget.enabled = False
 
-        print(
-            'stopping message logging... please wait for database operations to finish'
-        )
+        print('stopping message logging... '
+              'please wait for database operations to finish')
 
         self.msgthread.join()
         self.dbthread.join()

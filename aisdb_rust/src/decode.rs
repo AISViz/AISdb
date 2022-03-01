@@ -72,33 +72,17 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
 
 /// workaround for panic from nmea_parser library,
 /// caused by malformed base station timestamps / binary application messages?
-/// discards all UTC date response and binary application payloads before
+/// discards UTC date response and binary application payloads before
 /// decoding them
 pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
     //println!("{:?}", msg);
-    if &msg.chars().count() >= &15 && &msg[..12] == "!AIVDM,1,1,," {
-        match &msg[12..13] {
-            "0" | "1" | "2" | "3" | "A" | "B" => match &msg[14..15] {
-                ";" | "I" | "J" => None,
-                _ => {
-                    //println!("14..15: {:?}", &msg[14..15]);
-                    Some((msg.to_string(), *epoch))
-                }
-            },
-            "," => match &msg[13..14] {
-                ";" | "I" | "J" => None,
-                _ => {
-                    //println!("13..14: {:?}", &msg[13..14]);
-                    Some((msg.to_string(), *epoch))
-                }
-            },
-            _ => {
-                //println!("12..13: {:?}", &msg[12..13]);
-                Some((msg.to_string(), *epoch))
-            }
+    let cols: Vec<&str> = msg.split(',').collect();
+    match cols[5] {
+        tx if (&tx[0..1] == ";" || &tx[0..1] == "I" || &tx[0..1] == "J") => {
+            //println!("skipped {:?}", msg);
+            None
         }
-    } else {
-        Some((msg.to_string(), *epoch))
+        _ => Some((msg.to_string(), *epoch)),
     }
 }
 
