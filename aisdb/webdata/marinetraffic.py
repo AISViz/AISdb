@@ -42,7 +42,7 @@ class scrape_tonnage():
         print(url, end='\t')
         self.driver.get(url)
 
-        WebDriverWait(self.driver, 15).until(loaded)
+        WebDriverWait(self.driver, 60).until(loaded)
 
         if 'asset_type' in self.driver.current_url:
             for elem in self.driver.find_elements_by_partial_link_text(""):
@@ -52,7 +52,7 @@ class scrape_tonnage():
                         f'multiple entries found for {mmsi=} {imo=} ! fetching {url}'
                     )
                     self.driver.get(url)
-                    WebDriverWait(self.driver, 15).until(loaded)
+                    WebDriverWait(self.driver, 60).until(loaded)
                     break
 
         elif self.driver.title[0:3] == '404':
@@ -70,28 +70,53 @@ class scrape_tonnage():
             print(0)
             return 0
 
-    def get_tonnage_mmsi_imo(self, mmsi, imo, retry_zero=False):
+    def get_tonnage_mmsi_imo(self,
+                             mmsi,
+                             imo,
+                             retry_zero=False,
+                             skip_missing=True):
         # if not 201000000 <= mmsi < 776000000: return 0
         # return 0
-        if not 1000000 <= imo < 9999999: imo = 0
+        if not 1000000 <= imo < 9999999:
+            imo = 0
 
         with index(bins=False,
                    store=True,
                    storagedir=data_dir,
                    filename=self.filename) as web:
-            # TODO: prune bad checksums in local db
-            '''
-            exists = web.serialized(
-                dict(mmsi=mmsi, imo=imo),
-                seed='dwt marinetraffic.com',
-            )
-            '''
-            tonnage = web(callback=self.tonnage_callback,
-                          mmsi=mmsi,
-                          imo=imo,
-                          seed='dwt marinetraffic.com')[0]
 
-        if tonnage == '-': return 0
+            seed = web.hash_seed(
+                callback=self.tonnage_callback,
+                passkwargs=dict(
+                    mmsi=mmsi,
+                    imo=imo,
+                    seed='dwt marinetraffic.com',
+                ),
+            )
+
+            if skip_missing and not web.serialized(seed=seed):
+                print(f'skip {mmsi} {imo}')
+                return 0
+
+            tonnage = web(
+                callback=self.tonnage_callback,
+                mmsi=mmsi,
+                imo=imo,
+                seed='dwt marinetraffic.com',
+            )[0]
+
+            if tonnage == 0 and mmsi >= 350000000 and retry_zero:
+                print(f'retry {mmsi} {imo}')
+                web.drop_hash(seed=seed)
+                tonnage = web(
+                    callback=self.tonnage_callback,
+                    mmsi=mmsi,
+                    imo=imo,
+                    seed='dwt marinetraffic.com',
+                )[0]
+
+        if tonnage == '-':
+            return 0
 
         return int(tonnage)
 

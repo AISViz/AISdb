@@ -29,49 +29,6 @@ class index():
         Optionally can also store True/False instead of binary, segment
         a bounding-box coordinate region into smaller partitions, and
         run tasks in parallel
-
-        Example:
-
-        >>> import os
-        >>> import time
-        >>> import json
-        >>> from datetime import datetime, timedelta
-
-        >>> def callback(**kwargs):
-        ...     print(f'hello from {os.getpid()}\\n{json.dumps(kwargs, default=str, indent=1)}')
-        ...     time.sleep(0.5)
-        ...     return str(datetime.now().time())
-
-        >>> def parallelized_callback(**kwargs):
-        ...     print(f'hello from {os.getpid()}\t{kwargs}')
-        ...     time.sleep(1)
-        ...     return None
-
-
-        define some boundaries using or subsetting these dict keys
-        (only used when bins=True)
-
-        >>> kwargs = {
-        ...         'west':    -123.45,     'east':    -110.01,
-        ...         'south':    43.21,      'north':    46.54,
-        ...         'bottom':   5000,       'top':      0,
-        ...         'start':    datetime(2000, 1, 1, 0, 0),
-        ...         'end':      datetime(2000, 1, 2, 0, 0)
-        ...         }
-
-        here kwargs will define 21 function calls using default
-        2-degree coordinate binning
-
-        >>> with index(bins=True, store=True, **kwargs) as scheduler:
-        ...     results = scheduler(callback=callback,
-        ...                         testarg='some arg',
-        ...                         anotherarg='args will salt hashes')
-        >>> print(results)
-
-        and again, but this time in parallel
-
-        >>> with parallelindex(pool=10, **kwargs) as scheduler:
-        ...     scheduler(callback=parallelized_callback, newargument='test')
     '''
 
     def hash_seed(self, callback, passkwargs={}):

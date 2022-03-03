@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.66
+-------
+
+update web scraping
+
+
 v1.0.65
 -------
 
