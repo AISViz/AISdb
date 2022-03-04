@@ -86,6 +86,21 @@ def writepickle(tracks, fpath=os.path.join(output_dir, 'tracks.pickle')):
             pickle.dump(track, f)
 
 
+def readpickle(fpath=os.path.join(output_dir, 'tracks.pickle')):
+    results = []
+    with open(fpath, 'rb') as f:
+        while True:
+            try:
+                getrow = pickle.load(f)
+            except EOFError:
+                break
+            except Exception as e:
+                raise e
+            results.append(getrow)
+
+    return results
+
+
 def glob_files(dirpath, ext='.txt', keyorder=lambda key: key):
     ''' walk a directory to glob txt files. can be used with ZoneGeomFromTxt()
 

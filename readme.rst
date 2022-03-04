@@ -63,7 +63,7 @@ The package can be installed using pip:
 
 .. code-block:: sh
 
-  python3 -m venv env_aisdb --upgrade
+  python3 -m venv env_aisdb
   source env_aisdb/bin/activate
   python3 -m pip install --verbose 'git+https://gitlab.meridian.cs.dal.ca/public_projects/aisdb#egg=aisdb'
 

@@ -74,7 +74,7 @@ class scrape_tonnage():
                              mmsi,
                              imo,
                              retry_zero=False,
-                             skip_missing=True):
+                             skip_missing=False):
         # if not 201000000 <= mmsi < 776000000: return 0
         # return 0
         if not 1000000 <= imo < 9999999:
@@ -105,7 +105,7 @@ class scrape_tonnage():
                 seed='dwt marinetraffic.com',
             )[0]
 
-            if tonnage == 0 and mmsi >= 350000000 and retry_zero:
+            if tonnage == 0 and retry_zero:
                 print(f'retry {mmsi} {imo}')
                 web.drop_hash(seed=seed)
                 tonnage = web(

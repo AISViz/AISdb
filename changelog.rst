@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.67
+-------
+
+update readme install text and proc_util
+
+
 v1.0.66
 -------
 
