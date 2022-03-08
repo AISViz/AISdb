@@ -80,14 +80,15 @@ def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
                         map(str.rstrip, map(str, r)))), rows)) + '\n')
 
 
-def writepickle(tracks, fpath=os.path.join(output_dir, 'tracks.pickle')):
+def writebinary(tracks, fpath=os.path.join(output_dir, 'tracks.vec')):
     with open(fpath, 'wb') as f:
         for track in tracks:
             pickle.dump(track, f)
 
 
-def readpickle(fpath=os.path.join(output_dir, 'tracks.pickle')):
+def readbinary(fpath=os.path.join(output_dir, 'tracks.vec'), count=None):
     results = []
+    n = 0
     with open(fpath, 'rb') as f:
         while True:
             try:
@@ -96,7 +97,10 @@ def readpickle(fpath=os.path.join(output_dir, 'tracks.pickle')):
                 break
             except Exception as e:
                 raise e
+            n += 1
             results.append(getrow)
+            if count is not None and n >= count:
+                break
 
     return results
 
