@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.69
+-------
+
+update testing
+
+
 v1.0.68
 -------
 

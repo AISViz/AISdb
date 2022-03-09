@@ -10,6 +10,8 @@ services:
       target: test_rust
       context: .
       dockerfile: ./docker/Dockerfile
+    environment:
+      - RUST_BACKTRACE=1
     networks:
       - ipv6_private
 
@@ -19,6 +21,8 @@ services:
       target: test_python
       context: .
       dockerfile: ./docker/Dockerfile
+    environment:
+      - RUST_BACKTRACE=1
     networks:
       - ipv6_private
 

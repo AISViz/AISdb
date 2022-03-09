@@ -10,7 +10,7 @@ from aisdb.database.sqlfcn_callbacks import (
 from aisdb.gis import Domain
 from aisdb.track_gen import (
     fence_tracks,
-    segment_tracks_encode_greatcircledistance,
+    encode_greatcircledistance,
     TrackGen,
 )
 from aisdb.network_graph import serialize_network_edge
@@ -49,7 +49,7 @@ def test_network_graph_geofencing():
     sample_dynamictable_insertdata()
     # processing configs
     distsplit = partial(
-        segment_tracks_encode_greatcircledistance,
+        encode_greatcircledistance,
         maxdistance=250000,
         cuttime=timedelta(weeks=1),
         cutknots=45,
@@ -89,7 +89,7 @@ def test_network_graph_merged_serialized():
     args.check_idx()
 
     distsplit = partial(
-        segment_tracks_encode_greatcircledistance,
+        encode_greatcircledistance,
         maxdistance=250000,
         cuttime=timedelta(weeks=1),
         cutknots=45,

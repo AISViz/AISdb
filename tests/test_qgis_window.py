@@ -12,7 +12,7 @@ from aisdb.database.dbqry import DBQuery
 from aisdb.database.sqlfcn_callbacks import in_validmmsi_bbox
 from aisdb.gis import Domain
 from aisdb.qgis_window import ApplicationWindow
-from aisdb.track_gen import TrackGen, segment_tracks_encode_greatcircledistance
+from aisdb.track_gen import TrackGen, encode_greatcircledistance
 from tests.create_testing_data import zonegeoms_or_randompoly
 
 # Available platform plugins are: eglfs, linuxfb, minimal, minimalegl,
@@ -68,11 +68,13 @@ def plot_processed_track(viz):
     )
     rowgen = args.gen_qry()
 
-    distsplit = partial(segment_tracks_encode_greatcircledistance,
-                        maxdistance=250000,
-                        cuttime=timedelta(weeks=1),
-                        cutknots=45,
-                        minscore=5e-07)
+    distsplit = partial(
+        encode_greatcircledistance,
+        maxdistance=250000,
+        cuttime=timedelta(weeks=1),
+        cutknots=45,
+        minscore=5e-07,
+    )
     tracks = distsplit(TrackGen(rowgen))
     #tracks = distsplit(TrackGen(mmsifilter(rowgen, mmsis=testmmsi)))
 

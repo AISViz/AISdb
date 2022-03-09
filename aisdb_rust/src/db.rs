@@ -187,8 +187,6 @@ mod tests {
     use std::path::Path;
 
     use super::*;
-    use crate::decode::decodemsgs;
-    use crate::util::glob_dir;
 
     #[test]
     fn test_create_statictable() -> Result<()> {
@@ -212,58 +210,6 @@ mod tests {
         let tx = conn.transaction().expect("begin transaction");
         let _ = sqlite_createtable_dynamicreport(&tx, mstr).expect("creating tables");
         tx.commit().expect("commit to DB!");
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_insert_static_msgs() -> Result<()> {
-        let mstr = "00test00";
-        let mut conn = get_db_conn(Path::new(":memory:")).expect("getting db conn");
-        let tx = conn.transaction().expect("begin transaction");
-        let _ = sqlite_createtable_staticreport(&tx, mstr).expect("creating tables");
-        tx.commit().expect("commit to DB!");
-
-        let mut n = 0;
-
-        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").unwrap();
-
-        for filepath in fpaths {
-            if n > 3 {
-                break;
-            }
-            n += 1;
-            let (_positions, stat_msgs) = decodemsgs(&filepath);
-            let tx = conn.transaction().expect("begin transaction");
-            let _ = sqlite_insert_static(&tx, stat_msgs, mstr);
-            tx.commit().expect("commit to DB!");
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_insert_dynamic_msgs() -> Result<()> {
-        let mstr = "00test00";
-        let mut conn = get_db_conn(Path::new(":memory:")).expect("getting db conn");
-        let tx = conn.transaction().expect("begin transaction");
-        let _ = sqlite_createtable_dynamicreport(&tx, mstr).expect("creating tables");
-        tx.commit().expect("commit to DB!");
-
-        let mut n = 0;
-
-        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").unwrap();
-
-        for filepath in fpaths {
-            if n > 3 {
-                break;
-            }
-            n += 1;
-            let (positions, _stat_msgs) = decodemsgs(&filepath);
-            let tx = conn.transaction().expect("begin transaction");
-            let _ = sqlite_insert_dynamic(&tx, positions, mstr);
-            tx.commit().expect("commit to DB!");
-        }
 
         Ok(())
     }
