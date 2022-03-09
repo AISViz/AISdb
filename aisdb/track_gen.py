@@ -132,8 +132,8 @@ def TrackGen(
             )
 
 
-def segment_tracks_timesplits(tracks, maxdelta=timedelta(weeks=2)):
-    ''' partitions tracks where delta time exceedds maxdelta
+def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
+    ''' partitions tracks where delta time exceeds maxdelta
 
         args:
             tracks (aisdb.track_gen.TrackGen)
@@ -154,11 +154,11 @@ def segment_tracks_timesplits(tracks, maxdelta=timedelta(weeks=2)):
             )
 
 
-def segment_tracks_encode_greatcircledistance(tracks,
-                                              maxdistance,
-                                              cuttime,
-                                              cutknots=50,
-                                              minscore=1e-6):
+def encode_greatcircledistance(tracks,
+                               maxdistance,
+                               cuttime,
+                               cutknots=50,
+                               minscore=1e-6):
     ''' partitions tracks where delta speeds exceed cutknots.
         concatenates track segments with the highest likelihood of being
         sequential, as encoded by a distance/time score function
@@ -197,6 +197,10 @@ def segment_tracks_encode_greatcircledistance(tracks,
     score_idx = lambda scores: np.where(scores == np.max(scores))[0][-1]
     n = 0
     for track in tracks:
+
+        if len(track['time']) <= 1:
+            continue
+
         # segments_idx = np.nonzero(np.array(list(map(haversine,
         # track['lon'][:-1], track['lat'][:-1],
         # track['lon'][1:], track['lat'][1:]))) > 5000)[0]+1
@@ -401,10 +405,11 @@ def concat_occurs_after(tracks, grace_period=300):
 
 
 def fence_tracks(tracks, domain):
-    ''' compute points-in-polygons for track positional reports in domain
-        polygons
+    ''' compute points-in-polygons for vessel positions within domain polygons
 
         yields track dictionaries
+
+        Also see zone_mask()
     '''
     for track in tracks:
         if 'in_zone' not in track.keys():
@@ -415,3 +420,23 @@ def fence_tracks(tracks, domain):
                                         dtype=object)
             track['dynamic'] = set(track['dynamic']).union(set(['in_zone']))
         yield track
+
+
+def zones_mask(tracks, domain):
+    ''' compute points-in-polygons for track positions, and filter results to
+        positions within domain.
+
+        yields track dictionaries.
+
+        also see fence_tracks()
+    '''
+    for track in fence_tracks(tracks, domain):
+        mask = track['in_zone'] != 'Z0'
+        yield dict(
+            **{k: track[k]
+               for k in track['static']},
+            **{k: track[k][mask]
+               for k in track['dynamic']},
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )

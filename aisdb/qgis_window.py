@@ -199,6 +199,9 @@ class ApplicationWindow(QMainWindow):
         # start qgis
         QgsApplication.setPrefixPath('/usr', True)
         self.qgs = QgsApplication([], True)
+        if not os.path.isdir(output_dir):
+            print(f'creating directory: {output_dir}')
+            os.mkdir(output_dir)
         if not os.path.isdir(testpath := os.path.join(output_dir, 'png')):
             print(f'creating directory: {testpath}')
             os.mkdir(testpath)
@@ -208,7 +211,7 @@ class ApplicationWindow(QMainWindow):
         # self.qgs.setApplicationName('ais_track_viz')
         # self.qgs.setApplicationDisplayName('ais_track_viz')
         self.setWindowTitle('ais_track_viz')
-        self.qgs.setMaxThreads(8)
+        #self.qgs.setMaxThreads(8)
 
         # init project and coordinate reference system
         self.project = QgsProject.instance()

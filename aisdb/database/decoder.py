@@ -43,9 +43,19 @@ def decode_msgs(filepaths, dbpath, vacuum=True):
     batchsize = 5
 
     assert len(filepaths) > 0
+
     rustbinary = os.path.abspath(
         os.path.join(os.path.dirname(__file__), '..', '..', 'aisdb_rust',
                      'target', 'release', 'aisdb'))
+
+    testbinary = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), '..', '..', 'aisdb_rust',
+                     'target', 'debug', 'aisdb'))
+
+    if os.path.isfile(testbinary) and os.environ.get('RUST_BACKTRACE') == 1:
+        print('using debug binary...')
+        rustbinary = testbinary
+
     assert os.path.isfile(rustbinary), 'cant find rust executable!'
     dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
 

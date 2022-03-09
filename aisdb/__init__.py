@@ -163,14 +163,17 @@ with import_handler() as importconfigs:
     from .proc_util import (
         fast_unzip,
         glob_files,
-        writecsv,
+        read_binary,
+        write_binary,
+        write_csv,
     )
 
     from .track_gen import (
         TrackGen,
-        segment_tracks_timesplits,
+        split_timedelta,
         fence_tracks,
         max_tracklength,
+        encode_greatcircledistance,
     )
 
     from .wsa import wsa

@@ -16,9 +16,9 @@ from gis import (
     epoch_2_dt,
 )
 from track_gen import (
+    encode_greatcircledistance,
     fence_tracks,
-    segment_tracks_encode_greatcircledistance,
-    segment_tracks_timesplits,
+    split_timedelta,
 )
 from webdata.merge_data import merge_layers
 from proc_util import _segment_rng
@@ -248,8 +248,8 @@ def aggregate_output(filename='output.csv',
 
 def graph_cpu_bound(track, domain, **params):
     ''' will probably be removed in a later version '''
-    timesplit = partial(segment_tracks_timesplits, maxdelta=params['cuttime'])
-    distsplit = partial(segment_tracks_encode_greatcircledistance, **params)
+    timesplit = partial(split_timedelta, maxdelta=params['cuttime'])
+    distsplit = partial(encode_greatcircledistance, **params)
     geofenced = partial(fence_tracks, domain=domain)
     serialize = partial(serialize_network_edge, domain=domain)
     #list(serialize(geofenced(split_len(distsplit(timesplit([track]))))))

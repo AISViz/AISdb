@@ -71,7 +71,7 @@ def _segment_rng(track: dict, maxdelta: timedelta, minsize: int) -> filter:
                  splits_idx(track)[1:])))
 
 
-def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
+def write_csv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
     with open(pathname, mode) as f:
         f.write('\n'.join(
             map(
@@ -80,13 +80,13 @@ def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
                         map(str.rstrip, map(str, r)))), rows)) + '\n')
 
 
-def writebinary(tracks, fpath=os.path.join(output_dir, 'tracks.vec')):
+def write_binary(tracks, fpath=os.path.join(output_dir, 'tracks.vec')):
     with open(fpath, 'wb') as f:
         for track in tracks:
             pickle.dump(track, f)
 
 
-def readbinary(fpath=os.path.join(output_dir, 'tracks.vec'), count=None):
+def read_binary(fpath=os.path.join(output_dir, 'tracks.vec'), count=None):
     results = []
     n = 0
     with open(fpath, 'rb') as f:

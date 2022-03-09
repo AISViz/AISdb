@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.68
+-------
+
+vessel positions polygon masking, update function names, and minor changes
+
+
 v1.0.67
 -------
 
