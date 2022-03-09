@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.70
+-------
+
+fix bug in rust decoder
+
+
 v1.0.69
 -------
 

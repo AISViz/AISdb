@@ -77,8 +77,15 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
 pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
     //println!("{:?}", msg);
     let cols: Vec<&str> = msg.split(',').collect();
-    match cols[5] {
-        tx if (&tx[0..1] == ";" || &tx[0..1] == "I" || &tx[0..1] == "J") => {
+    if cols.len() < 6 {
+        return Some((msg.to_string(), *epoch));
+    }
+    match (cols[0], cols[5]) {
+        (prefix, tx)
+            if &tx.chars().count() > &2
+                && (&tx[0..1] == ";" || &tx[0..1] == "I" || &tx[0..1] == "J")
+                && (prefix == "!AIVDM" || prefix == "!AIVDO") =>
+        {
             //println!("skipped {:?}", msg);
             None
         }
