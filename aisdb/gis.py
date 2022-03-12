@@ -115,6 +115,38 @@ def radial_coordinate_boundary(x, y, radius=100000):
     }
 
 
+def distance3D(x1, y1, x2, y2, depth_metres):
+    ''' haversine/pythagoras approximation of vessel distance to
+        point at given depth
+    '''
+    a2 = haversine(x1=x1, y1=y1, x2=x2, y2=y2)**2
+    b2 = depth_metres**2
+    c2 = a2 + b2
+    return np.sqrt(c2)
+
+
+def vesseltrack_3D_dist(tracks, x1, y1, z1):
+    ''' appends approximate distance to point at every position
+
+        x1 (float)
+            point longitude
+        y1 (float)
+            point latitude
+        z1 (float)
+            point depth (metres)
+
+    '''
+    for track in tracks:
+        #track['dynamic'].update(['distance_metres'])
+        track['dynamic'] = track['dynamic'].union(set(['distance_metres']))
+        dists = [
+            distance3D(x1=x1, y1=y1, x2=x, y2=y, depth_metres=z1)
+            for x, y in zip(track['lon'], track['lat'])
+        ]
+        track['distance_metres'] = np.array(dists, dtype=object)
+        yield track
+
+
 class ZoneGeom():
     ''' class describing polygon coordinate geometry
 

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.71
+-------
+
+compute vessel distance to submerged location
+
+
 v1.0.70
 -------
 
