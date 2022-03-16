@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.76
+-------
+
+minor fixes and code cleanup
+
+
 v1.0.75
 -------
 

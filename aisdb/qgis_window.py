@@ -413,7 +413,7 @@ class ApplicationWindow(QMainWindow):
             return
 
         if zone is not None:
-            geom = zone.Geometry
+            geom = zone.geometry
 
         if geom.type == 'LineString' or geom.type == 'Polygon':
             xmin = min(xmin, np.min(geometry.xy[0]))

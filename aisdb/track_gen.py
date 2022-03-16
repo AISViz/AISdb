@@ -13,20 +13,9 @@ from proc_util import _segment_rng
 def TrackGen(
     rowgen: iter,
     colnames: list = [
-        'mmsi',
-        'time',
-        'lon',
-        'lat',
-        'imo',
-        'vessel_name',
-        'dim_bow',
-        'dim_stern',
-        'dim_port',
-        'dim_star',
-        'ship_type',
-        'ship_type_txt',
-    ],
-    deduplicate_timestamps: bool = False,
+        'mmsi', 'time', 'lon', 'lat', 'imo', 'vessel_name', 'dim_bow',
+        'dim_stern', 'dim_port', 'dim_star', 'ship_type', 'ship_type_txt'
+    ]
 ) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
@@ -88,24 +77,13 @@ def TrackGen(
         'imo',
     ])
 
-    dynamiccols = set(colnames) - staticcols  # - set(['mmsi', 'time'])
+    dynamiccols = set(colnames) - staticcols
 
     for rows in rowgen:
 
         if rows is None or (rows.size <= 1):
             raise ValueError(
                 'cannot create vector from zero-size track segment')
-
-        if deduplicate_timestamps:
-            warnings.warn('timestamps deduplication is deprecated')
-            dupe_idx = np.append(
-                [False],
-                np.logical_and(
-                    rows[:, time_col].astype(float).astype(int)[:-1] ==
-                    rows[:, time_col].astype(float).astype(int)[1:],
-                    rows[:, mmsi_col].astype(float).astype(int)[:-1] ==
-                    rows[:, mmsi_col].astype(float).astype(int)[1:]))
-            rows = np.delete(rows, dupe_idx, axis=0)
 
         tracks_idx = np.append(
             np.append([0],
@@ -114,8 +92,6 @@ def TrackGen(
             rows.size)
 
         for i in range(len(tracks_idx) - 1):
-            # assert len(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]) \
-            # == len(np.unique(rows[tracks_idx[i]:tracks_idx[i+1]].T[1]))
             yield dict(
                 **{
                     n: (rows[tracks_idx[i]][c] or 0)
@@ -144,14 +120,19 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
     '''
     for track in tracks:
         for rng in _segment_rng(track, maxdelta, minsize=1):
-            yield dict(
-                **{k: track[k]
-                   for k in track['static']},
-                **{k: track[k][rng]
-                   for k in track['dynamic']},
-                static=track['static'],
-                dynamic=track['dynamic'],
-            )
+            try:
+                yield dict(
+                    **{k: track[k]
+                       for k in track['static']},
+                    **{k: track[k][rng]
+                       for k in track['dynamic']},
+                    static=track['static'],
+                    dynamic=track['dynamic'],
+                )
+            except KeyError as err:
+                raise KeyError(
+                    f'{err.with_traceback(None)} not found in {track.keys() = }'
+                )
 
 
 def encode_greatcircledistance(tracks,
@@ -176,23 +157,11 @@ def encode_greatcircledistance(tracks,
                 minimum score threshold at which to allow track
                 segments to be linked
     '''
-    '''
-    score_fcn = lambda xy1,xy2,t1,t2,distance_meters=maxdistance: (
-                            #((distance_meters) / max(5, haversine(*xy1, *xy2))) / max(2, np.abs(t2-t1))
-                            ((distance_meters) / max(5, dm)) / max(2, dt)
-                            if
-                            (dm := haversine(*xy1, *xy2)) < maxdistance
-                            and (dt := abs(t2-t1)) < cuttime.total_seconds() / 60
-                            else -1
-                        )
-    '''
     score_fcn = lambda xy1, xy2, t1, t2, distance_meters=maxdistance: (
         (distance_meters / dm) / dt
         if (dm := max(haversine(*xy1, *xy2), 2)) / (
             (dt := max(abs(t2 - t1), 2)
-             )) * 1.9438444924406 < cutknots and dm < distance_meters
-        #and dt < cuttime.total_seconds() / 60
-        else -1)
+             )) * 1.9438444924406 < cutknots and dm < distance_meters else -1)
 
     score_idx = lambda scores: np.where(scores == np.max(scores))[0][-1]
     n = 0
@@ -200,10 +169,6 @@ def encode_greatcircledistance(tracks,
 
         if len(track['time']) <= 1:
             continue
-
-        # segments_idx = np.nonzero(np.array(list(map(haversine,
-        # track['lon'][:-1], track['lat'][:-1],
-        # track['lon'][1:], track['lat'][1:]))) > 5000)[0]+1
 
         segments_idx = reduce(
             np.append, ([0], np.where(delta_knots(track) > cutknots)[0] + 1,
@@ -286,31 +251,8 @@ def encode_greatcircledistance(tracks,
         for pathway, label in zip(pathways, range(n, len(pathways) + n)):
             pathway['label'] = label
             pathway['static'] = set(pathway['static']).union({'label'})
+            assert 'label' in pathway.keys()
             yield pathway
-
-
-'''
-def mmsirange(tracks, low=200000000, high=780000000):
-    for track in tracks:
-        if track['mmsi'] < low:
-            continue
-        elif low <= track['mmsi'] <= high:
-            yield track
-        else:  # track['mmsi'] > high:
-            return
-
-
-def mmsifilter(rowgen, mmsis=[]):
-    for row in rowgen:
-        print(row[0][0], end='\r')
-        if row[0][0] in mmsis:
-            yield row
-        if sum([row[0][0] < mmsi for mmsi in mmsis]) == len(mmsis):
-            continue
-        elif sum([row[0][0] > mmsi for mmsi in mmsis]) == len(mmsis):
-            print()
-            return
-'''
 
 
 def max_tracklength(tracks, max_length=100000):
@@ -376,34 +318,6 @@ def concat_realisticspeed(tracks, knots_threshold=50):
     yield segment
 
 
-def concat_occurs_after(tracks, grace_period=300):
-    ''' concatenate sequential tracks
-
-        if two consecutive tracks have the same mmsi and are temporally
-        sequential, concatenate them
-
-        by default allow a grace period to account for receiver delay
-    '''
-    segment = next(tracks)
-    for track in tracks:
-        if (segment['mmsi'] == track['mmsi']
-                and segment['time'][-1] - grace_period < track['time'][0]):
-            segment = dict(
-                **{k: segment[k]
-                   for k in segment['static']},
-                **{
-                    k: np.append(segment[k], track[k])
-                    for k in track['dynamic']
-                },
-                static=track['static'],
-                dynamic=set(track['dynamic']),
-            )
-        else:
-            yield segment
-            segment = track
-    yield segment
-
-
 def fence_tracks(tracks, domain):
     ''' compute points-in-polygons for vessel positions within domain polygons
 
@@ -413,16 +327,19 @@ def fence_tracks(tracks, domain):
     '''
     for track in tracks:
         if 'in_zone' not in track.keys():
-            track['in_zone'] = np.array([
-                domain.point_in_polygon(x, y)
-                for x, y in zip(track['lon'], track['lat'])
-            ],
-                                        dtype=object)
+            track['in_zone'] = np.array(
+                [
+                    domain.point_in_polygon(x, y)
+                    for x, y in zip(track['lon'], track['lat'])
+                ],
+                dtype=object,
+            )
+            #track['dynamic'].update(['in_zone'])
             track['dynamic'] = set(track['dynamic']).union(set(['in_zone']))
         yield track
 
 
-def zones_mask(tracks, domain):
+def zone_mask(tracks, domain):
     ''' compute points-in-polygons for track positions, and filter results to
         positions within domain.
 
