@@ -5,10 +5,12 @@ from functools import partial, reduce
 from datetime import datetime, timedelta
 import pickle
 import re
+import csv
 
 import numpy as np
 
-from common import output_dir
+from aisdb.common import output_dir
+from aisdb.gis import epoch_2_dt
 
 
 def _fast_unzip(zipf, dirname='.'):
@@ -59,25 +61,89 @@ def binarysearch(arr, search, descending=False):
 
 def _segment_rng(track: dict, maxdelta: timedelta, minsize: int) -> filter:
     assert isinstance(track, dict), f'wrong track type {type(track)}:\n{track}'
-    splits_idx = lambda track: np.append(
-        np.append([0],
-                  np.nonzero(track['time'][1:] - track['time'][:-1] >= maxdelta
-                             .total_seconds() / 60)[0] + 1),
-        [track['time'].size])
+
+    def _splits_idx(track):
+        splits = np.nonzero(
+            track['time'][1:] -
+            track['time'][:-1] >= maxdelta.total_seconds() / 60)[0] + 1
+        idx = np.append(np.append([0], splits), [track['time'].size])
+        return idx
+
     return filter(
         lambda seg: len(seg) >= minsize,
         list(map(range,
-                 splits_idx(track)[:-1],
-                 splits_idx(track)[1:])))
+                 _splits_idx(track)[:-1],
+                 _splits_idx(track)[1:])))
 
 
-def write_csv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
+def write_csv_rows(rows,
+                   pathname='/data/smith6/ais/scripts/output.csv',
+                   mode='a'):
     with open(pathname, mode) as f:
         f.write('\n'.join(
             map(
                 lambda r: ','.join(
                     map(lambda r: r.replace(',', '').replace('#', ''),
                         map(str.rstrip, map(str, r)))), rows)) + '\n')
+
+
+def _datetime_column(tracks):
+    for track in tracks:
+        track['datetime'] = np.array(
+            epoch_2_dt(track['time'].astype(int)),
+            dtype=object,
+        )
+        track['dynamic'] = track['dynamic'].union(set(['datetime']))
+        yield track
+
+
+def write_csv(
+    tracks,
+    fpath,
+    skipcols=['mmsi', 'label', 'in_zone', 'ship_type'],
+):
+
+    cols = [
+        'mmsi', 'time', 'datetime', 'lon', 'lat', 'vessel_name',
+        'ship_type_txt', 'imo', 'dim_bow', 'dim_stern', 'dim_star', 'dim_port'
+    ]
+    tracks_dt = _datetime_column(tracks)
+
+    tr1 = next(tracks_dt)
+
+    colnames = (
+        cols + [f for f in tr1['dynamic'] if f not in cols + skipcols] +
+        [f for f in list(tr1['static'])[::-1] if f not in cols + skipcols])
+
+    decimals = {
+        'lon': 5,
+        'lat': 5,
+        'depth_metres': 2,
+        'distance_metres': 2,
+        'submerged_hull_m^2': 0,
+    }
+
+    def _append(track, writer, colnames=colnames, decimals=decimals):
+        for i in range(0, track['time'].size):
+            row = [(track[c][i] if c in track['dynamic'] else
+                    (track[c] if track[c] != 0 else '')) for c in colnames]
+            for ci, r in zip(range(len(colnames)), row):
+                if colnames[ci] in decimals.keys() and r != '':
+                    row[ci] = f'{r:.{decimals[colnames[ci]]}f}'
+
+            writer.writerow(row)
+
+    with open(fpath, 'w', newline='') as f:
+        f.write(','.join(colnames) + '\n')
+        writer = csv.writer(f,
+                            delimiter=',',
+                            quoting=csv.QUOTE_NONE,
+                            dialect='unix')
+        _append(tr1, writer, colnames, decimals)
+        for track in tracks_dt:
+            _append(track, writer, colnames, decimals)
+
+    return
 
 
 def write_binary(tracks, fpath=os.path.join(output_dir, 'tracks.vec')):

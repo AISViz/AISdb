@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.75
+-------
+
+update CSV functions for new DB format
+
+
 v1.0.74
 -------
 
