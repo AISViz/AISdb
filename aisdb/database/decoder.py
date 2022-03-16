@@ -10,7 +10,7 @@ from aisdb.index import index
 from aisdb.database.dbconn import DBConn
 
 
-def decode_msgs(filepaths, dbpath, vacuum=True):
+def decode_msgs(filepaths, dbpath, vacuum=True, skip_checksum=False):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
@@ -35,9 +35,9 @@ def decode_msgs(filepaths, dbpath, vacuum=True):
 
         example:
 
-        >>> from aisdb import dbpath, decode_msgs
+            >>> from aisdb import dbpath, decode_msgs
         >>> filepaths = ['~/ais/rawdata_dir/20220101.nm4',
-        ...              '~/ais/rawdata_dir/20220102.nm4']
+                ...              '~/ais/rawdata_dir/20220102.nm4']
         >>> decode_msgs(filepaths, dbpath)
     '''
     batchsize = 5
@@ -59,16 +59,19 @@ def decode_msgs(filepaths, dbpath, vacuum=True):
     assert os.path.isfile(rustbinary), 'cant find rust executable!'
     dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
 
-    print('checking file signatures...')
-
     with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
-        for i in range(len(filepaths) - 1, -1, -1):
+        if not skip_checksum:
+            print('checking file signatures...')
 
-            with open(os.path.abspath(filepaths[i]), 'rb') as f:
-                signature = md5(f.read(1000)).hexdigest()
+            for i in range(len(filepaths) - 1, -1, -1):
 
-            if dbindex.serialized(seed=signature):
-                print(f'found matching checksum, skipping {filepaths.pop(i)}')
+                with open(os.path.abspath(filepaths[i]), 'rb') as f:
+                    signature = md5(f.read(1000)).hexdigest()
+
+                if dbindex.serialized(seed=signature):
+                    print(
+                        f'found matching checksum, skipping {filepaths.pop(i)}'
+                    )
 
         for j in range(0, len(filepaths), batchsize):
 
@@ -78,10 +81,11 @@ def decode_msgs(filepaths, dbpath, vacuum=True):
 
             subprocess.run(cmd, check=True)
 
-            for file in filepaths[j:j + batchsize]:
-                with open(os.path.abspath(file), 'rb') as f:
-                    signature = md5(f.read(1000)).hexdigest()
-                dbindex.insert_hash(seed=signature)
+            if not skip_checksum:
+                for file in filepaths[j:j + batchsize]:
+                    with open(os.path.abspath(file), 'rb') as f:
+                        signature = md5(f.read(1000)).hexdigest()
+                    dbindex.insert_hash(seed=signature)
 
     if vacuum:
         print("finished parsing data\nvacuuming...")

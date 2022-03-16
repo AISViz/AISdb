@@ -50,7 +50,7 @@ def aggregate_static_msgs(dbpath, months_str):
         sqlite_createtable_staticreport(cur, month)
         print(f'aggregating static reports into static_{month}_aggregate...')
         cur.execute(f'SELECT DISTINCT s.mmsi FROM ais_{month}_static AS s')
-        mmsis = np.array(cur.fetchall(), dtype=object).flatten()
+        mmsis = np.array(cur.fetchall(), dtype=int).flatten()
 
         cur.execute(f'DROP TABLE IF EXISTS static_{month}_aggregate')
 
@@ -60,9 +60,10 @@ def aggregate_static_msgs(dbpath, months_str):
 
         agg_rows = []
         for mmsi in mmsis:
-            _ = cur.execute(sql_select, [mmsi])
+            _ = cur.execute(sql_select, (str(mmsi), ))
             cols = np.array(cur.fetchall(), dtype=object).T
             assert len(cols) > 0
+
             filtercols = np.array(
                 [
                     np.array(list(filter(None, col)), dtype=object)
@@ -108,8 +109,11 @@ def aggregate_static_msgs(dbpath, months_str):
 
 createfcns = {
     'msg1': sqlite_createtable_dynamicreport,
+    'msg2': sqlite_createtable_dynamicreport,
+    'msg3': sqlite_createtable_dynamicreport,
     'msg5': sqlite_createtable_staticreport,
     'msg18': sqlite_createtable_dynamicreport,
+    'msg19': sqlite_createtable_dynamicreport,
     'msg24': sqlite_createtable_staticreport,
     'msg27': sqlite_createtable_dynamicreport,
 }

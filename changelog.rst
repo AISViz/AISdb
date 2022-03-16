@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.72
+-------
+
+prevent files from being decoded twice and update vessel type descriptions
+
+
 v1.0.71
 -------
 

@@ -139,7 +139,7 @@ class DBQuery(UserDict):
         aisdatabase.conn.commit()
         aisdatabase.conn.close()
 
-    def run_qry(self, fcn=crawl, dbpath=dbpath, printqry=True):
+    def run_qry(self, fcn=crawl, dbpath=dbpath, printqry=False):
         ''' queries the database
 
             args:
@@ -176,7 +176,7 @@ class DBQuery(UserDict):
         aisdatabase.conn.close()
         return np.array(res, dtype=object)
 
-    def gen_qry(self, fcn=crawl, dbpath=dbpath):
+    def gen_qry(self, fcn=crawl, dbpath=dbpath, printqry=False):
         ''' queries the database using the supplied SQL function and dbpath.
             generator only stores one item at at time before yielding
 
@@ -199,8 +199,9 @@ class DBQuery(UserDict):
         qry = fcn(**self)
 
         # initialize db, run query
-        print(qry)
-        print('\nquerying the database...')
+        if printqry:
+            print(qry)
+        print('querying the database...')
         aisdatabase = DBConn(dbpath)
         dt = datetime.now()
         aisdatabase.cur.execute(qry)
@@ -215,8 +216,6 @@ class DBQuery(UserDict):
                 mmsi_rows = np.array(res, dtype=object)
             else:
                 mmsi_rows = np.vstack((mmsi_rows, np.array(res, dtype=object)))
-
-            print(f'{mmsi_rows[0][0]}', end='\r')
 
             while len(mmsi_rows) > 1 and int(mmsi_rows[0][0]) != int(
                     mmsi_rows[-1][0]):
