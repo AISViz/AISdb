@@ -3,13 +3,13 @@
 import json
 
 import requests
+from selenium.webdriver.support.ui import WebDriverWait
+import numpy as np
 
 from common import data_dir, marinetraffic_VD02_key
 from index import index
-from webdata.scraper import (
-    init_webdriver,
-    WebDriverWait,
-)
+
+from webdata.scraper import Scraper
 
 
 class scrape_tonnage():
@@ -17,6 +17,7 @@ class scrape_tonnage():
     def __init__(self):
         self.filename = 'marinetraffic.db'
         self.driver = None
+        self.baseurl = 'https://www.marinetraffic.com/'
 
     def __enter__(self):
         return self
@@ -30,15 +31,16 @@ class scrape_tonnage():
         # do not return 0 while testing output without calling the API
         # this will pollute the tonnage database
         if self.driver is None:
-            self.driver = init_webdriver()
+            self.scraper = Scraper()
+            self.driver = self.scraper.driver
 
         loaded = lambda drv: 'asset_type' in drv.current_url or '404' == drv.title[
             0:3] or drv.find_elements_by_id('vesselDetails_voyageInfoSection')
 
         if imo == 0:
-            url = f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}'
+            url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}'
         else:
-            url = f'https://www.marinetraffic.com/en/ais/details/ships/mmsi:{mmsi}/imo:{imo}'
+            url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}/imo:{imo}'
         print(url, end='\t')
         self.driver.get(url)
 
@@ -46,11 +48,11 @@ class scrape_tonnage():
 
         if 'asset_type' in self.driver.current_url:
             for elem in self.driver.find_elements_by_partial_link_text(""):
-                if (url := elem.get_attribute('href')) == None: continue
+                if (url := elem.get_attribute('href')) is None:
+                    continue
                 elif 'vessel:' in url:
-                    print(
-                        f'multiple entries found for {mmsi=} {imo=} ! fetching {url}'
-                    )
+                    print(f'multiple entries found for {mmsi=} {imo=}! '
+                          'fetching {url}')
                     self.driver.get(url)
                     WebDriverWait(self.driver, 60).until(loaded)
                     break
@@ -75,9 +77,19 @@ class scrape_tonnage():
                              imo,
                              retry_zero=False,
                              skip_missing=False):
-        # if not 201000000 <= mmsi < 776000000: return 0
-        # return 0
-        if not 1000000 <= imo < 9999999:
+
+        # IMO checksum validation:
+        # https://tarkistusmerkit.teppovuori.fi/coden.htm
+        if 1000000 <= imo < 9999999:
+            checksum = str(
+                np.sum(
+                    np.array(list(map(int, list(str(imo)[:-1])))) *
+                    np.array([7, 6, 5, 4, 3, 2])))[-1]
+            if checksum != str(imo)[-1]:
+                print(f'IMO number failed checksum {mmsi = } {imo = }')
+                imo = 0
+        else:
+            # print(f'IMO number out of range {mmsi = } {imo = }')
             imo = 0
 
         with index(bins=False,

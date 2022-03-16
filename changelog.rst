@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.77
+-------
+
+refactoring web data sources
+
+
 v1.0.76
 -------
 

@@ -48,7 +48,14 @@ class Gebco():
 
         return
 
+    def __init__(self):
+        self.rasterfiles = None
+        self.__enter__()
+
     def __enter__(self):
+        if self.rasterfiles is not None:
+            return self
+
         self.fetch_bathymetry_grid()  # download bathymetry rasters if missing
         Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError
 
