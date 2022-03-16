@@ -2,6 +2,51 @@
 Changelog
 =========
 
+v1.0.74
+-------
+
+updates to network graph pipeline
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Date:      Wed Mar 16 17:54:56 2022 -0300
+#
+# On branch master
+# Your branch is ahead of 'origin/master' by 3 commits.
+#   (use "git push" to publish your local commits)
+#
+# Changes to be committed:
+#	modified:   aisdb/__init__.py
+#	modified:   aisdb/gis.py
+#	modified:   aisdb/network_graph.py
+#	modified:   aisdb/version.py
+#	modified:   changelog.rst
+#
+# Changes not staged for commit:
+#	modified:   aisdb/interp.py
+#	modified:   aisdb/proc_util.py
+#	modified:   aisdb/qgis_window.py
+#	modified:   aisdb/track_gen.py
+#	modified:   aisdb/webdata/__init__.py
+#	modified:   aisdb/webdata/bathymetry.py
+#	modified:   aisdb/webdata/marinetraffic.py
+#	modified:   aisdb/webdata/merge_data.py
+#	modified:   aisdb/webdata/scraper.py
+#	modified:   aisdb/webdata/shore_dist.py
+#	modified:   aisdb_rust/src/db.rs
+#	modified:   aisdb_sql/cte_static_aggregate.sql
+#	modified:   aisdb_sql/select_columns_static.sql
+#	modified:   docs/sphinxbuild.sh
+#
+
+
+v1.0.73
+-------
+
+refactor network graph pipeline
+
+
 v1.0.72
 -------
 

@@ -29,11 +29,17 @@ def dt_2_epoch(dt_arr, t0=datetime(1970, 1, 1, 0, 0, 0)):
 
 def epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
     ''' convert epoch minutes to datetime.datetime '''
-    delta = lambda ep, unit: t0 + timedelta(**{f'{unit}': ep})
+
+    delta = lambda ep, unit: t0 + timedelta(**{unit: ep})
+
     if isinstance(ep_arr, (list, np.ndarray)):
-        return np.array(list(map(partial(delta, unit=unit), ep_arr)))
+        #assert isinstance(ep_arr[0],
+        #                  int), f'{ep_arr[0] = }\tdtype = {type(ep_arr[0])}'
+        return np.array(list(map(partial(delta, unit=unit), map(int, ep_arr))))
+
     elif isinstance(ep_arr, (float, int)):
         return delta(ep_arr, unit=unit)
+
     else:
         raise ValueError('input must be integer or array of integers')
 
@@ -99,13 +105,13 @@ def radial_coordinate_boundary(x, y, radius=100000):
 
     # TODO: compute precise value instead of approximating
     while haversine(x, y, xmin, y) < radius:
-        xmin -= 0.05
+        xmin -= 0.001
     while haversine(x, y, xmax, y) < radius:
-        xmax += 0.05
+        xmax += 0.001
     while haversine(x, y, x, ymin) < radius:
-        ymin -= 0.05
+        ymin -= 0.001
     while haversine(x, y, x, ymax) < radius:
-        ymax += 0.05
+        ymax += 0.001
 
     return {
         'xmin': xmin,
@@ -137,7 +143,6 @@ def vesseltrack_3D_dist(tracks, x1, y1, z1):
 
     '''
     for track in tracks:
-        #track['dynamic'].update(['distance_metres'])
         track['dynamic'] = track['dynamic'].union(set(['distance_metres']))
         dists = [
             distance3D(x1=x1, y1=y1, x2=x, y2=y, depth_metres=z1)

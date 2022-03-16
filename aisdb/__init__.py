@@ -139,18 +139,21 @@ with import_handler() as importconfigs:
     )
 
     from .gis import (
-        dt_2_epoch,
-        epoch_2_dt,
-        haversine,
-        delta_meters,
-        delta_seconds,
-        delta_knots,
-        delta_reported_knots,
-        dms2dd,
-        strdms2dd,
         Domain,
         ZoneGeom,
         ZoneGeomFromTxt,
+        delta_knots,
+        delta_meters,
+        delta_reported_knots,
+        delta_seconds,
+        distance3D,
+        dms2dd,
+        dt_2_epoch,
+        epoch_2_dt,
+        haversine,
+        radial_coordinate_boundary,
+        strdms2dd,
+        vesseltrack_3D_dist,
     )
 
     from .index import index

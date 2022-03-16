@@ -16,12 +16,15 @@ from gis import (
     epoch_2_dt,
 )
 from track_gen import (
+    TrackGen,
     encode_greatcircledistance,
     fence_tracks,
     split_timedelta,
 )
 from webdata.merge_data import merge_layers
 from proc_util import _segment_rng
+
+from aisdb.qgis_window import colorhash
 
 
 def depth_nonnegative(track, zoneset):
@@ -52,18 +55,22 @@ def staticinfo(track):
     return dict(
         mmsi=track['mmsi'],
         imo=track['imo'] or '',
-        label=track['label'] if 'label' in track.keys() else '',
+        #label=track['label'] if 'label' in track.keys() else '',
+        trackID=colorhash(f'{track["mmsi"]}{track["label"]}' if 'label' in
+                          track.keys() else colorhash(f'{track["mmsi"]}')),
         vessel_name=(str(track['vessel_name']).replace("'", '').replace(
             '"', '').replace(',', '').replace('`', '') or ''
                      if str(track['vessel_name']) != "0" else ""),
         vessel_type=track['ship_type_txt'] or '',
         vessel_length=(track['dim_bow'] + track['dim_stern']) or '',
-        hull_submerged_surface_area=track['submerged_hull_m^2']
+        summer_DWT=int(track['deadweight_tonnage'])
+        if 'deadweight_tonnage' in track.keys() else '',
+        hull_submerged_surface_area=f"{track['submerged_hull_m^2']:.0f}"
         if 'submerged_hull_m^2' in track.keys() else '',
     )
 
 
-fstr = lambda s: f'{float(s):.4f}'
+fstr = lambda s: f'{float(s):.2f}'
 
 
 # collect aggregated statistics on vessel positional data
@@ -96,10 +103,10 @@ def transitinfo(track, zoneset):
                                                        zoneset)).astype(int),
         # shore dist
         min_shore_dist=f"{np.min(track['km_from_shore'][zoneset]):.2f}",
-        avg_shore_dist=
-        f"{np.average(track['km_from_shore'][zoneset]) if 'km_from_shore' in track.keys() else None}",
-        max_shore_dist=
-        f"{np.max(track['km_from_shore'][zoneset]) if 'km_from_shore' in track.keys() else None}",
+        avg_shore_dist=f"{np.average(track['km_from_shore'][zoneset]):.2f}"
+        if 'km_from_shore' in track.keys() else None,
+        max_shore_dist=f"{np.max(track['km_from_shore'][zoneset]):.2f}"
+        if 'km_from_shore' in track.keys() else None,
 
         # port dist
         min_port_dist=fstr(np.min(track['km_from_port'][zoneset])),
@@ -246,28 +253,22 @@ def aggregate_output(filename='output.csv',
             output.write('\n'.join(results) + '\n')
 
 
-def graph_cpu_bound(track, domain, **params):
+def graph_cpu_bound(merged, domain, **params):
     ''' will probably be removed in a later version '''
     timesplit = partial(split_timedelta, maxdelta=params['cuttime'])
     distsplit = partial(encode_greatcircledistance, **params)
     geofenced = partial(fence_tracks, domain=domain)
     serialize = partial(serialize_network_edge, domain=domain)
-    #list(serialize(geofenced(split_len(distsplit(timesplit([track]))))))
-    #for t in serialize(geofenced(distsplit([track]))):
-    #    pass
-    for done in serialize(geofenced(distsplit(timesplit([track])))):
-        if done is not None:
-            raise RuntimeError()
+
+    for done in serialize(geofenced(distsplit(timesplit([merged])))):
+        assert done is None
+
     return
 
 
-def graph_blocking_io(tracks, domain):
+def graph_blocking_io(rowgen, domain):
     ''' will probably be removed in a later version '''
-    #for x in TrackGen(rowgen):
-    #for x in merge_tracks_bathymetry(
-    #        merge_tracks_portdist(merge_tracks_shoredist(tracks))):
-    #for x in tracks:
-    for x in merge_layers(tracks):
+    for x in merge_layers(TrackGen(rowgen)):
         yield x
 
 
@@ -354,7 +355,7 @@ def graph(rowgen, domain, parallel=0, **params):
             p.imap_unordered(
                 #fcn, (tr for tr in graph_blocking_io(fpath, domain=domain)),
                 fcn,
-                (r for r in graph_blocking_io(rowgen, domain=domain)),
+                graph_blocking_io(rowgen, domain=domain),
                 chunksize=1)
             p.close()
             p.join()
