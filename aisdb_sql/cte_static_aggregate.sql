@@ -1,7 +1,7 @@
 
   SELECT 
     mmsi, 
-    vessel_name, 
+    TRIM(vessel_name) as vessel_name, 
     ship_type,
     dim_bow, 
     dim_stern, 

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.78
+-------
+
+trim whitespace in SQL select query
+
+
 v1.0.77
 -------
 
