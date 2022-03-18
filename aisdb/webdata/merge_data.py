@@ -14,7 +14,8 @@ def merge_tracks_shoredist(tracks):
             track['km_from_shore'] = np.array([
                 sdist.getdist(x, y) for x, y in zip(track['lon'], track['lat'])
             ])
-            track['dynamic'].update(['km_from_shore'])
+            track['dynamic'] = set(track['dynamic']).union(
+                set(['km_from_shore']))
             yield track
 
 
@@ -25,7 +26,8 @@ def merge_tracks_portdist(tracks):
                 sdist.getportdist(x, y)
                 for x, y in zip(track['lon'], track['lat'])
             ])
-            track['dynamic'].update(['km_from_port'])
+            track['dynamic'] = set(track['dynamic']).union(
+                set(['km_from_port']))
             yield track
 
 
@@ -37,7 +39,8 @@ def merge_tracks_bathymetry(tracks, context=None):
                     bathymetry.getdepth(x, y)
                     for x, y in zip(track['lon'], track['lat'])
                 ]) * -1
-                track['dynamic'].update(['depth_metres'])
+                track['dynamic'] = set(track['dynamic']).union(
+                    set(['depth_metres']))
                 yield track
     else:
         bathymetry = context
@@ -46,23 +49,28 @@ def merge_tracks_bathymetry(tracks, context=None):
                 bathymetry.getdepth(x, y)
                 for x, y in zip(track['lon'], track['lat'])
             ]) * -1
-            track['dynamic'].update(['depth_metres'])
+            track['dynamic'] = set(track['dynamic']).union(
+                set(['depth_metres']))
             yield track
 
 
 def merge_tracks_hullgeom(tracks, retry_zero=False, skip_missing=True):
     with marinetraffic.scrape_tonnage() as hullgeom:
         for track in tracks:
-            assert 'imo' in track.keys()
+            assert 'imo' in track.keys(), f'missing IMO!\n{track = }'
             track['deadweight_tonnage'] = hullgeom.get_tonnage_mmsi_imo(
                 track['mmsi'],
                 track['imo'],
                 retry_zero=retry_zero,
                 skip_missing=skip_missing)
+            assert 'deadweight_tonnage' in track.keys(
+            ), f'missing deadweight tonnage!\n{track = }'
             track['submerged_hull_m^2'] = wsa(track['deadweight_tonnage'],
                                               track['ship_type'] or 0)
-            track['static'].update(
-                ['submerged_hull_m^2', 'deadweight_tonnage'])
+            assert 'submerged_hull_m^2' in track.keys(
+            ), f'missing submerged_hull_m^2!\n{track = }'
+            track['static'] = set(track['static']).union(
+                set(['submerged_hull_m^2', 'deadweight_tonnage']))
             yield track
 
 
@@ -90,20 +98,19 @@ def _mergetrack(track, *, bathymetry, sdist, hullgeom, retry_zero,
         bathymetry.getdepth(x, y) for x, y in zip(track['lon'], track['lat'])
     ])
 
-    #track['depth_border_cells_average'] = np.array([
-    #    bathymetry.getdepth_cellborders_nonnegative_avg(x, y)
-    #    for x, y in zip(track['lon'], track['lat'])
-    #])
-
     # update indices
-    track['static'].update(['submerged_hull_m^2', 'deadweight_tonnage'])
+    track['static'] = set(track['static']).union(
+        set([
+            'submerged_hull_m^2',
+            'deadweight_tonnage',
+        ]))
 
-    track['dynamic'].update([
-        'km_from_shore',
-        'km_from_port',
-        'depth_metres',
-        # 'depth_border_cells_average'
-    ])
+    track['dynamic'] = set(track['dynamic']).union(
+        set([
+            'km_from_shore',
+            'km_from_port',
+            'depth_metres',
+        ]))
 
     return track
 

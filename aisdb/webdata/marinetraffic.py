@@ -88,6 +88,8 @@ class scrape_tonnage():
             if checksum != str(imo)[-1]:
                 print(f'IMO number failed checksum {mmsi = } {imo = }')
                 imo = 0
+        elif str(mmsi)[:3] == '368' and imo == 0:
+            return 0
         else:
             # print(f'IMO number out of range {mmsi = } {imo = }')
             imo = 0

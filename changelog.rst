@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.79
+-------
+
+update track generation from web data sources
+
+
 v1.0.78
 -------
 

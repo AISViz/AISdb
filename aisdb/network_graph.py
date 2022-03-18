@@ -6,6 +6,7 @@ from multiprocessing import Pool
 import pickle
 from functools import partial, reduce
 from datetime import timedelta
+from hashlib import sha256
 
 import numpy as np
 
@@ -24,7 +25,7 @@ from track_gen import (
 from webdata.merge_data import merge_layers
 from proc_util import _segment_rng
 
-from aisdb.qgis_window import colorhash
+colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
 
 
 def depth_nonnegative(track, zoneset):
