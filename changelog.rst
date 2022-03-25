@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.80
+-------
+
+fix filepath error when creating database tables
+
+
 v1.0.79
 -------
 

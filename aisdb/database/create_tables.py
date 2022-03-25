@@ -5,25 +5,25 @@ import numpy as np
 
 from database.dbconn import DBConn
 
-SQLPATH = os.path.join('aisdb_sql')
+from aisdb import sqlpath
 
 
 def sqlite_create_table_polygons(cur):
-    with open(os.path.join(SQLPATH, 'createtable_polygon_rtree.sql'),
+    with open(os.path.join(sqlpath, 'createtable_polygon_rtree.sql'),
               'r') as f:
         sql = f.read()
     cur.execute(sql)
 
 
 def sqlite_createtable_dynamicreport(cur, month):
-    with open(os.path.join(SQLPATH, 'createtable_dynamic_clustered.sql'),
+    with open(os.path.join(sqlpath, 'createtable_dynamic_clustered.sql'),
               'r') as f:
         sql = f.read().format(month)
     cur.execute(sql)
 
 
 def sqlite_createtable_staticreport(cur, month):
-    with open(os.path.join(SQLPATH, 'createtable_static.sql'), 'r') as f:
+    with open(os.path.join(sqlpath, 'createtable_static.sql'), 'r') as f:
         sql = f.read().format(month)
     cur.execute(sql)
 
@@ -54,7 +54,7 @@ def aggregate_static_msgs(dbpath, months_str):
 
         cur.execute(f'DROP TABLE IF EXISTS static_{month}_aggregate')
 
-        with open(os.path.join(SQLPATH, 'select_columns_static.sql'),
+        with open(os.path.join(sqlpath, 'select_columns_static.sql'),
                   'r') as f:
             sql_select = f.read().format(month)
 
@@ -85,7 +85,7 @@ def aggregate_static_msgs(dbpath, months_str):
 
         print()
 
-        with open(os.path.join(SQLPATH, 'createtable_static_aggregate.sql'),
+        with open(os.path.join(sqlpath, 'createtable_static_aggregate.sql'),
                   'r') as f:
             sql_aggregate = f.read().format(month)
         cur.execute(sql_aggregate)
