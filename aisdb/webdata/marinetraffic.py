@@ -167,14 +167,19 @@ class VesselInfo():
                     f'\ncaught traceback {err.with_traceback(None)}')
             return
         except Exception as err:
+            self.driver.close()
+            self.driver.quit()
             raise err
 
         if 'asset_type' in self.driver.current_url:
+            print('recursing...')
+            urls = []
             for elem in self.driver.find_elements(By.CLASS_NAME, value='ag-cell-content-link'):
-                print('recursing...')
-                self._getinfo(elem.get_attribute('href'), searchmmsi, searchimo)
-                with trafficDB as conn:
-                    conn.execute(err404, (str(searchmmsi), str(searchimo)))
+                urls.append(elem.get_attribute('href'), searchmmsi, searchimo)
+            for url in urls:
+                self._getinfo(url, searchmmsi, searchimo)
+            with trafficDB as conn:
+                conn.execute(err404, (str(searchmmsi), str(searchimo)))
         elif 'hc-en' in self.driver.current_url:
             raise RuntimeError('bad url??')
         elif self.driver.title[0:3] == '404':
