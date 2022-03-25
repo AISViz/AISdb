@@ -20,17 +20,21 @@ class Scraper():
     def __init__(self):
 
         firefoxpath = '/usr/lib/firefox/firefox' if os.path.isfile(
-            '/usr/lib/firefox/firefox') else shutil.which('firefox')
+                '/usr/lib/firefox/firefox') else shutil.which('firefox')
         # firefoxpath = shutil.which('firefox')
 
         if firefoxpath is None:
             raise RuntimeError(
-                'firefox must be installed to use this feature!')
+                    'firefox must be installed to use this feature!')
 
         _init_configs()
 
-        # configs
         headless = True
+        match os.environ.get('HEADLESS', True):
+            case '0' | 'False' | 'false':
+                headless = False
+
+        # configs
         (opt := Options()).headless = headless
         opt.set_preference('permissions.default.image', 2)
         opt.set_preference('extensions.contentblocker.enabled', True)
@@ -39,16 +43,16 @@ class Scraper():
         opt.set_preference('media.autoplay.block-event.enabled', True)
         opt.set_preference('media.autoplay.block-webaudio', True)
         opt.set_preference('services.sync.prefs.sync.media.autoplay.default',
-                           False)
+                False)
         opt.set_preference('ui.context_menus.after_mouseup', False)
         opt.set_preference('privacy.sanitize.sanitizeOnShutdown', True)
         opt.set_preference('dom.disable_beforeunload', True)
         driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
 
         self.driver = webdriver.WebDriver(
-            options=opt,
-            keep_alive=True,
-        )
+                options=opt,
+                keep_alive=True,
+                )
 
         if headless:
             self.driver.set_window_size(9999, 9999)

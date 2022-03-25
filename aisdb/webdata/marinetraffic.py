@@ -1,18 +1,142 @@
 ''' scrape vessel information such as deadweight tonnage from marinetraffic.com '''
 
+import os
 import json
+import warnings
 
 import requests
-from selenium.webdriver.support.ui import WebDriverWait
 import numpy as np
+from selenium.webdriver.firefox.webdriver import WebDriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
 
-from common import data_dir, marinetraffic_VD02_key
-from index import index
+from aisdb import data_dir, marinetraffic_VD02_key, sqlpath
+from aisdb.webdata.scraper import Scraper
+import sqlite3
 
-from webdata.scraper import Scraper
+warnings.filterwarnings("error")
 
 
-class scrape_tonnage():
+trafficDBpath = os.path.join(data_dir, 'marinetraffic.db')
+trafficDB = sqlite3.Connection(trafficDBpath)
+
+
+err404 = 'INSERT OR IGNORE INTO webdata_marinetraffic(mmsi, imo, error404) VALUES (?,?,1)'
+
+# prepare sql code for inserting vessel info
+insert_sqlfile = os.path.join(sqlpath, 'insert_webdata_marinetraffic.sql')
+with open(insert_sqlfile, 'r') as f:
+    insert_sql = f.read()
+
+
+def _loaded(drv: WebDriver) -> bool:
+    asset_type = 'asset_type' in drv.current_url
+    e404 = '404' == drv.title[0:3]
+    exists = drv.find_elements(
+            by='id',
+            value='vesselDetails_voyageInfoSection',
+            )
+    return (exists or e404 or asset_type)
+
+
+def _updateinfo(info: iter, vessel: dict) -> None:
+    match info.split(': '):
+
+        case ['MMSI', '-']:
+            vessel['mmsi'] = 0
+
+        case ['MMSI', mmsi]:
+            vessel['mmsi'] = int(mmsi)
+
+        case ['IMO', '-']:
+            vessel['imo'] = 0
+
+        case ['IMO', imo]:
+            vessel['imo'] = int(imo)
+
+        case ['Name', name]:
+            vessel['name'] = name
+
+        case ['Vessel Type - Generic', vtype1]:
+            vessel['vesseltype_generic'] = vtype1
+
+        case ['Vessel Type - Detailed', vtype2]:
+            vessel['vesseltype_detailed'] = vtype2
+
+        case ['Call Sign', callsign]:
+            vessel['callsign'] = callsign
+
+        case ['Flag', flag]:
+            vessel['flag'] = flag
+
+        case ['Gross Tonnage', '-']:
+            vessel['gross_tonnage'] = 0
+
+        case ['Gross Tonnage', gt]:
+            vessel['gross_tonnage'] = int(gt)
+
+        case ['Summer DWT', '-']:
+            vessel['summer_dwt'] = 0
+
+        case ['Summer DWT', dwt]:
+            vessel['summer_dwt'] = int(dwt.split()[0])
+
+        case['Length Overall x Breadth Extreme', lxw]:
+            vessel['length_breadth'] = lxw
+
+        case['Year Built', '-']:
+            vessel['year_built'] = 0
+
+        case['Year Built', year]:
+            vessel['year_built'] = int(year)
+
+        case['Home Port', home]:
+            vessel['home_port'] = home
+
+
+def _getrow(vessel: dict) -> tuple:
+    if 'mmsi' not in vessel.keys():
+        vessel['mmsi'] = 0
+    if 'imo' not in vessel.keys():
+        vessel['imo'] = 0
+    assert isinstance(vessel["mmsi"], int), f'not an int: {type(vessel["mmsi"])} {vessel["mmsi"]=}'
+    assert isinstance(vessel["imo"], int), f'not an int: {type(vessel["imo"])} {vessel["imo"]=}'
+    return (vessel['mmsi'],
+            vessel['imo'],
+            vessel['vesseltype_generic'],
+            vessel['vesseltype_detailed'],
+            vessel['callsign'],
+            vessel['flag'],
+            vessel['gross_tonnage'],
+            vessel['summer_dwt'],
+            vessel['length_breadth'],
+            vessel['year_built'],
+            vessel['home_port'],
+            )
+
+
+def _insertelem(elem, mmsi, imo):
+    vessel = {}
+    for info in elem.text.split('\n'):
+        _updateinfo(info, vessel)
+    insertrow = _getrow(vessel)
+
+    print(vessel)
+
+    with trafficDB as conn:
+        conn.execute(insert_sql, insertrow)
+        if vessel['mmsi'] != mmsi:
+            vessel['mmsi'] = int(mmsi)
+            insertrow = _getrow(vessel)
+            conn.execute(insert_sql, insertrow)
+        if vessel['imo'] != imo:
+            vessel['imo'] = int(imo)
+            insertrow = _getrow(vessel)
+            conn.execute(insert_sql, insertrow)
+
+
+class VesselInfo():
 
     def __init__(self):
         self.filename = 'marinetraffic.db'
@@ -27,115 +151,83 @@ class scrape_tonnage():
             self.driver.close()
             self.driver.quit()
 
-    def tonnage_callback(self, mmsi, imo=0, **_):
-        # do not return 0 while testing output without calling the API
-        # this will pollute the tonnage database
-        if self.driver is None:
-            self.scraper = Scraper()
-            self.driver = self.scraper.driver
-
-        loaded = lambda drv: 'asset_type' in drv.current_url or '404' == drv.title[
-            0:3] or drv.find_elements_by_id('vesselDetails_voyageInfoSection')
-
-        if imo == 0:
-            url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}'
-        else:
-            url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}/imo:{imo}'
+    def _getinfo(self, url, searchmmsi, searchimo):
         print(url, end='\t')
-        self.driver.get(url)
-
-        WebDriverWait(self.driver, 60).until(loaded)
+        try:
+            self.driver.get(url)
+            WebDriverWait(self.driver, 30).until(_loaded)
+        except TimeoutException:
+            print(f'timed out, skipping {searchmmsi=} {searchimo=}')
+            # self.driver.close()
+            # self.driver.quit()
+            # self.driver = None
+            return
+        except IndexError as err:
+            print(f'couldnt load page for {searchmmsi=} {searchimo=}, skipping...'
+                    f'\ncaught traceback {err.with_traceback(None)}')
+            return
+        except Exception as err:
+            raise err
 
         if 'asset_type' in self.driver.current_url:
-            for elem in self.driver.find_elements_by_partial_link_text(""):
-                if (url := elem.get_attribute('href')) is None:
-                    continue
-                elif 'vessel:' in url:
-                    print(f'multiple entries found for {mmsi=} {imo=}! '
-                          'fetching {url}')
-                    self.driver.get(url)
-                    WebDriverWait(self.driver, 60).until(loaded)
-                    break
-
+            for elem in self.driver.find_elements(By.CLASS_NAME, value='ag-cell-content-link'):
+                print('recursing...')
+                self._getinfo(elem.get_attribute('href'), searchmmsi, searchimo)
+                with trafficDB as conn:
+                    conn.execute(err404, (str(searchmmsi), str(searchimo)))
+        elif 'hc-en' in self.driver.current_url:
+            raise RuntimeError('bad url??')
         elif self.driver.title[0:3] == '404':
-            print(f'404 error! {mmsi=} {imo=}')
-            return 0
+            print(f'404 error! {searchmmsi=} {searchimo=}')
+            with trafficDB as conn:
+                conn.execute(err404, (str(searchmmsi), str(searchimo)))
 
-        exists = self.driver.find_elements_by_id(
-            'vesselDetails_vesselInfoSection')
-        if exists:
-            elem = exists[0].find_element_by_id('summerDwt')
-            #elem.location_once_scrolled_into_view
-            print(mmsi, elem.text)
-            return elem.text.split(' ')[2]
-        else:
-            print(0)
-            return 0
+        value = 'vesselDetails_vesselInfoSection'
+        for elem in self.driver.find_elements(value=value):
+            _ = _insertelem(elem, searchmmsi, searchimo)
 
-    def get_tonnage_mmsi_imo(self,
-                             mmsi,
-                             imo,
-                             retry_zero=False,
-                             skip_missing=False):
 
-        # IMO checksum validation:
-        # https://tarkistusmerkit.teppovuori.fi/coden.htm
-        if 1000000 <= imo < 9999999:
-            checksum = str(
-                np.sum(
-                    np.array(list(map(int, list(str(imo)[:-1])))) *
-                    np.array([7, 6, 5, 4, 3, 2])))[-1]
-            if checksum != str(imo)[-1]:
-                print(f'IMO number failed checksum {mmsi = } {imo = }')
-                imo = 0
-        elif str(mmsi)[:3] == '368' and imo == 0:
-            return 0
-        else:
-            # print(f'IMO number out of range {mmsi = } {imo = }')
-            imo = 0
+    def vessel_info_callback(self, mmsis, imos):
+        mmsis = np.array(mmsis, dtype=int).astype(int)
+        imos = np.array(imos, dtype=int).astype(int)
+        assert mmsis.size == imos.size, 'mmsis and imos must be arrays of same length'
 
-        with index(bins=False,
-                   store=True,
-                   storagedir=data_dir,
-                   filename=self.filename) as web:
+        # create a new info table if it doesnt exist yet
+        createtable_sqlfile = os.path.join(sqlpath, 'createtable_webdata_marinetraffic.sql')
+        with (trafficDB as conn, open(createtable_sqlfile, 'r') as f):
+            createtable_sql = f.read()
+            conn.execute(createtable_sql)
 
-            seed = web.hash_seed(
-                callback=self.tonnage_callback,
-                passkwargs=dict(
-                    mmsi=mmsi,
-                    imo=imo,
-                    seed='dwt marinetraffic.com',
-                ),
-            )
+        # skip existing
+        qrymmsis = ','.join(map(str, mmsis))
+        sqlcount = 'SELECT CAST(mmsi AS INT), CAST(imo as INT) '
+        sqlcount += f'FROM webdata_marinetraffic WHERE mmsi IN ({qrymmsis})'
+        with trafficDB as conn:
+            existing = conn.execute(sqlcount).fetchall()
+        for m, i in existing:
+            idx_m = mmsis == m
+            idx_i = imos == i
+            skip = np.logical_and(idx_m, idx_i)
+            if sum(skip) == 0:
+                continue
+            mmsis = mmsis[~skip]
+            imos = imos[~skip]
 
-            if skip_missing and not web.serialized(seed=seed):
-                print(f'skip {mmsi} {imo}')
-                return 0
+        if mmsis.size == 0:
+            return
 
-            tonnage = web(
-                callback=self.tonnage_callback,
-                mmsi=mmsi,
-                imo=imo,
-                seed='dwt marinetraffic.com',
-            )[0]
+        value = 'vesselDetails_vesselInfoSection'
 
-            if tonnage == 0 and retry_zero:
-                print(f'retry {mmsi} {imo}')
-                web.drop_hash(seed=seed)
-                tonnage = web(
-                    callback=self.tonnage_callback,
-                    mmsi=mmsi,
-                    imo=imo,
-                    seed='dwt marinetraffic.com',
-                )[0]
+        for mmsi, imo in zip(mmsis, imos):
+            if self.driver is None:
+                #self.scraper = Scraper()
+                self.driver = Scraper().driver
 
-        if tonnage == '-':
-            return 0
+            suffix = f'/imo:{imo}' if imo > 0 else ''
+            url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}{suffix}'
+            self._getinfo(url, mmsi, imo)
 
-        return int(tonnage)
-
-    def exit(self):
-        self.driver.close()
+        return
 
 
 def api_shipsearch_bymmsi(mmsis):
@@ -166,6 +258,7 @@ def api_shipsearch_bymmsi(mmsis):
     if 'errors' in res.keys():
         for error in res['errors']:
             raise RuntimeError(
-                f'Problem calling Marinetraffic API:  {error["detail"]}')
+                    f'Problem calling Marinetraffic API:  {error["detail"]}')
 
     return res
+

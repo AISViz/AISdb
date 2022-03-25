@@ -38,9 +38,6 @@ aisdb_rust/testdata/*
 aisdb_rust/testdata/**
 docker/package-lock.json
 docs/html
-docs/html/*
-docs/html/**
-docs/html/rust/**
 docs/source/api
 nodejs/node_modules
 tag_img.sh

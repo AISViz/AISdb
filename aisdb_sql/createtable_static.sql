@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS ais_{}_static (
     vessel_name TEXT,
     ship_type INT,
     call_sign TEXT,
-    imo INTEGER,
+    imo INTEGER NOT NULL DEFAULT 0,
     dim_bow INTEGER,
     dim_stern INTEGER,
     dim_port INTEGER,

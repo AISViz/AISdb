@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.81
+-------
+
+rewrite web scraper
+
+
 v1.0.80
 -------
 
