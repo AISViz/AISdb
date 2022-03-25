@@ -199,6 +199,9 @@ class ApplicationWindow(QMainWindow):
         # start qgis
         QgsApplication.setPrefixPath('/usr', True)
         self.qgs = QgsApplication([], True)
+        if not os.path.isdir(output_dir):
+            print(f'creating directory: {output_dir}')
+            os.mkdir(output_dir)
         if not os.path.isdir(testpath := os.path.join(output_dir, 'png')):
             print(f'creating directory: {testpath}')
             os.mkdir(testpath)
@@ -208,7 +211,7 @@ class ApplicationWindow(QMainWindow):
         # self.qgs.setApplicationName('ais_track_viz')
         # self.qgs.setApplicationDisplayName('ais_track_viz')
         self.setWindowTitle('ais_track_viz')
-        self.qgs.setMaxThreads(8)
+        #self.qgs.setMaxThreads(8)
 
         # init project and coordinate reference system
         self.project = QgsProject.instance()
@@ -274,7 +277,7 @@ class ApplicationWindow(QMainWindow):
         self.toolPan.setAction(self.actionPan)
 
         # zoom in
-        self.actionZoomIn = QAction('+', self)
+        self.actionZoomIn = QAction('+Zoom', self)
         self.actionZoomIn.setCheckable(True)
         self.actionZoomIn.triggered.connect(self.zoomIn)
         self.toolbar.addAction(self.actionZoomIn)
@@ -282,26 +285,55 @@ class ApplicationWindow(QMainWindow):
         self.toolZoomIn.setAction(self.actionZoomIn)
 
         # zoom out
-        self.actionZoomOut = QAction('-', self)
+        self.actionZoomOut = QAction('-Zoom', self)
         self.actionZoomOut.setCheckable(True)
         self.actionZoomOut.triggered.connect(self.zoomOut)
         self.toolbar.addAction(self.actionZoomOut)
         self.toolZoomOut = QgsMapToolZoom(self.canvas, True)  # true = out
         self.toolZoomOut.setAction(self.actionZoomOut)
 
-        # coord status
+        # coord status in toolbar
         self.statusBar().showMessage('')
         self.toolcoord = toolCoord(self.canvas, self.statusBar(), self.project)
         self.toolscalecoord = toolScaleCoord(self.canvas, self.statusBar(),
                                              self.project)
-        self.actionCoord = QAction('Locate Coordinates', self)
+        self.canvas.setMapTool(self.toolscalecoord)
+
+        # draw geometry polygon vertices as markers
+        self.actionCoord = QAction('Draw Geometry', self)
         self.actionCoord.setCheckable(True)
         self.actionCoord.triggered.connect(self.get_coord)
         self.toolbar.addAction(self.actionCoord)
-        self.actionClearCoord = QAction('Clear Markers', self)
-        self.actionClearCoord.triggered.connect(self.clear_coord)
-        self.toolbar.addAction(self.actionClearCoord)
-        self.canvas.setMapTool(self.toolscalecoord)
+
+        # polygon from marker vertices
+        self.actionNewPoly = QAction('New Polygon', self)
+        self.actionNewPoly.triggered.connect(
+            lambda: print('TODO: add map markers to canvas'))
+        self.toolbar.addAction(self.actionNewPoly)
+
+        # polygon from marker vertices
+        self.actionNewLine = QAction('New Line', self)
+        self.actionNewLine.triggered.connect(
+            lambda: print('TODO: add map markers to canvas'))
+        self.toolbar.addAction(self.actionNewLine)
+
+        # polygon from marker vertices
+        self.actionNewMarker = QAction('New Marker', self)
+        self.actionNewMarker.triggered.connect(
+            lambda: print('TODO: add map markers to canvas'))
+        self.toolbar.addAction(self.actionNewMarker)
+
+        # reset geometry markers
+        self.actionDrawingReset = QAction('Reset Drawing', self)
+        self.actionDrawingReset.triggered.connect(self.drawing_resetbutton)
+        self.toolbar.addAction(self.actionDrawingReset)
+
+        # clear all
+        self.actionClearAll = QAction('Clear All', self)
+        self.actionDrawingReset.triggered.connect(self.clearfeatures)
+        self.toolbar.addAction(self.actionClearAll)
+
+        # prevent cursor changing when window opens
         self.centralWidget().setCursor(QCursor())
 
         # load basemap layer
@@ -346,7 +378,7 @@ class ApplicationWindow(QMainWindow):
             self.canvas.setMapTool(self.toolscalecoord)
             self.centralWidget().setCursor(QCursor())
 
-    def clear_coord(self):
+    def drawing_resetbutton(self):
         ''' toolbar Clear Markers button action '''
         for m in self.toolcoord.markers:
             self.canvas.scene().removeItem(m)
@@ -381,7 +413,7 @@ class ApplicationWindow(QMainWindow):
             return
 
         if zone is not None:
-            geom = zone.Geometry
+            geom = zone.geometry
 
         if geom.type == 'LineString' or geom.type == 'Polygon':
             xmin = min(xmin, np.min(geometry.xy[0]))
@@ -398,6 +430,13 @@ class ApplicationWindow(QMainWindow):
 
         self.set_canvas_boundary(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax)
         return
+
+    def get_canvas_markers(self, clear_points=False):
+        ''' return map marker vertices as (x, y) tuples '''
+        markers = [(xy.x(), xy.y()) for xy in self.toolcoord.pts]
+        if clear_points:
+            self.drawing_resetbutton()
+        return markers
 
     def split_feature_over_meridian(self, meridian, geom):
         ''' '''
@@ -419,8 +458,21 @@ class ApplicationWindow(QMainWindow):
         ]
         return splits
 
-    def add_feature_point(self, geom, ident, color=None, opacity=None):
-        ''' add a shapely.geometry.MultiPoint object to the map canvas '''
+    def add_feature_point(self, geom, ident, color=None, opacity=None, size=4):
+        ''' add a shapely.geometry.MultiPoint object to the map canvas
+
+            args:
+                geom (shapely.geometry.MultiPoint or shapely.geometry.GeometryCollection)
+                    feature geometry
+                ident (int, float, or string)
+                    unique identifier describing the geometry
+                color (tuple)
+                    RGB tuple, e.g. (255,0,0) for red
+                opacity (None or float)
+                    opacity level in range 0.0 to 1.0
+                size (int)
+                    point width/diameter in pixels
+        '''
         if color is None: color = (colorhash(ident), )
         r = customQgsMultiPoint(self.canvas)
         if geom.type == 'MultiPoint' or geom.type == 'GeometryCollection':
@@ -431,13 +483,14 @@ class ApplicationWindow(QMainWindow):
             qgeom = QgsGeometry.fromPointXY(pts)
         else:
             assert False
+        r.setIconSize(size)
         r.setColor(QColor(*color))
         r.setOpacity(opacity or 1)
         r.setToGeometry(qgeom, None)
         self.features_point.append((ident, r))
         return
 
-    def add_feature_line(self, geom, ident, color=None, opacity=None):
+    def add_feature_line(self, geom, ident, color=None, opacity=None, size=1):
         ''' add a shapely.geometry.LineString object to the map canvas '''
         if color is None:
             color = (colorhash(ident), )
@@ -449,6 +502,7 @@ class ApplicationWindow(QMainWindow):
                                 geom.coords.xy[1][i:i + 10000])
             ]
             qgeom = QgsGeometry.fromPolylineXY(pts)
+            r.setWidth(size)
             r.setColor(QColor(*color))
             r.setOpacity(opacity or 1)
             r.setToGeometry(qgeom, None)

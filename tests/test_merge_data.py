@@ -8,21 +8,33 @@ from aisdb.webdata.merge_data import (
     merge_tracks_hullgeom,
     merge_tracks_shoredist,
 )
-from aisdb.database.sqlfcn_callbacks import in_bbox_time
+from aisdb.database.sqlfcn_callbacks import (
+    in_bbox_time_validmmsi,
+    in_timerange,
+)
+from aisdb.gis import Domain
+from tests.create_testing_data import (
+    sample_dynamictable_insertdata,
+    sample_gulfstlawrence_zonegeometry,
+)
 
 
 def prepare_qry():
-    start = datetime(2021, 11, 1)
-    end = datetime(2021, 11, 2)
+    sample_dynamictable_insertdata()
+    z1 = sample_gulfstlawrence_zonegeometry()
+    domain = Domain('gulf domain', geoms={'z1': z1}, cache=False)
+
+    start = datetime(2000, 1, 1)
+    end = datetime(2000, 2, 1)
 
     rowgen = DBQuery(
         start=start,
         end=end,
-        xmin=-60,
-        xmax=-45,
-        ymin=40,
-        ymax=60,
-        callback=in_bbox_time,
+        xmin=domain.minX,
+        xmax=domain.maxX,
+        ymin=domain.minY,
+        ymax=domain.maxY,
+        callback=in_timerange,
     ).gen_qry()
 
     return rowgen

@@ -4,10 +4,13 @@ from multiprocessing import Pool
 from functools import partial, reduce
 from datetime import datetime, timedelta
 import pickle
+import re
+import csv
 
 import numpy as np
 
-from common import output_dir
+from aisdb.common import output_dir
+from aisdb.gis import epoch_2_dt
 
 
 def _fast_unzip(zipf, dirname='.'):
@@ -31,10 +34,17 @@ def fast_unzip(zipfilenames, dirname='.', processes=12):
 
 
 def binarysearch(arr, search, descending=False):
-    ''' fast indexing of ordered arrays '''
+    ''' fast indexing of ordered arrays
+
+        caution: will return nearest index in out-of-bounds cases
+    '''
     low, high = 0, arr.size - 1
     if descending:
         arr = arr[::-1]
+    if search < arr[0]:
+        return 0
+    elif search >= arr[-1]:
+        return len(arr) - 1
     while (low <= high):
         mid = (low + high) // 2
         if search >= arr[mid - 1] and search <= arr[mid + 1]:
@@ -49,7 +59,26 @@ def binarysearch(arr, search, descending=False):
         return mid
 
 
-def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
+def _segment_rng(track: dict, maxdelta: timedelta, minsize: int) -> filter:
+    assert isinstance(track, dict), f'wrong track type {type(track)}:\n{track}'
+
+    def _splits_idx(track):
+        splits = np.nonzero(
+            track['time'][1:] -
+            track['time'][:-1] >= maxdelta.total_seconds() / 60)[0] + 1
+        idx = np.append(np.append([0], splits), [track['time'].size])
+        return idx
+
+    return filter(
+        lambda seg: len(seg) >= minsize,
+        list(map(range,
+                 _splits_idx(track)[:-1],
+                 _splits_idx(track)[1:])))
+
+
+def write_csv_rows(rows,
+                   pathname='/data/smith6/ais/scripts/output.csv',
+                   mode='a'):
     with open(pathname, mode) as f:
         f.write('\n'.join(
             map(
@@ -58,39 +87,88 @@ def writecsv(rows, pathname='/data/smith6/ais/scripts/output.csv', mode='a'):
                         map(str.rstrip, map(str, r)))), rows)) + '\n')
 
 
-def writepickle(tracks, fpath=os.path.join(output_dir, 'tracks.pickle')):
+def _datetime_column(tracks):
+    for track in tracks:
+        track['datetime'] = np.array(
+            epoch_2_dt(track['time'].astype(int)),
+            dtype=object,
+        )
+        track['dynamic'] = track['dynamic'].union(set(['datetime']))
+        yield track
+
+
+def write_csv(
+    tracks,
+    fpath,
+    skipcols=['mmsi', 'label', 'in_zone', 'ship_type'],
+):
+
+    cols = [
+        'mmsi', 'time', 'datetime', 'lon', 'lat', 'vessel_name',
+        'ship_type_txt', 'imo', 'dim_bow', 'dim_stern', 'dim_star', 'dim_port'
+    ]
+    tracks_dt = _datetime_column(tracks)
+
+    tr1 = next(tracks_dt)
+
+    colnames = (
+        cols + [f for f in tr1['dynamic'] if f not in cols + skipcols] +
+        [f for f in list(tr1['static'])[::-1] if f not in cols + skipcols])
+
+    decimals = {
+        'lon': 5,
+        'lat': 5,
+        'depth_metres': 2,
+        'distance_metres': 2,
+        'submerged_hull_m^2': 0,
+    }
+
+    def _append(track, writer, colnames=colnames, decimals=decimals):
+        for i in range(0, track['time'].size):
+            row = [(track[c][i] if c in track['dynamic'] else
+                    (track[c] if track[c] != 0 else '')) for c in colnames]
+            for ci, r in zip(range(len(colnames)), row):
+                if colnames[ci] in decimals.keys() and r != '':
+                    row[ci] = f'{r:.{decimals[colnames[ci]]}f}'
+
+            writer.writerow(row)
+
+    with open(fpath, 'w', newline='') as f:
+        f.write(','.join(colnames) + '\n')
+        writer = csv.writer(f,
+                            delimiter=',',
+                            quoting=csv.QUOTE_NONE,
+                            dialect='unix')
+        _append(tr1, writer, colnames, decimals)
+        for track in tracks_dt:
+            _append(track, writer, colnames, decimals)
+
+    return
+
+
+def write_binary(tracks, fpath=os.path.join(output_dir, 'tracks.vec')):
     with open(fpath, 'wb') as f:
         for track in tracks:
             pickle.dump(track, f)
 
 
-def deserialize_generator(fpath):
+def read_binary(fpath=os.path.join(output_dir, 'tracks.vec'), count=None):
+    results = []
+    n = 0
     with open(fpath, 'rb') as f:
         while True:
             try:
-                yield pickle.load(f)
-            except EOFError as e:
+                getrow = pickle.load(f)
+            except EOFError:
+                break
+            except Exception as e:
+                raise e
+            n += 1
+            results.append(getrow)
+            if count is not None and n >= count:
                 break
 
-
-def movepickle(fpath):
-    with open(fpath, 'rb') as f:
-        while True:
-            try:
-                rows = pickle.load(f)
-                with open(os.path.join(tmp_dir, '__' + str(rows[0][0])),
-                          'wb') as f2:
-                    pickle.dump(rows, f2)
-            except EOFError as e:
-                break
-
-
-def deserialize(fpaths):
-    for fpath in fpaths:
-        assert isinstance(fpath, str), f'fpath = {list(fpath)}'
-        print('processing ', fpath)
-        with open(fpath, 'rb') as f:
-            yield pickle.load(f)
+    return results
 
 
 def glob_files(dirpath, ext='.txt', keyorder=lambda key: key):
@@ -112,10 +190,6 @@ def glob_files(dirpath, ext='.txt', keyorder=lambda key: key):
             .txt shapefile paths
 
     '''
-    #txtpaths = reduce(np.append,
-    #    [list(map(os.path.join, (path[0] for p in path[2]), path[2])) for path in list(os.walk(zones_dir))]
-    #)
-
     paths = list(os.walk(dirpath))
 
     extfiles = [[
@@ -131,64 +205,19 @@ def glob_files(dirpath, ext='.txt', keyorder=lambda key: key):
     return sorted(extpaths, key=keyorder)
 
 
-from shapely.geometry import Point, MultiPoint, LineString
+def datefcn(fpath):
+    return re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(fpath)
 
 
-def serialize_geomwkb(tracks):
-    ''' for each track dictionary, serialize the geometry as WKB to the output directory '''
-    wkbdir = os.path.join(output_dir, 'wkb/')
-    if not os.path.isdir(wkbdir):
-        os.mkdir(wkbdir)
-
-    for track in tracks:
-        if len(track['time']) == 1:
-            geom = MultiPoint([
-                Point(x, y, t)
-                for x, y, t in zip(track['lon'], track['lat'], track['time'])
-            ])
-        else:
-            geom = LineString(zip(track['lon'], track['lat'], track['time']))
-        fname = os.path.join(
-            wkbdir,
-            f'mmsi={track["mmsi"]}_epoch={int(track["time"][0])}-{int(track["time"][-1])}_{geom.type}.wkb'
-        )
-        with open(fname, 'wb') as f:
-            f.write(geom.wkb)
-
-    return
+def regexdate_2_dt(reg, fmt='%Y%m%d'):
+    return datetime.strptime(reg.string[reg.start():reg.end()], fmt)
 
 
-'''
-def cpu_bound(track, domain, cutdistance, maxdistance, cuttime, minscore):
-    timesplit = partial(segment_tracks_timesplits, maxdelta=cuttime)
-    distsplit = partial(segment_tracks_encode_greatcircledistance,
-                        cutdistance=cutdistance,
-                        maxdistance=maxdistance,
-                        cuttime=cuttime,
-                        minscore=minscore)
-    geofenced = partial(fence_tracks, domain=domain)
-    split_len = partial(max_tracklength, max_track_length=10000)
-    print('processing mmsi', track['mmsi'], end='\r')
-    serialize_geomwkb(split_len(distsplit(timesplit([track]))))
-    return
-
-
-def serialize_geoms(tracks,
-                    domain,
-                    processes,
-                    cutdistance=5000,
-                    maxdistance=125000,
-                    cuttime=timedelta(hours=6),
-                    minscore=0.0001):
-    with Pool(processes=processes) as p:
-        fcn = partial(cpu_bound,
-                      domain=domain,
-                      cutdistance=cutdistance,
-                      maxdistance=maxdistance,
-                      cuttime=cuttime,
-                      minscore=minscore)
-        p.imap_unordered(fcn, tracks, chunksize=1)
-        p.close()
-        p.join()
-    print()
-'''
+def getfiledate(fpath, fmt='%Y%m%d'):
+    d = datefcn(fpath)
+    if d is None:
+        print(f'warning: could not parse YYYYmmdd format date from {fpath}!')
+        print('warning: defaulting to epoch zero!')
+        return datetime(1970, 1, 1)
+    fdate = regexdate_2_dt(d, fmt=fmt)
+    return fdate

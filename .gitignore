@@ -1,5 +1,5 @@
-!output/scriptoutput.png
 **.lock
+**/__pycache__
 **/node_modules/*
 **package-lock.json
 *.cookie
@@ -16,14 +16,16 @@
 .pytest_cache
 .pytest_cache/*
 ais/webdata/webdriver*
+aisdb.egg-info
+aisdb_rust/.git
+aisdb_rust/.git/**
+aisdb_rust/.gitignore
 aisdb_rust/target
 aisdb_rust/testdata
-aisdb_rust/.git
-aisdb_rust/.gitignore
-aisdb_rust/.git/**
 docker-compose.override.yml
 docs/html/*
 docs/source/api/*
+docs/source/changelog.rst
 docs/source/readme.rst
 tests/output/*
 tmp/*

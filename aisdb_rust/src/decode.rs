@@ -9,14 +9,9 @@ use nmea_parser::{
     NmeaParser, ParsedMessage,
 };
 
-use crate::db::{
-    get_db_conn, sqlite_createtable_dynamicreport, sqlite_createtable_staticreport,
-    sqlite_insert_dynamic, sqlite_insert_static,
-};
+use crate::db::{get_db_conn, prepare_tx_dynamic, prepare_tx_static};
 
-use crate::util::epoch_2_dt;
-
-/// optionally collect decoded messages and epoch timestamps
+/// collect decoded messages and epoch timestamps
 pub struct VesselData {
     pub payload: Option<ParsedMessage>,
     pub epoch: Option<i32>,
@@ -39,23 +34,6 @@ impl VesselData {
         } else {
             panic!("wrong msg type")
         }
-    }
-}
-
-/// discard all other message types, sort filtered categories
-pub fn filter_vesseldata(
-    sentence: &str,
-    epoch: &i32,
-    parser: &mut NmeaParser,
-) -> Option<(ParsedMessage, i32, bool)> {
-    match parser.parse_sentence(sentence).ok()? {
-        ParsedMessage::VesselDynamicData(vdd) => {
-            Some((ParsedMessage::VesselDynamicData(vdd), *epoch, true))
-        }
-        ParsedMessage::VesselStaticData(vsd) => {
-            Some((ParsedMessage::VesselStaticData(vsd), *epoch, false))
-        }
-        _ => None,
     }
 }
 
@@ -92,69 +70,56 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
     }
 }
 
-/// work around panic bug in chrono library / indexing bug in nmea_parser library ???
-/// <https://github.com/zaari/nmea-parser/issues/25>
+/// workaround for panic from nmea_parser library,
+/// caused by malformed base station timestamps / binary application messages?
+/// discards UTC date response and binary application payloads before
+/// decoding them
 pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
-    /* true for base station reports and binary application data */
-    if msg.contains("!AIVDM,1,1,,,;")
-        || msg.contains("!AIVDM,1,1,,,I")
-        || msg.contains("!AIVDM,1,1,,,J")
-    {
-        None
-    } else {
-        Some((msg.to_string(), *epoch))
+    //println!("{:?}", msg);
+    let cols: Vec<&str> = msg.split(',').collect();
+    if cols.len() < 6 {
+        return Some((msg.to_string(), *epoch));
     }
-}
-
-/// open .nm4 file and decode each line, keeping only vessel data
-/// returns vector of static and dynamic reports
-pub fn decodemsgs(filename: &str) -> (Vec<VesselData>, Vec<VesselData>) {
-    assert_eq!(&filename[&filename.len() - 4..], ".nm4");
-
-    let reader = BufReader::new(File::open(filename).expect("Cannot open file"));
-    let mut parser = NmeaParser::new();
-    let mut stat_msgs = <Vec<VesselData>>::new();
-    let mut positions = <Vec<VesselData>>::new();
-
-    // for async do {
-    // in 100k batches
-    for (payload, epoch, is_dynamic) in reader
-        .lines()
-        .filter_map(parse_headers)
-        .filter_map(|(s, e)| skipmsg(&s, &e))
-        .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
-        .collect::<Vec<(ParsedMessage, i32, bool)>>()
-    {
-        let message = VesselData {
-            epoch: Some(epoch),
-            payload: Some(payload),
-        };
-
-        if is_dynamic {
-            positions.push(message);
-        } else {
-            stat_msgs.push(message);
+    match (cols[0], cols[5]) {
+        (prefix, tx)
+            if &tx.chars().count() > &2
+                && (&tx[0..1] == ";" || &tx[0..1] == "I" || &tx[0..1] == "J")
+                && (prefix == "!AIVDM" || prefix == "!AIVDO") =>
+        {
+            //println!("skipped {:?}", msg);
+            None
         }
+        _ => Some((msg.to_string(), *epoch)),
     }
-
-    println!(
-        "{}    dynamic: {}    static: {}",
-        filename.rsplit_once('/').unwrap().1,
-        positions.len(),
-        stat_msgs.len(),
-    );
-
-    (positions, stat_msgs)
 }
 
-/// open .nm4 file and decode each line, keeping only vessel data
-/// returns vector of static and dynamic reports
+/// discard all other message types, sort filtered categories
+pub fn filter_vesseldata(
+    sentence: &str,
+    epoch: &i32,
+    parser: &mut NmeaParser,
+) -> Option<(ParsedMessage, i32, bool)> {
+    match parser.parse_sentence(sentence).ok()? {
+        ParsedMessage::VesselDynamicData(vdd) => {
+            Some((ParsedMessage::VesselDynamicData(vdd), *epoch, true))
+        }
+        ParsedMessage::VesselStaticData(vsd) => {
+            Some((ParsedMessage::VesselStaticData(vsd), *epoch, false))
+        }
+        _ => None,
+    }
+}
+
+/// open .nm4 file and decode each line, keeping only vessel data.
+/// decoded vessel data will be inserted into the SQLite database
+/// located at dbpath
 pub async fn decode_insert_msgs(
     dbpath: &std::path::Path,
     filename: &std::path::Path,
 ) -> Result<(), Error> {
     let fstr = &filename.to_str().unwrap();
     assert_eq!(&fstr[&fstr.len() - 4..], ".nm4");
+    let start = Instant::now();
 
     let reader = BufReader::new(
         File::open(filename)
@@ -163,6 +128,8 @@ pub async fn decode_insert_msgs(
     let mut parser = NmeaParser::new();
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
+    let mut count = 0;
+    //let mut mstr = None;
 
     let mut c = get_db_conn(dbpath).expect("getting db conn");
 
@@ -181,39 +148,44 @@ pub async fn decode_insert_msgs(
 
         if is_dynamic {
             positions.push(message);
+            count += 1;
         } else {
             stat_msgs.push(message);
+            count += 1;
         }
 
         if positions.len() >= 500000 {
-            let t = c.transaction().unwrap();
-            let mstr = epoch_2_dt(*positions[0].epoch.as_ref().unwrap() as i64)
-                .format("%Y%m")
-                .to_string();
-            let _c = sqlite_createtable_dynamicreport(&t, &mstr).expect("creating dynamic table");
-            let _d = sqlite_insert_dynamic(&t, positions, &mstr).expect("inserting chunk");
-            let _ = t.commit();
+            let _d = prepare_tx_dynamic(&mut c, positions);
             positions = vec![];
         };
+        if stat_msgs.len() >= 500000 {
+            let _s = prepare_tx_static(&mut c, stat_msgs);
+            stat_msgs = vec![];
+        }
     }
 
-    println!(
-        "{}    dynamic: {}    static: {}",
-        filename.to_str().unwrap().rsplit_once('/').unwrap().1,
-        positions.len(),
-        stat_msgs.len(),
-    );
+    // insert remaining
+    if positions.len() > 0 {
+        let _d = prepare_tx_dynamic(&mut c, positions);
+    }
+    if stat_msgs.len() > 0 {
+        let _s = prepare_tx_static(&mut c, stat_msgs);
+    }
 
-    // insert static and remaining dynamic
-    let mstr1 = epoch_2_dt(*positions[0].epoch.as_ref().unwrap() as i64)
-        .format("%Y%m")
-        .to_string();
-    //let t1 = c.transaction().expect("create tx");
-    let t1 = c.transaction().unwrap();
-    let _d1 = sqlite_insert_dynamic(&t1, positions, &mstr1).expect("inserting chunk");
-    let _c1 = sqlite_createtable_staticreport(&t1, &mstr1);
-    let _s1 = sqlite_insert_static(&t1, stat_msgs, &mstr1).expect("insert");
-    let _ = t1.commit();
+    let elapsed = start.elapsed();
+
+    println!(
+        "{}    count:{: >8}    elapsed: {:0.2 }s    rate: {:.0} msgs/s",
+        filename
+            .to_str()
+            .unwrap()
+            .rsplit_once(std::path::MAIN_SEPARATOR)
+            .unwrap()
+            .1,
+        count,
+        elapsed.as_secs_f32(),
+        count as f32 / elapsed.as_secs_f32(),
+    );
 
     Ok(())
 }
@@ -222,15 +194,13 @@ pub async fn decode_insert_msgs(
 
 #[cfg(test)]
 pub mod tests {
-    //use super::*;
-    use super::{decode_insert_msgs, decodemsgs, parse_headers};
+
+    use super::{decode_insert_msgs, parse_headers};
     use crate::util::glob_dir;
     use crate::Error;
     use std::fs::create_dir_all;
     use std::fs::File;
     use std::io::Write;
-    use std::time::Instant;
-    //use crate::util::parse_args;
 
     #[test]
     pub fn testingdata() -> Result<(), &'static str> {
@@ -293,39 +263,11 @@ pub mod tests {
         assert_eq!(expected, result);
     }
 
-    #[test]
-    pub fn test_files() -> Result<(), Error> {
-        let _ = testingdata();
-
-        // TODO: update this path with some config file
-        //let fpaths =
-        //    glob_dir(std::env::current_dir().unwrap().to_str().unwrap(), "nm4", 0).unwrap();
-        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
-
-        let mut n = 0;
-        for filepath in fpaths {
-            if n > 10 {
-                break;
-            }
-            let start = Instant::now();
-            let (positions, stat_msgs) = decodemsgs(&filepath);
-            let elapsed = start.elapsed();
-            println!(
-                "{}\tdecoded {} msgs/s",
-                n,
-                ((positions.len() + stat_msgs.len()) as f64 / elapsed.as_secs_f64())
-            );
-            n += 1;
-        }
-
-        Ok(())
-    }
-
     pub fn test_decode_insert_msgs() -> Result<(), Error> {
         let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
         for filepath in fpaths {
             let _ = decode_insert_msgs(
-                &std::path::Path::new("testdata/ais.db").to_path_buf(),
+                &std::path::Path::new("testdata/test.db").to_path_buf(),
                 &std::path::Path::new(&filepath).to_path_buf(),
             );
         }

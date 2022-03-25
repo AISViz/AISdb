@@ -1,46 +1,55 @@
-# query position reports using rtree indexes
-dynamic = lambda month, callback, kwargs: (f'''
-    SELECT d.mmsi, d.time, d.longitude, d.latitude
-        --, d.cog, d.sog
-      FROM ais_{month}_dynamic AS d
-      WHERE {callback(month=month, alias='d', **kwargs)}''')
+import os
 
-# query static vessel data from monthly aggregate tables
-static = lambda month, **_: (f'''
-    SELECT mmsi, vessel_name, ship_type, dim_bow,
-            dim_stern, dim_port, dim_star, imo
-        FROM static_{month}_aggregate''')
+from aisdb import sqlpath
 
-# common table expression SELECT statements for concatenation with UNION
-leftjoin = lambda month: (f'''
-SELECT dynamic_{month}.mmsi, dynamic_{month}.time,
-            dynamic_{month}.longitude, dynamic_{month}.latitude,
-            --dynamic_{month}.cog, dynamic_{month}.sog,
-            static_{month}.imo, static_{month}.vessel_name,
-            static_{month}.dim_bow, static_{month}.dim_stern,
-            static_{month}.dim_port, static_{month}.dim_star,
-            static_{month}.ship_type
-        FROM dynamic_{month}
-    LEFT JOIN static_{month}
-        ON dynamic_{month}.mmsi = static_{month}.mmsi ''')
 
-# declare common table expressions for use in SQL 'WITH' statements
-aliases = lambda month, callback, kwargs: (f'''
-dynamic_{month} AS ( {dynamic(month, callback, kwargs)}
-),
-static_{month} AS ( {static(month)}
-)
-''')
+def dynamic(month, callback, kwargs):
+    ''' SQL common table expression for selecting from dynamic tables '''
+    sqlfile = 'cte_dynamic_clusteredidx.sql'
+    with open(os.path.join(sqlpath, sqlfile), 'r') as f:
+        sql = f.read()
+    args = [month for _ in range(len(sql.split('{}')) - 1)]
+    return sql.format(*args) + callback(month=month, alias='d', **kwargs)
 
-# query position reports using rtree indexes
-testfcn = lambda month, callback, kwargs: (f'''
-    SELECT d.mmsi, d.time, d.longitude, d.latitude
-        --, d.cog, d.sog
-      FROM ais_{month}_dynamic AS d
-      WHERE {callback(month=month, alias='d', **kwargs)}''')
 
-# iterate over monthly tables to create an SQL query spanning desired time range
-crawl = lambda months, callback, **kwargs: ('WITH' + ','.join([
-    aliases(month=month, callback=callback, kwargs=kwargs) for month in months
-]) + '\nUNION'.join([leftjoin(month=month)
-                     for month in months]) + '\nORDER BY 1, 2')
+def static(month='197001', **_):
+    ''' SQL common table expression for selecting from static tables '''
+    sqlfile = 'cte_static_aggregate.sql'
+    with open(os.path.join(sqlpath, sqlfile), 'r') as f:
+        sql = f.read()
+    args = [month for _ in range(len(sql.split('{}')) - 1)]
+    return sql.format(*args)
+
+
+def leftjoin(month='197001'):
+    ''' SQL select statement using common table expressions.
+        Joins columns from dynamic, static, and coarsetype_ref tables.
+    '''
+    sqlfile = 'select_join_dynamic_static_clusteredidx.sql'
+    with open(os.path.join(sqlpath, sqlfile), 'r') as f:
+        sql = f.read()
+    args = [month for _ in range(len(sql.split('{}')) - 1)]
+    return sql.format(*args)
+
+
+def aliases(month, callback, kwargs):
+    ''' declare common table expression aliases '''
+    sqlfile = 'cte_aliases.sql'
+    with open(os.path.join(sqlpath, sqlfile), 'r') as f:
+        sql = f.read()
+    args = (month, dynamic(month, callback, kwargs), month, static(month))
+    return sql.format(*args)
+
+
+def crawl(months, callback, **kwargs):
+    ''' iterate over tables to create SQL query spanning desired time range '''
+    sqlfile = 'cte_coarsetype.sql'
+    with open(os.path.join(sqlpath, sqlfile), 'r') as f:
+        sql_coarsetype = f.read()
+    sql_aliases = ''.join([
+        aliases(month=month, callback=callback, kwargs=kwargs)
+        for month in months
+    ])
+    sql_union = '\nUNION\n'.join([leftjoin(month=month) for month in months])
+    sql_qry = f'WITH\n{sql_aliases}\n{sql_coarsetype}\n{sql_union}'
+    return sql_qry

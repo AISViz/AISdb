@@ -27,18 +27,18 @@ The ``-X`` option is used when connecting to enable forwarding
 
 
 Create and start the aisdb environment and sphinx docs with ``docker-compose up``. 
-Possible options are ``aisdb``, ``docs``, or ``test``
+Possible options are ``aisdb_test``, ``aisdb_docs``, ``aisdb_rust``, or ``aisdb_sshd``
 
   
 .. code-block:: sh
 
-  $ docker-compose up aisdb docs
+  $ docker-compose up --build --no-deps aisdb_docs aisdb_sshd
 
   ...
 
   aisdb_sshd  | Starting environment over SSH
   aisdb_sshd  | 
-  aisdb_sshd  | ssh -X -i ~/.ssh/id_aisdb ais_env@2001:3984:3989::2
+  aisdb_sshd  | ssh -X ais_env@fc00::2 -i ~/.ssh/id_aisdb
   aisdb_sshd  | 
   aisdb_sshd  | Server listening on 0.0.0.0 port 22.
   aisdb_sshd  | Server listening on :: port 22.
@@ -46,18 +46,18 @@ Possible options are ``aisdb``, ``docs``, or ``test``
   aisdb_docs  | > AISDB@0.1.0 start
   aisdb_docs  | > node server.js
   aisdb_docs  | 
-  aisdb_docs  | Docs available at http://172.23.0.2:8085
-  aisdb_docs  | Docs available at http://[2001:3984:3989::3]:8085
+  aisdb_docs  | Docs available at http://[fc00::3]:8085
+  aisdb_docs  | 
+
 
 
 Copy the container address and connect to the container
 
 .. code-block:: sh
 
-  $ ssh -X -i ~/.ssh/id_aisdb ais_env@2001:3984:3989::2
+  $ ssh -X ais_env@fc00::2 -i ~/.ssh/id_aisdb
 
-  Last login: Sun Dec 19 11:41:23 2021 from 172.22.0.1
-  Python 3.10.1 (main, Dec 11 2021, 17:22:55) [GCC 11.1.0] on linux
+  Python 3.10.1 (main, Dec 18 2021, 23:53:45) [GCC 11.1.0] on linux
   Type "help", "copyright", "credits" or "license" for more information.
   >>>
 

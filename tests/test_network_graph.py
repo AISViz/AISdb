@@ -3,25 +3,37 @@ from functools import partial
 # import cProfile
 
 from aisdb.database.dbqry import DBQuery
-from aisdb.database.sqlfcn_callbacks import in_bbox_time_validmmsi
+from aisdb.database.sqlfcn_callbacks import (
+    in_bbox_time,
+    in_bbox_time_validmmsi,
+)
 from aisdb.gis import Domain
 from aisdb.track_gen import (
     fence_tracks,
-    segment_tracks_encode_greatcircledistance,
+    encode_greatcircledistance,
     TrackGen,
 )
-#from aisdb.network_graph import serialize_network_edge
-from tests.create_testing_data import zonegeoms_or_randompoly
+from aisdb.network_graph import serialize_network_edge
+from tests.create_testing_data import (
+    sample_dynamictable_insertdata,
+    sample_gulfstlawrence_zonegeometry,
+)
+from aisdb.webdata.merge_data import (
+    merge_tracks_bathymetry,
+    merge_tracks_hullgeom,
+    merge_tracks_portdist,
+    merge_tracks_shoredist,
+    # merge_layers,
+)
 
-start = datetime(2021, 11, 1)
-end = datetime(2021, 12, 1)
 
-
-def test_network_graph():
-    zonegeoms = zonegeoms_or_randompoly(randomize=True, count=10)
+def test_network_graph_geofencing():
+    # query configs
+    start = datetime(2000, 1, 1)
+    end = datetime(2000, 2, 1)
+    #zonegeoms = zonegeoms_or_randompoly(randomize=True, count=10)
+    zonegeoms = {'z1': sample_gulfstlawrence_zonegeometry()}
     domain = Domain(name='test', geoms=zonegeoms, cache=False)
-
-    # query db for points in domain bounding box
     args = DBQuery(
         start=start,
         end=end,
@@ -29,37 +41,70 @@ def test_network_graph():
         xmax=domain.maxX,
         ymin=domain.minY,
         ymax=domain.maxY,
-        callback=in_bbox_time_validmmsi,
+        callback=in_bbox_time,
     )
-    rowgen = args.gen_qry()
-    rows = [next(rowgen)]
-    #if len(rows) == 0:
-    #    print('no rows found in bbox, exiting...')
-    #    return
 
-    distsplit = partial(segment_tracks_encode_greatcircledistance,
-                        maxdistance=250000,
-                        cuttime=timedelta(weeks=1),
-                        cutknots=45,
-                        minscore=5e-07)
+    args.check_idx()
+
+    sample_dynamictable_insertdata()
+    # processing configs
+    distsplit = partial(
+        encode_greatcircledistance,
+        maxdistance=250000,
+        cuttime=timedelta(weeks=1),
+        cutknots=45,
+        minscore=5e-07,
+    )
     geofenced = partial(fence_tracks, domain=domain)
-    #serialize = partial(serialize_network_edge, domain=domain)
-    gen = TrackGen(rows)
-    next(gen)
-    #pipeline = serialize(geofenced(distsplit(gen)))
-    #next(pipeline)
-    next(geofenced(distsplit(rowgen)))
 
-    # cProfile.run('test = gen.__anext__().send(None)', sort='tottime')
-    # cProfile.run('test = next(gen)', sort='tottime')
-    #
+    # query db for points in domain bounding box
+    try:
+        _test = next(TrackGen(args.gen_qry()))
+        _test2 = next(geofenced(distsplit(TrackGen(args.gen_qry()))))
+        #_test3 = next(
+        #    serialized(geofenced(distsplit(TrackGen(args.gen_qry())))))
+    except ValueError as err:
+        print('suppressed error due to DBQuery returning empty rows:'
+              f'\t{err.with_traceback(None)}')
+    except Exception as err:
+        raise err
+
+
+def test_network_graph_merged_serialized():
+    start = datetime(2000, 1, 1)
+    end = datetime(2000, 2, 1)
+    #zonegeoms = zonegeoms_or_randompoly(randomize=True, count=10)
+    zonegeoms = {'z1': sample_gulfstlawrence_zonegeometry()}
+    domain = Domain(name='test', geoms=zonegeoms, cache=False)
+    args = DBQuery(
+        start=start,
+        end=end,
+        xmin=domain.minX,
+        xmax=domain.maxX,
+        ymin=domain.minY,
+        ymax=domain.maxY,
+        callback=in_bbox_time,
+    )
+
+    args.check_idx()
+
+    distsplit = partial(
+        encode_greatcircledistance,
+        maxdistance=250000,
+        cuttime=timedelta(weeks=1),
+        cutknots=45,
+        minscore=5e-07,
+    )
+    geofenced = partial(fence_tracks, domain=domain)
+    serialized = partial(serialize_network_edge, domain=domain)
     # rowgen = picklegen(fpath)
-    # pipeline = serialize(
-    #    merge_tracks_bathymetry(
-    #        merge_tracks_shoredist(
-    #            merge_tracks_hullgeom(geofenced(distsplit(
-    #                TrackGen(rowgen)))))))
-    # cProfile.run('test2 = next(pipeline)', sort='tottime')
+    pipeline = serialized(
+        merge_tracks_bathymetry(
+            merge_tracks_shoredist(
+                merge_tracks_portdist(
+                    merge_tracks_hullgeom(
+                        geofenced(distsplit(TrackGen(args.gen_qry()))))))))
+    next(pipeline)
 
 
 '''

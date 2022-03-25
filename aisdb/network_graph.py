@@ -1,10 +1,12 @@
 ''' collect vessel transits between zones (nodes), and aggregate various trajectory statistics '''
 
 import os
+import re
 from multiprocessing import Pool
 import pickle
 from functools import partial, reduce
 from datetime import timedelta
+from hashlib import sha256
 
 import numpy as np
 
@@ -16,94 +18,135 @@ from gis import (
 )
 from track_gen import (
     TrackGen,
+    encode_greatcircledistance,
     fence_tracks,
-    segment_rng,
-    segment_tracks_encode_greatcircledistance,
-    # max_tracklength,
-    # segment_tracks_timesplits,
+    split_timedelta,
 )
-# from webdata.merge_data import merge_layers
+from webdata.merge_data import merge_layers
+from proc_util import _segment_rng
 
-# returns absolute value of bathymetric depths with topographic heights converted to 0
-depth_nonnegative = lambda track, zoneset: np.array(
-    [d if d >= 0 else 0 for d in track['depth_metres'][zoneset]])
+colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
 
-# returns minutes spent within kilometers range from shore
-time_in_shoredist_rng = lambda track, subset, dist0=0.01, dist1=5: (sum(
-    map(
+
+def depth_nonnegative(track, zoneset):
+    ''' returns absolute value of bathymetric depths with topographic heights
+        converted to 0
+    '''
+    return np.array(
+        [d if d >= 0 else 0 for d in track['depth_metres'][zoneset]])
+
+
+def time_in_shoredist_rng(track, subset, dist0=0.01, dist1=5):
+    ''' returns minutes spent within kilometers range from shore '''
+    return sum(t for t in map(
         len,
-        segment_rng(
+        _segment_rng(
             {
                 'time':
                 track['time'][subset]
                 [[dist0 <= d <= dist1 for d in track['km_from_shore'][subset]]]
             },
             maxdelta=timedelta(minutes=1),
-            minsize=1))))
+            minsize=1),
+    ))
 
-# categorical vessel data
-#staticinfo = lambda track, domain: dict(
-staticinfo = lambda track: dict(
-    mmsi=track['mmsi'],
-    imo=track['imo'] or '',
-    label=track['label'] if 'label' in track.keys() else '',
-    vessel_name=str(track['vessel_name']).replace("'", '').replace('"', '').
-    replace(',', '').replace('`', '') or '',
-    #vessel_type=track['ship_type_txt'] or '',
-    #domainname                          =   domain.name,
-    vessel_length=(track['dim_bow'] + track['dim_stern']) or '',
-    hull_submerged_surface_area=track['submerged_hull_m^2']
-    if 'submerged_hull_m^2' in track.keys() else '',
-    #ballast                             =   None,
-)
+
+def staticinfo(track):
+    ''' collect categorical vessel data as a dictionary '''
+    return dict(
+        mmsi=track['mmsi'],
+        imo=track['imo'] or '',
+        #label=track['label'] if 'label' in track.keys() else '',
+        trackID=colorhash(f'{track["mmsi"]}{track["label"]}' if 'label' in
+                          track.keys() else colorhash(f'{track["mmsi"]}')),
+        vessel_name=(str(track['vessel_name']).replace("'", '').replace(
+            '"', '').replace(',', '').replace('`', '') or ''
+                     if str(track['vessel_name']) != "0" else ""),
+        vessel_type=track['ship_type_txt'] or '',
+        vessel_length=(track['dim_bow'] + track['dim_stern']) or '',
+        summer_DWT=int(track['deadweight_tonnage'])
+        if 'deadweight_tonnage' in track.keys() else '',
+        hull_submerged_surface_area=f"{track['submerged_hull_m^2']:.0f}"
+        if 'submerged_hull_m^2' in track.keys() else '',
+    )
+
+
+fstr = lambda s: f'{float(s):.2f}'
+
 
 # collect aggregated statistics on vessel positional data
-transitinfo = lambda track, zoneset: dict(
-    src_zone=f"{int(track['in_zone'][zoneset][0].split('Z')[1]):03}",
-    rcv_zone=f"{int(track['in_zone'][zoneset][-1].split('Z')[1]):03}",
-    transit_nodes=
-    f"{track['in_zone'][zoneset][0]}_{track['in_zone'][zoneset][-1]}",
-    num_datapoints=len(track['time'][zoneset]),
-    first_seen_in_zone=epoch_2_dt(track['time'][zoneset][0]).strftime(
-        '%Y-%m-%d %H:%M UTC'),
-    last_seen_in_zone=epoch_2_dt(track['time'][zoneset][-1]).strftime(
-        '%Y-%m-%d %H:%M UTC'),
-    year=epoch_2_dt(track['time'][zoneset][0]).year,
-    month=epoch_2_dt(track['time'][zoneset][0]).month,
-    day=epoch_2_dt(track['time'][zoneset][0]).day,
-    total_distance_meters=np.sum(delta_meters(track, zoneset[[0, -1]])).astype(
-        int),
-    cumulative_distance_meters=np.sum(delta_meters(track, zoneset)).astype(int
-                                                                           ),
-    #min_shore_dist=f"{np.min(track['km_from_shore'][zoneset]):.2f or None}",
-    #avg_shore_dist=
-    #f"{np.average(track['km_from_shore'][zoneset]):.2f if 'km_from_shore' in track.keys() else None}",
-    #max_shore_dist=
-    #f"{np.max(track['km_from_shore'][zoneset]):.2f if 'km_from_shore' in track.keys() else None}",
-    #min_depth=
-    #f"{np.min(depth_nonnegative(track, zoneset)):.2f if 'depth_metres' in track.keys() else None}",
-    #avg_depth=
-    #f"{np.average(depth_nonnegative(track, zoneset)):.2f if 'depth_metres' in track.keys() else None}",
-    #max_depth=
-    #f"{np.max(depth_nonnegative(track, zoneset)):.2f if 'depth_metres' in track.keys() else None}",
-    #avg_avg_depth_border_cells=
-    #f"{np.average(track['depth_border_cells_average'][zoneset]) if 'depth_metres' in track.keys() else None}",
-    velocity_knots_min=f"{np.min(delta_knots(track, zoneset)):.2f}"
-    if len(zoneset) > 1 else 'NULL',
-    velocity_knots_avg=f"{np.average(delta_knots(track, zoneset)):.2f}"
-    if len(zoneset) > 1 else 'NULL',
-    velocity_knots_max=f"{np.max(delta_knots(track, zoneset)):.2f}"
-    if len(zoneset) > 1 else 'NULL',
-    minutes_spent_in_zone=int((epoch_2_dt(track['time'][zoneset][
-        -1]) - epoch_2_dt(track['time'][zoneset][0])).total_seconds()) / 60
-    if len(zoneset) > 1 else 'NULL',
-    #minutes_within_10m_5km_shoredist=time_in_shoredist_rng(
-    #    track, zoneset, 0.01, 5),
-    #minutes_within_30m_20km_shoredist=time_in_shoredist_rng(
-    #    track, zoneset, 0.03, 20),
-    #minutes_within_100m_50km_shoredist=time_in_shoredist_rng(
-    #    track, zoneset, 0.1, 50),
-)
+# transitinfo = lambda track, zoneset: dict(
+def transitinfo(track, zoneset):
+    ''' aggregate statistics on vessel network graph connectivity '''
+    return dict(
+
+        # geofencing
+        src_zone=int(re.sub('[^0-9]', '', track['in_zone'][zoneset][0])),
+        rcv_zone=int(re.sub('[^0-9]', '', track['in_zone'][zoneset][-1])),
+        transit_nodes=
+        f"{track['in_zone'][zoneset][0]}_{track['in_zone'][zoneset][-1]}",
+        num_datapoints=len(track['time'][zoneset]),
+
+        # timestamp info
+        first_seen_in_zone=epoch_2_dt(
+            track['time'][zoneset][0]).strftime('%Y-%m-%d %H:%M UTC'),
+        last_seen_in_zone=epoch_2_dt(
+            track['time'][zoneset][-1]).strftime('%Y-%m-%d %H:%M UTC'),
+        year=epoch_2_dt(track['time'][zoneset][0]).year,
+        month=epoch_2_dt(track['time'][zoneset][0]).month,
+        day=epoch_2_dt(track['time'][zoneset][0]).day,
+
+        # distance travelled
+        total_distance_meters=np.sum(delta_meters(track,
+                                                  zoneset[[0,
+                                                           -1]])).astype(int),
+        cumulative_distance_meters=np.sum(delta_meters(track,
+                                                       zoneset)).astype(int),
+        # shore dist
+        min_shore_dist=f"{np.min(track['km_from_shore'][zoneset]):.2f}",
+        avg_shore_dist=f"{np.average(track['km_from_shore'][zoneset]):.2f}"
+        if 'km_from_shore' in track.keys() else None,
+        max_shore_dist=f"{np.max(track['km_from_shore'][zoneset]):.2f}"
+        if 'km_from_shore' in track.keys() else None,
+
+        # port dist
+        min_port_dist=fstr(np.min(track['km_from_port'][zoneset])),
+        avg_port_dist=fstr(np.average(track['km_from_port'][zoneset]))
+        if 'km_from_port' in track.keys() else None,
+        max_port_dist=fstr(np.max(track['km_from_port'][zoneset]))
+        if 'km_from_port' in track.keys() else None,
+
+        # depth charts
+        min_depth=fstr(np.min(depth_nonnegative(track, zoneset)))
+        if 'depth_metres' in track.keys() else None,
+        avg_depth=fstr(np.average(depth_nonnegative(track, zoneset)))
+        if 'depth_metres' in track.keys() else None,
+        max_depth=fstr(np.max(depth_nonnegative(track, zoneset)))
+        if 'depth_metres' in track.keys() else None,
+        #avg_avg_depth_border_cells=fstr(
+        #    np.average(track['depth_border_cells_average'][zoneset]))
+        #if 'depth_border_cells_average' in track.keys() else None,
+
+        # computed velocity (knots)
+        velocity_knots_min=f"{np.min(delta_knots(track, zoneset)):.2f}"
+        if len(zoneset) > 1 else 'NULL',
+        velocity_knots_avg=f"{np.average(delta_knots(track, zoneset)):.2f}"
+        if len(zoneset) > 1 else 'NULL',
+        velocity_knots_max=f"{np.max(delta_knots(track, zoneset)):.2f}"
+        if len(zoneset) > 1 else 'NULL',
+
+        # elapsed time spent in zones
+        minutes_spent_in_zone=fstr(
+            (epoch_2_dt(track['time'][zoneset][-1]) -
+             epoch_2_dt(track['time'][zoneset][0])).total_seconds() /
+            60) if len(zoneset) > 1 else 'NULL',
+        minutes_within_10m_5km_shoredist=time_in_shoredist_rng(
+            track, zoneset, 0.01, 5),
+        minutes_within_30m_20km_shoredist=time_in_shoredist_rng(
+            track, zoneset, 0.03, 20),
+        minutes_within_100m_50km_shoredist=time_in_shoredist_rng(
+            track, zoneset, 0.1, 50),
+    )
 
 
 def serialize_network_edge(tracks,
@@ -125,6 +168,8 @@ def serialize_network_edge(tracks,
 
         returns: None
     '''
+    if not os.path.isdir(tmp_dir):
+        os.mkdir(tmp_dir)
 
     for track in tracks:
         filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
@@ -168,10 +213,10 @@ def aggregate_output(filename='output.csv',
             for example, to filter all rows where the max speed exceeds 50
             knots, and filter non-transiting vessels from zone Z0:
 
-            >>> filters = [
-                lambda row: row['velocity_knots_max'] == 'NULL' or float(row['velocity_knots_max']) > 50,
-                lambda row: row['src_zone'] == 'Z0' and row['rcv_zone'] == 'NULL'
-            ]
+        >>> filters = [
+        ...     lambda r: float(r['velocity_knots_max']) > 50,
+        ...     lambda r: r['src_zone'] == '0' and r['rcv_zone'] == 'NULL'
+        ...     ]
     '''
 
     outputfile = os.path.join(output_dir, filename)
@@ -195,36 +240,36 @@ def aggregate_output(filename='output.csv',
                 while True:
                     try:
                         getrow = pickle.load(f)
-                    except EOFError as e:
+                    except EOFError:
                         break
                     except Exception as e:
                         raise e
                     if not reduce(np.logical_or, [f(getrow) for f in filters]):
                         results.append(','.join(map(str, getrow.values())))
-            if delete: os.remove(picklefile)
-            if len(results) == 0: continue
+            if delete:
+                os.remove(picklefile)
+            if len(results) == 0:
+                continue
+
             output.write('\n'.join(results) + '\n')
 
 
-def graph_cpu_bound(track, domain, **params):
+def graph_cpu_bound(merged, domain, **params):
     ''' will probably be removed in a later version '''
-    #timesplit = partial(segment_tracks_timesplits, maxdelta=cuttime)
-    distsplit = partial(segment_tracks_encode_greatcircledistance, **params)
+    timesplit = partial(split_timedelta, maxdelta=params['cuttime'])
+    distsplit = partial(encode_greatcircledistance, **params)
     geofenced = partial(fence_tracks, domain=domain)
-    #split_len = partial(max_tracklength,              max_track_length=10000)
     serialize = partial(serialize_network_edge, domain=domain)
-    print('processing mmsi', track['mmsi'], end='\r')
-    #list(serialize(geofenced(split_len(distsplit(timesplit([track]))))))
-    #for t in serialize(geofenced(distsplit([track]))):
-    #    pass
-    list(serialize(geofenced(distsplit([track]))))
-    #return
+
+    for done in serialize(geofenced(distsplit(timesplit([merged])))):
+        assert done is None
+
+    return
 
 
 def graph_blocking_io(rowgen, domain):
     ''' will probably be removed in a later version '''
-    #for x in merge_layers(TrackGen(rowgen)):
-    for x in TrackGen(rowgen):
+    for x in merge_layers(TrackGen(rowgen)):
         yield x
 
 
@@ -311,7 +356,7 @@ def graph(rowgen, domain, parallel=0, **params):
             p.imap_unordered(
                 #fcn, (tr for tr in graph_blocking_io(fpath, domain=domain)),
                 fcn,
-                (r for r in graph_blocking_io(rowgen, domain=domain)),
+                graph_blocking_io(rowgen, domain=domain),
                 chunksize=1)
             p.close()
             p.join()

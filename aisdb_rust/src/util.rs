@@ -33,8 +33,8 @@ pub struct AppArgs {
     pub dbpath: std::path::PathBuf,
     pub files: Vec<std::path::PathBuf>,
     pub rawdata_dir: Option<std::path::PathBuf>,
-    pub start: usize,
-    pub end: usize,
+    //pub start: usize,
+    //pub end: usize,
 }
 
 pub fn parse_path(s: &std::ffi::OsStr) -> Result<std::path::PathBuf, &'static str> {
@@ -59,6 +59,7 @@ pub fn parse_args() -> Result<AppArgs, pico_args::Error> {
             .opt_value_from_os_str("--rawdata_dir", parse_path)
             .unwrap(),
         files: pargs.values_from_os_str("--file", parse_path).unwrap(),
+        /*
         start: pargs
             .opt_value_from_fn("--start", str::parse)
             .unwrap()
@@ -67,6 +68,7 @@ pub fn parse_args() -> Result<AppArgs, pico_args::Error> {
             .opt_value_from_fn("--end", str::parse)
             .unwrap()
             .unwrap_or(usize::MAX),
+        */
     };
 
     let remaining = pargs.finish();
@@ -77,7 +79,6 @@ pub fn parse_args() -> Result<AppArgs, pico_args::Error> {
 }
 
 /// yields sorted vector of files in dirname with a matching file extension.
-/// Optionally, skip the first N results
 pub fn glob_dir(dirname: std::path::PathBuf, matching: &str) -> Option<Vec<String>> {
     println!("{:?}", dirname);
     let mut fnames = read_dir(dirname)

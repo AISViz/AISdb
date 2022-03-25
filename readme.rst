@@ -1,5 +1,10 @@
-Getting Started
-===============
+AISDB
+=====
+
+.. raw:: html
+
+    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
+
 
 .. description:
 
@@ -27,7 +32,7 @@ Package features:
 
 
 | Source Code: 
-  https://gitlab.meridian.cs.dal.ca/matt_s/aisdb
+  https://gitlab.meridian.cs.dal.ca/public_projects/aisdb
 | Documentation: 
   https://docs.meridian.cs.dal.ca/aisdb/
 
@@ -58,9 +63,9 @@ The package can be installed using pip:
 
 .. code-block:: sh
 
-  python3 -m venv env_aisdb --upgrade
+  python3 -m venv env_aisdb
   source env_aisdb/bin/activate
-  python3 -m pip install 'git+https://gitlab.meridian.cs.dal.ca/matt_s/aisdb#egg=aisdb'
+  python3 -m pip install --verbose 'git+https://gitlab.meridian.cs.dal.ca/public_projects/aisdb#egg=aisdb'
 
 Although the graphical interface is still a work in progress, it can be
 enabled by `installing QGIS <https://qgis.org/en/site/forusers/download.html>`__. Note that
@@ -76,9 +81,9 @@ Configuring
 
 | A config file can be used to specify storage location for the database
   as well as directory paths for where to look for additional data. The
-  package will look for configs in the file ``$HOME/.config/ais.cfg``,
-  where $HOME is the user’s home directory. If no config file is found,
-  the following defaults will be used
+  package will look for configs in ``$HOME/.config/ais.cfg``,
+  where $HOME is the user’s home directory. The following defaults will be 
+  used for missing values
 
 .. code-block:: sh
 
@@ -105,14 +110,14 @@ Code examples
 
 4. `Vessel trajectory cleaning and MMSI deduplication <./api/aisdb.track_gen.html#aisdb.track_gen.segment_tracks_encode_greatcircledistance>`__
 
-5. | Integrating web data layers
-   | TODO: add documentation
-
-6. `Compute network graph of vessel movements between
+5. `Compute network graph of vessel movements between
    polygons <./api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
 
+6. | Integrating data from web sources, such as depth charts, shore distance, etc.
+   | Planned for v1.1 
+
 7. | Plot with QGIS
-   | TODO: add documentation
+   | Upcoming in a future version
 
 Collecting AIS Data
 -------------------

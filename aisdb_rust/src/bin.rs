@@ -24,6 +24,9 @@
 use futures::stream::iter;
 use futures::StreamExt;
 
+#[path = "csvreader.rs"]
+pub mod csvreader;
+
 #[path = "db.rs"]
 pub mod db;
 
@@ -33,7 +36,7 @@ pub mod decode;
 #[path = "util.rs"]
 pub mod util;
 
-use db::*;
+use csvreader::*;
 use decode::*;
 use util::*;
 
@@ -51,28 +54,32 @@ pub async fn main() -> Result<(), Error> {
         }
     };
 
-    println!("loading database file {:?}", args.dbpath);
-    let start = Instant::now();
-
     // array tuples containing (dbpath, filepath)
-    let mut n = 0;
+    //let mut n = 0;
     let mut path_arr = vec![];
     for file in args.files {
-        n += 1;
+        //n += 1;
+        /*
         if n <= args.start {
-            continue;
+        continue;
         } else if n > args.end {
-            break;
+        break;
         } else {
-            path_arr.push((std::path::PathBuf::from(&args.dbpath), file));
+        path_arr.push((std::path::PathBuf::from(&args.dbpath), file));
         }
+        */
+        path_arr.push((std::path::PathBuf::from(&args.dbpath), file));
     }
 
     // create a future for the database call
     let mut insertfile = vec![];
     for (d, f) in path_arr {
         insertfile.push(async move {
-            decode_insert_msgs(&d, &f).await.expect("decoding");
+            if f.to_str().unwrap().contains(&".nm4") || f.to_str().unwrap().contains(&".NM4") {
+                decode_insert_msgs(&d, &f).await.expect("decoding");
+            } else {
+                decodemsgs_ee_csv(&d, &f).await.expect("decoding CSV");
+            }
         });
     }
     let _results = futures::future::join_all(insertfile).await;
@@ -85,34 +92,30 @@ pub async fn main() -> Result<(), Error> {
     //    .collect::<Vec<_>>();
     //let _results = futures::future::join_all(handles).await;
 
-    // same thing but iterating over files in rawdata_dir
-    // uses different futures aggregation method ??
     if args.rawdata_dir.is_some() {
-        let fpaths = std::fs::read_dir(&args.rawdata_dir.unwrap())
+        let mut fpaths: Vec<_> = std::fs::read_dir(&args.rawdata_dir.unwrap())
             .unwrap()
-            .map(|f| (std::path::PathBuf::from(&args.dbpath), f));
+            .map(|p| (std::path::PathBuf::from(&args.dbpath), p.unwrap()))
+            .collect();
 
+        fpaths.sort_by_key(|t| t.1.path());
+        // same thing but iterating over files in rawdata_dir
+        // uses different futures aggregation method ??
         iter(fpaths)
             .for_each_concurrent(2, |(d, f)| async move {
-                decode_insert_msgs(&d, &f.unwrap().path())
-                    .await
-                    .expect("decoding")
+                //decode_insert_msgs(&d, &f.path()).await.expect("decoding")
+                if f.path().to_str().unwrap().contains(&".nm4")
+                    || f.path().to_str().unwrap().contains(&".NM4")
+                {
+                    decode_insert_msgs(&d, &f.path()).await.expect("decoding");
+                } else {
+                    decodemsgs_ee_csv(&d, &f.path())
+                        .await
+                        .expect("decoding CSV");
+                }
             })
             .await;
     }
-
-    let elapsed = start.elapsed();
-    println!(
-        "total insert time: {} minutes\n",
-        elapsed.as_secs_f32() / 60.,
-    );
-
-    //let sql = "VACUUM INTO '/run/media/matt/My Passport/test_vacuum_rust.db'";
-    let sql = "VACUUM";
-    let mut conn = get_db_conn(&args.dbpath).expect("get db conn");
-    let tx = conn.transaction().unwrap();
-    let _ = tx.execute(&sql, []);
-    let _ = tx.commit();
 
     Ok(())
 }

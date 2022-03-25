@@ -20,6 +20,7 @@ AISDB Docs: Index
 
    api/aisdb
    rust
+   changelog
 
 
 Indices and tables

@@ -127,18 +127,19 @@ class DBQuery(UserDict):
 
             cur.execute(
                 'SELECT * FROM sqlite_master WHERE type="index" and name=?',
-                [f'idx_{month}_t_x_y'])
+                [f'idx_{month}_m_t_x_y'])
 
             if len(cur.fetchall()) == 0:
                 print(f'building dynamic index for month {month}...')
                 cur.execute(
-                    f'CREATE INDEX IF NOT EXISTS idx_{month}_t_x_y '
-                    f'ON ais_{month}_dynamic (time, longitude, latitude)')
+                    f'CREATE INDEX IF NOT EXISTS idx_{month}_m_t_x_y '
+                    f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude)'
+                )
 
         aisdatabase.conn.commit()
         aisdatabase.conn.close()
 
-    def run_qry(self, fcn=crawl, dbpath=dbpath, printqry=True):
+    def run_qry(self, fcn=crawl, dbpath=dbpath, printqry=False):
         ''' queries the database
 
             args:
@@ -173,9 +174,9 @@ class DBQuery(UserDict):
         aisdatabase.cur.execute(q)
         res = aisdatabase.cur.fetchall()
         aisdatabase.conn.close()
-        return np.array(res)
+        return np.array(res, dtype=object)
 
-    def gen_qry(self, fcn=crawl, dbpath=dbpath):
+    def gen_qry(self, fcn=crawl, dbpath=dbpath, printqry=False):
         ''' queries the database using the supplied SQL function and dbpath.
             generator only stores one item at at time before yielding
 
@@ -186,7 +187,8 @@ class DBQuery(UserDict):
                     callback function that will generate SQL code using
                     the args stored in self
                 dbpath (string)
-                    defaults to the database path configured in ~/.config/ais.cfg
+                    database location. defaults to the path configured
+                    in ~/.config/ais.cfg
 
             yields:
                 numpy array of rows for each unique MMSI
@@ -197,13 +199,14 @@ class DBQuery(UserDict):
         qry = fcn(**self)
 
         # initialize db, run query
-        print(qry)
-        print('\nquerying the database...')
+        if printqry:
+            print(qry)
+        print('querying the database...')
         aisdatabase = DBConn(dbpath)
         dt = datetime.now()
         aisdatabase.cur.execute(qry)
         delta = datetime.now() - dt
-        print(f'query time: {delta.total_seconds():.2f}s')
+        print(f'query time: {delta.total_seconds():.2f}s\nfetching rows...')
 
         # get 100k rows at a time, yield sets of rows for each unique MMSI
         mmsi_rows = None
@@ -214,16 +217,8 @@ class DBQuery(UserDict):
             else:
                 mmsi_rows = np.vstack((mmsi_rows, np.array(res, dtype=object)))
 
-            print(f'{mmsi_rows[0][0]}', end='\r')
-
             while len(mmsi_rows) > 1 and int(mmsi_rows[0][0]) != int(
                     mmsi_rows[-1][0]):
-                if not isinstance(mmsi_rows[0][0], (float, int)):
-                    print(f'error: MMSI not an integer! {mmsi_rows[0]}')
-                    breakpoint()
-                if not isinstance(mmsi_rows, np.ndarray):
-                    print(f'not an array: {mmsi_rows}')
-                    breakpoint()
                 ummsi_idx = np.where(mmsi_rows[:, 0] != mmsi_rows[0, 0])[0][0]
                 yield np.array(mmsi_rows[0:ummsi_idx], dtype=object)
                 mmsi_rows = mmsi_rows[ummsi_idx:]

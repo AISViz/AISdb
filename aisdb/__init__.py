@@ -14,7 +14,7 @@ cfgfile = os.path.join(os.path.expanduser('~'), '.config', f'{pkgname}.cfg')
 
 # default config values
 data_dir = os.path.join(os.path.expanduser('~'), f'{pkgname}') + os.path.sep
-dbpath = os.path.join(data_dir, f'ais.db')
+dbpath = os.path.join(data_dir, 'ais.db')
 tmp_dir = os.path.join(data_dir, 'tmp_parsing') + os.path.sep
 zones_dir = os.path.join(data_dir, 'zones') + os.path.sep
 rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
@@ -32,14 +32,13 @@ cfgnames = [
     'zones_dir',
     'rawdata_dir',
     'output_dir',
+    'marinetraffic_VD02_key',
     'host_addr',
     'host_port',
-    #'marinetraffic_VD02_key',
 ]
 
-# legacy support
-table_prefix = 'ais_'
-legacy_cfg = ['table_prefix']
+sqlpath = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_sql'))
 
 printdefault = lambda cfgnames, quote='': '\n'.join(
     [f'{c} = {quote}{eval(c)}{quote}' for c in cfgnames])
@@ -60,17 +59,11 @@ if os.path.isfile(cfgfile):
 
     # initialize config settings as variables
     for setting in cfgnames:
-        exec(
-            f'''{setting} = settings['{setting}'] if '{setting}' in settings.keys() else {setting}'''
-        )
+        exec(f'''{setting} = settings['{setting.lower()}'] '''
+             f'''if '{setting.lower()}' in settings.keys() else {setting}''')
         if setting[-4:] == '_dir' and not os.path.isdir(settings[setting]):
             print(f'creating directory {settings[setting]}')
             os.mkdir(settings[setting])
-
-    for setting in legacy_cfg:
-        exec(
-            f'''{setting} = settings['{setting}'] if '{setting}' in settings.keys() else {setting}'''
-        )
 
     # convert port string to integer
     if isinstance(host_port, str):
@@ -101,7 +94,7 @@ class import_handler():
         ]
 
     def __enter__(self):
-        common = printdefault(cfgnames + legacy_cfg, quote="'")
+        common = printdefault(cfgnames, quote="'")
         for fpath in self.commonpaths:
             with open(fpath, 'w') as f:
                 f.write(common)
@@ -112,6 +105,8 @@ class import_handler():
 
 
 with import_handler() as importconfigs:
+
+    from .version import __version__
 
     from .database.create_tables import (
         sqlite_create_table_polygons,
@@ -144,18 +139,21 @@ with import_handler() as importconfigs:
     )
 
     from .gis import (
-        dt_2_epoch,
-        epoch_2_dt,
-        haversine,
-        delta_meters,
-        delta_seconds,
-        delta_knots,
-        delta_reported_knots,
-        dms2dd,
-        strdms2dd,
         Domain,
         ZoneGeom,
         ZoneGeomFromTxt,
+        delta_knots,
+        delta_meters,
+        delta_reported_knots,
+        delta_seconds,
+        distance3D,
+        dms2dd,
+        dt_2_epoch,
+        epoch_2_dt,
+        haversine,
+        radial_coordinate_boundary,
+        strdms2dd,
+        vesseltrack_3D_dist,
     )
 
     from .index import index
@@ -167,14 +165,29 @@ with import_handler() as importconfigs:
 
     from .proc_util import (
         fast_unzip,
-        writecsv,
+        glob_files,
+        read_binary,
+        write_binary,
+        write_csv,
     )
 
     from .track_gen import (
         TrackGen,
-        segment_tracks_timesplits,
+        split_timedelta,
         fence_tracks,
         max_tracklength,
+        encode_greatcircledistance,
     )
 
     from .wsa import wsa
+
+import sqlite3
+if (sqlite3.sqlite_version_info[0] < 3
+        or (sqlite3.sqlite_version_info[0] <= 3
+            and sqlite3.sqlite_version_info[1] < 35)):
+    import pysqlite3 as sqlite3
+
+assert sqlite3.sqlite_version_info[
+    0] >= 3, 'SQLite version too low! version 3.35 or newer required'
+assert sqlite3.sqlite_version_info[
+    1] >= 35, 'SQLite version too low! version 3.35 or newer required'
