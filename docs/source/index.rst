@@ -1,7 +1,11 @@
+Webmap
+======
+
+`Webmap <./map>`_  
+
 
 AISDB Docs: Index
 =================
-
 
 .. toctree::
    :maxdepth: 4

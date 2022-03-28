@@ -1,0 +1,205 @@
+<?xml version="1.0"?>
+<COLLADA xmlns="http://www.collada.org/2008/03/COLLADASchema" version="1.5.0">
+	<asset>
+		<contributor>
+			<authoring_tool>CPFOCCPlugin</authoring_tool>
+		</contributor>
+		<created>2009-06-27T17:42:11Z</created>
+		<modified>2009-06-27T17:42:11Z</modified>
+		<unit meter="0.001" name="millimeter"/>
+		<up_axis>Z_UP</up_axis>
+    		<subject>Test of sphere support</subject>    		
+                <title>FIXME</title>    				
+	</asset>
+	<library_visual_scenes id="libvisualscenes">
+		<visual_scene id="libvisualscenes.scene">
+			<node id="node_0" name="Primitives">
+				<instance_geometry url="#geom_1"/>
+				<extra>
+					<technique profile="OpenCASCADE">
+						<typeID>SIMPLESHAPE</typeID>
+						<name>Primitives</name>
+					</technique>
+				</extra>
+			</node>
+		</visual_scene>
+	</library_visual_scenes>
+	<library_geometries id="libgeom">
+		<geometry id="geom_1" name="Primitives">
+			<brep>
+				<curves>
+					<curve sid="geom_1.brep.curve-1"/>
+					<curve sid="geom_1.brep.curve-2">
+						<circle>
+							<radius>20</radius>
+						</circle>
+						<orient>1 0 0 -90</orient>
+						<origin>0 50 0</origin>
+					</curve>
+					<curve sid="geom_1.brep.curve-3">
+						<circle>
+							<radius>20</radius>
+						</circle>
+						<orient>1 0 0 90</orient>
+						<orient>0 0 1 -90</orient>
+						<origin>0 50 0</origin>
+					</curve>
+				</curves>
+				<surface_curves>
+					<curve sid="geom_1.brep.curve2d-1">
+						<line>
+							<origin>0 -1.5708 -0</origin>
+							<direction>1 0 0</direction>
+						</line>
+					</curve>
+					<curve sid="geom_1.brep.curve2d-2">
+						<line>
+							<origin>3.14159 -3.14159 -0</origin>
+							<direction>0 1 0</direction>
+						</line>
+					</curve>
+					<curve sid="geom_1.brep.curve2d-3">
+						<line>
+							<origin>3.14159 1.5708 0</origin>
+							<direction>-1 0 0</direction>
+						</line>
+					</curve>
+					<curve sid="geom_1.brep.curve2d-4">
+						<line>
+							<origin>0 -1.5708 -0</origin>
+							<direction>0 1 0</direction>
+						</line>
+					</curve>
+					<curve sid="geom_1.brep.curve2d-5">
+						<line>
+							<origin>3.14159 -1.5708 -0</origin>
+							<direction>1 0 0</direction>
+						</line>
+					</curve>
+					<curve sid="geom_1.brep.curve2d-6">
+						<line>
+							<origin>6.28319 -1.5708 -0</origin>
+							<direction>0 1 0</direction>
+						</line>
+					</curve>
+					<curve sid="geom_1.brep.curve2d-7">
+						<line>
+							<origin>6.28319 1.5708 0</origin>
+							<direction>-1 0 0</direction>
+						</line>
+					</curve>
+					<curve sid="geom_1.brep.curve2d-8">
+						<line>
+							<origin>3.14159 -3.14159 -0</origin>
+							<direction>0 1 0</direction>
+						</line>
+					</curve>
+				</surface_curves>
+				<surfaces>
+					<surface sid="geom_1.brep.surface-1">
+						<sphere>
+							<radius>20</radius>
+						</sphere>
+						<origin>0 50 0</origin>
+					</surface>
+					<surface sid="geom_1.brep.surface-2">
+						<sphere>
+							<radius>20</radius>
+						</sphere>
+						<origin>0 50 0</origin>
+					</surface>
+				</surfaces>
+				<source id="geom_1.brep.geom-points">
+					<float_array id="geom_1.brep.geom-points-array" count="6">1.22461e-015 50 -20 -1.22461e-015 50 20</float_array>
+					<technique_common>
+						<accessor count="2" source="#geom_1.brep.geom-points-array" stride="3">
+							<param name="X" type="float"/>
+							<param name="Y" type="float"/>
+							<param name="Z" type="float"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="geom_1.brep.geom-curves">
+					<SIDREF_array count="3">geom_1/geom_1.brep.curve-1 geom_1/geom_1.brep.curve-2 geom_1/geom_1.brep.curve-3</SIDREF_array>
+				</source>
+				<source id="geom_1.brep.geom-curves2d">
+					<SIDREF_array count="8">geom_1/geom_1.brep.curve2d-1 geom_1/geom_1.brep.curve2d-2 geom_1/geom_1.brep.curve2d-3 geom_1/geom_1.brep.curve2d-4 geom_1/geom_1.brep.curve2d-5 geom_1/geom_1.brep.curve2d-6 geom_1/geom_1.brep.curve2d-7 geom_1/geom_1.brep.curve2d-8</SIDREF_array>
+				</source>
+				<source id="geom_1.brep.orientations">
+					<Name_array id="geom_1.brep.orientations-array" count="2">REVERSED FORWARD</Name_array>
+					<technique_common>
+						<accessor count="2" source="#geom_1.brep.orientations-array">
+							<param name="ORIENTATION" type="Name"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="geom_1.brep.curve-params">
+					<float_array id="geom_1.brep.curve-params-array" count="12">0 3.14159 1.5708 4.71239 0 3.14159 0 3.14159 0 3.14159 0 3.14159</float_array>
+					<technique_common>
+						<accessor count="6" source="#geom_1.brep.curve-params-array" stride="2">
+							<param name="START" type="Name"/>
+							<param name="END" type="Name"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="geom_1.brep.materials">
+					<Name_array id="geom_1.brep.materials-array" count="2">Mat_0 Mat_1</Name_array>
+					<technique_common>
+						<accessor count="2" source="#geom_1.brep.materials-array">
+							<param name="MATERIAL" type="Name"/>
+						</accessor>
+					</technique_common>
+				</source>
+				<source id="geom_1.brep.geom-surfaces">
+					<SIDREF_array count="2">geom_1/geom_1.brep.surface-1 geom_1/geom_1.brep.surface-2</SIDREF_array>
+				</source>
+				<vertices id="geom_1.brep.vertices">
+					<input semantic="POSITION" source="#geom_1.brep.geom-points"/>
+				</vertices>
+				<edges id="geom_1.brep.edges" count="6">
+					<input offset="0" semantic="CURVE" source="#geom_1.brep.geom-curves"/>
+					<input offset="1" semantic="VERTEX" source="#geom_1.brep.vertices"/>
+					<input offset="2" semantic="VERTEX" source="#geom_1.brep.vertices"/>
+					<input offset="3" semantic="PARAM" source="#geom_1.brep.curve-params"/>
+					<p>0 0 0 0 1 0 1 1 0 1 1 2 2 0 1 3 1 0 0 4 1 1 1 5</p>
+				</edges>
+				<wires id="geom_1.brep.wires" count="2">
+					<input offset="0" semantic="EDGE" source="#geom_1.brep.edges"/>
+					<input offset="1" semantic="ORIENTATION" source="#geom_1.brep.orientations"/>
+					<vcount>4 4</vcount>
+					<p>0 1 1 1 2 1 3 0 4 1 3 1 5 1 1 0</p>
+				</wires>
+				<faces id="geom_1.brep.faces" count="2">
+					<input offset="0" semantic="SURFACE" source="#geom_1.brep.geom-surfaces"/>
+					<input offset="1" semantic="WIRE" source="#geom_1.brep.wires"/>
+					<input offset="2" semantic="ORIENTATION" source="#geom_1.brep.orientations"/>
+					<input offset="3" semantic="MATERIAL" source="#geom_1.brep.materials"/>
+					<vcount>1 1</vcount>
+					<p>0 0 1 0 1 1 1 1</p>
+				</faces>
+				<pcurves id="geom_1.brep.pcurves" count="8">
+					<input offset="0" semantic="EDGE" source="#geom_1.brep.edges"/>
+					<input offset="1" semantic="FACE" source="#geom_1.brep.faces"/>
+					<input offset="2" semantic="CURVE2D" source="#geom_1.brep.geom-curves2d"/>
+					<vcount>1 1 1 1 1 1 1 1</vcount>
+					<p>0 0 0 1 0 1 1 1 7 2 0 2 3 0 3 3 1 5 4 1 4 5 1 6</p>
+				</pcurves>
+				<shells id="geom_1.brep.shells" count="1">
+					<input offset="0" semantic="FACE" source="#geom_1.brep.faces"/>
+					<input offset="1" semantic="ORIENTATION" source="#geom_1.brep.orientations"/>
+					<vcount>2</vcount>
+					<p>0 1 1 1</p>
+				</shells>
+				<solids id="geom_1.brep.solids" count="0">
+					<input offset="0" semantic="SHELL" source="#geom_1.brep.shells"/>
+					<input offset="1" semantic="ORIENTATION" source="#geom_1.brep.orientations"/>
+					<vcount/>
+					<p/>
+				</solids>
+			</brep>
+		</geometry>
+	</library_geometries>
+	<scene>
+		<instance_visual_scene url="#libvisualscenes.scene"/>
+	</scene>
+</COLLADA>
