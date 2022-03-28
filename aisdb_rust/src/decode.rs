@@ -116,7 +116,9 @@ pub fn filter_vesseldata(
 pub async fn decode_insert_msgs(
     dbpath: &std::path::Path,
     filename: &std::path::Path,
-) -> Result<(), Error> {
+    mut parser: NmeaParser,
+) -> Result<NmeaParser, Error> {
+    //) -> Result<(), Error> {
     let fstr = &filename.to_str().unwrap();
     assert_eq!(&fstr[&fstr.len() - 4..], ".nm4");
     let start = Instant::now();
@@ -125,7 +127,7 @@ pub async fn decode_insert_msgs(
         File::open(filename)
             .unwrap_or_else(|_| panic!("Cannot open .nm4 file {}", filename.to_str().unwrap())),
     );
-    let mut parser = NmeaParser::new();
+    //let mut parser = NmeaParser::new();
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
     let mut count = 0;
@@ -187,7 +189,8 @@ pub async fn decode_insert_msgs(
         count as f32 / elapsed.as_secs_f32(),
     );
 
-    Ok(())
+    //Ok(())
+    Ok(parser)
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -195,7 +198,7 @@ pub async fn decode_insert_msgs(
 #[cfg(test)]
 pub mod tests {
 
-    use super::{decode_insert_msgs, parse_headers};
+    use super::{decode_insert_msgs, parse_headers, NmeaParser};
     use crate::util::glob_dir;
     use crate::Error;
     use std::fs::create_dir_all;
@@ -263,13 +266,17 @@ pub mod tests {
         assert_eq!(expected, result);
     }
 
-    pub fn test_decode_insert_msgs() -> Result<(), Error> {
+    pub async fn test_decode_insert_msgs() -> Result<(), Error> {
+        let mut parser = NmeaParser::new();
         let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
         for filepath in fpaths {
-            let _ = decode_insert_msgs(
+            parser = decode_insert_msgs(
                 &std::path::Path::new("testdata/test.db").to_path_buf(),
                 &std::path::Path::new(&filepath).to_path_buf(),
-            );
+                parser,
+            )
+            .await
+            .expect("test decode and insert");
         }
 
         Ok(())

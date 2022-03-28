@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.82
+-------
+
+improved contextualization of multi-part messages in rust decoder and bump rust dependency versions
+
+
 v1.0.81
 -------
 
