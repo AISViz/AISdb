@@ -1,17 +1,15 @@
 ''' scrape vessel information such as deadweight tonnage from marinetraffic.com '''
 
 import os
-import json
 import warnings
 
-import requests
 import numpy as np
 from selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
-from aisdb import data_dir, marinetraffic_VD02_key, sqlpath
+from aisdb import data_dir, sqlpath
 from aisdb.webdata.scraper import Scraper
 import sqlite3
 
@@ -22,7 +20,8 @@ trafficDBpath = os.path.join(data_dir, 'marinetraffic.db')
 trafficDB = sqlite3.Connection(trafficDBpath)
 
 
-err404 = 'INSERT OR IGNORE INTO webdata_marinetraffic(mmsi, imo, error404) VALUES (?,?,1)'
+err404 = 'INSERT OR IGNORE INTO webdata_marinetraffic(mmsi, imo, error404) '
+err404 += 'VALUES (CAST(? as INT), CAST(? as INT), 1)'
 
 # prepare sql code for inserting vessel info
 insert_sqlfile = os.path.join(sqlpath, 'insert_webdata_marinetraffic.sql')
@@ -40,7 +39,7 @@ def _loaded(drv: WebDriver) -> bool:
     return (exists or e404 or asset_type)
 
 
-def _updateinfo(info: iter, vessel: dict) -> None:
+def _updateinfo(info: str, vessel: dict) -> None:
     match info.split(': '):
 
         case ['MMSI', '-']:
@@ -120,6 +119,8 @@ def _insertelem(elem, mmsi, imo):
     vessel = {}
     for info in elem.text.split('\n'):
         _updateinfo(info, vessel)
+    if len(vessel.keys()) < 11:
+        return
     insertrow = _getrow(vessel)
 
     print(vessel)
@@ -127,9 +128,7 @@ def _insertelem(elem, mmsi, imo):
     with trafficDB as conn:
         conn.execute(insert_sql, insertrow)
         if vessel['mmsi'] != mmsi:
-            vessel['mmsi'] = int(mmsi)
-            insertrow = _getrow(vessel)
-            conn.execute(insert_sql, insertrow)
+            conn.execute(err404, (str(mmsi), str(imo)))
         if vessel['imo'] != imo:
             vessel['imo'] = int(imo)
             insertrow = _getrow(vessel)
@@ -138,10 +137,11 @@ def _insertelem(elem, mmsi, imo):
 
 class VesselInfo():
 
-    def __init__(self):
+    def __init__(self, proxy=None):
         self.filename = 'marinetraffic.db'
         self.driver = None
         self.baseurl = 'https://www.marinetraffic.com/'
+        self.proxy = proxy
 
     def __enter__(self):
         return self
@@ -152,19 +152,32 @@ class VesselInfo():
             self.driver.quit()
 
     def _getinfo(self, url, searchmmsi, searchimo):
+        if self.driver is None:
+            self.driver = Scraper(proxy=self.proxy).driver
+
         print(url, end='\t')
         try:
             self.driver.get(url)
             WebDriverWait(self.driver, 30).until(_loaded)
         except TimeoutException:
             print(f'timed out, skipping {searchmmsi=} {searchimo=}')
-            # self.driver.close()
-            # self.driver.quit()
-            # self.driver = None
-            return
-        except IndexError as err:
-            print(f'couldnt load page for {searchmmsi=} {searchimo=}, skipping...'
-                    f'\ncaught traceback {err.with_traceback(None)}')
+
+            # validate IMO
+            if searchimo != 0:
+                checksum = str(
+                        np.sum(
+                            np.array(list(map(int, list(str(searchimo)[:-1])))) *
+                            np.array([7, 6, 5, 4, 3, 2])))[-1]
+            else:
+                checksum = '0'
+
+            # if timeout occurs and MMSI or IMO appears invalid,
+            # mark as error 404
+            if (searchmmsi < 200000000
+                    or searchmmsi > 780000000
+                    or checksum != str(searchimo)[-1]):
+                with trafficDB as conn:
+                    conn.execute(err404, (str(searchmmsi), str(searchimo)))
             return
         except Exception as err:
             self.driver.close()
@@ -173,32 +186,45 @@ class VesselInfo():
 
         if 'asset_type' in self.driver.current_url:
             print('recursing...')
+
             urls = []
-            for elem in self.driver.find_elements(By.CLASS_NAME, value='ag-cell-content-link'):
-                urls.append(elem.get_attribute('href'), searchmmsi, searchimo)
+            for elem in self.driver.find_elements(
+                    By.CLASS_NAME,
+                    value='ag-cell-content-link',
+                    ):
+                urls.append(elem.get_attribute('href'))
+
             for url in urls:
                 self._getinfo(url, searchmmsi, searchimo)
+
+            # recursion break condition
             with trafficDB as conn:
+                #conn.execute(err404, (searchmmsi, searchimo))
                 conn.execute(err404, (str(searchmmsi), str(searchimo)))
+
         elif 'hc-en' in self.driver.current_url:
             raise RuntimeError('bad url??')
+
         elif self.driver.title[0:3] == '404':
             print(f'404 error! {searchmmsi=} {searchimo=}')
             with trafficDB as conn:
+                #conn.execute(err404, (searchmmsi, searchimo))
                 conn.execute(err404, (str(searchmmsi), str(searchimo)))
 
         value = 'vesselDetails_vesselInfoSection'
         for elem in self.driver.find_elements(value=value):
             _ = _insertelem(elem, searchmmsi, searchimo)
 
-
     def vessel_info_callback(self, mmsis, imos):
-        mmsis = np.array(mmsis, dtype=int).astype(int)
-        imos = np.array(imos, dtype=int).astype(int)
-        assert mmsis.size == imos.size, 'mmsis and imos must be arrays of same length'
+        mmsis = np.array(mmsis, dtype=int)
+        imos = np.array(imos, dtype=int)
+        assert mmsis.size == imos.size
 
         # create a new info table if it doesnt exist yet
-        createtable_sqlfile = os.path.join(sqlpath, 'createtable_webdata_marinetraffic.sql')
+        createtable_sqlfile = os.path.join(
+                sqlpath,
+                'createtable_webdata_marinetraffic.sql',
+                )
         with (trafficDB as conn, open(createtable_sqlfile, 'r') as f):
             createtable_sql = f.read()
             conn.execute(createtable_sql)
@@ -207,8 +233,11 @@ class VesselInfo():
         qrymmsis = ','.join(map(str, mmsis))
         sqlcount = 'SELECT CAST(mmsi AS INT), CAST(imo as INT) '
         sqlcount += f'FROM webdata_marinetraffic WHERE mmsi IN ({qrymmsis})'
+        sqlcount += 'ORDER BY mmsi'
+
         with trafficDB as conn:
             existing = conn.execute(sqlcount).fetchall()
+
         for m, i in existing:
             idx_m = mmsis == m
             idx_i = imos == i
@@ -221,49 +250,9 @@ class VesselInfo():
         if mmsis.size == 0:
             return
 
-        value = 'vesselDetails_vesselInfoSection'
-
         for mmsi, imo in zip(mmsis, imos):
-            if self.driver is None:
-                #self.scraper = Scraper()
-                self.driver = Scraper().driver
-
             suffix = f'/imo:{imo}' if imo > 0 else ''
             url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}{suffix}'
             self._getinfo(url, mmsi, imo)
 
         return
-
-
-def api_shipsearch_bymmsi(mmsis):
-    ''' Access the marinetraffic API to search master vessel data for vessel
-        particulars
-
-        To use this, register a VD02 API token at marinetraffic.com, and store
-        the token in your config file, e.g.
-        ```
-        marinetraffic_VD02_key = e82589918dc450bc712f6f2eec3840c8b4f25206
-        ```
-
-        more info:
-        https://servicedocs.marinetraffic.com/tag/Vessel-Information#operation/vesselmasterdata
-
-        args:
-            mmsis (list of integers)
-                search for vessels by MMSI
-
-        returns:
-            dict
-    '''
-    api = 'https://services.marinetraffic.com/api'
-    url = f'{api}/vesselmasterdata/{marinetraffic_VD02_key}/mmsi:{",".join(mmsis)}/protocol:json'
-    req = requests.get(url)
-    res = json.loads(req.content.decode())
-
-    if 'errors' in res.keys():
-        for error in res['errors']:
-            raise RuntimeError(
-                    f'Problem calling Marinetraffic API:  {error["detail"]}')
-
-    return res
-
