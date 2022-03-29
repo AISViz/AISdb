@@ -2,36 +2,10 @@
 Changelog
 =========
 
-v1.0.83
--------
-
-webmap
-
-# Please enter the commit message for your changes. Lines starting
-# with '#' will be ignored, and an empty message aborts the commit.
-#
-# Date:      Mon Mar 28 17:33:08 2022 -0300
-#
-# On branch webmap
-# Changes to be committed:
-#	modified:   aisdb/version.py
-#	new file:   aisdb/webmap/webmap.py
-#	modified:   changelog.rst
-#	modified:   docs/source/index.rst
-#	new file:   nodejs/map/assets/sphere.dae
-#	new file:   nodejs/map/assets/teapot_glossy_Phong.dae
-#	new file:   nodejs/map/index.html
-#	new file:   nodejs/map/map.html
-#	new file:   nodejs/map/map.js
-#	new file:   nodejs/map/worldwind.min.js
-#	modified:   nodejs/server.js
-#
-
-
 v1.0.82
 -------
 
-webmap
+improved contextualization of multi-part messages in rust decoder and bump rust dependency versions
 
 
 v1.0.81
