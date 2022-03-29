@@ -5,6 +5,7 @@ const app = express();
 const port = 8080;
 
 
+// start the application 
 app.use('/', express.static('../docs/html'));
 app.use('/map', express.static('../nodejs/map'));
 
