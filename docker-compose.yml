@@ -32,6 +32,8 @@ services:
       target: webserv
       context: .
       dockerfile: ./docker/Dockerfile
+    ports:
+      - "443:8085"
     expose:
       - "8085"
     networks:
