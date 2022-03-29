@@ -17,7 +17,13 @@ os.environ['PATH'] = f'{data_dir}:{os.environ.get("PATH")}'
 
 class Scraper():
 
-    def __init__(self):
+    def __init__(self, proxy=None):
+        '''
+            args:
+                proxy (string):
+                    Optional. String addressing IP and port, e.g.
+                    "127.0.0.1:8080"
+        '''
 
         firefoxpath = '/usr/lib/firefox/firefox' if os.path.isfile(
                 '/usr/lib/firefox/firefox') else shutil.which('firefox')
@@ -42,16 +48,21 @@ class Scraper():
         opt.set_preference('media.autoplay.allow-muted', False)
         opt.set_preference('media.autoplay.block-event.enabled', True)
         opt.set_preference('media.autoplay.block-webaudio', True)
-        opt.set_preference('services.sync.prefs.sync.media.autoplay.default',
-                False)
+        opt.set_preference('services.sync.prefs.sync.media.autoplay.default', False)
         opt.set_preference('ui.context_menus.after_mouseup', False)
         opt.set_preference('privacy.sanitize.sanitizeOnShutdown', True)
         opt.set_preference('dom.disable_beforeunload', True)
-        driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
+        # driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
+
+        service_args = []
+        if proxy is not None:
+            host, port = proxy.split(':')
+            service_args = ['--host', host, '--port', port]
 
         self.driver = webdriver.WebDriver(
                 options=opt,
                 keep_alive=True,
+                service_args=service_args,
                 )
 
         if headless:

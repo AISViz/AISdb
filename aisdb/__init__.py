@@ -21,7 +21,7 @@ rawdata_dir = os.path.join(data_dir, 'rawdata') + os.path.sep
 host_addr = 'localhost'
 host_port = 9999
 output_dir = os.path.join(data_dir, 'scriptoutput') + os.path.sep
-marinetraffic_VD02_key = ''
+# marinetraffic_VD02_key = ''
 
 # common imports that should be shared with module subdirectories
 commondirs = ['.', 'database', 'webdata']
@@ -32,16 +32,18 @@ cfgnames = [
     'zones_dir',
     'rawdata_dir',
     'output_dir',
-    'marinetraffic_VD02_key',
     'host_addr',
     'host_port',
+    # 'marinetraffic_VD02_key',
 ]
 
 sqlpath = os.path.abspath(
     os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_sql'))
 
-printdefault = lambda cfgnames, quote='': '\n'.join(
-    [f'{c} = {quote}{eval(c)}{quote}' for c in cfgnames])
+
+def printdefault(cfgnames, quote=''):
+    return '\n'.join([f'{c} = {quote}{eval(c)}{quote}' for c in cfgnames])
+
 
 # read config file
 if os.path.isfile(cfgfile):
@@ -53,7 +55,7 @@ if os.path.isfile(cfgfile):
         if len(list(cfg.keys())) > 1:
             raise KeyError('Error in config file: wrong number of sections')
     except configparser.Error as err:
-        print(f'could not read the configuration file!\n')
+        print('could not read the configuration file!\n')
         raise err.with_traceback(None)
     settings = dict(cfg['DEFAULT'])
 
@@ -73,15 +75,15 @@ if os.path.isfile(cfgfile):
 
 else:
     print(
-        f'''\n{printdefault(cfgnames)}\n\nno .cfg file found, writing default configuration to {cfgfile} '''
-    )
+        f'''\n{printdefault(cfgnames)}\n\n'''
+        f'''no .cfg file found, writing default configuration to {cfgfile}''')
     if not os.path.isdir(os.path.dirname(cfgfile)):
         os.mkdir(os.path.dirname(cfgfile))
     with open(cfgfile, 'w') as f:
         f.write(printdefault(cfgnames))
     if not os.path.isdir(data_dir):
         os.mkdir(data_dir)
-    #if not os.path.isdir(tmp_dir):
+    # if not os.path.isdir(tmp_dir):
     #    os.mkdir(tmp_dir)
 
 
