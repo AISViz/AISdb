@@ -52,18 +52,32 @@ services:
       - host_ssh_key
       - host_authorized_keys
     networks:
-      - ipv6_private 
+      ipv6_private:
+        ipv6_address: "fc00::4"
 
   nginx:
     image: nginx:latest
+    container_name: aisdb_nginx
     volumes:
       - ./nginx/aisdb.conf:/etc/nginx/nginx.conf:ro
+      # - ./nginx/certbot/conf:/etc/letsencrypt
+      # - ./nginx/certbot/www:/var/www/certbot
     ports:
      - "80:80"
      - "443:443"
     networks:
       ipv6_private:
         ipv6_address: "fc00::2"
+
+  #certbot:
+  #image: certbot/certbot
+  #container_name: aisdb_certbot
+  #volumes:
+  #  - ./nginx/certbot/conf:/etc/letsencrypt
+  #  - ./nginx/certbot/www:/var/www/certbot
+  #networks:
+  #  ipv6_private:
+  #    ipv6_address: "fc00::4"
 
 
 secrets:
@@ -79,6 +93,6 @@ networks:
     enable_ipv6: true
     ipam:
       config:
-        - subnet: "fc00:0:0::/120"
+        - subnet: "fc00:0:0::/119"
           gateway: "fc00:0:0::1"
 
