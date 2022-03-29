@@ -32,12 +32,13 @@ services:
       target: webserv
       context: .
       dockerfile: ./docker/Dockerfile
-    ports:
-      - "443:8085"
     expose:
       - "8085"
     networks:
-      - ipv6_private
+      ipv6_private:
+        ipv6_address: "fc00::3"
+    #ports:
+    #  - "80:8085"
 
   aisdb_sshd:
     container_name: aisdb_sshd
@@ -52,6 +53,17 @@ services:
       - host_authorized_keys
     networks:
       - ipv6_private 
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx/aisdb.conf:/etc/nginx/nginx.conf:ro
+    ports:
+     - "80:80"
+     - "443:443"
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::2"
 
 
 secrets:
