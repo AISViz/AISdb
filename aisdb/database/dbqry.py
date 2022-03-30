@@ -7,14 +7,16 @@ import numpy as np
 from shapely.geometry import Polygon
 
 from aisdb.common import dbpath
-from database.sqlfcn import crawl
+from database import sqlfcn_callbacks
 from database.dbconn import DBConn
+from database.sqlfcn import crawl
 from database.sqlfcn_callbacks import dt2monthstr, arr2polytxt, epoch2monthstr
 from database.create_tables import (
     aggregate_static_msgs,
     sqlite_createtable_dynamicreport,
     sqlite_createtable_staticreport,
 )
+from aisdb.webdata.marinetraffic import VesselInfo
 
 
 class DBQuery(UserDict):
@@ -98,12 +100,24 @@ class DBQuery(UserDict):
             else:
                 assert 'radius' in self.keys(), 'undefined radius'
 
-    def check_idx(self, dbpath=dbpath):
-        ''' ensure that all tables exist, and indexes are built, for the
-            timespan covered by the DBQuery
+    def check_idx(self, dbpath=dbpath, domain=None):
+        ''' Ensure that all tables exist, and indexes are built, for the
+            timespan covered by the DBQuery.
+            Scrapes metadata for vessels in domain and stores to
+            marinetraffic.db inside data_dir
+
+            args:
+                dbpath (string)
+                    Path to database
+                domain (aisdb.gis.Domain)
+                    Will attempt to scrape metadata for all vessels within
+                    domain boundary from marinetraffic.com.
+                    If no domain is provided, an approximate bounding box for
+                    Canada EEZ will be used
         '''
         aisdatabase = DBConn(dbpath)
         cur = aisdatabase.cur
+        vinfo = VesselInfo()
         for month in self.data['months']:
             cur.execute(
                 'SELECT * FROM sqlite_master WHERE type="table" and name=?',
@@ -138,6 +152,25 @@ class DBQuery(UserDict):
 
         aisdatabase.conn.commit()
         aisdatabase.conn.close()
+
+        # scrape metadata for observed vessels from marinetraffic
+        # if no domain is provided, defaults to area surrounding canada
+        y, m = int(month[:4]), int(month[4:])
+        req2 = DBQuery(
+            start=datetime(y, m, 1),
+            end=datetime(y, m % 12 + 1, 1),
+            callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
+            xmin=domain.minX if domain is not None else -140,
+            xmax=domain.maxX if domain is not None else -40,
+            ymin=domain.minY if domain is not None else 45,
+            ymax=domain.maxY if domain is not None else 90,
+        )
+        res = np.array(list(req2.run_qry()), dtype=object)
+        if len(res) != 0:
+            vinfo.vessel_info_callback(res.T[0], res.T[4])
+            #unq_mmsi, midx = np.unique(mmsis, return_index=True)
+            #unq_imo = [i if i is not None else 0 for i in res.T[4][midx]]
+            #vinfo.vessel_info_callback(unq_mmsi, unq_imo)
 
     def run_qry(self, fcn=crawl, dbpath=dbpath, printqry=False):
         ''' queries the database

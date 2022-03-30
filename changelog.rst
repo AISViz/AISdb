@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.83
+-------
+
+collect vessel metadata when building indexes
+
+
 v1.0.82
 -------
 

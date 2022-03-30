@@ -1,7 +1,6 @@
 ''' scrape vessel information such as deadweight tonnage from marinetraffic.com '''
 
 import os
-import warnings
 
 import numpy as np
 from selenium.webdriver.firefox.webdriver import WebDriver
@@ -12,9 +11,6 @@ from selenium.common.exceptions import TimeoutException
 from aisdb import data_dir, sqlpath
 from aisdb.webdata.scraper import Scraper
 import sqlite3
-
-warnings.filterwarnings("error")
-
 
 trafficDBpath = os.path.join(data_dir, 'marinetraffic.db')
 trafficDB = sqlite3.Connection(trafficDBpath)
@@ -218,6 +214,10 @@ class VesselInfo():
     def vessel_info_callback(self, mmsis, imos):
         mmsis = np.array(mmsis, dtype=int)
         imos = np.array(imos, dtype=int)
+
+        # only check unique mmsis and matching imo
+        mmsis, midx = np.unique(mmsis, return_index=True)
+        imos = [i if i is not None else 0 for i in imos[midx]]
         assert mmsis.size == imos.size
 
         # create a new info table if it doesnt exist yet
