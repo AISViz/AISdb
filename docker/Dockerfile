@@ -14,7 +14,7 @@ RUN pacman -Syyuu --noconfirm \
 RUN useradd -m "ais_env" --shell /bin/python
 WORKDIR "/home/ais_env"
 USER "ais_env"
-RUN npm install express
+RUN npm install express vite react react-dom ol @vitejs/plugin-react
 RUN mkdir -p aisdb aisdb_rust/src \
   && echo 'fn main(){}' > aisdb_rust/src/db.rs \
   && echo 'fn main(){}' > aisdb_rust/src/decode.rs \
@@ -62,11 +62,12 @@ CMD ["python", "-m", "pytest", "--color=yes", "--tb=native", "-k", "not qgis and
 
 # sphinx docs + rust cargo docs
 FROM build_python AS webserv
-COPY --chown=ais_env nodejs/ nodejs/
 COPY --chown=ais_env readme.rst ./readme.rst
 COPY --chown=ais_env docs/ docs/
 COPY --chown=ais_env changelog.rst ./changelog.rst
 RUN /bin/bash ./docs/sphinxbuild.sh
+COPY --chown=ais_env nodejs/ nodejs/
+RUN cd nodejs && npx vite build --outDir ../dist
 CMD ["npm", "--prefix", "nodejs/", "start"]
 
 
