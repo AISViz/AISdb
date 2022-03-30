@@ -32,8 +32,10 @@ services:
       target: webserv
       context: .
       dockerfile: ./docker/Dockerfile
+      args:
+        VITE_BINGMAPSKEY: ${VITE_BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
     environment:
-      - VITE_BINGMAPSKEY='Your Bing Maps Key from https://www.bingmapsportal.com/ here'
+      VITE_BINGMAPSKEY: ${VITE_BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
     expose:
       - "8085"
     networks:

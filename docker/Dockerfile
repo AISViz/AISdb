@@ -8,9 +8,9 @@ RUN pacman -Syyuu --noconfirm \
     python \
     python-sphinx \
     python-sphinx_rtd_theme \
-    qgis \
     rust \
     xorg-xauth
+    #qgis \
 RUN useradd -m "ais_env" --shell /bin/python
 WORKDIR "/home/ais_env"
 USER "ais_env"
