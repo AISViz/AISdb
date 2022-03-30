@@ -62,12 +62,13 @@ CMD ["python", "-m", "pytest", "--color=yes", "--tb=native", "-k", "not qgis and
 
 # sphinx docs + rust cargo docs
 FROM build_python AS webserv
+ARG VITE_BINGMAPSKEY
 COPY --chown=ais_env readme.rst ./readme.rst
 COPY --chown=ais_env docs/ docs/
 COPY --chown=ais_env changelog.rst ./changelog.rst
 RUN /bin/bash ./docs/sphinxbuild.sh
 COPY --chown=ais_env nodejs/ nodejs/
-RUN cd nodejs && npx vite build --outDir ../dist
+RUN cd nodejs && VITE_BINGMAPSKEY=$VITE_BINGMAPSKEY npx vite build --outDir ../dist
 CMD ["npm", "--prefix", "nodejs/", "start"]
 
 

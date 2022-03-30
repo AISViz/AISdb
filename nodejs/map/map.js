@@ -61,6 +61,3 @@ function onChange() {
 select.addEventListener('change', onChange);
 onChange();
 
-const debugdiv = document.getElementById('debug');
-debugdiv.textContent = import.meta.env.VITE_BINGMAPSKEY;
-
