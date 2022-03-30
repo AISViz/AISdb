@@ -1,7 +1,6 @@
 ''' scrape vessel information such as deadweight tonnage from marinetraffic.com '''
 
 import os
-import warnings
 
 import numpy as np
 from selenium.webdriver.firefox.webdriver import WebDriver
@@ -12,9 +11,6 @@ from selenium.common.exceptions import TimeoutException
 from aisdb import data_dir, sqlpath
 from aisdb.webdata.scraper import Scraper
 import sqlite3
-
-warnings.filterwarnings("error")
-
 
 trafficDBpath = os.path.join(data_dir, 'marinetraffic.db')
 trafficDB = sqlite3.Connection(trafficDBpath)
@@ -216,6 +212,9 @@ class VesselInfo():
             _ = _insertelem(elem, searchmmsi, searchimo)
 
     def vessel_info_callback(self, mmsis, imos):
+        # only check unique mmsis and matching imo
+        mmsis, midx = np.unique(mmsis, return_index=True)
+        imos = [i if i is not None else 0 for i in imos[midx]]
         mmsis = np.array(mmsis, dtype=int)
         imos = np.array(imos, dtype=int)
         assert mmsis.size == imos.size
@@ -229,20 +228,20 @@ class VesselInfo():
             createtable_sql = f.read()
             conn.execute(createtable_sql)
 
-        # skip existing
+        # check existing
         qrymmsis = ','.join(map(str, mmsis))
         sqlcount = 'SELECT CAST(mmsi AS INT), CAST(imo as INT) '
         sqlcount += f'FROM webdata_marinetraffic WHERE mmsi IN ({qrymmsis})'
         sqlcount += 'ORDER BY mmsi'
-
         with trafficDB as conn:
             existing = conn.execute(sqlcount).fetchall()
 
+        # skip existing mmsis
         for m, i in existing:
             idx_m = mmsis == m
             idx_i = imos == i
             skip = np.logical_and(idx_m, idx_i)
-            if sum(skip) == 0:
+            if np.sum(skip) == 0:
                 continue
             mmsis = mmsis[~skip]
             imos = imos[~skip]

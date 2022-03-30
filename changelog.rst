@@ -2,6 +2,18 @@
 Changelog
 =========
 
+v1.0.84
+-------
+
+improvements and bug fixes in metadata collection
+
+
+v1.0.83
+-------
+
+collect vessel metadata when building indexes
+
+
 v1.0.82
 -------
 
