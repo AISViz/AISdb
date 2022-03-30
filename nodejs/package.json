@@ -13,10 +13,10 @@
     "express": "^4.14.1",
     "ol": "^6.14.1",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "vite": "^2.9.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^1.2.0",
-    "vite": "^2.8.6"
+    "@vitejs/plugin-react": "^1.2.0"
   }
 }
