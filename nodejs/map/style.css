@@ -1,0 +1,10 @@
+.map {
+	position: relative;
+	height: 800px;
+	padding: 10px;
+}
+
+.optionSelectContainer {
+	position: relative;
+	padding: 8px;
+}

@@ -5,8 +5,10 @@ const app = express();
 const port = 8080;
 
 
+// start the application 
 app.use('/', express.static('../docs/html'));
-app.use('/map', express.static('../nodejs/map'));
+app.use('/map', express.static('../nodejs/dist'));
+app.use('/assets', express.static('../nodejs/dist/assets'));
 
 
 app.listen(port, '::', () => {
