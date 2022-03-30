@@ -7,14 +7,16 @@ import numpy as np
 from shapely.geometry import Polygon
 
 from aisdb.common import dbpath
-from database.sqlfcn import crawl
+from database import sqlfcn_callbacks
 from database.dbconn import DBConn
+from database.sqlfcn import crawl
 from database.sqlfcn_callbacks import dt2monthstr, arr2polytxt, epoch2monthstr
 from database.create_tables import (
     aggregate_static_msgs,
     sqlite_createtable_dynamicreport,
     sqlite_createtable_staticreport,
 )
+from aisdb.webdata.marinetraffic import VesselInfo
 
 
 class DBQuery(UserDict):
@@ -98,13 +100,20 @@ class DBQuery(UserDict):
             else:
                 assert 'radius' in self.keys(), 'undefined radius'
 
-    def check_idx(self, dbpath=dbpath):
-        ''' ensure that all tables exist, and indexes are built, for the
-            timespan covered by the DBQuery
+    def check_idx(self, dbpath=dbpath, vesselinfo=False):
+        ''' Ensure that all tables exist, and indexes are built, for the
+            timespan covered by the DBQuery.
+            Scrapes metadata for vessels in domain and stores to
+            marinetraffic.db inside data_dir
+
+            args:
+                dbpath (string)
+                    Path to database
         '''
         aisdatabase = DBConn(dbpath)
         cur = aisdatabase.cur
-        for month in self.data['months']:
+        vinfo = VesselInfo()
+        for month in self.data['months'][::-1]:
             cur.execute(
                 'SELECT * FROM sqlite_master WHERE type="table" and name=?',
                 [f'ais_{month}_static'])
@@ -136,10 +145,39 @@ class DBQuery(UserDict):
                     f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude)'
                 )
 
+            if ('xmin' not in self.keys() or 'xmax' not in self.keys()
+                    or 'ymin' not in self.keys() or 'ymax' not in self.keys()):
+                continue
+
+            # scrape metadata for observed vessels from marinetraffic
+            # if no domain is provided, defaults to area surrounding canada
+            y, m = int(month[:4]), int(month[4:])
+            req2 = DBQuery(
+                start=datetime(y, m, 1),
+                end=datetime(y + int(m == 12), m % 12 + 1, 1),
+                callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
+                xmin=self['xmin'],
+                xmax=self['xmax'],
+                ymin=self['ymin'],
+                ymax=self['ymax'],
+            )
+            res = np.array(list(req2.run_qry(check_idx=False)), dtype=object)
+            if len(res) != 0:
+                print(f'scraping vessels: month {y}{m:02d}\t'
+                      f'{self["xmin"]}W:{self["xmax"]}W\t'
+                      f'{self["ymin"]}N:{self["ymax"]}N')
+                vinfo.vessel_info_callback(res.T[0], res.T[4])
+
         aisdatabase.conn.commit()
         aisdatabase.conn.close()
 
-    def run_qry(self, fcn=crawl, dbpath=dbpath, printqry=False):
+    def run_qry(
+        self,
+        fcn=crawl,
+        dbpath=dbpath,
+        printqry=False,
+        check_idx=True,
+    ):
         ''' queries the database
 
             args:
@@ -169,7 +207,8 @@ class DBQuery(UserDict):
 
         assert self.data['start'] < self.data['end'], 'invalid time range'
         assert len(self.data['months']) >= 1, f'bad qry {self=}'
-        self.check_idx()
+        if check_idx:
+            self.check_idx()
 
         aisdatabase.cur.execute(q)
         res = aisdatabase.cur.fetchall()
