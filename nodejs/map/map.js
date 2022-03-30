@@ -9,7 +9,6 @@ const styles = [
   'AerialWithLabelsOnDemand',
   'CanvasDark',
   'RoadOnDemand',
-  //'OrdnanceSurvey',
 ];
 
 
@@ -22,8 +21,7 @@ for (i = 0, ii = styles.length; i < ii; ++i) {
       visible: false,
       preload: Infinity,
       source: new BingMaps({
-        //key: 'Your Bing Maps Key from https://www.bingmapsportal.com/ here',
-        key: 'Atkf6bjY5ujuqD30tybOIc74JapBW85_kHMeaB3mk4euiw-Fq-EYKRijEPSfhUDM',
+        key: import.meta.env.VITE_BINGMAPSKEY,
         imagerySet: styles[i],
         // use maxZoom 19 to see stretched tiles instead of the BingMaps
         // "no photos at this zoom level" tiles
