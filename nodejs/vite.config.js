@@ -12,12 +12,12 @@ const { resolve } = require('path')
 module.exports = {
   plugins: [react()],
   root: 'map',
-  //root: '/',
+  //root: '.',
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        map: resolve(__dirname, 'map/'),
+        //main: resolve(__dirname, 'index.html'),
+        map: resolve(__dirname, 'map/index.html'),
       }
     }
   }
