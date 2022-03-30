@@ -14,19 +14,30 @@
       <div id="map" class="map"></div>
       <div id="optionSelectContainer" class="optionSelectContainer">
 
-        <label for="startSelect">Start</label>
-        <input type="date" id="startSelect" name="start">
+	<label for="startSelect">Start</label>
+	<input type="date" id="startSelect" name="start">
 
-        <label for="endSelect">End</label>
-        <input type="date" id="endSelect" name="end">
+	<label for="endSelect">End</label>
+	<input type="date" id="endSelect" name="end">
+
+        <br><br>
+
+        <label for='layer-select'>Map Layer</label>
+	<select id="layer-select">
+	  <option value="Aerial">Aerial</option>
+	  <option value="AerialWithLabelsOnDemand" selected>Aerial with labels</option>
+	  <option value="RoadOnDemand">Road</option>
+	  <option value="CanvasDark">Road dark</option>
+          <!--<option value="OrdnanceSurvey">Ordnance Survey</option>-->
+	</select>
 
       </div>
     </div>
     <script type="module" src="./src/main.jsx"></script>
     <script type="module" src="./map.js" ></script>
     <!--
-    <script src="map.js" type="text/javascript"></script>
-    -->
+      <script src="map.js" type="text/javascript"></script>
+      -->
   </body>
 
 
