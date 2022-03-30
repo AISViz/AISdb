@@ -100,7 +100,7 @@ class DBQuery(UserDict):
             else:
                 assert 'radius' in self.keys(), 'undefined radius'
 
-    def check_idx(self, dbpath=dbpath, domain=None):
+    def check_idx(self, dbpath=dbpath, vesselinfo=False):
         ''' Ensure that all tables exist, and indexes are built, for the
             timespan covered by the DBQuery.
             Scrapes metadata for vessels in domain and stores to
@@ -109,16 +109,11 @@ class DBQuery(UserDict):
             args:
                 dbpath (string)
                     Path to database
-                domain (aisdb.gis.Domain)
-                    Will attempt to scrape metadata for all vessels within
-                    domain boundary from marinetraffic.com.
-                    If no domain is provided, an approximate bounding box for
-                    Canada EEZ will be used
         '''
         aisdatabase = DBConn(dbpath)
         cur = aisdatabase.cur
         vinfo = VesselInfo()
-        for month in self.data['months']:
+        for month in self.data['months'][::-1]:
             cur.execute(
                 'SELECT * FROM sqlite_master WHERE type="table" and name=?',
                 [f'ais_{month}_static'])
@@ -150,29 +145,39 @@ class DBQuery(UserDict):
                     f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude)'
                 )
 
+            if ('xmin' not in self.keys() or 'xmax' not in self.keys()
+                    or 'ymin' not in self.keys() or 'ymax' not in self.keys()):
+                continue
+
+            # scrape metadata for observed vessels from marinetraffic
+            # if no domain is provided, defaults to area surrounding canada
+            y, m = int(month[:4]), int(month[4:])
+            req2 = DBQuery(
+                start=datetime(y, m, 1),
+                end=datetime(y + int(m == 12), m % 12 + 1, 1),
+                callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
+                xmin=self['xmin'],
+                xmax=self['xmax'],
+                ymin=self['ymin'],
+                ymax=self['ymax'],
+            )
+            res = np.array(list(req2.run_qry(check_idx=False)), dtype=object)
+            if len(res) != 0:
+                print(f'scraping vessels: month {y}{m:02d}\t'
+                      f'{self["xmin"]}W:{self["xmax"]}W\t'
+                      f'{self["ymin"]}N:{self["ymax"]}N')
+                vinfo.vessel_info_callback(res.T[0], res.T[4])
+
         aisdatabase.conn.commit()
         aisdatabase.conn.close()
 
-        # scrape metadata for observed vessels from marinetraffic
-        # if no domain is provided, defaults to area surrounding canada
-        y, m = int(month[:4]), int(month[4:])
-        req2 = DBQuery(
-            start=datetime(y, m, 1),
-            end=datetime(y, m % 12 + 1, 1),
-            callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
-            xmin=domain.minX if domain is not None else -140,
-            xmax=domain.maxX if domain is not None else -40,
-            ymin=domain.minY if domain is not None else 45,
-            ymax=domain.maxY if domain is not None else 90,
-        )
-        res = np.array(list(req2.run_qry()), dtype=object)
-        if len(res) != 0:
-            vinfo.vessel_info_callback(res.T[0], res.T[4])
-            #unq_mmsi, midx = np.unique(mmsis, return_index=True)
-            #unq_imo = [i if i is not None else 0 for i in res.T[4][midx]]
-            #vinfo.vessel_info_callback(unq_mmsi, unq_imo)
-
-    def run_qry(self, fcn=crawl, dbpath=dbpath, printqry=False):
+    def run_qry(
+        self,
+        fcn=crawl,
+        dbpath=dbpath,
+        printqry=False,
+        check_idx=True,
+    ):
         ''' queries the database
 
             args:
@@ -202,7 +207,8 @@ class DBQuery(UserDict):
 
         assert self.data['start'] < self.data['end'], 'invalid time range'
         assert len(self.data['months']) >= 1, f'bad qry {self=}'
-        self.check_idx()
+        if check_idx:
+            self.check_idx()
 
         aisdatabase.cur.execute(q)
         res = aisdatabase.cur.fetchall()

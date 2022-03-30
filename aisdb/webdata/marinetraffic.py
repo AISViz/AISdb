@@ -212,12 +212,11 @@ class VesselInfo():
             _ = _insertelem(elem, searchmmsi, searchimo)
 
     def vessel_info_callback(self, mmsis, imos):
-        mmsis = np.array(mmsis, dtype=int)
-        imos = np.array(imos, dtype=int)
-
         # only check unique mmsis and matching imo
         mmsis, midx = np.unique(mmsis, return_index=True)
         imos = [i if i is not None else 0 for i in imos[midx]]
+        mmsis = np.array(mmsis, dtype=int)
+        imos = np.array(imos, dtype=int)
         assert mmsis.size == imos.size
 
         # create a new info table if it doesnt exist yet
@@ -229,20 +228,20 @@ class VesselInfo():
             createtable_sql = f.read()
             conn.execute(createtable_sql)
 
-        # skip existing
+        # check existing
         qrymmsis = ','.join(map(str, mmsis))
         sqlcount = 'SELECT CAST(mmsi AS INT), CAST(imo as INT) '
         sqlcount += f'FROM webdata_marinetraffic WHERE mmsi IN ({qrymmsis})'
         sqlcount += 'ORDER BY mmsi'
-
         with trafficDB as conn:
             existing = conn.execute(sqlcount).fetchall()
 
+        # skip existing mmsis
         for m, i in existing:
             idx_m = mmsis == m
             idx_i = imos == i
             skip = np.logical_and(idx_m, idx_i)
-            if sum(skip) == 0:
+            if np.sum(skip) == 0:
                 continue
             mmsis = mmsis[~skip]
             imos = imos[~skip]
