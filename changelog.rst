@@ -5,7 +5,7 @@ Changelog
 v1.0.86
 -------
 
-web application prototyping: Merge branch 'master' into webmap
+web application prototyping: Merge branch 'webmap' into master
 
 
 v1.0.85

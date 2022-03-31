@@ -16,8 +16,8 @@ Package features:
   + Vessel position cleaning and trajectory modeling
   + Utilities for streaming and decoding AIS data in the NMEA binary string format (See `Base Station Deployment <AIS_base_station.html>`__)
   + Integration with public datasources including depth charts, distances from shore, vessel geometry, etc.
-  + Plotting with QGIS (work in progress)
   + Network graph analysis, MMSI deduplication, interpolation, and other processing utilities
+  + Data visualization
 
 
 .. raw:: html 
