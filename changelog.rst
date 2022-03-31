@@ -2,6 +2,18 @@
 Changelog
 =========
 
+v1.0.86
+-------
+
+web application prototyping: Merge branch 'master' into webmap
+
+
+v1.0.85
+-------
+
+bug fix in trajectory processing pipeline
+
+
 v1.0.84
 -------
 

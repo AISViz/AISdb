@@ -215,7 +215,11 @@ class DBQuery(UserDict):
         aisdatabase.conn.close()
         return np.array(res, dtype=object)
 
-    def gen_qry(self, fcn=crawl, dbpath=dbpath, printqry=False):
+    def gen_qry(self,
+                fcn=crawl,
+                dbpath=dbpath,
+                printqry=False,
+                check_idx=False):
         ''' queries the database using the supplied SQL function and dbpath.
             generator only stores one item at at time before yielding
 
@@ -234,7 +238,8 @@ class DBQuery(UserDict):
                 arrays are sorted by MMSI
                 rows are sorted by time
         '''
-        self.check_idx()
+        if check_idx:
+            self.check_idx()
         qry = fcn(**self)
 
         # initialize db, run query
