@@ -4,17 +4,15 @@ RUN pacman -Syyuu --noconfirm \
   && pacman -S --noconfirm \
     nodejs \
     npm \
-    openssh \
     python \
     python-sphinx \
     python-sphinx_rtd_theme \
-    rust \
-    xorg-xauth
-    #qgis \
-RUN useradd -m "ais_env" --shell /bin/python
+    rust 
+    #xorg-xauth
+    #openssh \
+RUN useradd -m "ais_env"
 WORKDIR "/home/ais_env"
 USER "ais_env"
-RUN npm install express vite react react-dom ol @vitejs/plugin-react
 RUN mkdir -p aisdb aisdb_rust/src \
   && echo 'fn main(){}' > aisdb_rust/src/db.rs \
   && echo 'fn main(){}' > aisdb_rust/src/decode.rs \
@@ -57,24 +55,26 @@ RUN python -m pip install --no-warn-script-location --verbose .
 FROM build_python as test_python
 COPY --chown="ais_env" tests/ tests/
 # disable tests that require X11 or web data sources
-CMD ["python", "-m", "pytest", "--color=yes", "--tb=native", "-k", "not qgis and not merge", "tests/" ]
+CMD ["python", "-m", "pytest", "--color=yes", "--tb=native", "-k", "not merge", "tests/" ]
 
 
-# sphinx docs + rust cargo docs
+# build webpages
 FROM build_python AS webserv
-ARG VITE_BINGMAPSKEY
+ARG BINGMAPSKEY
 COPY --chown=ais_env readme.rst ./readme.rst
 COPY --chown=ais_env docs/ docs/
 COPY --chown=ais_env changelog.rst ./changelog.rst
 RUN /bin/bash ./docs/sphinxbuild.sh
 COPY --chown=ais_env nodejs/ nodejs/
-RUN cd nodejs && VITE_BINGMAPSKEY=$VITE_BINGMAPSKEY npx vite build --outDir ../dist
+RUN cd nodejs \
+  && npm install \
+  && VITE_BINGMAPSKEY=$BINGMAPSKEY npx vite build --outDir ../dist
 CMD ["npm", "--prefix", "nodejs/", "start"]
 
 
 # forward X11 on sshd host
-FROM build_python AS sshhost
-USER root
-COPY --chown="ais_env" docker/entry.py ./entry.py
-ENTRYPOINT ["python", "./entry.py"]
+#FROM build_python AS sshhost
+#USER root
+#COPY --chown="ais_env" docker/entry.py ./entry.py
+#ENTRYPOINT ["python", "./entry.py"]
 

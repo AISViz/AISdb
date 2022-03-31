@@ -26,40 +26,25 @@ services:
     networks:
       - ipv6_private
 
-  aisdb_docs:
-    container_name: aisdb_docs
+  aisdb_web:
+    container_name: aisdb_web
     build: 
       target: webserv
       context: .
       dockerfile: ./docker/Dockerfile
       args:
-        VITE_BINGMAPSKEY: ${VITE_BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
-    expose:
-      - "8085"
+        BINGMAPSKEY: ${BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
+    #expose:
+    #  - "8080"
     networks:
       ipv6_private:
         ipv6_address: "fc00::3"
-
-  aisdb_sshd:
-    container_name: aisdb_sshd
-    build: 
-      target: sshhost
-      context: .
-      dockerfile: ./docker/Dockerfile
-    expose:
-      - "22"
-    secrets:
-      - host_ssh_key
-      - host_authorized_keys
-    networks:
-      ipv6_private:
-        ipv6_address: "fc00::4"
 
   nginx:
     image: nginx:latest
     container_name: aisdb_nginx
     volumes:
-      - ./nginx/aisdb.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
       # - ./nginx/certbot/conf:/etc/letsencrypt
       # - ./nginx/certbot/www:/var/www/certbot
     ports:
@@ -78,13 +63,6 @@ services:
   #networks:
   #  ipv6_private:
   #    ipv6_address: "fc00::4"
-
-
-secrets:
-  host_ssh_key:
-    file: ~/.ssh/id_aisdb
-  host_authorized_keys:
-    file: ~/.ssh/id_aisdb.pub
 
 
 networks:
