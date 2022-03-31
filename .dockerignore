@@ -6,7 +6,6 @@
 **.md
 **.nm4
 **.pickle
-**.png
 **/debug
 **/debug/*
 **__pycache__**

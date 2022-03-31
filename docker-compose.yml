@@ -34,8 +34,11 @@ services:
       dockerfile: ./docker/Dockerfile
       args:
         BINGMAPSKEY: ${BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
-    #expose:
-    #  - "8080"
+    expose:
+      - "8080"
+    depends_on:
+      - nginx
+      #- certbot
     networks:
       ipv6_private:
         ipv6_address: "fc00::3"
