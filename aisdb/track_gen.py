@@ -1,4 +1,7 @@
-''' generation, segmentation, and filtering of vessel trajectories '''
+''' generation, segmentation, and filtering of vessel trajectories
+
+    .. automethod:: _score_fcn
+'''
 
 from functools import reduce
 from datetime import timedelta
@@ -131,11 +134,44 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
             )
 
 
-def _score_fcn(xy1, xy2, t1, t2, *, distance_meters, cutknots):
-    dm = max(haversine(*xy1, *xy2), 2)
-    dt = max(abs(t2 - t1), 2)
-    if (dm / dt) * 1.9438444924406 < cutknots and dm < distance_meters:
-        return (distance_meters / dm) / dt
+def _score_fcn(xy1, xy2, t1, t2, *, speed_threshold, distance_threshold):
+    ''' Assigns a score for likelihood of two points being part of a sequential
+        vessel trajectory. A hard cutoff will be applied at distance_threshold,
+        after which all scores will be set to -1.
+
+        args:
+            xy1 (tuple)
+                Float values containing (longitude, latitude) for the first
+                coordinate location
+            xy2 (tuple)
+                Float values containing (longitude, latitude) for the second
+                coordinate location
+            t1 (float)
+                Timestamp for coordinate pair xy1 in epoch seconds
+            t2 (float)
+                Timestamp for coordinate pair xy2 in epoch seconds
+            speed_threshold (float)
+                Tracks will be segmented between points where computed
+                speed values exceed this threshold. Segmented tracks will
+                be scored for reconnection. Measured in knots
+            distance_threshold (float)
+                Used as a numerator when determining score; this value
+                is divided by the distance between xy1 and xy2.
+                If the distance between xy1 and xy2 exceeds this value,
+                the score will be set to -1. Measured in meters
+    '''
+    # great circle distance between coordinate pairs (meters)
+    dm = max(haversine(*xy1, *xy2), 1)
+
+    # elapsed time between coordinate pair timestamps (seconds)
+    dt = max(abs(t2 - t1), 1)
+
+    # computed speed between coordinate pairs (knots)
+    ds = (dm / dt) * 1.9438444924406
+
+    if ds < speed_threshold and dm < distance_threshold:
+        score = (distance_threshold / dm) / dt
+        return score
     else:
         return -1
 
@@ -166,6 +202,9 @@ scores = (
 
 
 def _score_idx(scores):
+    ''' Returns indices of score array where value at index is equal to the
+        highest score. In tie cases, the last index will be selected
+    '''
     return np.where(scores == np.max(scores))[0][-1]
 
 
@@ -174,10 +213,10 @@ def encode_greatcircledistance(
     *,
     maxdistance,
     cuttime,
-    cutknots=50,
+    speed_threshold=50,
     minscore=1e-6,
 ):
-    ''' partitions tracks where delta speeds exceed cutknots.
+    ''' partitions tracks where delta speeds exceed speed_threshold.
         concatenates track segments with the highest likelihood of being
         sequential, as encoded by a distance/time score function
 
@@ -201,7 +240,7 @@ def encode_greatcircledistance(
             continue
 
         segments_idx = reduce(
-            np.append, ([0], np.where(delta_knots(track) > cutknots)[0] + 1,
+            np.append, ([0], np.where(delta_knots(track) > speed_threshold)[0] + 1,
                         [track['time'].size]))
 
         pathways = []
@@ -216,8 +255,8 @@ def encode_greatcircledistance(
                     xy2=(pathway['lon'][-1], pathway['lat'][-1]),
                     t1=track['time'][segments_idx[i]],
                     t2=pathway['time'][-1],
-                    distance_meters=maxdistance,
-                    cutknots=cutknots,
+                    distance_threshold=maxdistance,
+                    speed_threshold=speed_threshold,
                 ) for pathway in pathways
             ],
                               dtype=np.float16)
