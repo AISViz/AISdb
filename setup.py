@@ -59,6 +59,7 @@ setup(
         'requests',
         'selenium',
         'shapely',
+        'topojson',
         'tqdm',
     ],
     extras_require={
