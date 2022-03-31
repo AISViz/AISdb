@@ -59,21 +59,21 @@ def binarysearch(arr, search, descending=False):
         return mid
 
 
-def _segment_rng(track: dict, maxdelta: timedelta, minsize: int) -> filter:
-    assert isinstance(track, dict), f'wrong track type {type(track)}:\n{track}'
+def _splits_idx(track: dict, maxdelta: timedelta) -> np.ndarray:
+    splits = np.nonzero(track['time'][1:] -
+                        track['time'][:-1] >= maxdelta.total_seconds())[0] + 1
+    idx = np.append(np.append([0], splits), [track['time'].size])
+    return idx
 
-    def _splits_idx(track):
-        splits = np.nonzero(
-            track['time'][1:] -
-            track['time'][:-1] >= maxdelta.total_seconds() / 60)[0] + 1
-        idx = np.append(np.append([0], splits), [track['time'].size])
-        return idx
 
-    return filter(
-        lambda seg: len(seg) >= minsize,
-        list(map(range,
-                 _splits_idx(track)[:-1],
-                 _splits_idx(track)[1:])))
+def _segment_rng(track: dict, maxdelta: timedelta) -> filter:
+    ''' index time segments '''
+    for rng in map(
+            range,
+            _splits_idx(track, maxdelta)[:-1],
+            _splits_idx(track, maxdelta)[1:],
+    ):
+        yield rng
 
 
 def write_csv_rows(rows,
