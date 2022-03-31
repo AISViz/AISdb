@@ -8,12 +8,10 @@ RUN pacman -Syyuu --noconfirm \
     python-sphinx \
     python-sphinx_rtd_theme \
     rust 
-    #xorg-xauth
-    #openssh \
 RUN useradd -m "ais_env"
 WORKDIR "/home/ais_env"
 USER "ais_env"
-RUN mkdir -p aisdb aisdb_rust/src \
+RUN mkdir -p aisdb aisdb_rust/src nodejs \
   && echo 'fn main(){}' > aisdb_rust/src/db.rs \
   && echo 'fn main(){}' > aisdb_rust/src/decode.rs \
   && echo 'fn main(){}' > aisdb_rust/src/util.rs \
@@ -27,19 +25,19 @@ RUN python -m ensurepip \
     wheel
 COPY --chown="ais_env" aisdb_rust/Cargo.toml aisdb_rust/Cargo.toml
 COPY --chown="ais_env" ./setup.py "/home/ais_env/setup.py"
-RUN cargo build --manifest-path=/home/"ais_env"/aisdb_rust/Cargo.toml
+RUN cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml \
+  && cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release
 RUN mkdir -p aisdb aisdb/webdata aisdb/database aisdb_rust aisdb_sql \
-  && python -m pip install --no-warn-script-location .  
+  && python -m pip install --no-warn-script-location --verbose .  
+COPY --chown=ais_env nodejs/package.json nodejs/package.json
+RUN cd nodejs && npm install
 
 
-# build rust target
-FROM aisdb as build_rust
+# build rust target and run tests
+FROM aisdb as test_rust
 COPY --chown="ais_env" aisdb_sql/ aisdb_sql/
 COPY --chown="ais_env" aisdb_rust/ aisdb_rust/
 RUN cargo build --manifest-path=/home/"ais_env"/aisdb_rust/Cargo.toml 
-
-# rust tests
-FROM build_rust AS test_rust
 CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--color=always"]
 
 
@@ -54,7 +52,6 @@ RUN python -m pip install --no-warn-script-location --verbose .
 # python tests
 FROM build_python as test_python
 COPY --chown="ais_env" tests/ tests/
-# disable tests that require X11 or web data sources
 CMD ["python", "-m", "pytest", "--color=yes", "--tb=native", "-k", "not merge", "tests/" ]
 
 
@@ -67,14 +64,7 @@ COPY --chown=ais_env changelog.rst ./changelog.rst
 RUN /bin/bash ./docs/sphinxbuild.sh
 COPY --chown=ais_env nodejs/ nodejs/
 RUN cd nodejs \
-  && npm install \
   && VITE_BINGMAPSKEY=$BINGMAPSKEY npx vite build --outDir ../dist
+  #&& npm install \
 CMD ["npm", "--prefix", "nodejs/", "start"]
-
-
-# forward X11 on sshd host
-#FROM build_python AS sshhost
-#USER root
-#COPY --chown="ais_env" docker/entry.py ./entry.py
-#ENTRYPOINT ["python", "./entry.py"]
 

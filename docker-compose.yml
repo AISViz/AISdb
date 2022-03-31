@@ -13,7 +13,8 @@ services:
     environment:
       - RUST_BACKTRACE=1
     networks:
-      - ipv6_private
+      ipv6_private:
+        ipv6_address: "fc00::4"
 
   aisdb_test:
     container_name: aisdb_test
@@ -24,7 +25,8 @@ services:
     environment:
       - RUST_BACKTRACE=1
     networks:
-      - ipv6_private
+      ipv6_private:
+        ipv6_address: "fc00::5"
 
   aisdb_web:
     container_name: aisdb_web
