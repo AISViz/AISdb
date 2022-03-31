@@ -22,11 +22,11 @@ Package features:
 
 .. raw:: html 
 
-   <a href='docs/source/scriptoutput.png'>
+   <a href='_images/scriptoutput.png'>
       <img 
-        src='docs/source/scriptoutput.png' 
+        src='_images/scriptoutput.png' 
         width="800"
-        onerror="this.src='_images/scriptoutput.png'"
+        onerror="this.html=''; this.width=0px;"
       ></img>
    </a>
 
