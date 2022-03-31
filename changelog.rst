@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.85
+-------
+
+bug fix in trajectory processing pipeline
+
+
 v1.0.84
 -------
 
