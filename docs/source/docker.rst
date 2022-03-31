@@ -1,64 +1,50 @@
 .. _docker:
 
-Docker Install
---------------
+Docker
+======
+
+Package tests, documentation, and webapp are included as services in ``docker-compose.yml``.
 
 
-As an alternative to pip and installing QGIS from the website, dependencies can be installed docker. 
-Docker is also used for CI testing and generating sphinx docs.
+Environment
+-----------
 
-Set the environment variable ``DATA_DIR`` to the desired storage location, this
-path will be mounted as a volume within the container. 
+To mount a local directory inside the webapp, specify the directory inside 
+``.env``, and create a corresponding service entry in 
+``docker-compose.override.yml``.
+To enable Bing Maps aerial overlay when hosting the application, obtain a WMTS
+token from `Bing Maps <https://www.bingmapsportal.com/>`_ and place this in ``.env`` also
+
+
+``.env``
+
+.. code-block:: sh
+
+  DATA_DIR=/home/$USER/ais/
+  BINGMAPSKEY="<your token here>"
+
+
+``docker-compose.override.yml``
+
+.. code-block:: yaml
+
+   services:
+    aisdb_web:
+      volumes:
+        - ${DATA_DIR}:/home/ais_env/ais
+
 The default paths will be used inside this directory 
 (see :ref:`Configuring <Configuring>`)
 
-.. code-block:: sh
 
-  $ echo "DATA_DIR=/home/$USER/ais/" > .env  
+Compose Services
+----------------
 
-
-An SSH server is included in the docker image so that X11 forwarding can be used to display the QGIS application window.
-Create a new SSH key to connect to the container. 
-The ``-X`` option is used when connecting to enable forwarding
-
-.. code-block:: sh
-
-  $ ssh-keygen -f ~/.ssh/id_aisdb -N ''
-
-
-Create and start the aisdb environment and sphinx docs with ``docker-compose up``. 
-Possible options are ``aisdb_test``, ``aisdb_docs``, ``aisdb_rust``, or ``aisdb_sshd``
-
-  
-.. code-block:: sh
-
-  $ docker-compose up --build --no-deps aisdb_docs aisdb_sshd
-
-  ...
-
-  aisdb_sshd  | Starting environment over SSH
-  aisdb_sshd  | 
-  aisdb_sshd  | ssh -X ais_env@fc00::2 -i ~/.ssh/id_aisdb
-  aisdb_sshd  | 
-  aisdb_sshd  | Server listening on 0.0.0.0 port 22.
-  aisdb_sshd  | Server listening on :: port 22.
-  aisdb_docs  | 
-  aisdb_docs  | > AISDB@0.1.0 start
-  aisdb_docs  | > node server.js
-  aisdb_docs  | 
-  aisdb_docs  | Docs available at http://[fc00::3]:8085
-  aisdb_docs  | 
-
-
-
-Copy the container address and connect to the container
+Run tests, build documentation, and start the webapp with ``docker-compose up``. 
+Services can also be run individually: ``aisdb_test``, ``aisdb_rust``, ``aisdb_web``, ``nginx``,
+for python tests, rust tests, web services, and web routing, respectively.
 
 .. code-block:: sh
 
-  $ ssh -X ais_env@fc00::2 -i ~/.ssh/id_aisdb
-
-  Python 3.10.1 (main, Dec 18 2021, 23:53:45) [GCC 11.1.0] on linux
-  Type "help", "copyright", "credits" or "license" for more information.
-  >>>
-
+  $ docker-compose up --build aisdb_rust aisdb_test aisdb_web nginx
 

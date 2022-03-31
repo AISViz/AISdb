@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+//import react from '@vitejs/plugin-react'
 
 const { resolve } = require('path')
 // https://vitejs.dev/config/
@@ -9,7 +9,7 @@ const { resolve } = require('path')
 //})
 
 module.exports = {
-  plugins: [react()],
+  //plugins: [react()],
   root: 'map',
   //root: '.',
   //build: {
