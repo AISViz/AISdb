@@ -211,7 +211,7 @@ def _score_idx(scores):
 def encode_greatcircledistance(
     tracks,
     *,
-    maxdistance,
+    distance_threshold,
     cuttime,
     speed_threshold=50,
     minscore=1e-6,
@@ -223,7 +223,7 @@ def encode_greatcircledistance(
         args:
             tracks (aisdb.track_gen.TrackGen)
                 track vectors generator
-            maxdistance (int)
+            distance_threshold (int)
                 distance in meters that will be used as a
                 speed score numerator
             cuttime (datetime)
@@ -255,7 +255,7 @@ def encode_greatcircledistance(
                     xy2=(pathway['lon'][-1], pathway['lat'][-1]),
                     t1=track['time'][segments_idx[i]],
                     t2=pathway['time'][-1],
-                    distance_threshold=maxdistance,
+                    distance_threshold=distance_threshold,
                     speed_threshold=speed_threshold,
                 ) for pathway in pathways
             ],

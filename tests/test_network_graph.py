@@ -50,9 +50,9 @@ def test_network_graph_geofencing():
     # processing configs
     distsplit = partial(
         encode_greatcircledistance,
-        maxdistance=250000,
+        distance_threshold=250000,
         cuttime=timedelta(weeks=1),
-        cutknots=45,
+        speed_threshold=45,
         minscore=5e-07,
     )
     geofenced = partial(fence_tracks, domain=domain)
@@ -90,9 +90,9 @@ def test_network_graph_merged_serialized():
 
     distsplit = partial(
         encode_greatcircledistance,
-        maxdistance=250000,
+        distance_threshold=250000,
         cuttime=timedelta(weeks=1),
-        cutknots=45,
+        speed_threshold=45,
         minscore=5e-07,
     )
     geofenced = partial(fence_tracks, domain=domain)
