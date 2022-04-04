@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.89
+-------
+
+websocket server for web application database
+
+
 v1.0.88
 -------
 

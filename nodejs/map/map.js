@@ -1,13 +1,14 @@
 import 'ol/ol.css';
-import BingMaps from 'ol/source/BingMaps';
+import * as olProj from 'ol/proj';
 import Map from 'ol/Map';
+import BingMaps from 'ol/source/BingMaps';
 import TileLayer from 'ol/layer/Tile';
 import View from 'ol/View';
 import WKB from 'ol/format/WKB';
 import TopoJSON from 'ol/format/TopoJSON';
 import {Vector as VectorSource} from 'ol/source';
 import {Tile, Vector} from 'ol/layer';
-import {Fill, Stroke, Style} from 'ol/style';
+import {Fill, Stroke, Style, Text} from 'ol/style';
 
 
 const styles = [
@@ -47,7 +48,7 @@ function onChange() {
 select.addEventListener('change', onChange);
 onChange();
 
-var map = new ol.Map({
+var map = new Map({
   target: 'map', //div item in index.html
   /*
   layers: [
@@ -57,10 +58,24 @@ var map = new ol.Map({
   ],
   */
   layers: layers,
-  view: new ol.View({
-    center: ol.proj.fromLonLat([-63.6, 44.6]),
+  view: new View({
+    //center: ol.proj.fromLonLat([-63.6, 44.6]),
+    center: olProj.fromLonLat([-63.6, 44.6]),
     zoom:4 
   })
+});
+
+const labelStyle = new Style({
+  text: new Text({
+    font: '13px Calibri,sans-serif',
+    fill: new Fill({
+      color: '#000',
+    }),
+    stroke: new Stroke({
+      color: '#fff',
+      width: 4,
+    }),
+  }),
 });
 
 function defaultOptions(opts) {
@@ -146,4 +161,59 @@ window.newWKBHexVectorLayer = newWKBHexVectorLayer;
 
 window.sample_wkb = '0103000000010000000500000054E3A59BC4602540643BDF4F8D1739C05C8FC2F5284C4140EC51B81E852B34C0D578E926316843406F1283C0CAD141C01B2FDD2406012B40A4703D0AD79343C054E3A59BC4602540643BDF4F8D1739C0';
 
-//window.getElementById('map').resize()
+//const socketHost = 'ws://localhost:9924';
+//import.meta.env.VITE_BINGMAPSKEY
+let hostname = import.meta.env.VITE_AISDBHOST;
+if (hostname == undefined) {
+  hostname = 'localhost';
+}
+let port = import.meta.env.VITE_AISDBPORT;
+if (port == undefined) {
+  port = '9924';
+}
+const socketHost = `ws://${hostname}:${port}`
+let sock = new WebSocket(socketHost);
+
+sock.onopen = function(event) {
+  console.log(`Established connection to ${socketHost}\nCaution: connection is unencrypted!`);
+}
+sock.onclose = function(event) {
+  if (event.wasClean) {
+    console.log(`[${event.code}] Closed connection with ${socketHost}`);
+  } else {
+    console.log(`[${event.code}] Connection to ${socketHost} died unexpectedly`);
+  }
+}
+sock.onerror = function(error) {
+  console.log(`[${error.code}] ${error.message}`);
+  sock.close();
+}
+
+
+
+
+sock.onmessage = async function(event) {
+  let response = JSON.parse(event.data);
+  window.last = response;
+  if (response['type'] === 'WKBHex') {
+    newWKBHexVectorLayer([response['geometry']], response['opts']);
+  } else if (response['type'] === 'topology') {
+    newTopoVectorLayer(response['topology'], response['opts']);
+  }
+}
+
+
+window.onbefureunload = function() {
+  sock.onclose = function() {} ;
+  sock.close();
+}
+async function requestZones() {
+  await sock.send(JSON.stringify({"type": "zones"}));
+}
+window.zones = requestZones;
+
+async function requestTracks(month) {
+  await sock.send(JSON.stringify({"type": "tracks_month", "month": month}));
+}
+window.demo = requestTracks;
+

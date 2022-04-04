@@ -9,7 +9,6 @@ const { resolve } = require('path')
 //})
 
 module.exports = {
-  //plugins: [react()],
   root: 'map',
   //root: '.',
   //build: {

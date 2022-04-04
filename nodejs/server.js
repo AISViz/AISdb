@@ -1,15 +1,29 @@
 const { networkInterfaces } = require('os');
-
 const express = require('express');
+
+// CSRF middleware
+var csrf = require('csurf');
+var cookieParser = require('cookie-parser')
+var bodyParser = require('body-parser')
+
+// middleware routing
+var csrfProtection = csrf({cookie: {sameSite: 'strict'}});
+var parseForm = bodyParser.urlencoded({ extended: false })
+
+// app config
 const app = express();
 const port = 8080;
 
+// handle CSRF tokens
+app.use(cookieParser());
+app.get('/mapselect', csrfProtection, function(req, res) {
+  res.render('send', { csrfToken: req.csrfToken() })
+});
 
 // start the application 
 app.use('/', express.static('../docs/html'));
 app.use('/map', express.static('../nodejs/dist'));
 app.use('/assets', express.static('../nodejs/dist/assets'));
-
 
 app.listen(port, '::', () => {
 
@@ -34,6 +48,5 @@ app.listen(port, '::', () => {
       break loop1;
     }
   }
-
 })
 

@@ -3,21 +3,16 @@
 
   <head>
     <meta charset="utf-8">
-    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.14.1/css/ol.css" type="text/css"> -->
     <link rel="stylesheet" href="./app.css" type="text/css">
-    <script type="module" src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.14.1/build/ol.js"></script>
     <title>AISDB</title>
   </head>
 
   <body>
     <div id="application">
       <div id="map" class="map"></div>
-      <div id="optionSelectContainer" class="optionSelectContainer">
-        <!--
-	<label for="monthSelect">Select Month</label>
-	<input type="month" id="monthSelect" name="monthInput" value="2022-03" required pattern="[0-9]{4}-[0-9]{2}">
-        <br>
-        -->
+      <div id="formDiv">
+        <form action="/mapselect" method="POST" class="optionSelectContainer">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}">
         <label for='layer-select' style="display: flex;">Map Layer</label>
 	<select id="layer-select" class="" style="display: flex;">
 	  <option value="Aerial" selected>Aerial</option>
@@ -25,6 +20,7 @@
 	  <option value="RoadOnDemand">Road</option>
 	  <option value="CanvasDark">Road dark</option>
 	</select>
+        </form>
       </div>
     </div>
     <script type="module" src="./map.js" ></script>
