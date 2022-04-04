@@ -44,6 +44,8 @@ setup(
         'aisdb_rust',
         'aisdb_sql',
     ],
+    package_data={'aisdb_sql': []},
+    include_package_data=True,
     setup_requires=[
         'numpy',
         'pip>=21.1.0',
@@ -61,6 +63,7 @@ setup(
         'shapely',
         'topojson',
         'tqdm',
+        'websockets',
     ],
     extras_require={
         'testing': [

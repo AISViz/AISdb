@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.88
+-------
+
+update python package build and docker build
+
+
 v1.0.87
 -------
 

@@ -2,6 +2,7 @@ version: '3.9'
 
 services:
 
+  # compile rust target and run rust tests
   aisdb_rust:
     container_name: aisdb_rust
     environment:
@@ -16,6 +17,7 @@ services:
       ipv6_private:
         ipv6_address: "fc00::4"
 
+  # build python package and run python tests
   aisdb_test:
     container_name: aisdb_test
     build:
@@ -28,6 +30,7 @@ services:
       ipv6_private:
         ipv6_address: "fc00::5"
 
+  # nodeJS docs server + webapp
   aisdb_web:
     container_name: aisdb_web
     build: 
@@ -36,8 +39,10 @@ services:
       dockerfile: ./docker/Dockerfile
       args:
         BINGMAPSKEY: ${BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
-    expose:
-      - "8080"
+        AISDBHOST: ${AISDBHOST:-127.0.0.1}
+        AISDBPORT: ${AISDBPORT:-9924}
+    #expose:
+    #  - "8080"
     depends_on:
       - nginx
       #- certbot
@@ -45,6 +50,25 @@ services:
       ipv6_private:
         ipv6_address: "fc00::3"
 
+  # database server
+  aisdb_websocket:
+    container_name: aisdb_websocket
+    build:
+      target: build_python
+      context: .
+      dockerfile: ./docker/Dockerfile
+    environment:
+      AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
+      AISDBPORT: ${AISDBPORT:-9924}
+    #expose:
+    #  - "9924"
+    command:
+      ['python', 'aisdb/mapsocket.py']
+    networks: 
+      ipv6_private:
+        ipv6_address: "fc00::6"
+
+  # reverse proxy router
   nginx:
     image: nginx:latest
     container_name: aisdb_nginx
@@ -55,6 +79,7 @@ services:
     ports:
      - "80:80"
      - "443:443"
+     - "9924:9924"
     networks:
       ipv6_private:
         ipv6_address: "fc00::2"

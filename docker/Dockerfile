@@ -25,6 +25,7 @@ RUN python -m ensurepip \
     wheel
 COPY --chown="ais_env" aisdb_rust/Cargo.toml aisdb_rust/Cargo.toml
 COPY --chown="ais_env" ./setup.py "/home/ais_env/setup.py"
+COPY --chown="ais_env" ./MANIFEST.in /home/ais_env/MANIFEST.in
 RUN cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml \
   && cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release
 RUN mkdir -p aisdb aisdb/webdata aisdb/database aisdb_rust aisdb_sql \
@@ -58,13 +59,15 @@ CMD ["python", "-m", "pytest", "--color=yes", "--tb=native", "-k", "not merge", 
 # build webpages
 FROM build_python AS webserv
 ARG BINGMAPSKEY
+ARG AISDBHOST
+ARG AISDBPORT
 COPY --chown=ais_env readme.rst ./readme.rst
 COPY --chown=ais_env docs/ docs/
 COPY --chown=ais_env changelog.rst ./changelog.rst
 RUN /bin/bash ./docs/sphinxbuild.sh
 COPY --chown=ais_env nodejs/ nodejs/
 RUN cd nodejs \
-  && VITE_BINGMAPSKEY=$BINGMAPSKEY npx vite build --outDir ../dist
+  && VITE_BINGMAPSKEY=$BINGMAPSKEY VITE_AISDBHOST=$AISDBHOST VITE_AISDBPORT=$AISDBPORT npx vite build --outDir ../dist
   #&& npm install \
 CMD ["npm", "--prefix", "nodejs/", "start"]
 
