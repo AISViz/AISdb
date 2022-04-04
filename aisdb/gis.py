@@ -48,20 +48,22 @@ def haversine(x1, y1, x2, y2):
     ''' https://en.wikipedia.org/wiki/Haversine_formula '''
     x1r, y1r, x2r, y2r = map(np.radians, [x1, y1, x2, y2])
     dlon, dlat = x2r - x1r, y2r - y1r
-    return 6367 * 2 * np.arcsin(
+    return 6371.088 * 2 * np.arcsin(
         np.sqrt(
             np.sin(dlat / 2.)**2 +
             np.cos(y1r) * np.cos(y2r) * np.sin(dlon / 2.)**2)) * 1000
 
 
-def delta_meters(track, rng):
+def delta_meters(track, rng=None):
+    rng = range(len(track['time'])) if rng is None else rng
     return np.array(
         list(
             map(haversine, track['lon'][rng][:-1], track['lat'][rng][:-1],
                 track['lon'][rng][1:], track['lat'][rng][1:])))
 
 
-def delta_seconds(track, rng):
+def delta_seconds(track, rng=None):
+    rng = range(len(track['time'])) if rng is None else rng
     return np.array(
         list(
             #(track['time'][rng][1:] - track['time'][rng][:-1]))) * 60
@@ -195,15 +197,22 @@ class ZoneGeom():
             p1, p2 = decomp[0], decomp[-1]
             splits = [
                 Polygon(
-                    zip(shiftcoord(p2.boundary.coords.xy[0]),
-                        p2.boundary.coords.xy[1])),
+                    zip(
+                        #shiftcoord(p2.boundary.coords.xy[0]),
+                        p2.boundary.coords.xy[0],
+                        p2.boundary.coords.xy[1],
+                    )),
                 Polygon(
-                    zip(shiftcoord(p1.boundary.coords.xy[0]),
-                        p1.boundary.coords.xy[1]))
+                    zip(
+                        #shiftcoord(p1.boundary.coords.xy[0]),
+                        p1.boundary.coords.xy[0],
+                        p1.boundary.coords.xy[1],
+                    ))
             ]
             #Polygon(zip(shiftcoord(np.array(p2.boundary.coords.xy[0])), p2.boundary.coords.xy[1])) ]
             #self.geometry = unary_union(splits)
-            self.geometry = GeometryCollection(splits)
+            #self.geometry = GeometryCollection(splits)
+            self.geometryCollection = splits
 
         if not (self.minY <= 90 and self.maxY >= -90):
             print(

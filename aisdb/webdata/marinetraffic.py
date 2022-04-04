@@ -19,11 +19,6 @@ trafficDB = sqlite3.Connection(trafficDBpath)
 err404 = 'INSERT OR IGNORE INTO webdata_marinetraffic(mmsi, imo, error404) '
 err404 += 'VALUES (CAST(? as INT), CAST(? as INT), 1)'
 
-# prepare sql code for inserting vessel info
-insert_sqlfile = os.path.join(sqlpath, 'insert_webdata_marinetraffic.sql')
-with open(insert_sqlfile, 'r') as f:
-    insert_sql = f.read()
-
 
 def _loaded(drv: WebDriver) -> bool:
     asset_type = 'asset_type' in drv.current_url
@@ -112,6 +107,11 @@ def _getrow(vessel: dict) -> tuple:
 
 
 def _insertelem(elem, mmsi, imo):
+    # prepare sql code for inserting vessel info
+    insert_sqlfile = os.path.join(sqlpath, 'insert_webdata_marinetraffic.sql')
+    with open(insert_sqlfile, 'r') as f:
+        insert_sql = f.read()
+
     vessel = {}
     for info in elem.text.split('\n'):
         _updateinfo(info, vessel)

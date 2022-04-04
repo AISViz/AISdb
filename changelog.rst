@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.90
+-------
+
+tuning network graph processing
+
+
 v1.0.89
 -------
 

@@ -219,7 +219,8 @@ class DBQuery(UserDict):
                 fcn=crawl,
                 dbpath=dbpath,
                 printqry=False,
-                check_idx=False):
+                check_idx=False,
+                maxlength=100000):
         ''' queries the database using the supplied SQL function and dbpath.
             generator only stores one item at at time before yielding
 
@@ -261,9 +262,11 @@ class DBQuery(UserDict):
             else:
                 mmsi_rows = np.vstack((mmsi_rows, np.array(res, dtype=object)))
 
-            while len(mmsi_rows) > 1 and int(mmsi_rows[0][0]) != int(
-                    mmsi_rows[-1][0]):
+            while len(mmsi_rows) > 1 and (int(mmsi_rows[0][0]) != int(
+                    mmsi_rows[-1][0]) or len(mmsi_rows) > maxlength):
                 ummsi_idx = np.where(mmsi_rows[:, 0] != mmsi_rows[0, 0])[0][0]
+                if maxlength:
+                    ummsi_idx = min(ummsi_idx, maxlength)
                 yield np.array(mmsi_rows[0:ummsi_idx], dtype=object)
                 mmsi_rows = mmsi_rows[ummsi_idx:]
 

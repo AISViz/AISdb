@@ -9,7 +9,7 @@ import warnings
 
 import numpy as np
 
-from gis import haversine, delta_knots
+from gis import haversine, delta_knots, delta_meters, delta_seconds
 from proc_util import _segment_rng
 
 
@@ -161,16 +161,18 @@ def _score_fcn(xy1, xy2, t1, t2, *, speed_threshold, distance_threshold):
                 the score will be set to -1. Measured in meters
     '''
     # great circle distance between coordinate pairs (meters)
-    dm = max(haversine(*xy1, *xy2), 1)
+    dm = max(haversine(*xy1, *xy2), 1.)
 
     # elapsed time between coordinate pair timestamps (seconds)
-    dt = max(abs(t2 - t1), 1)
+    dt = max(abs(t2 - t1), 10.)
 
     # computed speed between coordinate pairs (knots)
     ds = (dm / dt) * 1.9438444924406
 
-    if ds < speed_threshold and dm < distance_threshold:
-        score = (distance_threshold / dm) / dt
+    if ds < speed_threshold and dm < distance_threshold * 2:
+        #if ds < speed_threshold:
+        #score = ((distance_threshold / dm) / dt)
+        score = distance_threshold / ds
         return score
     else:
         return -1
@@ -212,7 +214,8 @@ def encode_greatcircledistance(
     tracks,
     *,
     distance_threshold,
-    cuttime,
+    #cuttime,
+    #time_threshold,
     speed_threshold=50,
     minscore=1e-6,
 ):
@@ -226,9 +229,7 @@ def encode_greatcircledistance(
             distance_threshold (int)
                 distance in meters that will be used as a
                 speed score numerator
-            cuttime (datetime)
-                will be converted to epoch and used as a speed
-                score denominator
+            time_threshold (datetime.timedelta)
             minscore (float)
                 minimum score threshold at which to allow track
                 segments to be linked
@@ -239,9 +240,16 @@ def encode_greatcircledistance(
         if len(track['time']) <= 1:
             continue
 
-        segments_idx = reduce(
-            np.append, ([0], np.where(delta_knots(track) > speed_threshold)[0] + 1,
-                        [track['time'].size]))
+        segments_idx1 = reduce(
+            np.append,
+            ([0], np.where(delta_knots(track) > speed_threshold)[0] + 1,
+             [track['time'].size]))
+        segments_idx2 = reduce(
+            np.append,
+            ([0], np.where(delta_meters(track) > distance_threshold)[0] + 1,
+             [track['time'].size]))
+
+        segments_idx = reduce(np.union1d, (segments_idx1, segments_idx2))
 
         pathways = []
         for i in range(segments_idx.size - 1):
