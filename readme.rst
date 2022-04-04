@@ -1,10 +1,5 @@
-AISDB
-=====
-
-.. raw:: html
-
-    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
-
+AISDB: Readme
+=============
 
 .. description:
 
@@ -20,7 +15,13 @@ Package features:
   + Data visualization
 
 
+.. raw:: html
+
+    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
+
+
 .. raw:: html 
+
 
    <a href='_images/scriptoutput.png'>
       <img 
@@ -29,12 +30,14 @@ Package features:
         onerror="this.html=''; this.width=0px;"
       ></img>
    </a>
+   <!--
+   <iframe name="map_embed" src="/map" frameborder="0" scrolling="no" height="500" width="100%" marginwidth="0" marginheight="0"></iframe>
+   -->
 
 
 | Source Code: 
   https://gitlab.meridian.cs.dal.ca/public_projects/aisdb
-| Documentation: 
-  https://docs.meridian.cs.dal.ca/aisdb/
+
 
 .. whatisais:
 

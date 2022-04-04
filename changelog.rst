@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.87
+-------
+
+update sphinx documentation
+
+
 v1.0.86
 -------
 
