@@ -5,12 +5,49 @@
 
 from functools import reduce
 from datetime import timedelta
-import warnings
 
 import numpy as np
 
-from gis import haversine, delta_knots, delta_meters, delta_seconds
+from shapely.geometry import LineString
+from gis import haversine, delta_knots, delta_meters
 from proc_util import _segment_rng
+
+meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
+
+
+def _split_meridian(track, tolerance=300):
+    ''' segment vectors where difference in longitude exceeds 300 degrees '''
+
+    if track['time'].size == 1:
+        return track
+
+    diff = np.nonzero(
+        np.abs(track['lon'][1:] - track['lon'][:-1]) > tolerance)[0] + 1
+
+    if diff.size == 0:
+        return track
+
+    # vector = LineString(zip(track['lon'], track['lat']))
+    segments_idx = reduce(np.append, ([0], diff, [track['time'].size]))
+    for i in range(segments_idx.size - 1):
+        if i > 0:
+            negate = -1 if track['lon'][0] < 0 else 1
+            track['lon'][0] = 180. * negate
+
+        if i < segments_idx.size - 2:
+            negate = -1 if track['lon'][-1] < 0 else 1
+            track['lon'][-1] = 180. * negate
+
+        yield dict(
+            **{k: track[k]
+               for k in track['static']},
+            **{
+                k: track[k][segments_idx[i]:segments_idx[i + 1]]
+                for k in track['dynamic']
+            },
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )
 
 
 def TrackGen(
@@ -95,7 +132,7 @@ def TrackGen(
             rows.size)
 
         for i in range(len(tracks_idx) - 1):
-            yield dict(
+            trackdict = dict(
                 **{
                     n: (rows[tracks_idx[i]][c] or 0)
                     for c, n in zip(range(len(colnames)), colnames)
@@ -109,6 +146,8 @@ def TrackGen(
                 static=staticcols,
                 dynamic=dynamiccols,
             )
+            for segment in _split_meridian(trackdict):
+                yield segment
 
 
 def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):

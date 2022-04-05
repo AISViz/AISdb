@@ -59,19 +59,23 @@ def binarysearch(arr, search, descending=False):
         return mid
 
 
-def _splits_idx(track: dict, maxdelta: timedelta) -> np.ndarray:
-    splits = np.nonzero(track['time'][1:] -
-                        track['time'][:-1] >= maxdelta.total_seconds())[0] + 1
-    idx = np.append(np.append([0], splits), [track['time'].size])
+#def _splits_idx(track: dict, maxdelta: timedelta) -> np.ndarray:
+def _splits_idx(vector: np.ndarray, d: timedelta) -> np.ndarray:
+    if isinstance(d, timedelta):
+        splits = np.nonzero(
+            vector[1:] - vector[:-1] >= d.total_seconds())[0] + 1
+    else:
+        splits = np.nonzero(vector[1:] - vector[:-1] >= d)[0] + 1
+    idx = np.append(np.append([0], splits), [vector.size])
     return idx
 
 
-def _segment_rng(track: dict, maxdelta: timedelta) -> filter:
+def _segment_rng(track, maxdelta, key='time') -> filter:
     ''' index time segments '''
     for rng in map(
             range,
-            _splits_idx(track, maxdelta)[:-1],
-            _splits_idx(track, maxdelta)[1:],
+            _splits_idx(track[key], maxdelta)[:-1],
+            _splits_idx(track[key], maxdelta)[1:],
     ):
         yield rng
 

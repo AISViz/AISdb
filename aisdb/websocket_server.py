@@ -13,10 +13,11 @@ from shapely.geometry import Point, LineString
 
 from aisdb import output_dir
 from aisdb import glob_files
-from aisdb.network_graph import colorhash
 from aisdb import zones_dir, ZoneGeomFromTxt, Domain
 from aisdb import sqlfcn_callbacks, DBQuery
 from aisdb import TrackGen, encode_greatcircledistance, split_timedelta, max_tracklength
+from aisdb.network_graph import colorhash
+from aisdb.gis import shiftcoord
 
 host = os.environ.get('AISDBHOSTALLOW', '*')
 port = os.environ.get('AISDBPORT', 9924)
@@ -178,55 +179,97 @@ class SocketServ():
                 continue
 
             if req['type'] == 'zones':
-                for key, zonegeom in domain.geoms.items():
-                    event = {
-                        'type': 'WKBHex',
-                        'geometry': zonegeom.geometry.wkb_hex,
-                        'opts': {
-                            'label': zonegeom.name,
-                        },
-                    }
-                    await websocket.send(json.dumps(event))
+                await self.req_zones(req, websocket)
 
             elif req['type'] == 'tracks_month':
                 y, m = req['month'][:4], req['month'][4:]
                 year, month = int(y), int(m)
-                qry = DBQuery(
-                    start=datetime(year, month, 1),
-                    end=datetime(year + int(month == 12), month % 12 + 1, 1),
-                    callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
-                    xmin=domain.minX,
-                    xmax=domain.maxX,
-                    ymin=domain.minY,
-                    ymax=domain.maxY,
+                start = datetime(year, month, 1)
+                end = datetime(year + int(month == 12), month % 12 + 1, 1)
+                await self.req_tracks(
+                    req,
+                    websocket,
+                    start=start,
+                    end=end,
                 )
-                qrygen = qry.gen_qry()
-                for topology, opts in trajectories_json(
-                        encode_greatcircledistance(
-                            split_timedelta(
-                                max_tracklength(TrackGen(qrygen)),
-                                maxdelta=timedelta(weeks=1),
-                            ),
-                            distance_threshold=250000,
-                            minscore=0,
-                            speed_threshold=60,
-                        ), ):
-                    event = {
-                        'type': 'topology',
-                        'topology': topology,
-                        'opts': opts
-                    }
-                    try:
-                        await websocket.send(json.dumps(event))
-                    except websockets.ConnectionClosed:
-                        print('closing...')
-                        await websocket.close()
-                        break
-                    except Exception as err:
-                        print('error sending topology: ', end='')
-                        if hasattr(err, '__module__'):
-                            print(err.__module__, end=': ')
-                        raise (err.with_traceback(None))
+
+            elif req['type'] == 'tracks_week':
+                y, m, d = req['day'][:4], req['day'][4:6], req['day'][6:]
+                year, month, day = int(y), int(m), int(d)
+                start = datetime(year, month, day)
+                end = start + timedelta(days=7)
+                await self.req_tracks(
+                    req,
+                    websocket,
+                    start=start,
+                    end=end,
+                )
+
+            elif req['type'] == 'tracks_day':
+                y, m, d = req['day'][:4], req['day'][4:6], req['day'][6:]
+                year, month, day = int(y), int(m), int(d)
+                start = datetime(year, month, day)
+                end = start + timedelta(days=1)
+                await self.req_tracks(
+                    req,
+                    websocket,
+                    start=start,
+                    end=end,
+                )
+
+    async def req_zones(self, req, websocket):
+        zones = {'type': 'WKBHex', 'geometries': []}
+        for key, zonegeom in domain.geoms.items():
+            event = {
+                'geometry': zonegeom.geometry.wkb_hex,
+                'opts': {
+                    'label': zonegeom.name,
+                },
+            }
+            zones['geometries'].append(event)
+        await websocket.send(json.dumps(zones).replace(' ', ''))
+
+    async def req_tracks(self, req, websocket, *, start, end):
+        qry = DBQuery(
+            start=start,
+            end=end,
+            callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
+            xmin=domain.minX,
+            xmax=domain.maxX,
+            ymin=domain.minY,
+            ymax=domain.maxY,
+        )
+        qrygen = qry.gen_qry(printqry=os.environ.get('DEBUG', False))
+        pipeline = trajectories_json(
+            encode_greatcircledistance(
+                split_timedelta(
+                    max_tracklength(TrackGen(qrygen)),
+                    maxdelta=timedelta(weeks=1),
+                ),
+                distance_threshold=250000,
+                minscore=0,
+                speed_threshold=60,
+            ))
+        eventbatch = {'type': 'topology', 'geometries': []}
+        count = 0
+        for topology, opts in pipeline:
+            count += 1
+            event = {'topology': topology, 'opts': opts}
+            eventbatch['geometries'].append(event)
+            if count % 50 != 0:
+                continue
+            try:
+                await websocket.send(json.dumps(eventbatch).replace(' ', ''))
+            except websockets.ConnectionClosed:
+                print('closing...')
+                await websocket.close()
+                break
+            except Exception as err:
+                print('error sending topology: ', end='')
+                if hasattr(err, '__module__'):
+                    print(err.__module__, end=': ')
+                raise err.with_traceback(None)
+            eventbatch = {'type': 'topology', 'geometries': []}
 
     async def main(self):
         async with websockets.serve(self.handler, host=host, port=port):

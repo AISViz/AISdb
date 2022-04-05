@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.91
+-------
+
+database query improvements
+
+
 v1.0.90
 -------
 

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from gis import epoch_2_dt, dt_2_epoch
+from gis import epoch_2_dt, dt_2_epoch, shiftcoord
 # from common import table_prefix
 
 # utility functions
@@ -24,13 +24,23 @@ boxpoly = lambda x, y: ([
 
 merge = lambda *arr: np.concatenate(np.array(*arr).T)
 
-# callback functions
 
-in_bbox = lambda alias, **kwargs: (f'''
-        {alias}.longitude >= {kwargs['xmin']} AND
-        {alias}.longitude <= {kwargs['xmax']} AND
-        {alias}.latitude >= {kwargs['ymin']} AND
-        {alias}.latitude <= {kwargs['ymax']} ''')
+# callback functions
+def in_bbox(alias, *, xmin, xmax, ymin, ymax, **_):
+    x0 = shiftcoord(xmin)
+    x1 = shiftcoord(xmax)
+    if x0 <= x1:
+        return f'''
+        {alias}.longitude >= {x0} AND
+        {alias}.longitude <= {x1} AND
+        {alias}.latitude >= {ymin} AND
+        {alias}.latitude <= {ymax} '''
+    else:
+        return f'''
+        ({alias}.longitude >= {x0} OR {alias}.longitude <= {x1}) AND
+        {alias}.latitude >= {ymin} AND
+        {alias}.latitude <= {ymax} '''
+
 
 in_timerange = lambda **kwargs: f'''
         {kwargs['alias']}.time >= {dt_2_epoch(kwargs['start'])} AND
