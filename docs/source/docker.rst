@@ -41,10 +41,11 @@ Compose Services
 ----------------
 
 Run tests, build documentation, and start the webapp with ``docker-compose up``. 
-Services can also be run individually: ``aisdb_test``, ``aisdb_rust``, ``aisdb_web``, ``nginx``,
-for python tests, rust tests, web services, and web routing, respectively.
+Services can also be run individually: ``python-test``, ``rust-test``, ``webserver``, ``websocket``, and ``nginx``.
+for python tests, rust tests, web services, database API, and web routing, respectively.
 
 .. code-block:: sh
 
-  $ docker-compose up --build aisdb_rust aisdb_test aisdb_web nginx
+  $ docker-compose up --build python-test rust-test
+  $ docker-compose up --build webserver websocket
 

@@ -34,29 +34,21 @@ COPY --chown=ais_env nodejs/package.json nodejs/package.json
 RUN cd nodejs && npm install
 
 
-# build rust target and run tests
-FROM aisdb as test_rust
+# build rust target
+FROM aisdb as build_rust
 COPY --chown="ais_env" aisdb_sql/ aisdb_sql/
 COPY --chown="ais_env" aisdb_rust/ aisdb_rust/
 RUN cargo build --manifest-path=/home/"ais_env"/aisdb_rust/Cargo.toml 
-CMD ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--color=always"]
 
 
 # build python target
-FROM aisdb as build_python
-COPY --chown="ais_env" aisdb_sql/ aisdb_sql/
-COPY --chown="ais_env" aisdb_rust/ aisdb_rust/
+FROM build_rust as build_python
+COPY --chown="ais_env" tests/ tests/
 COPY --chown="ais_env" aisdb/ aisdb/ 
 RUN python -m pip install --no-warn-script-location --verbose .
 
 
-# python tests
-FROM build_python as test_python
-COPY --chown="ais_env" tests/ tests/
-CMD ["python", "-m", "pytest", "--color=yes", "--tb=native", "-k", "not merge", "tests/" ]
-
-
-# build webpages
+# build sphinx docs and nodejs webapp
 FROM build_python AS webserv
 ARG BINGMAPSKEY
 ARG AISDBHOST
@@ -67,7 +59,7 @@ COPY --chown=ais_env changelog.rst ./changelog.rst
 RUN /bin/bash ./docs/sphinxbuild.sh
 COPY --chown=ais_env nodejs/ nodejs/
 RUN cd nodejs \
-  && VITE_BINGMAPSKEY=$BINGMAPSKEY VITE_AISDBHOST=$AISDBHOST VITE_AISDBPORT=$AISDBPORT npx vite build --outDir ../dist
-  #&& npm install \
-CMD ["npm", "--prefix", "nodejs/", "start"]
-
+  && VITE_BINGMAPSKEY=$BINGMAPSKEY \
+     VITE_AISDBHOST=$AISDBHOST \
+     VITE_AISDBPORT=$AISDBPORT \
+     npx vite build --outDir ../dist

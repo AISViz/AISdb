@@ -1,14 +1,13 @@
 version: '3.9'
 
 services:
-
-  # compile rust target and run rust tests
-  aisdb_rust:
-    container_name: aisdb_rust
+  # compile rust and run rust tests
+  rust-test:
+    container_name: rust-test
     environment:
       - RUST_BACKTRACE=1
     build:
-      target: test_rust
+      target: build_rust
       context: .
       dockerfile: ./docker/Dockerfile
     environment:
@@ -16,12 +15,14 @@ services:
     networks:
       ipv6_private:
         ipv6_address: "fc00::4"
+    command:
+      ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--color=always"]
 
   # build python package and run python tests
-  aisdb_test:
-    container_name: aisdb_test
+  python-test:
+    container_name: python-test
     build:
-      target: test_python
+      target: build_python
       context: .
       dockerfile: ./docker/Dockerfile
     environment:
@@ -29,10 +30,33 @@ services:
     networks:
       ipv6_private:
         ipv6_address: "fc00::5"
+    command:
+      ["python", "-m", "pytest", "--color=yes", "--tb=native", "-k", "not merge", "tests/"]
+
+  # proxy router
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      # - ./nginx/certbot/conf:/etc/letsencrypt
+      # - ./nginx/certbot/www:/var/www/certbot
+    environment: 
+      AISDBPORT: 
+    ports:
+     - "80:80"
+     - "443:443"
+     - "9924:${AISDBPORT:-9924}"
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::2"
+    #command:
+    #  ["/bin/sh" , "-c" , "envsubst '$AISDBPORT' < /etc/nginx.conf.template > /etc/nginx/nginx.conf && exec nginx -g 'daemon off;'"]
+
 
   # nodeJS docs server + webapp
-  aisdb_web:
-    container_name: aisdb_web
+  webserver:
+    container_name: webserver
     build: 
       target: webserv
       context: .
@@ -41,6 +65,8 @@ services:
         BINGMAPSKEY: ${BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
         AISDBHOST: ${AISDBHOST:-127.0.0.1}
         AISDBPORT: ${AISDBPORT:-9924}
+    command:
+      ['npm', '--prefix', 'nodejs/', 'start']
     #expose:
     #  - "8080"
     depends_on:
@@ -51,8 +77,8 @@ services:
         ipv6_address: "fc00::3"
 
   # database server
-  aisdb_websocket:
-    container_name: aisdb_websocket
+  websocket:
+    container_name: websocket
     build:
       target: build_python
       context: .
@@ -60,29 +86,26 @@ services:
     environment:
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
       AISDBPORT: ${AISDBPORT:-9924}
-    #expose:
-    #  - "9924"
     command:
-      ['python', 'aisdb/mapsocket.py']
+      ['python', 'aisdb/websocket_server.py']
+    depends_on:
+      - nginx
     networks: 
       ipv6_private:
         ipv6_address: "fc00::6"
-
-  # reverse proxy router
-  nginx:
-    image: nginx:latest
-    container_name: aisdb_nginx
-    volumes:
-      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
-      # - ./nginx/certbot/conf:/etc/letsencrypt
-      # - ./nginx/certbot/www:/var/www/certbot
-    ports:
-     - "80:80"
-     - "443:443"
-     - "9924:9924"
-    networks:
-      ipv6_private:
-        ipv6_address: "fc00::2"
+    #expose:
+    #  - "9924"
+    #deploy:
+    #  replicas: 8
+    #  resources:
+    #    limits:
+    #      cpus: '1'
+    #      memory: '3072M'
+    #  restart_policy:
+    #    condition: on-failure
+    #    delay: 5s
+    #    max_attempts: 3
+    #    window: 120s
 
   #certbot:
   #image: certbot/certbot

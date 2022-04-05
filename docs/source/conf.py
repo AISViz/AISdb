@@ -12,6 +12,7 @@
 #
 import os
 import sys
+from datetime import datetime
 
 sys.path.insert(0, os.path.abspath('../..'))
 import aisdb
@@ -19,7 +20,7 @@ import aisdb
 # -- Project information -----------------------------------------------------
 
 project = 'AISDB'
-copyright = '2022, MERIDIAN'
+copyright = f'{datetime.today().year}, MERIDIAN'
 author = 'MERIDIAN / Matt Smith'
 
 # -- General configuration ---------------------------------------------------
@@ -60,8 +61,7 @@ html_static_path = ['.']
 html_css_files = [
     #'custom.css',
 ]
-
-
+'''
 def skip(app, what, name, obj, would_skip, options):
     if "fromFunction" in name:
         return True
@@ -71,3 +71,4 @@ def skip(app, what, name, obj, would_skip, options):
 
 def setup(app):
     app.connect("autodoc-skip-member", skip)
+'''
