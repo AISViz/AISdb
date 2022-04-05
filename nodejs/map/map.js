@@ -196,9 +196,21 @@ sock.onmessage = async function(event) {
   let response = JSON.parse(event.data);
   window.last = response;
   if (response['type'] === 'WKBHex') {
-    newWKBHexVectorLayer([response['geometry']], response['opts']);
+    for (const geom in response['geometries']) {
+      newWKBHexVectorLayer(
+        [response['geometries'][geom]['geometry']], 
+        response['geometries'][geom]['opts']
+      );
+    }
   } else if (response['type'] === 'topology') {
-    newTopoVectorLayer(response['topology'], response['opts']);
+    for (const geom in response['geometries']) {
+      newTopoVectorLayer(
+        //response['topology'], 
+        //response['opts']
+        response['geometries'][geom]['topology'], 
+        response['geometries'][geom]['opts']
+      );
+    }
   }
 }
 
@@ -212,8 +224,8 @@ async function requestZones() {
 }
 window.zones = requestZones;
 
-async function requestTracks(month) {
-  await sock.send(JSON.stringify({"type": "tracks_month", "month": month}));
+async function requestTracks(day) {
+  await sock.send(JSON.stringify({"type": "tracks_week", "day": day}));
 }
 window.demo = requestTracks;
 

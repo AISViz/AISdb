@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.92
+-------
+
+update database client
+
+
 v1.0.91
 -------
 
