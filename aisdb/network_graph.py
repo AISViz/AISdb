@@ -280,7 +280,7 @@ def pipeline(rowset, domain):
                     ),
                     distance_threshold=250000,
                     minscore=0,
-                    speed_threshold=60,
+                    speed_threshold=50,
                 ),
                 domain=domain,
             )

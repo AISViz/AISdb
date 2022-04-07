@@ -20,13 +20,16 @@ def _segment_longitude(track, tolerance=300):
     '''
 
     if track['time'].size == 1:
-        return track
+        yield track
+        return
 
     diff = np.nonzero(
         np.abs(track['lon'][1:] - track['lon'][:-1]) > tolerance)[0] + 1
+    #breakpoint()
 
     if diff.size == 0:
-        return track
+        yield track
+        return
 
     # vector = LineString(zip(track['lon'], track['lat']))
     segments_idx = reduce(np.append, ([0], diff, [track['time'].size]))

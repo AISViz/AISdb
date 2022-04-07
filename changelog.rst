@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.97
+-------
+
+resolve trajectory linking issue
+
+
 v1.0.96
 -------
 
