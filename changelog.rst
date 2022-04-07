@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.94
+-------
+
+bug fixes and improvements to processing pipeline
+
+
 v1.0.93
 -------
 

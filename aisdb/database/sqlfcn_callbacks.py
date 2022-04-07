@@ -27,8 +27,8 @@ merge = lambda *arr: np.concatenate(np.array(*arr).T)
 
 # callback functions
 def in_bbox(alias, *, xmin, xmax, ymin, ymax, **_):
-    x0 = shiftcoord(xmin)
-    x1 = shiftcoord(xmax)
+    x0 = shiftcoord([xmin])[0]
+    x1 = shiftcoord([xmax])[0]
     if x0 <= x1:
         return f'''
         {alias}.longitude >= {x0} AND

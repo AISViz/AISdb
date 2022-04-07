@@ -151,7 +151,8 @@ class DBQuery(UserDict):
 
             # scrape metadata for observed vessels from marinetraffic
             # if no domain is provided, defaults to area surrounding canada
-            y, m = int(month[:4]), int(month[4:])
+            y, m = int(month[:4]), int(month[4:6])
+            '''
             req2 = DBQuery(
                 start=datetime(y, m, 1),
                 end=datetime(y + int(m == 12), m % 12 + 1, 1),
@@ -162,11 +163,15 @@ class DBQuery(UserDict):
                 ymax=self['ymax'],
             )
             res = np.array(list(req2.run_qry(check_idx=False)), dtype=object)
+            '''
+            qry = f'SELECT DISTINCT mmsi, imo FROM static_{y:04d}{m:02d}_aggregate'
+            aisdatabase.cur.execute(qry)
+            res = np.array(aisdatabase.cur.fetchall())
             if len(res) != 0:
                 print(f'scraping vessels: month {y}{m:02d}\t'
-                      f'{self["xmin"]}W:{self["xmax"]}W\t'
-                      f'{self["ymin"]}N:{self["ymax"]}N')
-                vinfo.vessel_info_callback(res.T[0], res.T[4])
+                      f'{self["xmin"]:.2f}W:{self["xmax"]:.2f}W\t'
+                      f'{self["ymin"]:.2f}N:{self["ymax"]:.2f}N')
+                vinfo.vessel_info_callback(res.T[0], res.T[1])
 
         aisdatabase.conn.commit()
         aisdatabase.conn.close()
@@ -220,7 +225,7 @@ class DBQuery(UserDict):
                 dbpath=dbpath,
                 printqry=False,
                 check_idx=False,
-                maxlength=100000):
+                maxlength=0):
         ''' queries the database using the supplied SQL function and dbpath.
             generator only stores one item at at time before yielding
 
@@ -262,8 +267,9 @@ class DBQuery(UserDict):
             else:
                 mmsi_rows = np.vstack((mmsi_rows, np.array(res, dtype=object)))
 
-            while len(mmsi_rows) > 1 and (int(mmsi_rows[0][0]) != int(
-                    mmsi_rows[-1][0]) or len(mmsi_rows) > maxlength):
+            while len(mmsi_rows) > 1 and (
+                    int(mmsi_rows[0][0]) != int(mmsi_rows[-1][0]) or
+                (maxlength > 0 and len(mmsi_rows) > maxlength)):
                 ummsi_idx = np.where(mmsi_rows[:, 0] != mmsi_rows[0, 0])[0][0]
                 if maxlength:
                     ummsi_idx = min(ummsi_idx, maxlength)

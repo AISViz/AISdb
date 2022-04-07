@@ -10,7 +10,6 @@ import csv
 import numpy as np
 
 from aisdb.common import output_dir
-from aisdb.gis import epoch_2_dt
 
 
 def _fast_unzip(zipf, dirname='.'):
@@ -59,7 +58,6 @@ def binarysearch(arr, search, descending=False):
         return mid
 
 
-#def _splits_idx(track: dict, maxdelta: timedelta) -> np.ndarray:
 def _splits_idx(vector: np.ndarray, d: timedelta) -> np.ndarray:
     if isinstance(d, timedelta):
         splits = np.nonzero(
@@ -91,6 +89,7 @@ def write_csv_rows(rows,
                         map(str.rstrip, map(str, r)))), rows)) + '\n')
 
 
+'''
 def _datetime_column(tracks):
     for track in tracks:
         track['datetime'] = np.array(
@@ -99,6 +98,7 @@ def _datetime_column(tracks):
         )
         track['dynamic'] = track['dynamic'].union(set(['datetime']))
         yield track
+'''
 
 
 def write_csv(
@@ -111,6 +111,7 @@ def write_csv(
         'mmsi', 'time', 'datetime', 'lon', 'lat', 'vessel_name',
         'ship_type_txt', 'imo', 'dim_bow', 'dim_stern', 'dim_star', 'dim_port'
     ]
+    assert False, 'datetime column function undefined'
     tracks_dt = _datetime_column(tracks)
 
     tr1 = next(tracks_dt)
@@ -225,3 +226,17 @@ def getfiledate(fpath, fmt='%Y%m%d'):
         return datetime(1970, 1, 1)
     fdate = regexdate_2_dt(d, fmt=fmt)
     return fdate
+
+
+def dms2dd(d, m, s, ax):
+    ''' convert degrees, minutes, seconds to decimal degrees '''
+    dd = float(d) + float(m) / 60 + float(s) / (60 * 60)
+    if (ax == 'W' or ax == 'S') and dd > 0: dd *= -1
+    return dd
+
+
+def strdms2dd(strdms):
+    '''  convert string representation of degrees, minutes, seconds to decimal deg '''
+    d, m, s, ax = [v for v in strdms.replace("''", '"').split(' ') if v != '']
+    return dms2dd(float(d.rstrip('°')), float(m.rstrip("'")),
+                  float(s.rstrip('"')), ax.upper())
