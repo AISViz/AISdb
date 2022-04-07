@@ -59,7 +59,6 @@ var map = new Map({
   */
   layers: layers,
   view: new View({
-    //center: ol.proj.fromLonLat([-63.6, 44.6]),
     center: olProj.fromLonLat([-63.6, 44.6]),
     zoom:4 
   })
@@ -107,7 +106,6 @@ function defaultOptions(opts) {
   return opts;
 }
 
-
 function newTopoVectorLayer(topo, opts) { 
   opts = defaultOptions(opts);
   //const buff = new Buffer(topojsonB64, 'base64');
@@ -127,9 +125,6 @@ function newTopoVectorLayer(topo, opts) {
   });
   map.addLayer(vector);
 }
-window.newTopoVectorLayer = newTopoVectorLayer;
-
-
 
 function newWKBHexVectorLayer(wkbFeatures, opts) { 
   opts = defaultOptions(opts);
@@ -156,76 +151,9 @@ function newWKBHexVectorLayer(wkbFeatures, opts) {
   });
   map.addLayer(vector);
 }
-window.newWKBHexVectorLayer = newWKBHexVectorLayer;
+//window.newTopoVectorLayer = newTopoVectorLayer;
+//window.newWKBHexVectorLayer = newWKBHexVectorLayer;
+//window.zones = requestZones;
+//window.demo_7day = requestTracks;
 
-
-window.sample_wkb = '0103000000010000000500000054E3A59BC4602540643BDF4F8D1739C05C8FC2F5284C4140EC51B81E852B34C0D578E926316843406F1283C0CAD141C01B2FDD2406012B40A4703D0AD79343C054E3A59BC4602540643BDF4F8D1739C0';
-
-//const socketHost = 'ws://localhost:9924';
-//import.meta.env.VITE_BINGMAPSKEY
-let hostname = import.meta.env.VITE_AISDBHOST;
-if (hostname == undefined) {
-  hostname = 'localhost';
-}
-let port = import.meta.env.VITE_AISDBPORT;
-if (port == undefined) {
-  port = '9924';
-}
-const socketHost = `ws://${hostname}:${port}`
-let sock = new WebSocket(socketHost);
-
-sock.onopen = function(event) {
-  console.log(`Established connection to ${socketHost}\nCaution: connection is unencrypted!`);
-}
-sock.onclose = function(event) {
-  if (event.wasClean) {
-    console.log(`[${event.code}] Closed connection with ${socketHost}`);
-  } else {
-    console.log(`[${event.code}] Connection to ${socketHost} died unexpectedly`);
-  }
-}
-sock.onerror = function(error) {
-  console.log(`[${error.code}] ${error.message}`);
-  sock.close();
-}
-
-
-
-
-sock.onmessage = async function(event) {
-  let response = JSON.parse(event.data);
-  window.last = response;
-  if (response['type'] === 'WKBHex') {
-    for (const geom in response['geometries']) {
-      newWKBHexVectorLayer(
-        [response['geometries'][geom]['geometry']], 
-        response['geometries'][geom]['opts']
-      );
-    }
-  } else if (response['type'] === 'topology') {
-    for (const geom in response['geometries']) {
-      newTopoVectorLayer(
-        //response['topology'], 
-        //response['opts']
-        response['geometries'][geom]['topology'], 
-        response['geometries'][geom]['opts']
-      );
-    }
-  }
-}
-
-
-window.onbefureunload = function() {
-  sock.onclose = function() {} ;
-  sock.close();
-}
-async function requestZones() {
-  await sock.send(JSON.stringify({"type": "zones"}));
-}
-window.zones = requestZones;
-
-async function requestTracks(day) {
-  await sock.send(JSON.stringify({"type": "tracks_week", "day": day}));
-}
-window.demo = requestTracks;
-
+export {map, newWKBHexVectorLayer, newTopoVectorLayer};

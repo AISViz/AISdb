@@ -1,19 +1,16 @@
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
 button {
-  font-size: calc(10px + 2vmin);
+  font-size: 2vh;
 }
 
 .map {
@@ -29,19 +26,40 @@ button {
 
 .optionSelectContainer {
   position: relative;
-  padding: 8px;
+  padding-top: 8px;
+  padding-bottom: 8px;
   display: flex;
-}
-
-.optionSelectContainer > label {
-  padding-left: 4px;
-  padding-right: 4px;
-
+  align-items: center;
 }
 
 .optionSelectContainer > select {
+  width: 128px;
+  text-align: right;
+  padding-right: .25vw;
+  margin-left: 4px;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-size: 2vh;
+}
+.optionSelectContainer > input {
   width: 160px;
   text-align: right;
   padding-right: .25vw;
+  margin-left: 4px;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-size: 2vh;
+}
 
+.smallfill {
+  width: calc(100% / 64);
+  display: flex;
+}
+
+.flexfill {
+  flex-grow: 100;
+}
+
+.statusmsg {
+  text-align: right;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 2vh;
 }

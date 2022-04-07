@@ -12,6 +12,9 @@
       <div id="map" class="map"></div>
       <div id="formDiv">
         <form action="/mapselect" method="POST" class="optionSelectContainer">
+
+        <div class='smallfill'></div>
+
         <input type="hidden" name="_csrf" value="{{csrfToken}}">
         <label for='layer-select' style="display: flex;">Map Layer</label>
 	<select id="layer-select" class="" style="display: flex;">
@@ -20,9 +23,27 @@
 	  <option value="RoadOnDemand">Road</option>
 	  <option value="CanvasDark">Road dark</option>
 	</select>
+
+
+        <div class='smallfill'></div>
+
+        <label for='time-select' style="display: flex;">Time</label>
+        <input id='time-select' type="week" name="timeSelect" value="2021-W28" min="2012-W1" required>
+
+        <div id='status-div' class='flexfill statusmsg' ></div>
+        <div class='smallfill'></div>
+
+        <button id='searchbtn' type='button'>Search</button>
+
+        <div class='smallfill'></div>
+
+        <button id='clearbtn' type='button'>Clear</button>
+
+        <div class='smallfill'></div>
+
         </form>
       </div>
     </div>
-    <script type="module" src="./map.js" ></script>
+    <script type="module" src="./app.js" ></script>
   </body>
 </html>
