@@ -22,8 +22,6 @@ host = os.environ.get('AISDBHOSTALLOW', '*')
 port = os.environ.get('AISDBPORT', 9924)
 port = int(port)
 
-print(f"starting server on {host}:{port}")
-
 domain = DomainFromTxts(zones_dir.rsplit(os.path.sep, 1)[1], zones_dir)
 
 
@@ -75,7 +73,7 @@ class SocketServ():
                 print('not json', clientmsg)
                 continue
             except websockets.ConnectionClosed:
-                print('closing...')
+                print(f'{websocket.remote_address} closing...')
                 enabled = False
                 await websocket.close()
                 break
@@ -150,16 +148,14 @@ class SocketServ():
         qrygen = qry.gen_qry(printqry=os.environ.get('DEBUG', False))
         pipeline = trajectories_json(
             encode_greatcircledistance(
-                split_timedelta(
-                    max_tracklength(TrackGen(qrygen)),
-                    maxdelta=timedelta(weeks=1),
-                ),
-                distance_threshold=500000,
+                split_timedelta(TrackGen(qrygen), maxdelta=timedelta(weeks=1)),
+                distance_threshold=250000,
                 minscore=0,
-                speed_threshold=70,
+                speed_threshold=50,
             ))
         eventbatch = {'type': 'topology', 'geometries': []}
         count = 0
+        status = 0
         for topology, opts in pipeline:
             count += 1
             event = {'topology': topology, 'opts': opts}
@@ -180,7 +176,7 @@ class SocketServ():
                 if hasattr(err, '__module__'):
                     print(err.__module__, end=': ')
                 raise err.with_traceback(None)
-            status = 0
+
             if response['type'] == 'ack':
                 pass
             elif response['type'] == 'stop':
@@ -188,8 +184,24 @@ class SocketServ():
                 break
             else:
                 raise ValueError(f'unhandled response type: {response}')
+
             eventbatch = {'type': 'topology', 'geometries': []}
-        await websocket.send(json.dumps({'type': 'done', 'status': status}))
+
+        await websocket.send(json.dumps(eventbatch).replace(' ', ''))
+        eventbatch = {'type': 'topology', 'geometries': []}
+        if status == 0:
+            await websocket.send(
+                json.dumps({
+                    'type': 'done',
+                    'status': f'Count: {count}'
+                }))
+        else:
+            await websocket.send(
+                json.dumps({
+                    'type': 'done',
+                    'status': 'Halted search'
+                }))
+        status = 0
 
     async def main(self):
         async with websockets.serve(self.handler, host=host, port=port):

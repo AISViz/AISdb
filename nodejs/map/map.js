@@ -59,8 +59,9 @@ var map = new Map({
   */
   layers: layers,
   view: new View({
-    center: olProj.fromLonLat([-63.6, 44.6]),
-    zoom:4 
+    //center: olProj.fromLonLat([-63.6, 44.6]),
+    center: olProj.fromLonLat([-123.0, 49.2]),
+    zoom: 4.5
   })
 });
 

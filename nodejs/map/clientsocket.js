@@ -1,4 +1,5 @@
-import {newWKBHexVectorLayer, newTopoVectorLayer} from "./map";
+import { newWKBHexVectorLayer, newTopoVectorLayer } from "./map";
+import { searchbtn } from "./selectform"
 
 let hostname = import.meta.env.VITE_AISDBHOST;
 if (hostname == undefined) {
@@ -12,11 +13,6 @@ if (port == undefined) {
 const socketHost = `ws://${hostname}:${port}`
 let socket = new WebSocket(socketHost);
 
-let errmsg = {
-  0: 'Done',
-  1: 'Stopped',
-}
-
 socket.onopen = function(event) {
   console.log(`Established connection to ${socketHost}\nCaution: connection is unencrypted!`);
   socket.send(JSON.stringify({'type': 'zones'}));
@@ -29,11 +25,12 @@ socket.onclose = function(event) {
   }
 }
 socket.onerror = function(error) {
-  console.log(`[${error.code}] ${error.message}`);
+  console.log(`[${JSON.stringify(error)}] ${error.message}`);
   socket.close();
 }
 socket.onmessage = async function(event) {
   let response = JSON.parse(event.data);
+
   window.last = response;
   if (response['type'] === 'WKBHex') {
     for (const geom in response['geometries']) {
@@ -42,7 +39,9 @@ socket.onmessage = async function(event) {
         response['geometries'][geom]['opts']
       );
     }
-  } else if (response['type'] === 'topology') {
+  } 
+
+  else if (response['type'] === 'topology') {
     for (const geom in response['geometries']) {
       newTopoVectorLayer(
         response['geometries'][geom]['topology'], 
@@ -50,8 +49,11 @@ socket.onmessage = async function(event) {
       );
     }
     await socket.send(JSON.stringify({'type': 'ack'}));
-  } else if (response['type'] === 'done') {
-    document.getElementById('status-div').textContent = errmsg[response['status']];
+  } 
+  
+  else if (response['type'] === 'done') {
+    document.getElementById('status-div').textContent = response['status'];
+    searchbtn.disabled = false;
   }
 }
 window.onbefureunload = function() {
