@@ -1,4 +1,5 @@
-''' scrape vessel information such as deadweight tonnage from marinetraffic.com '''
+''' scrape vessel information such as deadweight tonnage from marinetraffic.com
+'''
 
 import os
 
@@ -14,6 +15,7 @@ import sqlite3
 
 trafficDBpath = os.path.join(data_dir, 'marinetraffic.db')
 trafficDB = sqlite3.Connection(trafficDBpath)
+trafficDB.row_factory = sqlite3.Row
 
 
 err404 = 'INSERT OR IGNORE INTO webdata_marinetraffic(mmsi, imo, error404) '
@@ -31,78 +33,37 @@ def _loaded(drv: WebDriver) -> bool:
 
 
 def _updateinfo(info: str, vessel: dict) -> None:
-    match info.split(': '):
-
-        case ['MMSI', '-']:
-            vessel['mmsi'] = 0
-
-        case ['MMSI', mmsi]:
-            vessel['mmsi'] = int(mmsi)
-
-        case ['IMO', '-']:
-            vessel['imo'] = 0
-
-        case ['IMO', imo]:
-            vessel['imo'] = int(imo)
-
-        case ['Name', name]:
-            vessel['name'] = name
-
-        case ['Vessel Type - Generic', vtype1]:
-            vessel['vesseltype_generic'] = vtype1
-
-        case ['Vessel Type - Detailed', vtype2]:
-            vessel['vesseltype_detailed'] = vtype2
-
-        case ['Call Sign', callsign]:
-            vessel['callsign'] = callsign
-
-        case ['Flag', flag]:
-            vessel['flag'] = flag
-
-        case ['Gross Tonnage', '-']:
-            vessel['gross_tonnage'] = 0
-
-        case ['Gross Tonnage', gt]:
-            vessel['gross_tonnage'] = int(gt)
-
-        case ['Summer DWT', '-']:
-            vessel['summer_dwt'] = 0
-
-        case ['Summer DWT', dwt]:
-            vessel['summer_dwt'] = int(dwt.split()[0])
-
-        case['Length Overall x Breadth Extreme', lxw]:
-            vessel['length_breadth'] = lxw
-
-        case['Year Built', '-']:
-            vessel['year_built'] = 0
-
-        case['Year Built', year]:
-            vessel['year_built'] = int(year)
-
-        case['Home Port', home]:
-            vessel['home_port'] = home
+    i = info.split(': ')
+    if len(i) < 2:
+        return
+    vessel[i[0]] = i[1]
 
 
 def _getrow(vessel: dict) -> tuple:
-    if 'mmsi' not in vessel.keys():
-        vessel['mmsi'] = 0
-    if 'imo' not in vessel.keys():
-        vessel['imo'] = 0
-    assert isinstance(vessel["mmsi"], int), f'not an int: {type(vessel["mmsi"])} {vessel["mmsi"]=}'
-    assert isinstance(vessel["imo"], int), f'not an int: {type(vessel["imo"])} {vessel["imo"]=}'
-    return (vessel['mmsi'],
-            vessel['imo'],
-            vessel['vesseltype_generic'],
-            vessel['vesseltype_detailed'],
-            vessel['callsign'],
-            vessel['flag'],
-            vessel['gross_tonnage'],
-            vessel['summer_dwt'],
-            vessel['length_breadth'],
-            vessel['year_built'],
-            vessel['home_port'],
+    if 'MMSI' not in vessel.keys() or vessel['MMSI'] == '-':
+        vessel['MMSI'] = 0
+    if 'IMO' not in vessel.keys() or vessel['IMO'] == '-':
+        vessel['IMO'] = 0
+    if 'Name' not in vessel.keys():
+        vessel['Name'] = ''
+    if 'Gross Tonnage' not in vessel.keys() or vessel['Gross Tonnage'] == '-':
+        vessel['Gross Tonnage'] = 0
+    if 'Summer DWT' not in vessel.keys() or vessel['Summer DWT'] == '-':
+        vessel['Summer DWT'] = 0
+    if 'Year Built' not in vessel.keys() or vessel['Year Built'] == '-':
+        vessel['Year Built'] = 0
+    return (int(vessel['MMSI']),
+            int(vessel['IMO']),
+            vessel['Name'],
+            vessel['Vessel Type - Generic'],
+            vessel['Vessel Type - Detailed'],
+            vessel['Call Sign'],
+            vessel['Flag'],
+            int(vessel['Gross Tonnage']),
+            int(vessel['Summer DWT']),
+            vessel['Length Overall x Breadth Extreme'],
+            int(vessel['Year Built']),
+            vessel['Home Port'],
             )
 
 
@@ -123,12 +84,47 @@ def _insertelem(elem, mmsi, imo):
 
     with trafficDB as conn:
         conn.execute(insert_sql, insertrow)
-        if vessel['mmsi'] != mmsi:
+        if vessel['MMSI'] != mmsi:
             conn.execute(err404, (str(mmsi), str(imo)))
-        if vessel['imo'] != imo:
-            vessel['imo'] = int(imo)
+        if vessel['IMO'] != imo:
+            vessel['IMO'] = int(imo)
             insertrow = _getrow(vessel)
             conn.execute(insert_sql, insertrow)
+
+
+def vessel_info(tracks):
+    with trafficDB as conn:
+        for track in tracks:
+            track['static'] = set(track['static']).union({'marinetraffic_info'})
+            res = conn.execute(
+                    'select * from webdata_marinetraffic where mmsi = ?',
+                    [track['mmsi']],
+                    ).fetchall()
+            if len(res) > 1:
+                for r in res:
+                    if r['error404'] == 0 and r['imo'] > 0 and r['vesseltype_generic'] is not None:
+                        track['marinetraffic_info'] = dict(r)
+                        break
+                    track['marinetraffic_info'] = dict(r)
+            elif len(res) == 1:
+                track['marinetraffic_info'] = dict(res[0])
+            else:
+                track['marinetraffic_info'] = {
+                        'mmsi': track['mmsi'],
+                        'imo': track['imo'],
+                        'name': track['vessel_name'] or '',
+                        'vesseltype_generic': None,
+                        'vesseltype_detailed': None,
+                        'callsign': None,
+                        'flag': None,
+                        'gross_tonnage': None,
+                        'summer_dwt': None,
+                        'length_breadth': None,
+                        'year_built': None,
+                        'home_port': None,
+                        'error404': 1,
+                        }
+            yield track
 
 
 class VesselInfo():
@@ -154,7 +150,7 @@ class VesselInfo():
         print(url, end='\t')
         try:
             self.driver.get(url)
-            WebDriverWait(self.driver, 30).until(_loaded)
+            WebDriverWait(self.driver, 15).until(_loaded)
         except TimeoutException:
             print(f'timed out, skipping {searchmmsi=} {searchimo=}')
 
@@ -167,13 +163,9 @@ class VesselInfo():
             else:
                 checksum = '0'
 
-            # if timeout occurs and MMSI or IMO appears invalid,
-            # mark as error 404
-            if (searchmmsi < 200000000
-                    or searchmmsi > 780000000
-                    or checksum != str(searchimo)[-1]):
-                with trafficDB as conn:
-                    conn.execute(err404, (str(searchmmsi), str(searchimo)))
+            # if timeout occurs, mark as error 404
+            with trafficDB as conn:
+                conn.execute(err404, (str(searchmmsi), str(searchimo)))
             return
         except Exception as err:
             self.driver.close()
@@ -211,7 +203,7 @@ class VesselInfo():
         for elem in self.driver.find_elements(value=value):
             _ = _insertelem(elem, searchmmsi, searchimo)
 
-    def vessel_info_callback(self, mmsis, imos):
+    def vessel_info_callback(self, mmsis, imos, retry_404=False):
         # only check unique mmsis and matching imo
         mmsis, midx = np.unique(mmsis, return_index=True)
         imos = [i if i is not None else 0 for i in imos[midx]]
@@ -230,8 +222,10 @@ class VesselInfo():
 
         # check existing
         qrymmsis = ','.join(map(str, mmsis))
-        sqlcount = 'SELECT CAST(mmsi AS INT), CAST(imo as INT) '
-        sqlcount += f'FROM webdata_marinetraffic WHERE mmsi IN ({qrymmsis})'
+        sqlcount = 'SELECT CAST(mmsi AS INT), CAST(imo as INT)\n'
+        sqlcount += f'FROM webdata_marinetraffic WHERE mmsi IN ({qrymmsis})\n'
+        if retry_404:
+            sqlcount += 'AND error404 != 1\n'
         sqlcount += 'ORDER BY mmsi'
         with trafficDB as conn:
             existing = conn.execute(sqlcount).fetchall()
@@ -250,8 +244,11 @@ class VesselInfo():
             return
 
         for mmsi, imo in zip(mmsis, imos):
+            if not 200000000 <= mmsi <= 780000000:
+                continue
             suffix = f'/imo:{imo}' if imo > 0 else ''
             url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}{suffix}'
             self._getinfo(url, mmsi, imo)
 
         return
+
