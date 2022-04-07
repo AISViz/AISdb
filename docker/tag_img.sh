@@ -1,6 +1,18 @@
-echo "GIT CONTEXT:\n"
+#!/bin/bash
+echo "GIT CONTEXT:"
+echo
 find .. | grep -vi "`cat ../.gitignore`" | grep -vi '\/.git\/'
-echo "\n\nCAUTION: TAGGING PUBLIC IMAGE WITH BUILD CONTEXT: \n"
+echo
+echo
+echo "CAUTION: TAGGING PUBLIC IMAGE WITH BUILD CONTEXT:"
+echo
 find .. | grep -vi "`cat ../.dockerignore`"
-docker build --target aisdb --tag meridiancfi/aisdb:latest --compress --file ./Dockerfile ..
-docker push meridiancfi/aisdb:latest
+
+echo
+read -p "Are you sure? [y/n]" -r
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+  docker build --target aisdb --tag meridiancfi/aisdb:latest --no-cache --compress --file ./Dockerfile .. 
+  docker push meridiancfi/aisdb:latest
+fi
+

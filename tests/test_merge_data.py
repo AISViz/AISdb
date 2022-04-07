@@ -1,11 +1,13 @@
 from datetime import datetime
 
+from shapely.geometry import Polygon
+
 from aisdb.database.dbqry import DBQuery
 from aisdb.track_gen import TrackGen
 from aisdb.webdata.merge_data import (
     merge_layers,
     merge_tracks_bathymetry,
-    merge_tracks_hullgeom,
+    #merge_tracks_hullgeom,
     merge_tracks_shoredist,
 )
 from aisdb.database.sqlfcn_callbacks import (
@@ -15,14 +17,16 @@ from aisdb.database.sqlfcn_callbacks import (
 from aisdb.gis import Domain
 from tests.create_testing_data import (
     sample_dynamictable_insertdata,
-    sample_gulfstlawrence_zonegeometry,
+    sample_gulfstlawrence_bbox,
+    zonegeoms_or_randompoly,
 )
 
 
 def prepare_qry():
     sample_dynamictable_insertdata()
-    z1 = sample_gulfstlawrence_zonegeometry()
-    domain = Domain('gulf domain', geoms={'z1': z1}, cache=False)
+
+    z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
+    domain = Domain('gulf domain', geoms=[{'z1': z1}])
 
     start = datetime(2000, 1, 1)
     end = datetime(2000, 2, 1)
@@ -53,9 +57,10 @@ def test_merge_bathymetry():
 
 
 def test_merge_hullgeom():
-    merged = merge_tracks_hullgeom(TrackGen(prepare_qry()))
-    test = next(merged)
-    print(test)
+    assert False, 'need to rewrite this'
+    #merged = merge_tracks_hullgeom(TrackGen(prepare_qry()))
+    #test = next(merged)
+    #print(test)
 
 
 def test_merge_layers_all():

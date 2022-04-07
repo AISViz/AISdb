@@ -7,12 +7,11 @@ import numpy as np
 from shapely.geometry import Polygon
 
 from aisdb import zones_dir, rawdata_dir, dbpath
-from aisdb.gis import ZoneGeom, ZoneGeomFromTxt
 from aisdb.proc_util import glob_files
 from aisdb.database.sqlfcn_callbacks import in_timerange
 from aisdb.database.dbqry import DBQuery
 from aisdb.database.dbconn import DBConn
-# from aisdb.database.sqlfcn_callbacks import boxpoly
+from aisdb.gis import Domain, DomainFromTxts
 
 arrayhash = lambda matrix, nbytes=2: sha256(
     reduce(np.append, matrix).tobytes()).hexdigest()[nbytes * -8:]
@@ -52,7 +51,7 @@ def sample_random_polygon(xscale=20, yscale=20):
     return x, y
 
 
-def sample_gulfstlawrence_zonegeometry():
+def sample_gulfstlawrence_bbox():
     gulfstlawrence_bbox_xy = np.array([
         (-71.64440346704974, 43.18445256159233),
         (-71.2966623933639, 52.344721551389526),
@@ -60,24 +59,24 @@ def sample_gulfstlawrence_zonegeometry():
         (-50.345262703792734, 42.95158299927571),
         (-71.64440346704974, 43.18445256159233),
     ])
-
-    z1 = ZoneGeom('gulf st lawrence', *gulfstlawrence_bbox_xy.T)
-    return z1
+    return gulfstlawrence_bbox_xy.T
 
 
 def zonegeoms_or_randompoly(randomize=False, count=10):
     shapefilepaths = glob_files(zones_dir, '.txt')
     if len(shapefilepaths) > 0 and not randomize:
-        zonegeoms = {
-            z.name: z
-            for z in [ZoneGeomFromTxt(f) for f in shapefilepaths]
-        }
+        domain = DomainFromTxts('testdomain', zones_dir)
     else:
-        zonegeoms = {
-            arrayhash(matrix): ZoneGeom(arrayhash(matrix), *matrix)
-            for matrix in [sample_random_polygon() for _ in range(count)]
-        }
-    return zonegeoms
+        #zonegeoms = {
+        #    arrayhash(matrix): ZoneGeom(arrayhash(matrix), *matrix)
+        #    for matrix in
+        #}
+        domain = Domain('testdomain',
+                        [{
+                            'name': 'random',
+                            'geometry': Polygon(zip(*sample_random_polygon()))
+                        } for _ in range(count)])
+    return domain
 
 
 def create_testing_aisdata():

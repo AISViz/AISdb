@@ -1,12 +1,16 @@
+'''
+from multiprocessing import set_start_method
+set_start_method('forkserver')
+from multiprocessing import Pool, Queue
+'''
 from datetime import datetime, timedelta
 from functools import partial
-# import cProfile
+
+from shapely.geometry import Polygon
 
 from aisdb.database.dbqry import DBQuery
 from aisdb.database.sqlfcn_callbacks import (
-    in_bbox_time,
-    in_bbox_time_validmmsi,
-)
+    in_bbox_time, )
 from aisdb.gis import Domain
 from aisdb.track_gen import (
     fence_tracks,
@@ -16,14 +20,13 @@ from aisdb.track_gen import (
 from aisdb.network_graph import serialize_network_edge
 from tests.create_testing_data import (
     sample_dynamictable_insertdata,
-    sample_gulfstlawrence_zonegeometry,
+    sample_gulfstlawrence_bbox,
 )
 from aisdb.webdata.merge_data import (
     merge_tracks_bathymetry,
-    merge_tracks_hullgeom,
+    #merge_tracks_hullgeom,
     merge_tracks_portdist,
     merge_tracks_shoredist,
-    # merge_layers,
 )
 
 
@@ -31,9 +34,10 @@ def test_network_graph_geofencing():
     # query configs
     start = datetime(2000, 1, 1)
     end = datetime(2000, 2, 1)
-    #zonegeoms = zonegeoms_or_randompoly(randomize=True, count=10)
-    zonegeoms = {'z1': sample_gulfstlawrence_zonegeometry()}
-    domain = Domain(name='test', geoms=zonegeoms, cache=False)
+
+    z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
+    domain = Domain('gulf domain', zones=[{'z1': z1}])
+
     args = DBQuery(
         start=start,
         end=end,
@@ -73,9 +77,10 @@ def test_network_graph_geofencing():
 def test_network_graph_merged_serialized():
     start = datetime(2000, 1, 1)
     end = datetime(2000, 2, 1)
-    #zonegeoms = zonegeoms_or_randompoly(randomize=True, count=10)
-    zonegeoms = {'z1': sample_gulfstlawrence_zonegeometry()}
-    domain = Domain(name='test', geoms=zonegeoms, cache=False)
+
+    z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
+    domain = Domain('gulf domain', zones=[{'z1': z1}])
+
     args = DBQuery(
         start=start,
         end=end,
@@ -102,28 +107,7 @@ def test_network_graph_merged_serialized():
         merge_tracks_bathymetry(
             merge_tracks_shoredist(
                 merge_tracks_portdist(
-                    merge_tracks_hullgeom(
-                        geofenced(distsplit(TrackGen(args.gen_qry()))))))))
+                    #merge_tracks_hullgeom(
+                    geofenced(distsplit(TrackGen(args.gen_qry())))))))
+    #)
     next(pipeline)
-
-
-'''
-import os
-os.environ["OMP_NUM_THREADS"] = '1'
-os.environ["OPENBLAS_NUM_THREADS"] = '1'
-os.environ["MKL_NUM_THREADS"] = '1'
-os.environ["VECLIB_MAXIMUM_THREADS"] = '1'
-os.environ["NUMEXPR_NUM_THREADS"] = '1'
-os.system("taskset -c 0-11 -p %d" % os.getpid())
-from multiprocessing import set_start_method
-set_start_method('forkserver')
-from multiprocessing import Pool, Queue
-
-
-
-# from aisdb.webdata.merge_data import (
-# merge_tracks_bathymetry,
-# merge_tracks_hullgeom,
-# merge_tracks_shoredist,
-#        )
-'''
