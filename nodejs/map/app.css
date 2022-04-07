@@ -15,7 +15,7 @@ button {
 
 .map {
   padding: 8px;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 28px - 4vh);
   background-color: #282c34;
   display: flex;
   flex-direction: column;
@@ -30,6 +30,7 @@ button {
   padding-bottom: 8px;
   display: flex;
   align-items: center;
+  font-size: 14px;
 }
 
 .optionSelectContainer > select {
@@ -38,7 +39,6 @@ button {
   padding-right: .25vw;
   margin-left: 4px;
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
-  font-size: 2vh;
 }
 .optionSelectContainer > input {
   width: 160px;
@@ -46,7 +46,6 @@ button {
   padding-right: .25vw;
   margin-left: 4px;
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
-  font-size: 2vh;
 }
 
 .smallfill {
@@ -61,5 +60,4 @@ button {
 .statusmsg {
   text-align: right;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  font-size: 2vh;
 }
