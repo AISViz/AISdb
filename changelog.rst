@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.95
+-------
+
+refactor polygon geometry handling
+
+
 v1.0.94
 -------
 

@@ -6,14 +6,29 @@ from functools import partial
 
 import numpy as np
 import shapely.wkb
-from shapely.ops import unary_union
-from shapely.geometry import Polygon, Point, LineString
-from shapely.geometry.collection import GeometryCollection
+import shapely.ops
+from shapely.geometry import Polygon, LineString, Point
 
-from common import dbpath
-from index import index
+from aisdb.proc_util import glob_files
 
-shiftcoord = lambda x, rng=360: ((np.array(x) + (rng / 2)) % 360) - (rng / 2)
+# shiftcoord = lambda x, rng=360: ((np.array(x) + (rng / 2)) % 360) - (rng / 2)
+
+
+def shiftcoord(x, rng=180):
+    ''' Correct longitude coordinates to be within range(-180, 180).
+        For latitude coordinate correction, set rng to 90.
+    '''
+    assert len(x) > 0, 'x must be array-like'
+    if not isinstance(x, np.ndarray):
+        x = np.array(x)
+    shift_idx = np.where(np.abs(x) != 180)[0]
+    for idx in shift_idx:
+        x[idx] = ((x[idx] + rng) % 360) - rng
+    flip_idx = np.where(np.abs(x) == 180)[0]
+    for idx in flip_idx:
+        x[idx] *= -1
+    assert (rng * -1 <= np.all(x) <= rng)
+    return x
 
 
 def dt_2_epoch(dt_arr, t0=datetime(1970, 1, 1, 0, 0, 0)):
@@ -33,8 +48,6 @@ def epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
     delta = lambda ep, unit: t0 + timedelta(**{unit: ep})
 
     if isinstance(ep_arr, (list, np.ndarray)):
-        #assert isinstance(ep_arr[0],
-        #                  int), f'{ep_arr[0] = }\tdtype = {type(ep_arr[0])}'
         return np.array(list(map(partial(delta, unit=unit), map(int, ep_arr))))
 
     elif isinstance(ep_arr, (float, int)):
@@ -64,10 +77,7 @@ def delta_meters(track, rng=None):
 
 def delta_seconds(track, rng=None):
     rng = range(len(track['time'])) if rng is None else rng
-    return np.array(
-        list(
-            #(track['time'][rng][1:] - track['time'][rng][:-1]))) * 60
-            (track['time'][rng][1:] - track['time'][rng][:-1])))
+    return np.array(list((track['time'][rng][1:] - track['time'][rng][:-1])))
 
 
 def delta_knots(track, rng=None):
@@ -75,28 +85,6 @@ def delta_knots(track, rng=None):
     ds = np.array([np.max((1, s)) for s in delta_seconds(track, rng)],
                   dtype=object)
     return delta_meters(track, rng) / ds * 1.9438445
-
-
-def delta_reported_knots(track, rng):
-    ''' difference between reported SOG and great circle distance computed SOG '''
-    knots = delta_knots(track, rng)
-    return np.abs((
-        (track['sog'][rng][mask][:-1] + track['sog'][rng][end][1:]) / 2) -
-                  knots)
-
-
-def dms2dd(d, m, s, ax):
-    ''' convert degrees, minutes, seconds to decimal degrees '''
-    dd = float(d) + float(m) / 60 + float(s) / (60 * 60)
-    if (ax == 'W' or ax == 'S') and dd > 0: dd *= -1
-    return dd
-
-
-def strdms2dd(strdms):
-    '''  convert string representation of degrees, minutes, seconds to decimal deg '''
-    d, m, s, ax = [v for v in strdms.replace("''", '"').split(' ') if v != '']
-    return dms2dd(float(d.rstrip('°')), float(m.rstrip("'")),
-                  float(s.rstrip('"')), ax.upper())
 
 
 def radial_coordinate_boundary(x, y, radius=100000):
@@ -154,153 +142,42 @@ def vesseltrack_3D_dist(tracks, x1, y1, z1):
         yield track
 
 
-class ZoneGeom():
-    ''' class describing polygon coordinate geometry
-
-        geometry will be stored as a shapely.geometry.Polygon object.
-        some additional variables are stored as attributes, such as
-        centroids and farthest radial distance from the centroid
-
-        When compared with a shapely.geometry.Point object, the '>' operator
-        will return True if the point is contained within the polygon
-
-        args:
-            name: string
-                unique descriptor of a zone
-            x: np.array
-                longitude coordinate array
-            y: np.array
-                latitude coordinate array
-    '''
-
-    def __init__(self, name, x, y):
-        self.name = name
-        self.x = np.array(x)
-        self.y = np.array(y)
-        self.geometry = Polygon(zip(x, y))
-        self.centroid = (self.geometry.centroid.x, self.geometry.centroid.y)
-        self.maxradius = next(
-            np.max(
-                haversine(*self.centroid, *xy) for xy in zip(self.x, self.y)))
-        self.minX, self.maxX = np.min(self.x), np.max(self.x)
-        self.minY, self.maxY = np.min(self.y), np.max(self.y)
-        if not (self.minX >= -180 and self.maxX <= 180):
-            print(
-                f'warning: zone {self.name} boundary exceeds longitudes -180..180'
-            )
-            meridian = LineString(
-                np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
-            self.centroid = shiftcoord(self.centroid[0]), self.centroid[1]
-            merged = shapely.ops.linemerge([self.geometry.boundary, meridian])
-            border = shapely.ops.unary_union(merged)
-            decomp = list(shapely.ops.polygonize(border))
-            p1, p2 = decomp[0], decomp[-1]
-            splits = [
-                Polygon(
-                    zip(
-                        #shiftcoord(p2.boundary.coords.xy[0]),
-                        p2.boundary.coords.xy[0],
-                        p2.boundary.coords.xy[1],
-                    )),
-                Polygon(
-                    zip(
-                        #shiftcoord(p1.boundary.coords.xy[0]),
-                        p1.boundary.coords.xy[0],
-                        p1.boundary.coords.xy[1],
-                    ))
-            ]
-            #Polygon(zip(shiftcoord(np.array(p2.boundary.coords.xy[0])), p2.boundary.coords.xy[1])) ]
-            #self.geometry = unary_union(splits)
-            #self.geometry = GeometryCollection(splits)
-            self.geometryCollection = splits
-
-        if not (self.minY <= 90 and self.maxY >= -90):
-            print(
-                f'warning: zone {self.name} boundary exceeds latitudes -90..90'
-            )
-
-    def __gt__(self, xy):
-        return (self.minX <= xy[0] <= self.maxX
-                and self.minY <= xy[1] <= self.maxY
-                and self.geometry.contains(Point(*xy)))
-
-
-class ZoneGeomFromTxt(ZoneGeom):
-    ''' constructor class to initialize zone geometry from a text file '''
-
-    def __init__(self, txt):
-        name = txt.rsplit(os.path.sep, 1)[1].split('.')[0]
-        with open(txt, 'r') as f:
-            pts = f.read()
-        xy = list(
-            map(float,
-                pts.replace('\n\n', '').replace('\n', ',').split(',')[:-1]))
-        super().__init__(name, xy[::2], xy[1::2])
-
-
 class Domain():
-    ''' collection of ZoneGeom objects, with additional computed statistics such as zone set boundary coordinates
+    ''' collection of zone geometry dictionaries, with additional
+        statistics such as hull bounding box
 
-        args:
-            name: string
-                name to describe collection of ZoneGeom objects
-            geoms: list
-                collection of ZoneGeom objects
-            cache: boolean
-                if True, Domains will be cached as binary in the database.
-                A hash of Domain.name will be used as the primary key
-            clearcache: boolean
-                if True, the contents of the cache will be cleared before storing
-                new values in the cache
+    args:
+        name: string
+            Domain name
+        zones: list of dictionaries
+            Collection of zone geometry dictionaries.
+            Must have keys 'name' (string) and 'geometry'
+            (shapely.geometry.Polygon)
 
-        attr:
-            self.name
-            self.geoms
-            self.minX
-            self.minY
-            self.maxX
-            self.maxY
+    attr:
+        self.name
+        self.zones
+        self.bounds
+        self.minX
+        self.minY
+        self.maxX
+        self.maxY
 
     '''
 
-    def __init__(self, name=None, geoms={}, cache=True, clearcache=False):
-        if len(geoms.keys()) == 0:
+    def __init__(self, name, zones=[]):
+        if len(zones) == 0:
             assert False, 'domain needs to have atleast one polygon geometry'
         self.name = name
-        self.geoms = geoms
-        if cache:
-            # check cache for domain hash
-            dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
-            with index(bins=False,
-                       store=True,
-                       storagedir=dbdir,
-                       filename=dbname) as domaincache:
-                if clearcache:
-                    seed = domaincache.hash_seed(
-                        callback=self.init_boundary,
-                        passkwargs={"name": self.name})
-                    domaincache.drop_hash(seed=seed)
-                self.bounds = domaincache(callback=self.init_boundary,
-                                          name=self.name)[0]
-        else:
-            self.bounds = self.init_boundary(name=name)
-
-        self.minX, self.minY, self.maxX, self.maxY = self.bounds.convex_hull.bounds
-        self.minX -= 1
-        self.maxX += 1
-        self.minY -= 1
-        self.maxY += 1
-
-    def init_boundary(self, name):
-        if sum([
-                g.geometry.type == 'GeometryCollection'
-                for g in self.geoms.values()
-        ]) > 0:
-            print('warning: domain exceeded map boundary')
-        return unary_union([
-            g.geometry for g in self.geoms.values()
-            if g.geometry.type != 'GeometryCollection'
-        ])
+        self.zones = zones
+        assert hasattr(self, 'minX')
+        assert hasattr(self, 'minY')
+        assert hasattr(self, 'maxX')
+        assert hasattr(self, 'maxY')
+        assert self.minX is not None
+        assert self.maxX is not None
+        assert self.minY is not None
+        assert self.maxY is not None
 
     def nearest_polygons_to_point(self, x, y):
         ''' compute great circle distance for this point to each polygon centroid,
@@ -308,87 +185,98 @@ class Domain():
             returns all zones with distances less than zero meters, sorted by
             nearest first
         '''
-        #dist_to_centroids = {k : haversine(x, y, *g.centroid) - g.maxradius for k,g in self.geoms.items()}
         dist_to_centroids = {}
-        for k, g in self.geoms.items():
-            dist_to_centroids.update(
-                {k: haversine(x, y, *g.centroid) - g.maxradius})
-        return {
-            k: v
-            for k, v in sorted(dist_to_centroids.items(),
-                               key=lambda item: item[1]) if v <= 0
-        }
+        for z in self.zones:
+            dist_to_centroids.update({
+                z['name']:
+                haversine(x, y, *z['geometry'].centroid.xy) - z['maxradius']
+            })
+        return dist_to_centroids
 
     def point_in_polygon(self, x, y):
         ''' returns the first polygon that contains the given point.
             uses coarse filtering by precomputing distance to centroids
         '''
         nearest = self.nearest_polygons_to_point(x, y)
-        for key, val in nearest.items():
-            if self.geoms[key] > (x, y):
-                return key
+        for zone in self.zones:
+            if zone['name'] not in nearest.keys():
+                continue
+            if zone['geometry'].contains(Point(x, y)):
+                return zone['name']
         return 'Z0'
 
 
-'''
+class DomainFromTxts(Domain):
+    meridian = LineString(
+        np.array((
+            (-180, -180, 180, 180),
+            (-90, 90, 90, -90),
+        )).T)
 
-class SerializedZoneGeom(ZoneGeom):
+    def adjust_coords(self, longitudes):
+        '''
+            longitudes = np.array([-181, -179, 0, 179, 181])
+        '''
+        longitudes[np.where(longitudes >= 180)[0]] = -180
+        longitudes[np.where(longitudes <= -180)[0]] = 180
+        return longitudes
 
-    def deserialize(self):
-        pass
-        return name, x, y
+    def split_geom(self, geom):
+        merged = shapely.ops.linemerge([geom.boundary, self.meridian])
+        border = shapely.ops.unary_union(merged)
+        decomp = shapely.ops.polygonize(border)
+        return decomp
 
-    def __init__(self, serial):
-        super().__init__(*self.deserialize(serial))
+    def __init__(self, domainName, folder):
+        self.minX = None
+        self.maxX = None
+        self.minY = None
+        self.maxY = None
+        files = glob_files(folder, ext='txt')
+        zones = []
+        for txt in files:
+            filename = txt.rsplit(os.path.sep, 1)[1].split('.')[0]
+            with open(txt, 'r') as f:
+                pts = f.read()
+            xy = list(
+                map(float,
+                    pts.replace('\n\n', '').replace('\n',
+                                                    ',').split(',')[:-1]))
+            x, y = np.array(xy[::2]), np.array(xy[1::2])
+            if self.minX is None or np.min(x) < self.minX:
+                self.minX = np.min(x)
+            if self.maxX is None or np.max(x) > self.maxX:
+                self.maxX = np.max(x)
+            if self.minY is None or np.min(y) < self.minY:
+                self.minY = np.min(y)
+            if self.maxY is None or np.max(y) > self.maxY:
+                self.maxY = np.max(y)
+            geom = Polygon(zip(x, y))
+            minX, maxX = np.min(x), np.max(x)
+            if not (minX >= -180 and maxX <= 180):
+                for g in self.split_geom(geom):
+                    if g.centroid.x < -180:
+                        x, y = np.array(g.boundary.coords.xy)
+                        zones.append({
+                            'name': filename,
+                            'geometry': Polygon(zip(shiftcoord(x), y))
+                        })
+                    elif g.centroid.x > 180:
+                        x, y = np.array(g.boundary.coords.xy)
+                        x[np.where(x <= 180)] = -180.
+                        zones.append({
+                            'name': filename,
+                            'geometry': Polygon(zip(shiftcoord(x), y))
+                        })
+                    else:
+                        zones.append({'name': filename, 'geometry': g})
+            else:
+                zones.append({'name': filename, 'geometry': geom})
 
-    def __repr__(self):
-        return self.name, self.geometry.asWkt()
+        for zone in zones:
+            zone['maxradius'] = np.max([
+                haversine(*zone['geometry'].centroid.xy, x2=x, y2=y)
+                for x, y in zip(*zone['geometry'].boundary.coords.xy)
+            ])
 
-    def binary(self):
-        return self.name, bytes(self.geometry.asWkb())
-'''
-"""
-def zones_from_txts_old(dirpath='../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', domain='east'):
-    from shapely.geometry import Polygon
-    from shapely.ops import unary_union
-    dirpath, dirnames, filenames = np.array(list(os.walk(dirpath)), dtype=object).T
-    txts = list(map(lambda txt: f'{dirpath[0]}/{txt}', sorted(filter(lambda f: f[-3:] == 'txt', filenames[-1]))))
-    merge = lambda *arr: np.concatenate(np.array(*arr).T)
-    zones = {'domain': domain, 'geoms': {}}
-    for txt in txts:
-        with open(txt, 'r') as f: pts = f.read()
-        xy = list(map(float, pts.replace('\n\n', '').replace('\n',',').split(',')[:-1]))
-        zones['geoms'][txt.rsplit(os.path.sep,1)[1].split('.')[0]] = Polygon(zip(xy[::2], xy[1::2]))
-    zones['hull'] = unary_union(zones['geoms'].values()).convex_hull
-    zones['hull_xy'] = merge(zones['hull'].boundary.coords.xy)
-    return zones
-
-
-def parse_zones_from_txts(dbpath, dirpath='../scripts/dfo_project/EastCoast_EEZ_Zones_12_8', domain='east'):
-
-    from database.create_tables import sqlite_create_table_polygons
-    import pickle
-    aisdb = dbconn(dbpath)
-    conn, cur = aisdb.conn, aisdb.cur
-    sqlite_create_table_polygons(aisdb.cur)
-
-    _, dirnames, filenames = np.array(list(os.walk(dirpath)), dtype=object).T
-    txts = list(map(lambda txt: f'{dirpath}/{txt}', sorted(filter(lambda f: f[-3:] == 'txt', filenames[-1]))))
-    #merge = lambda *arr: np.concatenate(np.array(*arr).T)
-    #zones = {'domain': domain, 'geoms': {}}
-    for txt in txts:
-        with open(txt, 'r') as f: pts = f.read()
-        xy = list(map(float, pts.replace('\n\n', '').replace('\n',',').split(',')[:-1]))
-        minX, maxX, minY, maxY = min(xy[::2]), max(xy[::2]), min(xy[1::2]), max(xy[1::2])
-        #zones['geoms'][txt.rsplit(os.path.sep,1)[1].split('.')[0]] =
-        name = txt.rsplit(os.path.sep,1)[1].split('.')[0]
-        poly = Polygon(zip(xy[::2], xy[1::2]))
-        row = (minX, maxX, minY, maxY, name, domain, pickle.dumps(poly))
-        cur.execute('''
-            INSERT INTO rtree_polygons (minX, maxX, minY, maxY, objname, domain, binary)
-            VALUES (?,?,?,?,?,?,?) ''', row)
-    #zones['hull'] = unary_union(zones['geoms'].values()).convex_hull
-    #zones['hull_xy'] = merge(zones['hull'].boundary.coords.xy)
-    #return zones
-    conn.commit()
-"""
+        super().__init__(domainName, zones)
