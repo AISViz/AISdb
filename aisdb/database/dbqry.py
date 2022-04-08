@@ -149,6 +149,9 @@ class DBQuery(UserDict):
                     or 'ymin' not in self.keys() or 'ymax' not in self.keys()):
                 continue
 
+            if not vesselinfo:
+                continue
+
             # scrape metadata for observed vessels from marinetraffic
             # if no domain is provided, defaults to area surrounding canada
             y, m = int(month[:4]), int(month[4:6])

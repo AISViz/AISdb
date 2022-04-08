@@ -48,8 +48,12 @@ def _getrow(vessel: dict) -> tuple:
         vessel['Name'] = ''
     if 'Gross Tonnage' not in vessel.keys() or vessel['Gross Tonnage'] == '-':
         vessel['Gross Tonnage'] = 0
+    elif 'Gross Tonnage' in vessel.keys() and isinstance(vessel['Gross Tonnage'], str):
+        vessel['Gross Tonnage'] = int(vessel['Gross Tonnage'].split()[0])
     if 'Summer DWT' not in vessel.keys() or vessel['Summer DWT'] == '-':
         vessel['Summer DWT'] = 0
+    elif 'Summer DWT' in vessel.keys() and isinstance(vessel['Summer DWT'], str):
+        vessel['Summer DWT'] = int(vessel['Summer DWT'].split()[0])
     if 'Year Built' not in vessel.keys() or vessel['Year Built'] == '-':
         vessel['Year Built'] = 0
     return (int(vessel['MMSI']),
@@ -92,39 +96,42 @@ def _insertelem(elem, mmsi, imo):
             conn.execute(insert_sql, insertrow)
 
 
+def _vinfo(track, conn):
+    track['static'] = set(track['static']).union({'marinetraffic_info'})
+    res = conn.execute(
+            'select * from webdata_marinetraffic where mmsi = ?',
+            [track['mmsi']],
+            ).fetchall()
+    if len(res) >= 1:
+        for r in res:
+            if (r['error404'] == 0 and r['imo'] > 0
+                    and r['vesseltype_generic'] is not None):
+                track['marinetraffic_info'] = dict(r)
+                break
+            track['marinetraffic_info'] = dict(r)
+    else:
+        track['marinetraffic_info'] = {
+                'mmsi': track['mmsi'],
+                'imo': track['imo'],
+                'name': track['vessel_name'] or '',
+                'vesseltype_generic': None,
+                'vesseltype_detailed': None,
+                'callsign': None,
+                'flag': None,
+                'gross_tonnage': None,
+                'summer_dwt': None,
+                'length_breadth': None,
+                'year_built': None,
+                'home_port': None,
+                'error404': 1,
+                }
+    return track
+
+
 def vessel_info(tracks):
     with trafficDB as conn:
         for track in tracks:
-            track['static'] = set(track['static']).union({'marinetraffic_info'})
-            res = conn.execute(
-                    'select * from webdata_marinetraffic where mmsi = ?',
-                    [track['mmsi']],
-                    ).fetchall()
-            if len(res) > 1:
-                for r in res:
-                    if r['error404'] == 0 and r['imo'] > 0 and r['vesseltype_generic'] is not None:
-                        track['marinetraffic_info'] = dict(r)
-                        break
-                    track['marinetraffic_info'] = dict(r)
-            elif len(res) == 1:
-                track['marinetraffic_info'] = dict(res[0])
-            else:
-                track['marinetraffic_info'] = {
-                        'mmsi': track['mmsi'],
-                        'imo': track['imo'],
-                        'name': track['vessel_name'] or '',
-                        'vesseltype_generic': None,
-                        'vesseltype_detailed': None,
-                        'callsign': None,
-                        'flag': None,
-                        'gross_tonnage': None,
-                        'summer_dwt': None,
-                        'length_breadth': None,
-                        'year_built': None,
-                        'home_port': None,
-                        'error404': 1,
-                        }
-            yield track
+            yield _vinfo(track, conn)
 
 
 class VesselInfo():
@@ -154,6 +161,7 @@ class VesselInfo():
         except TimeoutException:
             print(f'timed out, skipping {searchmmsi=} {searchimo=}')
 
+            '''
             # validate IMO
             if searchimo != 0:
                 checksum = str(
@@ -162,6 +170,7 @@ class VesselInfo():
                             np.array([7, 6, 5, 4, 3, 2])))[-1]
             else:
                 checksum = '0'
+            '''
 
             # if timeout occurs, mark as error 404
             with trafficDB as conn:
@@ -251,4 +260,3 @@ class VesselInfo():
             self._getinfo(url, mmsi, imo)
 
         return
-

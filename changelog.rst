@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.99
+-------
+
+bug fixes in web scraping DB
+
+
 v1.0.98
 -------
 
