@@ -1,8 +1,8 @@
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-RSTSOURCEDIR="${SCRIPTPATH}/source"
-HTMLOUTPUTDIR="${SCRIPTPATH}/html"
-PKGDIR="${SCRIPTPATH}/../aisdb"
-ROOTDIR="${SCRIPTPATH}/.."
+RSTSOURCEDIR="${SCRIPTPATH}/docs/source"
+HTMLOUTPUTDIR="${SCRIPTPATH}/docs/html"
+PKGDIR="${SCRIPTPATH}/aisdb"
+ROOTDIR="${SCRIPTPATH}/"
 
 
 rm -rf "$HTMLOUTPUTDIR"

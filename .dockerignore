@@ -36,10 +36,9 @@ aisdb_rust/target/**
 aisdb_rust/testdata
 aisdb_rust/testdata/*
 aisdb_rust/testdata/**
-docker/package-lock.json
+aisdb_web/node_modules
 docs/html
 docs/source/api
-nodejs/node_modules
 tag_img.sh
 testdata
 testdata/*

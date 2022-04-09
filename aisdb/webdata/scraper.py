@@ -63,6 +63,8 @@ class Scraper():
                 options=opt,
                 keep_alive=True,
                 service_args=service_args,
+                log_path=os.path.join(data_dir,'geckodriver.log'),
+                service_log_path=os.path.join(data_dir,'geckodriver_service.log'),
                 )
 
         if headless:

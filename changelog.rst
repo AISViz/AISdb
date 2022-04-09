@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.100
+--------
+
+minor front end fixes
+
+
 v1.0.99
 -------
 

@@ -67,7 +67,7 @@ services:
         AISDBHOST: ${AISDBHOST:-127.0.0.1}
         AISDBPORT: ${AISDBPORT:-9924}
     command:
-      ['npm', '--prefix', 'nodejs/', 'start']
+      ['npm', '--prefix', 'aisdb_web/', 'start']
     #expose:
     #  - "8080"
     depends_on:
