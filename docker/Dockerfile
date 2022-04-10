@@ -2,6 +2,7 @@
 FROM archlinux:base AS aisdb
 RUN pacman -Syyuu --noconfirm \
   && pacman -S --noconfirm \
+    binaryen \
     nodejs \
     npm \
     python \
@@ -60,6 +61,9 @@ COPY --chown=ais_env changelog.rst ./changelog.rst
 COPY --chown=ais_env sphinxbuild.sh ./sphinxbuild.sh
 RUN /bin/bash ./sphinxbuild.sh
 COPY --chown=ais_env aisdb_web/ aisdb_web/
+COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
+RUN cd aisdb_wasm && wasm-pack build --release --target web --out-dir ../aisdb_web/pkg
+# RUN wasm-opt ...
 RUN cd aisdb_web \
   && VITE_BINGMAPSKEY=$BINGMAPSKEY \
      VITE_AISDBHOST=$AISDBHOST \

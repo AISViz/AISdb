@@ -36,6 +36,9 @@ aisdb_rust/target/**
 aisdb_rust/testdata
 aisdb_rust/testdata/*
 aisdb_rust/testdata/**
+aisdb_wasm/release
+aisdb_wasm/target
+aisdb_web/pkg
 aisdb_web/node_modules
 docs/html
 docs/source/api

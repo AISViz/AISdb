@@ -157,4 +157,34 @@ function newWKBHexVectorLayer(wkbFeatures, opts) {
 //window.zones = requestZones;
 //window.demo_7day = requestTracks;
 
-export {map, newWKBHexVectorLayer, newTopoVectorLayer};
+async function handle_response(res) {
+  let response = JSON.parse(res);
+  if (response['type'] === 'WKBHex') {
+    for (const geom in response['geometries']) {
+      newWKBHexVectorLayer(
+        [response['geometries'][geom]['geometry']], 
+        response['geometries'][geom]['opts']
+      );
+    }
+  } 
+
+  else if (response['type'] === 'topology') {
+    for (const geom in response['geometries']) {
+      newTopoVectorLayer(
+        response['geometries'][geom]['topology'], 
+        response['geometries'][geom]['opts']
+      );
+    }
+    //await socket.send(JSON.stringify({'type': 'ack'}));
+  } 
+  
+  else if (response['type'] === 'done') {
+    document.getElementById('status-div').textContent = response['status'];
+    document.getElementById('searchbtn').disabled = false;
+  }
+  else {
+    document.getElementById('status-div').textContent = `Unknown response: ${res} ${response}`;
+  }
+}
+
+export {map, newWKBHexVectorLayer, newTopoVectorLayer, handle_response};

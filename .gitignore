@@ -23,6 +23,9 @@ aisdb_rust/.git/**
 aisdb_rust/.gitignore
 aisdb_rust/target
 aisdb_rust/testdata
+aisdb_wasm/release
+aisdb_wasm/target
+aisdb_web/pkg
 docker-compose.override.yml
 docs/html/*
 docs/source/api/*

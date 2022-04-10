@@ -1,3 +1,4 @@
 import "./map";
-import "./clientsocket";
-import "./selectform";
+import "./test";
+//import "./clientsocket";
+//import "./selectform";

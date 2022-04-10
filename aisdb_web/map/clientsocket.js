@@ -30,8 +30,6 @@ socket.onerror = function(error) {
 }
 socket.onmessage = async function(event) {
   let response = JSON.parse(event.data);
-
-  window.last = response;
   if (response['type'] === 'WKBHex') {
     for (const geom in response['geometries']) {
       newWKBHexVectorLayer(
@@ -61,4 +59,4 @@ window.onbefureunload = function() {
   socket.close();
 }
 
-export default socket;
+export socket;

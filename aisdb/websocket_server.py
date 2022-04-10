@@ -65,7 +65,7 @@ class SocketServ():
                 print(err.with_traceback(None))
                 continue
 
-            print(f'{websocket.remote_address} ' + clientmsg)
+            print(f'{websocket.remote_address} ' + str(clientmsg))
 
             try:
                 req = json.loads(clientmsg)
