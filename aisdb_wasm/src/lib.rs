@@ -1,6 +1,6 @@
 // https://rustwasm.github.io/book/reference/code-size.html
 // https://rustwasm.github.io/wasm-bindgen/examples/websockets.html
-use js_sys::JsString;
+//use js_sys::JsString;
 use serde::{Deserialize, Serialize};
 use std::panic;
 use wasm_bindgen::prelude::*;
@@ -9,28 +9,25 @@ use web_sys::{console, ErrorEvent, MessageEvent, WebSocket};
 extern crate console_error_panic_hook;
 
 #[derive(Serialize, Deserialize)]
-pub struct GeometryJSON {
-    pub payload: JsString,
-    pub opts: JsString,
+pub struct Geometry {
+    pub payload: Vec<u8>,
+    pub opts: Vec<u8>,
 }
 
 #[link(wasm_import_module = "../map/map")]
 extern "C" {
-    fn handle_response(res: JsString);
+    fn handle_response();
 }
 
 #[wasm_bindgen]
 extern "C" {
-    pub fn alert(s: &str);
-}
-
-#[wasm_bindgen]
-pub fn greet(name: &str) {
-    alert(&format!("Hello, {}!", name));
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
 }
 
 macro_rules! console_log {
-    ($($t:tt)*) => (console::log_1(&format_args!($($t)*).to_string().into()))
+    //($($t:tt)*) => (console::log_1(&format_args!($($t)*).to_string().into()))
+    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
 
 #[wasm_bindgen(start)]
@@ -44,7 +41,19 @@ pub fn webclient() -> Result<(), JsValue> {
     let cloned_ws = ws.clone();
 
     let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
-        if let Ok(blob) = e.data().dyn_into::<web_sys::Blob>() {
+        if let Ok(abuf) = e.data().dyn_into::<js_sys::ArrayBuffer>() {
+            console_log!("message event, received arraybuffer: {:?}", abuf);
+            let array = js_sys::Uint8Array::new(&abuf);
+            let len = array.byte_length() as usize;
+            console_log!("Arraybuffer received {}bytes: {:?}", len, array.to_vec());
+            // here you can for example use Serde Deserialize decode the message
+            // for demo purposes we switch back to Blob-type and send off another binary message
+            cloned_ws.set_binary_type(web_sys::BinaryType::Blob);
+            match cloned_ws.send_with_u8_array(&vec![5, 6, 7, 8]) {
+                Ok(_) => console_log!("binary message successfully sent"),
+                Err(err) => console_log!("error sending message: {:?}", err),
+            }
+        } else if let Ok(blob) = e.data().dyn_into::<web_sys::Blob>() {
             console_log!("message event, received blob: {:?}", blob);
             // better alternative to juggling with FileReader is to use https://crates.io/crates/gloo-file
             let fr = web_sys::FileReader::new().unwrap();
@@ -61,12 +70,12 @@ pub fn webclient() -> Result<(), JsValue> {
             fr.read_as_array_buffer(&blob).expect("blob not readable");
             onloadend_cb.forget();
         } else if let Ok(txt) = e.data().dyn_into::<js_sys::JsString>() {
-            console_log!("message event, received Text: {:?}", txt);
+            console_log!("message event, received Text: {:?}", txt.to_string());
             unsafe {
-                handle_response(txt);
+                handle_response();
             }
         } else {
-            console_log!("message event, received Unknown: {:?}", e.data());
+            console_log!("message event, received Unknown: {:#?}", e.data());
         }
     }) as Box<dyn FnMut(MessageEvent)>);
 
@@ -104,4 +113,15 @@ pub fn webclient() -> Result<(), JsValue> {
     onopen_callback.forget();
 
     Ok(())
+}
+
+#[wasm_bindgen]
+pub fn prepare_json() -> wasm_bindgen::JsValue {
+    //panic::set_hook(Box::new(console_error_panic_hook::hook));
+    let geom = Geometry {
+        opts: vec![1, 2, 3],
+        payload: vec![4, 5, 6],
+    };
+
+    JsValue::from_serde(&geom).unwrap()
 }

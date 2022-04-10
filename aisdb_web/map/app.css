@@ -10,23 +10,6 @@ button {
   font-size: 1em;
 }
 
-.map {
-  height: calc(100vh - 3em);
-  width: 100vw;
-  background-color: #282c34;
-}
-
-.optionSelectContainer {
-  height: 2em;
-  font-size: 1.25em;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/*
-.optionSelectContainer > select,  .optionSelectContainer > input {
-*/
 select, input {
   display: flex;
   width: 8em;
@@ -34,6 +17,26 @@ select, input {
   margin-left: .5em;
   margin-right: .5em;
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+
+.map {
+  height: calc(100vh - 2em);
+  width: 100vw;
+  background-color: #282c34;
+}
+
+.optionSelectContainer {
+  font-size: .8em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.formdiv {
+  margin-top: .3em;
+  margin-left: .5em;
+  margin-right: .5em;
 }
 
 .smallfill {

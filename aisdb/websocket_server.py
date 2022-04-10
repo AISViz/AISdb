@@ -65,7 +65,8 @@ class SocketServ():
                 print(err.with_traceback(None))
                 continue
 
-            print(f'{websocket.remote_address} ' + str(clientmsg))
+            print(f'{datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} '
+                  f'{websocket.remote_address} {str(clientmsg)}')
 
             try:
                 req = json.loads(clientmsg)

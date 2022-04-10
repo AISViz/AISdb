@@ -10,6 +10,8 @@ import {Vector as VectorSource} from 'ol/source';
 import {Tile, Vector} from 'ol/layer';
 import {Fill, Stroke, Style, Text} from 'ol/style';
 
+/* RUST HOOK */
+import {prepare_json} from "../pkg/client";
 
 const styles = [
   'Aerial',
@@ -157,8 +159,8 @@ function newWKBHexVectorLayer(wkbFeatures, opts) {
 //window.zones = requestZones;
 //window.demo_7day = requestTracks;
 
-async function handle_response(res) {
-  let response = JSON.parse(res);
+function handle_response() {
+  let response = prepare_json();
   if (response['type'] === 'WKBHex') {
     for (const geom in response['geometries']) {
       newWKBHexVectorLayer(
@@ -175,7 +177,6 @@ async function handle_response(res) {
         response['geometries'][geom]['opts']
       );
     }
-    //await socket.send(JSON.stringify({'type': 'ack'}));
   } 
   
   else if (response['type'] === 'done') {
@@ -183,7 +184,7 @@ async function handle_response(res) {
     document.getElementById('searchbtn').disabled = false;
   }
   else {
-    document.getElementById('status-div').textContent = `Unknown response: ${res} ${response}`;
+    document.getElementById('status-div').textContent = `Unknown response: ${JSON.stringify(response).substring(0, 100)}`;
   }
 }
 

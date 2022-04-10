@@ -1,4 +1,4 @@
-import init, {greet, webclient} from "../pkg/client.js";
+import init, {webclient} from "../pkg/client.js";
 
 init()
 /*

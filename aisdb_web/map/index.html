@@ -10,11 +10,12 @@
   <body>
     <div id="application">
       <div id="map" class="map"></div>
+      <div class='flexfill'></div>
       <div id="formDiv" class="formdiv">
         <form action="/mapselect" method="POST" class="optionSelectContainer">
         <input type="hidden" name="_csrf" value="{{csrfToken}}">
 
-        <div class='smallfill'></div>
+        <div class='flexvfill'></div>
 
         <label for='layer-select'>Map Layer</label>
 	<select id="layer-select">
@@ -43,6 +44,7 @@
 
         </form>
       </div>
+      <div class='flexvfill'></div>
     </div>
     <script type="module" src="./app.js" ></script>
   </body>
