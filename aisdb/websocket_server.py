@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import topojson as tp
 import websockets
 from shapely.geometry import Point, LineString
+import numpy as np
 
 from aisdb import zones_dir, DomainFromTxts
 from aisdb import sqlfcn_callbacks, DBQuery
@@ -18,6 +19,7 @@ from aisdb import (
     max_tracklength,
 )
 from aisdb.network_graph import colorhash
+from aisdb.webdata.marinetraffic import trafficDB, _vinfo
 
 host = os.environ.get('AISDBHOSTALLOW', '*')
 port = os.environ.get('AISDBPORT', 9924)
@@ -123,19 +125,80 @@ class SocketServ():
                     start=start,
                     end=end,
                 )
+            elif req['type'] == 'track_vectors_week':
+                year, month, day = map(int, req['date'].split('-'))
+                start = datetime(year, month, day)
+                end = start + timedelta(days=7)
+                await self.req_tracks_raw(
+                    req,
+                    websocket,
+                    start=start,
+                    end=end,
+                )
 
     async def req_zones(self, req, websocket):
         zones = {'type': 'WKBHex', 'geometries': []}
         for zone in domain.zones:
             event = {
                 'geometry': zone['geometry'].wkb_hex,
-                'opts': {
+                'meta': {
                     'label': zone['name'],
                 },
             }
             zones['geometries'].append(event)
         await websocket.send(json.dumps(zones).replace(' ', ''))
-        await websocket.send(json.dumps({'type': 'done'}))
+        #await websocket.send(json.dumps({'type': 'done'}))
+
+    async def req_tracks_raw(self, req, websocket, *, start, end):
+        qry = DBQuery(
+            start=start,
+            end=end,
+            callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
+            xmin=domain.minX,
+            xmax=domain.maxX,
+            ymin=domain.minY,
+            ymax=domain.maxY,
+        )
+        qrygen = encode_greatcircledistance(
+            TrackGen(qry.gen_qry(printqry=os.environ.get('DEBUG', False))),
+            distance_threshold=250000,
+            minscore=0,
+            speed_threshold=50,
+        )
+        with trafficDB as conn:
+            for track in qrygen:
+                #rowset = np.array(rows).T
+                _vinfo(track, conn)
+                event = {
+                    'msgtype': 'track_vector',
+                    'x': list(track['lon']),
+                    'y': list(track['lat']),
+                    't': list(track['time']),
+                    'meta': {
+                        str(k): str(v)
+                        for k, v in dict(
+                            **track['marinetraffic_info']).items()
+                    },
+                }
+                await websocket.send(json.dumps(event).replace(' ', ''))
+                #.encode('utf-8'))
+                clientresponse = await websocket.recv()
+                response = json.loads(clientresponse)
+                if 'type' not in response.keys():
+                    raise RuntimeWarning(
+                        f'Unhandled client message: {response}')
+                elif response['type'] == 'ack':
+                    pass
+                elif response['type'] == 'stop':
+                    await websocket.send(
+                        json.dumps({
+                            'type': 'done',
+                            'status': 'Halted search'
+                        }))
+                    break
+                else:
+                    raise RuntimeWarning(
+                        f'Unhandled client message: {response}')
 
     async def req_tracks(self, req, websocket, *, start, end):
         qry = DBQuery(
@@ -206,7 +269,11 @@ class SocketServ():
         status = 0
 
     async def main(self):
-        async with websockets.serve(self.handler, host=host, port=port):
+        async with websockets.serve(self.handler,
+                                    host=host,
+                                    port=port,
+                                    close_timeout=300,
+                                    ping_interval=None):
             await asyncio.Future()
 
 

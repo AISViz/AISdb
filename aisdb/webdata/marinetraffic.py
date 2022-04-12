@@ -113,7 +113,7 @@ def _vinfo(track, conn):
         track['marinetraffic_info'] = {
                 'mmsi': track['mmsi'],
                 'imo': track['imo'],
-                'name': track['vessel_name'] or '',
+                'name': track['vessel_name'] if 'vessel_name' in track.keys() and track['vessel_name'] is not None else '',
                 'vesseltype_generic': None,
                 'vesseltype_detailed': None,
                 'callsign': None,
@@ -125,6 +125,8 @@ def _vinfo(track, conn):
                 'home_port': None,
                 'error404': 1,
                 }
+    if track['marinetraffic_info']['name'] is None:
+        track['marinetraffic_info']['name'] = track['vessel_name']
     return track
 
 

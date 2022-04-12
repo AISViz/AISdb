@@ -34,13 +34,15 @@ def _segment_longitude(track, tolerance=300):
     # vector = LineString(zip(track['lon'], track['lat']))
     segments_idx = reduce(np.append, ([0], diff, [track['time'].size]))
     for i in range(segments_idx.size - 1):
+        '''
         if i > 0:
             negate = -1 if track['lon'][0] < 0 else 1
-            track['lon'][0] = 180. * negate
+            #track['lon'][0] = 180. * negate
 
         if i <= segments_idx.size - 2:
             negate = -1 if track['lon'][-1] < 0 else 1
-            track['lon'][-1] = 180. * negate
+            #track['lon'][-1] = 180. * negate
+        '''
 
         yield dict(
             **{k: track[k]
@@ -436,7 +438,6 @@ def fence_tracks(tracks, domain):
                 ],
                 dtype=object,
             )
-            #track['dynamic'].update(['in_zone'])
             track['dynamic'] = set(track['dynamic']).union(set(['in_zone']))
         yield track
 

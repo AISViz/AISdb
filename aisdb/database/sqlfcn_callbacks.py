@@ -1,11 +1,13 @@
+''' redefinitions of functions in :py:mod:`aisdb.database.sql_query_strings`,
+    combined into lambdas for convenience
+'''
+
 from datetime import datetime, timedelta
 
 import numpy as np
 
-from gis import epoch_2_dt, dt_2_epoch, shiftcoord
-# from common import table_prefix
-
-# utility functions
+from aisdb.gis import epoch_2_dt
+from aisdb.database.sql_query_strings import *
 
 dt2monthstr = lambda start, end, **_: np.unique([
     t.strftime('%Y%m')
@@ -24,55 +26,47 @@ boxpoly = lambda x, y: ([
 
 merge = lambda *arr: np.concatenate(np.array(*arr).T)
 
+in_time_mmsi = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'''
 
-# callback functions
-def in_bbox(alias, *, xmin, xmax, ymin, ymax, **_):
-    x0 = shiftcoord([xmin])[0]
-    x1 = shiftcoord([xmax])[0]
-    if x0 <= x1:
-        return f'''
-        {alias}.longitude >= {x0} AND
-        {alias}.longitude <= {x1} AND
-        {alias}.latitude >= {ymin} AND
-        {alias}.latitude <= {ymax} '''
-    else:
-        return f'''
-        ({alias}.longitude >= {x0} OR {alias}.longitude <= {x1}) AND
-        {alias}.latitude >= {ymin} AND
-        {alias}.latitude <= {ymax} '''
+in_timerange_validmmsi = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND
+    {valid_mmsi(**kwargs)}'''
 
+in_time_bbox = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND
+    {in_bbox(**kwargs)} '''
 
-in_timerange = lambda **kwargs: f'''
-        {kwargs['alias']}.time >= {dt_2_epoch(kwargs['start'])} AND
-        {kwargs['alias']}.time <= {dt_2_epoch(kwargs['end'])}'''
+in_bbox_time = lambda **kwargs: f'''\
+    {in_bbox(**kwargs)} AND
+    {in_timerange(**kwargs)} '''
 
-has_mmsi = lambda alias, mmsi, **_: f'''
-        CAST({alias}.mmsi AS INT) = {mmsi} '''
+in_validmmsi_bbox = lambda **kwargs: f'''\
+    {valid_mmsi(**kwargs)} AND
+    {in_bbox(**kwargs)} '''
 
-in_mmsi = lambda alias, mmsis, **_: f'''
-        {alias}.mmsi IN ({", ".join(map(str, mmsis))}) '''
+in_time_bbox_validmmsi = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND
+    {in_bbox(**kwargs)} AND
+    {valid_mmsi(**kwargs)} '''
 
-valid_mmsi = lambda alias='m123', **_: f'''
-        {alias}.mmsi >= 201000000 AND
-        {alias}.mmsi < 776000000 '''
+in_bbox_time_validmmsi = lambda **kwargs: f'''\
+    {in_bbox(**kwargs)} AND
+    {in_timerange(**kwargs)} AND
+    {valid_mmsi(**kwargs)} '''
 
-in_time_mmsi = lambda **kwargs: f'''
-        {in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'''
+in_timerange_hasmmsi = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND {has_mmsi(**kwargs)}'''
 
-in_timerange_validmmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'
+in_timerange_inmmsi = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND
+    {in_mmsi(**kwargs)}'''
 
-in_time_bbox = lambda **kwargs: f''' {in_timerange(**kwargs)} AND {in_bbox(**kwargs)} '''
-in_bbox_time = lambda **kwargs: f''' {in_bbox(**kwargs)} AND {in_timerange(**kwargs)} '''
-in_validmmsi_bbox = lambda **kwargs: f''' {valid_mmsi(**kwargs)} AND {in_bbox(**kwargs)} '''
+in_timerange_validmmsi = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND
+    {valid_mmsi(**kwargs)} '''
 
-in_time_bbox_validmmsi = lambda **kwargs: f''' {in_timerange(**kwargs)} AND {in_bbox(**kwargs)} AND {valid_mmsi(**kwargs)} '''
-in_bbox_time_validmmsi = lambda **kwargs: f''' {in_bbox(**kwargs)} AND {in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)} '''
-
-in_timerange_hasmmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {has_mmsi(**kwargs)}'
-in_timerange_inmmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {in_mmsi(**kwargs)}'
-in_timerange_validmmsi = lambda **kwargs: f'{in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'
-
-in_time_bbox_hasmmsi = lambda **kwargs: f'''
-        {in_timerange(**kwargs)} AND
-        {in_bbox(**kwargs)} AND
-        {has_mmsi(**kwargs)}'''
+in_time_bbox_hasmmsi = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND
+    {in_bbox(**kwargs)} AND
+    {has_mmsi(**kwargs)}'''

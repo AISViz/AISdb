@@ -17,6 +17,7 @@ from database.create_tables import (
     sqlite_createtable_staticreport,
 )
 from aisdb.webdata.marinetraffic import VesselInfo
+from aisdb.track_gen import TrackGen, zone_mask
 
 
 class DBQuery(UserDict):
@@ -100,7 +101,7 @@ class DBQuery(UserDict):
             else:
                 assert 'radius' in self.keys(), 'undefined radius'
 
-    def check_idx(self, dbpath=dbpath, vesselinfo=False):
+    def check_idx(self, dbpath=dbpath, vesselinfo=False, domain=None):
         ''' Ensure that all tables exist, and indexes are built, for the
             timespan covered by the DBQuery.
             Scrapes metadata for vessels in domain and stores to
@@ -152,10 +153,20 @@ class DBQuery(UserDict):
             if not vesselinfo:
                 continue
 
+            if not domain:
+                print('Domain argument required to check vessel info!')
+                continue
+
+            qry = f'select * from ais_{month}_dynamic limit 1'
+            aisdatabase.cur.execute(qry)
+            res = np.array(aisdatabase.cur.fetchall())
+            if len(res) == 0:
+                print(f'no rows for {month}, skipping...')
+                continue
+
             # scrape metadata for observed vessels from marinetraffic
             # if no domain is provided, defaults to area surrounding canada
             y, m = int(month[:4]), int(month[4:6])
-            '''
             req2 = DBQuery(
                 start=datetime(y, m, 1),
                 end=datetime(y + int(m == 12), m % 12 + 1, 1),
@@ -165,7 +176,12 @@ class DBQuery(UserDict):
                 ymin=self['ymin'],
                 ymax=self['ymax'],
             )
-            res = np.array(list(req2.run_qry(check_idx=False)), dtype=object)
+            #res = np.array(list(req2.run_qry(check_idx=False)), dtype=object)
+            mmsis, imos = [], []
+            zone_filter = zone_mask(TrackGen(req2.gen_qry()), domain=domain)
+            for track in zone_filter:
+                mmsis.append(track['mmsi'])
+                imos.append(track['imo'])
             '''
             qry = f'SELECT DISTINCT mmsi, imo FROM static_{y:04d}{m:02d}_aggregate'
             aisdatabase.cur.execute(qry)
@@ -175,6 +191,9 @@ class DBQuery(UserDict):
                       f'{self["xmin"]:.2f}W:{self["xmax"]:.2f}W\t'
                       f'{self["ymin"]:.2f}N:{self["ymax"]:.2f}N')
                 vinfo.vessel_info_callback(res.T[0], res.T[1])
+            '''
+            if len(mmsis) > 0:
+                vinfo.vessel_info_callback(mmsis, imos)
 
         aisdatabase.conn.commit()
         aisdatabase.conn.close()
