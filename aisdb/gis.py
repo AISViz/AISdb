@@ -167,7 +167,8 @@ class Domain():
 
     def __init__(self, name, zones=[]):
         if len(zones) == 0:
-            assert False, 'domain needs to have atleast one polygon geometry'
+            raise ValueError(
+                'domain needs to have atleast one polygon geometry')
         self.name = name
         self.zones = zones
         assert hasattr(self, 'minX')
