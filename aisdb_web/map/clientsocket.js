@@ -1,5 +1,5 @@
-import { newWKBHexVectorLayer, newTopoVectorLayer } from "./map";
-import { searchbtn } from "./selectform"
+import { newWKBHexVectorLayer, newGeoVectorLayer, vesseltypes} from "./map";
+import { process_response } from "../pkg/client";
 
 let hostname = import.meta.env.VITE_AISDBHOST;
 if (hostname == undefined) {
@@ -10,8 +10,19 @@ if (port == undefined) {
   port = '9924';
 }
 
+let utf8encode = new TextEncoder();
+let utf8decode = new TextDecoder();
+
 const socketHost = `ws://${hostname}:${port}`
 let socket = new WebSocket(socketHost);
+
+function js_utf8(obj) {
+  return Array.from(utf8encode.encode(JSON.stringify(obj)));
+}
+function utf8_js(obj) {
+  return JSON.parse(utf8decode.decode(new Uint8Array(obj)));
+}
+
 
 socket.onopen = function(event) {
   console.log(`Established connection to ${socketHost}\nCaution: connection is unencrypted!`);
@@ -19,13 +30,19 @@ socket.onopen = function(event) {
 }
 socket.onclose = function(event) {
   if (event.wasClean) {
-    console.log(`[${event.code}] Closed connection with ${socketHost}`);
+    let msg = `Closed connection with server`;
+    console.log(msg);
+    document.getElementById('status-div').textContent = msg;
   } else {
-    console.log(`[${event.code}] Connection to ${socketHost} died unexpectedly`);
+    let msg = `Connection to server died unexpectedly`;
+    console.log(msg);
+    document.getElementById('status-div').textContent = msg;
   }
 }
 socket.onerror = function(error) {
-  console.log(`[${JSON.stringify(error)}] ${error.message}`);
+  let msg = `An unexpected error occurred`;
+  console.log(msg);
+  document.getElementById('status-div').textContent = msg;
   socket.close();
 }
 socket.onmessage = async function(event) {
@@ -34,24 +51,31 @@ socket.onmessage = async function(event) {
     for (const geom in response['geometries']) {
       newWKBHexVectorLayer(
         [response['geometries'][geom]['geometry']], 
-        response['geometries'][geom]['opts']
+        response['geometries'][geom]['meta']
       );
     }
-  } 
-
-  else if (response['type'] === 'topology') {
+  } else if (response['msgtype'] === 'track_vector') {
+    /*
     for (const geom in response['geometries']) {
       newTopoVectorLayer(
         response['geometries'][geom]['topology'], 
         response['geometries'][geom]['opts']
       );
     }
+    */
+    let processed = utf8_js(process_response({'rawdata':js_utf8(response)}));
+    //console.log(JSON.stringify(response['meta']['vesseltype_generic']));
+    newGeoVectorLayer(processed, response['meta']);
     await socket.send(JSON.stringify({'type': 'ack'}));
+    //await socket.send(JSON.stringify({'type': 'stop'}));
   } 
   
   else if (response['type'] === 'done') {
     document.getElementById('status-div').textContent = response['status'];
-    searchbtn.disabled = false;
+    document.getElementById('searchbtn').disabled = false;
+    //searchbtn.disabled = false;
+  } else {
+    document.getElementById('status-div').textContent = `Unknown response: ${JSON.stringify(response).substring(0, 100)}`;
   }
 }
 window.onbefureunload = function() {
@@ -59,4 +83,4 @@ window.onbefureunload = function() {
   socket.close();
 }
 
-export socket;
+export default socket;

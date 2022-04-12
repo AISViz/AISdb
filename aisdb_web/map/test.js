@@ -1,9 +1,8 @@
-import init, {webclient} from "../pkg/client.js";
+import init, {process_response} from "../pkg/client";
 
 init()
-/*
   .then(() => { 
   //greet("it working");
-  webclient();
+  //webclient();
 });
-*/
+//export {prepare_json};

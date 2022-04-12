@@ -22,8 +22,8 @@ app.get('/mapselect', csrfProtection, function(req, res) {
 
 // start the application 
 app.use('/', express.static('../docs/html'));
-app.use('/map', express.static('../nodejs/dist'));
-app.use('/assets', express.static('../nodejs/dist/assets'));
+app.use('/map', express.static('../aisdb_web/dist'));
+app.use('/assets', express.static('../aisdb_web/dist/assets'));
 
 app.listen(port, '::', () => {
 
