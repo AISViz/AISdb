@@ -48,6 +48,7 @@ pub async fn decodemsgs_ee_csv(
         &filename.to_str().unwrap()[&filename.to_str().unwrap().len() - 4..],
         ".csv"
     );
+
     let start = Instant::now();
 
     let mut reader = csv::Reader::from_reader(
@@ -147,18 +148,25 @@ pub async fn decodemsgs_ee_csv(
     }
 
     let elapsed = start.elapsed();
-    println!(
-        "{}    count:{: >8}    elapsed: {:0.2 }s    rate: {:.0} msgs/s",
-        filename
-            .to_str()
-            .unwrap()
-            .rsplit_once(std::path::MAIN_SEPARATOR)
-            .unwrap()
-            .1,
-        count,
-        elapsed.as_secs_f32(),
-        count as f32 / elapsed.as_secs_f32(),
+    let fname = filename
+        .to_str()
+        .unwrap()
+        .rsplit_once(std::path::MAIN_SEPARATOR)
+        .unwrap()
+        .1;
+    let fname1 = format!("{:<1$}", fname, 64);
+    let elapsed1 = format!(
+        "elapsed: {:>1$}s",
+        format!("{:.2 }", elapsed.as_secs_f32()),
+        7
     );
+    let rate1 = format!(
+        "rate: {:>1$} msgs/s",
+        format!("{:.0}", count as f32 / elapsed.as_secs_f32()),
+        8
+    );
+
+    println!("{}count:{: >8}    {}    {}", fname1, count, elapsed1, rate1,);
 
     Ok(())
 }

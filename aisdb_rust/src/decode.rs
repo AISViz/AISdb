@@ -50,7 +50,8 @@ impl VesselData {
 /// ("!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64", 1635883083)
 /// ```
 pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
-    match line.unwrap().rsplit_once('\\')? {
+    //println!("{:?}", line.as_ref().unwrap().rsplit_once('\\'));
+    match line.as_ref().unwrap().rsplit_once('\\')? {
         (meta, payload) => {
             for tag_outer in meta.split(',') {
                 for tag in tag_outer.split('*') {
@@ -60,12 +61,39 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
                         return Some((payload.to_string(), i));
                     } else if let Ok(i) = tag[3..].parse::<i32>() {
                         return Some((payload.to_string(), i));
-                    } else {
-                        return None;
+                    } else if let Ok(i) = tag.split_once(' ').unwrap().0.parse::<u64>() {
+                        if 946731600 < i
+                            && i <= std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .unwrap()
+                                .as_secs()
+                        {
+                            return Some((payload.to_string(), i.try_into().unwrap()));
+                        } else {
+                            println!(
+                                "skipped- tag:{:?}\tmeta:{:?}\tpayload:{:?}",
+                                tag, meta, payload
+                            );
+                            return None;
+                        }
                     }
                 }
             }
-            None
+            let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap();
+
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+            if 946731600 < ii && ii <= now {
+                return Some((payload.to_string(), ii.try_into().unwrap()));
+            } else {
+                println!(
+                    "skipped- ii:{:?}\tmeta:{:?}\tpayload:{:?}",
+                    ii, meta, payload
+                );
+                return None;
+            }
         }
     }
 }
@@ -80,9 +108,11 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
     if cols.len() < 6 {
         return Some((msg.to_string(), *epoch));
     }
-    match (cols[0], cols[5]) {
-        (prefix, tx)
+    let count = str::parse::<u8>(cols[1]).unwrap_or(1);
+    match (cols[0], count, cols[2], cols[3], cols[4], cols[5]) {
+        (prefix, c, _fragment_no, _seq_id, _channel, tx)
             if &tx.chars().count() > &2
+                && (c == 1)
                 && (&tx[0..1] == ";" || &tx[0..1] == "I" || &tx[0..1] == "J")
                 && (prefix == "!AIVDM" || prefix == "!AIVDO") =>
         {
@@ -119,8 +149,15 @@ pub async fn decode_insert_msgs(
     mut parser: NmeaParser,
 ) -> Result<NmeaParser, Error> {
     //) -> Result<(), Error> {
-    let fstr = &filename.to_str().unwrap();
-    assert_eq!(&fstr[&fstr.len() - 4..], ".nm4");
+    //let fstr = &filename.to_str().unwrap();
+    //assert_eq!(&fstr[&fstr.len() - 4..], ".nm4");
+    match &filename.to_str().unwrap()[&filename.to_str().unwrap().len() - 3..] {
+        "nm4" | ".rx" => (),
+        _ => {
+            panic!("invalid file type! {:?}", &filename);
+        }
+    }
+
     let start = Instant::now();
 
     let reader = BufReader::new(
@@ -175,21 +212,26 @@ pub async fn decode_insert_msgs(
     }
 
     let elapsed = start.elapsed();
-
-    println!(
-        "{}    count:{: >8}    elapsed: {:0.2 }s    rate: {:.0} msgs/s",
-        filename
-            .to_str()
-            .unwrap()
-            .rsplit_once(std::path::MAIN_SEPARATOR)
-            .unwrap()
-            .1,
-        count,
-        elapsed.as_secs_f32(),
-        count as f32 / elapsed.as_secs_f32(),
+    let fname = filename
+        .to_str()
+        .unwrap()
+        .rsplit_once(std::path::MAIN_SEPARATOR)
+        .unwrap()
+        .1;
+    let fname1 = format!("{:<1$}", fname, 64);
+    let elapsed1 = format!(
+        "elapsed: {:>1$}s",
+        format!("{:.2 }", elapsed.as_secs_f32()),
+        7
+    );
+    let rate1 = format!(
+        "rate: {:>1$} msgs/s",
+        format!("{:.0}", count as f32 / elapsed.as_secs_f32()),
+        8
     );
 
-    //Ok(())
+    println!("{}count:{: >8}    {}    {}", fname1, count, elapsed1, rate1,);
+
     Ok(parser)
 }
 

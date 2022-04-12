@@ -75,12 +75,18 @@ pub async fn main() -> Result<(), Error> {
 
     let mut parser = NmeaParser::new();
     for (d, f) in &path_arr {
-        if f.to_str().unwrap().contains(&".nm4") || f.to_str().unwrap().contains(&".NM4") {
+        if f.to_str().unwrap().contains(&".nm4")
+            || f.to_str().unwrap().contains(&".NM4")
+            || f.to_str().unwrap().contains(&".RX")
+            || f.to_str().unwrap().contains(&".rx")
+        {
             parser = decode_insert_msgs(&d, &f, parser)
                 .await
                 .expect("decoding NM4");
-        } else {
+        } else if f.to_str().unwrap().contains(&".csv") || f.to_str().unwrap().contains(&".CSV") {
             decodemsgs_ee_csv(&d, &f).await.expect("decoding CSV");
+        } else {
+            panic!("unknown file extension {:?}", &d);
         }
     }
 
