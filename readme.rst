@@ -119,9 +119,6 @@ Code examples
 6. | Integrating data from web sources, such as depth charts, shore distance, etc.
    | Planned for v1.1 
 
-7. | Plot with QGIS
-   | Upcoming in a future version
-
 Collecting AIS Data
 -------------------
 

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.101
+--------
+
+merge wasm-test feature branch
+
+
 v1.0.100
 --------
 
