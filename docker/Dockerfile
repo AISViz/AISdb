@@ -3,16 +3,18 @@ FROM archlinux:base AS aisdb
 RUN pacman -Syyuu --noconfirm \
   && pacman -S --noconfirm \
     binaryen \
+    gcc \
     nodejs \
     npm \
     python \
     python-sphinx \
     python-sphinx_rtd_theme \
-    rust \
+    rustup \
     wasm-pack
 RUN useradd -m "ais_env"
 WORKDIR "/home/ais_env"
 USER "ais_env"
+RUN rustup install stable && rustup default stable
 RUN mkdir -p aisdb aisdb_rust/src aisdb_web \
   && echo 'fn main(){}' > aisdb_rust/src/db.rs \
   && echo 'fn main(){}' > aisdb_rust/src/decode.rs \
