@@ -5,13 +5,13 @@ use geo_types::{Coordinate, LineString};
 use geojson::{Geometry, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::panic;
 use std::str;
 use wasm_bindgen::prelude::*;
 //use wasm_bindgen::JsCast;
 //use web_sys::{console, ErrorEvent, MessageEvent, WebSocket};
 
-pub use geojson::GeoJson;
+#[cfg(debug_assertions)]
+use std::panic;
 
 extern crate console_error_panic_hook;
 
@@ -59,7 +59,9 @@ macro_rules! zip {
 
 #[wasm_bindgen]
 pub fn process_response(txt: JsValue) -> JsValue {
+    #[cfg(debug_assertions)]
     panic::set_hook(Box::new(console_error_panic_hook::hook));
+
     //console_log!("message event, received Text: {:?}", txt);
     let raw: Geojs = JsValue::into_serde(&txt).expect("this");
     //console_log!("raw.rawdata : {:?}", raw.rawdata);

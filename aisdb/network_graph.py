@@ -56,20 +56,36 @@ def time_in_shoredist_rng(track, subset, dist0=0.01, dist1=5):
     ))
 
 
+def _sanitize(s):
+    # note: the first comma uses ASCII code 44,
+    # second comma uses ASCII decimal 130 !!
+    # not the same char!
+    if s is None:
+        return ''
+    elif s is '-':
+        return ''
+    else:
+        return s.replace(',', '').replace('‚', '').replace('#', '')
+
+
 def staticinfo(track, domain):
     ''' collect categorical vessel data as a dictionary '''
     return dict(
-        mmsi=track['mmsi'],
-        #imo=track['imo'] or '',
-        #label=track['label'] if 'label' in track.keys() else '',
-        **{
-            k: v
-            for k, v in track['marinetraffic_info'].items()
-            if k not in ('mmsi', )
-        },
-        trackID=colorhash(
-            f'{domain.name}{track["mmsi"]}{track["label"]}' if 'label' in
-            track.keys() else colorhash(f'{domain.name}{track["mmsi"]}')),
+        mmsi=_sanitize(track['mmsi']),
+        imo=_sanitize(track['marinetraffic_info']['imo']),
+        vessel_name=_sanitize(track['marinetraffic_info']['name']),
+        vesseltype_generic=_sanitize(track['marinetraffic_info']['name']),
+        vesseltype_detailed=_sanitize(track['marinetraffic_info']['name']),
+        callsign=_sanitize(track['marinetraffic_info']['name']),
+        flag=_sanitize(track['marinetraffic_info']['flag']),
+        gross_tonnage=_sanitize(track['marinetraffic_info']['gross_tonnage']),
+        summer_dwt=_sanitize(track['marinetraffic_info']['summer_dwt']),
+        length_breadth=_sanitize(
+            track['marinetraffic_info']['length_breadth']),
+        year_built=_sanitize(track['marinetraffic_info']['year_built']),
+        home_port=_sanitize(track['marinetraffic_info']['home_port']),
+        error404=track['marinetraffic_info']['error404'],
+        trackID=track["label"] if 'label' in track.keys() else '',
         #vessel_name=(str(track['vessel_name']).replace("'", '').replace(
         #    '"', '').replace(',', '').replace('`', '') or ''
         #             if str(track['vessel_name']) != "0" else ""),

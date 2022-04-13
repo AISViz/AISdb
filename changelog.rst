@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.102
+--------
+
+fix graph in network graph CSV file writing
+
+
 v1.0.101
 --------
 

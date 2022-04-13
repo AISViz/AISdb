@@ -12,7 +12,7 @@ echo
 read -p "Are you sure? [y/n]" -r
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
-  docker build --target aisdb_web --tag meridiancfi/aisdb:latest --no-cache --compress --file ./Dockerfile .. 
+  docker build --target webserv --tag meridiancfi/aisdb:latest --no-cache --compress --file ./Dockerfile .. 
   docker push meridiancfi/aisdb:latest
 fi
 

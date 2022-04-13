@@ -16,6 +16,7 @@ searchbtn.onclick = async function() {
     //var dateinput = week.split('-W');
     //var reqdate = new Date(dateinput[0], 0, (1 + (dateinput[1]-1) * 7)).toJSON().slice(0,10);
     statusdiv.textContent = `Searching...`;
+    window.statusmsg = statusdiv.textContent;
     await socket.send(JSON.stringify({"type": "track_vectors_week", "date": week}));
     searchbtn.textContent = 'Stop';
     searchstate = false;
@@ -33,6 +34,7 @@ let clearbtn = document.getElementById('clearbtn');
 
 clearbtn.onclick = function() {
   //map.layers = [];
+  window.statusmsg = '';
   document.getElementById('status-div').textContent = '';
   if (searchstate === false) {
     //socket.send(JSON.stringify({'type': 'stop'}));

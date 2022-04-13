@@ -13,6 +13,7 @@ import {Fill, Stroke, Style, Text} from 'ol/style';
 
 /* RUST HOOK */
 //import {process_response} from "../pkg/client";
+import vesseltypes from './palette'
 
 const select = document.getElementById('layer-select');
 const statusdiv = document.getElementById('status-div');
@@ -23,49 +24,6 @@ const styles = [
   'CanvasDark',
   'RoadOnDemand',
 ];
-
-const vesseltypes = {
-  '':'#FFFFFF',
-  '-':'#FFFFFF',
-  'Unspecified':'#FFFFFF',
-  'Other':'#FFFFFF',
-  'Anti-Pollution':'#F2927C',
-  'Beacon, Starboard Hand':'#F48F87',
-  'Cargo':'#F38F93',
-  'Cargo - Hazard A (Major)':'#F38F93',
-  'Cargo - Hazard B':'#F38F93',
-  'Cargo - Hazard C (Minor)':'#F38F93',
-  'Cargo - Hazard D (Recognizable)':'#F38F93',
-  'Dive Vessel':'#C79EC9',
-  'Dredger':'#B7A3CF',
-  'Fishing':'#A5A8D3',
-  'High Speed Craft':'#93ADD4',
-  'Isolated Danger':'#80B1D2',
-  'Law Enforce':'#6DB5CE',
-  'Local Vessel':'#5DB8C7',
-  'Manned VTS':'#E195B6',
-  'Medical Trans':'#4ABCB2',
-  'Military Ops':'#4BBDA6',
-  'Passenger':'#53BE98',
-  'Pilot Vessel':'#5FBD89',
-  'Pleasure Craft':'#6DBC7B',
-  'Port Hand Mark':'#F08F9F',
-  'Port Tender':'#50BBBE',
-  'Reference Point':'#D599C0',
-  'Reserved':'#EA91AB',
-  'SAR':'#7CBB6D',
-  'SAR Aircraft':'#8CB861',
-  'Safe Water':'#9BB556',
-  'Sailing Vessel':'#ABB14D',
-  'Special Craft':'#BBAD48',
-  'Tanker':'#CAA746',
-  'Tanker - Hazard A (Major)':'#CAA746',
-  'Tanker - Hazard B':'#CAA746',
-  'Tanker - Hazard C (Minor)':'#CAA746',
-  'Tanker - Hazard D (Recognizable)':'#CAA746',
-  'Tug':'#D8A248',
-  'Wing In Grnd':'#E49C4E',
-}
 
 
 const layers = [];
@@ -250,7 +208,6 @@ map.on('pointermove', function (e) {
 
   map.forEachFeatureAtPixel(e.pixel, function (f) {
     selected = f;
-    window.selected = selected;
     selectStyle.getFill().setColor(f.get('COLOR') || 'rgba(255, 255, 255, 0.45)');
     f.setStyle(selectStyle);
     return true;
@@ -259,7 +216,7 @@ map.on('pointermove', function (e) {
   if (selected) {
     statusdiv.innerHTML = selected.get('meta');
   } else {
-    statusdiv.innerHTML = '&nbsp;';
+    statusdiv.innerHTML = window.statusmsg;
   }
 });
 

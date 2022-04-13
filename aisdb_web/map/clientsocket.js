@@ -23,7 +23,7 @@ function utf8_js(obj) {
   return JSON.parse(utf8decode.decode(new Uint8Array(obj)));
 }
 
-
+window.statusmsg = null;
 socket.onopen = function(event) {
   console.log(`Established connection to ${socketHost}\nCaution: connection is unencrypted!`);
   socket.send(JSON.stringify({'type': 'zones'}));
@@ -33,16 +33,19 @@ socket.onclose = function(event) {
     let msg = `Closed connection with server`;
     console.log(msg);
     document.getElementById('status-div').textContent = msg;
+    window.statusmsg = msg;
   } else {
     let msg = `Connection to server died unexpectedly`;
     console.log(msg);
     document.getElementById('status-div').textContent = msg;
+    window.statusmsg = msg;
   }
 }
 socket.onerror = function(error) {
   let msg = `An unexpected error occurred`;
   console.log(msg);
   document.getElementById('status-div').textContent = msg;
+  window.statusmsg = msg;
   socket.close();
 }
 socket.onmessage = async function(event) {
@@ -73,9 +76,12 @@ socket.onmessage = async function(event) {
   else if (response['type'] === 'done') {
     document.getElementById('status-div').textContent = response['status'];
     document.getElementById('searchbtn').disabled = false;
+    window.statusmsg = response['status'];
     //searchbtn.disabled = false;
   } else {
-    document.getElementById('status-div').textContent = `Unknown response: ${JSON.stringify(response).substring(0, 100)}`;
+    let msg = `Unknown response from server`;
+    document.getElementById('status-div').textContent = msg;
+    window.statusmsg = msg;
   }
 }
 window.onbefureunload = function() {

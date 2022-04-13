@@ -10,7 +10,8 @@ crate-type = ["cdylib"]
 
 [profile.release]
 lto = true
-opt-level = 's'
+#opt-level = 's'
+opt-level = 'z'
 
 [dependencies]
 console_error_panic_hook = "0.1.7"
