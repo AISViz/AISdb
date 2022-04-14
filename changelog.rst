@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.103
+--------
+
+more support for different message headers in decoder
+
+
 v1.0.102
 --------
 

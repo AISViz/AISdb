@@ -79,19 +79,27 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
                     }
                 }
             }
-            let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap();
+            //println!("{:?}", meta);
+            if meta.contains(' ') {
+                let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap();
 
-            let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
-            if 946731600 < ii && ii <= now {
-                return Some((payload.to_string(), ii.try_into().unwrap()));
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
+                if 946731600 < ii && ii <= now {
+                    return Some((payload.to_string(), ii.try_into().unwrap()));
+                } else {
+                    #[cfg(debug_assertions)]
+                    println!(
+                        "skipped- ii:{:?}\tmeta:{:?}\tpayload:{:?}",
+                        ii, meta, payload
+                    );
+                    return None;
+                }
             } else {
-                println!(
-                    "skipped- ii:{:?}\tmeta:{:?}\tpayload:{:?}",
-                    ii, meta, payload
-                );
+                #[cfg(debug_assertions)]
+                println!("skipped- meta:{:?}\tpayload:{:?}", meta, payload);
                 return None;
             }
         }
