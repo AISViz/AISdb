@@ -273,12 +273,13 @@ class DBQuery(UserDict):
         # initialize db, run query
         if printqry:
             print(qry)
-        print('querying the database...')
         aisdatabase = DBConn(dbpath)
         dt = datetime.now()
         aisdatabase.cur.execute(qry)
         delta = datetime.now() - dt
-        print(f'query time: {delta.total_seconds():.2f}s\nfetching rows...')
+        if printqry:
+            print(
+                f'query time: {delta.total_seconds():.2f}s\nfetching rows...')
 
         # get 100k rows at a time, yield sets of rows for each unique MMSI
         mmsi_rows = None
@@ -302,4 +303,3 @@ class DBQuery(UserDict):
 
         yield np.array(mmsi_rows, dtype=object)
         aisdatabase.conn.close()
-        print('\ndone')

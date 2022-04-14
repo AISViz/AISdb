@@ -125,7 +125,7 @@ def _vinfo(track, conn):
                 'home_port': None,
                 'error404': 1,
                 }
-    if track['marinetraffic_info']['name'] is None:
+    if track['marinetraffic_info']['name'] is None or track['marinetraffic_info']['name'] == 0:
         track['marinetraffic_info']['name'] = track['vessel_name']
     return track
 

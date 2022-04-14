@@ -62,7 +62,7 @@ def _sanitize(s):
     # not the same char!
     if s is None:
         return ''
-    elif s is '-':
+    elif s == '-':
         return ''
     else:
         return s.replace(',', '').replace('‚', '').replace('#', '')

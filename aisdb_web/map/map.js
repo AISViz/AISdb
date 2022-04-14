@@ -25,6 +25,8 @@ const styles = [
   'RoadOnDemand',
 ];
 
+select.style.display = 'none';
+document.getElementById('layer-select-label').style.display = 'none';
 
 const layers = [];
 let i, ii;
@@ -65,9 +67,10 @@ var map = new Map({
   */
   layers: layers,
   view: new View({
-    //center: olProj.fromLonLat([-63.6, 44.6]),
-    center: olProj.fromLonLat([-123.0, 49.2]),
-    zoom: 4.5
+    //center: olProj.fromLonLat([-63.6, 44.6]), //east
+    //center: olProj.fromLonLat([-123.0, 49.2]), //west
+    center: olProj.fromLonLat([-100, 57]), //west
+    zoom: 4.6 
   })
 });
 

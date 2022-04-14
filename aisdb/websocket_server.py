@@ -166,6 +166,7 @@ class SocketServ():
             speed_threshold=50,
         )
         with trafficDB as conn:
+            count = 0
             for track in qrygen:
                 #rowset = np.array(rows).T
                 _vinfo(track, conn)
@@ -182,6 +183,7 @@ class SocketServ():
                 }
                 await websocket.send(json.dumps(event).replace(' ', ''))
                 #.encode('utf-8'))
+                count += 1
                 clientresponse = await websocket.recv()
                 response = json.loads(clientresponse)
                 if 'type' not in response.keys():
@@ -199,74 +201,11 @@ class SocketServ():
                 else:
                     raise RuntimeWarning(
                         f'Unhandled client message: {response}')
-
-    async def req_tracks(self, req, websocket, *, start, end):
-        qry = DBQuery(
-            start=start,
-            end=end,
-            callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
-            xmin=domain.minX,
-            xmax=domain.maxX,
-            ymin=domain.minY,
-            ymax=domain.maxY,
-        )
-        qrygen = qry.gen_qry(printqry=os.environ.get('DEBUG', False))
-        pipeline = trajectories_json(
-            encode_greatcircledistance(
-                split_timedelta(TrackGen(qrygen), maxdelta=timedelta(weeks=1)),
-                distance_threshold=250000,
-                minscore=0,
-                speed_threshold=50,
-            ))
-        eventbatch = {'type': 'topology', 'geometries': []}
-        count = 0
-        status = 0
-        for topology, opts in pipeline:
-            count += 1
-            event = {'topology': topology, 'opts': opts}
-            eventbatch['geometries'].append(event)
-            #if False:
-            if count % 50 != 0 and count > 50:
-                continue
-            try:
-                await websocket.send(json.dumps(eventbatch).replace(' ', ''))
-                clientresponse = await websocket.recv()
-                response = json.loads(clientresponse)
-            except websockets.ConnectionClosed:
-                print('closing...')
-                await websocket.close()
-                break
-            except Exception as err:
-                print('error sending topology: ', end='')
-                if hasattr(err, '__module__'):
-                    print(err.__module__, end=': ')
-                raise err.with_traceback(None)
-
-            if response['type'] == 'ack':
-                pass
-            elif response['type'] == 'stop':
-                status = 1
-                break
-            else:
-                raise ValueError(f'unhandled response type: {response}')
-
-            eventbatch = {'type': 'topology', 'geometries': []}
-
-        await websocket.send(json.dumps(eventbatch).replace(' ', ''))
-        eventbatch = {'type': 'topology', 'geometries': []}
-        if status == 0:
             await websocket.send(
                 json.dumps({
                     'type': 'done',
-                    'status': f'Count: {count}'
+                    'status': f'Done. Count: {count}'
                 }))
-        else:
-            await websocket.send(
-                json.dumps({
-                    'type': 'done',
-                    'status': 'Halted search'
-                }))
-        status = 0
 
     async def main(self):
         async with websockets.serve(self.handler,
