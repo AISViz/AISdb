@@ -34,31 +34,9 @@ class SocketServ():
             if req['type'] == 'zones':
                 await self.req_zones(req, websocket)
 
-            if req['type'] == 'tracks_week':
-                year, month, day = map(int, req['date'].split('-'))
-                start = datetime(year, month, day)
-                end = start + timedelta(days=7)
-                await self.req_tracks(
-                    req,
-                    websocket,
-                    start=start,
-                    end=end,
-                )
-
-            elif req['type'] == 'tracks_day':
-                year, month, day = map(int, req['date'].split('-'))
-                start = datetime(year, month, day)
-                end = start + timedelta(days=1)
-                await self.req_tracks(
-                    req,
-                    websocket,
-                    start=start,
-                    end=end,
-                )
-            elif req['type'] == 'track_vectors_week':
-                year, month, day = map(int, req['date'].split('-'))
-                start = datetime(year, month, day)
-                end = start + timedelta(days=7)
+            elif req['type'] == 'track_vectors':
+                start = datetime(*map(int, req['start'].split('-')))
+                end = datetime(*map(int, req['end'].split('-')))
                 await self.req_tracks_raw(
                     req,
                     websocket,
@@ -97,7 +75,6 @@ class SocketServ():
         with trafficDB as conn:
             count = 0
             for track in qrygen:
-                #rowset = np.array(rows).T
                 _vinfo(track, conn)
                 event = {
                     'msgtype': 'track_vector',
@@ -111,7 +88,6 @@ class SocketServ():
                     },
                 }
                 await websocket.send(json.dumps(event).replace(' ', ''))
-                #.encode('utf-8'))
                 count += 1
                 clientresponse = await websocket.recv()
                 response = json.loads(clientresponse)

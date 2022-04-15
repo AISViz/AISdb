@@ -12,12 +12,11 @@ let searchstate = true;
 
 searchbtn.onclick = async function() {
   if (searchstate === true) {
-    var week = document.getElementById('time-select').value;
-    //var dateinput = week.split('-W');
-    //var reqdate = new Date(dateinput[0], 0, (1 + (dateinput[1]-1) * 7)).toJSON().slice(0,10);
+    var start = document.getElementById('time-select-start').value;
+    var end = document.getElementById('time-select-end').value;
     statusdiv.textContent = `Searching...`;
     window.statusmsg = statusdiv.textContent;
-    await socket.send(JSON.stringify({"type": "track_vectors_week", "date": week}));
+    await socket.send(JSON.stringify({"type": "track_vectors", "start": start, "end": end,}));
     searchbtn.textContent = 'Stop';
     searchstate = false;
   }
