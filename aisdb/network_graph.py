@@ -65,7 +65,7 @@ def _sanitize(s):
     elif s == '-':
         return ''
     else:
-        return s.replace(',', '').replace('‚', '').replace('#', '')
+        return str(s).replace(',', '').replace('‚', '').replace('#', '')
 
 
 def staticinfo(track, domain):

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.105
+--------
+
+bug fixes and improvements
+
+
 v1.0.104
 --------
 

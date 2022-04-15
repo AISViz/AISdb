@@ -79,6 +79,8 @@ pub async fn main() -> Result<(), Error> {
             || f.to_str().unwrap().contains(&".NM4")
             || f.to_str().unwrap().contains(&".RX")
             || f.to_str().unwrap().contains(&".rx")
+            || f.to_str().unwrap().contains(&".TXT")
+            || f.to_str().unwrap().contains(&".txt")
         {
             parser = decode_insert_msgs(&d, &f, parser)
                 .await

@@ -160,7 +160,7 @@ pub async fn decode_insert_msgs(
     //let fstr = &filename.to_str().unwrap();
     //assert_eq!(&fstr[&fstr.len() - 4..], ".nm4");
     match &filename.to_str().unwrap()[&filename.to_str().unwrap().len() - 3..] {
-        "nm4" | ".rx" => (),
+        "nm4" | ".rx" | "txt" | "NM4" | ".RX" | "TXT" => (),
         _ => {
             panic!("invalid file type! {:?}", &filename);
         }
