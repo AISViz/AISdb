@@ -61,7 +61,8 @@ def TrackGen(
     colnames: list = [
         'mmsi', 'time', 'lon', 'lat', 'imo', 'vessel_name', 'dim_bow',
         'dim_stern', 'dim_port', 'dim_star', 'ship_type', 'ship_type_txt'
-    ]
+    ],
+    allow_empty=False,
 ) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
@@ -127,7 +128,11 @@ def TrackGen(
 
     for rows in rowgen:
 
-        if rows is None or (rows.size <= 1):
+        if allow_empty and (rows is None or rows.size <= 1):
+            yield {}
+            return
+
+        elif rows is None or (rows.size <= 1):
             raise ValueError(
                 'cannot create vector from zero-size track segment')
 
@@ -282,7 +287,7 @@ def encode_greatcircledistance(
     n = 0
     for track in tracks:
 
-        if len(track['time']) <= 1:
+        if track is None or track == {} or len(track['time']) <= 1:
             continue
 
         segments_idx1 = reduce(

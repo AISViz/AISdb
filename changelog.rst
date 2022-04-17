@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.0.106
+--------
+
+improved error handling for database query edge cases;
+
+
 v1.0.105
 --------
 

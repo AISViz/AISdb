@@ -126,7 +126,8 @@ class DBQuery(UserDict):
                 [f'static_{month}_aggregate'])
 
             if len(cur.fetchall()) == 0:
-                print(f'building static index for month {month}...')
+                print(f'building static index for month {month}...',
+                      flush=True)
                 aggregate_static_msgs(dbpath, [month])
 
             cur.execute(
@@ -140,7 +141,8 @@ class DBQuery(UserDict):
                 [f'idx_{month}_m_t_x_y'])
 
             if len(cur.fetchall()) == 0:
-                print(f'building dynamic index for month {month}...')
+                print(f'building dynamic index for month {month}...',
+                      flush=True)
                 cur.execute(
                     f'CREATE INDEX IF NOT EXISTS idx_{month}_m_t_x_y '
                     f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude)'
@@ -157,43 +159,25 @@ class DBQuery(UserDict):
                 print('Domain argument required to check vessel info!')
                 continue
 
-            qry = f'select * from ais_{month}_dynamic limit 1'
-            aisdatabase.cur.execute(qry)
-            res = np.array(aisdatabase.cur.fetchall())
-            if len(res) == 0:
-                print(f'no rows for {month}, skipping...')
-                continue
-
             # scrape metadata for observed vessels from marinetraffic
             # if no domain is provided, defaults to area surrounding canada
-            y, m = int(month[:4]), int(month[4:6])
-            req2 = DBQuery(
-                start=datetime(y, m, 1),
-                end=datetime(y + int(m == 12), m % 12 + 1, 1),
-                callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
-                xmin=self['xmin'],
-                xmax=self['xmax'],
-                ymin=self['ymin'],
-                ymax=self['ymax'],
-            )
-            #res = np.array(list(req2.run_qry(check_idx=False)), dtype=object)
-            mmsis, imos = [], []
-            zone_filter = zone_mask(TrackGen(req2.gen_qry()), domain=domain)
-            for track in zone_filter:
-                mmsis.append(track['mmsi'])
-                imos.append(track['imo'])
+            print(f'retrieving vessel info for {month}', end='', flush=True)
+
+            sql = f'''
+            SELECT DISTINCT(mmsi) FROM ais_{month}_dynamic AS d WHERE
+            {sqlfcn_callbacks.in_validmmsi_bbox(alias='d',
+                                      xmin=domain.minX,
+                                      xmax=domain.maxX,
+                                      ymin=domain.minY,
+                                      ymax=domain.maxY)}
             '''
-            qry = f'SELECT DISTINCT mmsi, imo FROM static_{y:04d}{m:02d}_aggregate'
-            aisdatabase.cur.execute(qry)
-            res = np.array(aisdatabase.cur.fetchall())
-            if len(res) != 0:
-                print(f'scraping vessels: month {y}{m:02d}\t'
-                      f'{self["xmin"]:.2f}W:{self["xmax"]:.2f}W\t'
-                      f'{self["ymin"]:.2f}N:{self["ymax"]:.2f}N')
-                vinfo.vessel_info_callback(res.T[0], res.T[1])
-            '''
+            cur.execute(sql)
+            print('.', end='', flush=True)  # first dot
+            mmsis = cur.fetchall()
+            imos = [0 for _ in mmsis]
+
             if len(mmsis) > 0:
-                vinfo.vessel_info_callback(mmsis, imos)
+                vinfo.vessel_info_callback(np.array(mmsis), np.array(imos))
 
         aisdatabase.conn.commit()
         aisdatabase.conn.close()

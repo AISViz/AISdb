@@ -1,5 +1,7 @@
-import { newWKBHexVectorLayer, newGeoVectorLayer, vesseltypes} from "./map";
+import { newPolygonFeature, newTrackFeature } from "./map";
+import { vesseltypes }  from "./palette";
 import { process_response } from "../pkg/client";
+import { setSearchRange } from "./selectform";
 
 let hostname = import.meta.env.VITE_AISDBHOST;
 if (hostname == undefined) {
@@ -26,7 +28,8 @@ function utf8_js(obj) {
 window.statusmsg = null;
 socket.onopen = function(event) {
   console.log(`Established connection to ${socketHost}\nCaution: connection is unencrypted!`);
-  socket.send(JSON.stringify({'type': 'zones'}));
+  //socket.send(JSON.stringify({'type': 'zones'}));
+  socket.send(JSON.stringify({'type': 'validrange'}));
 }
 socket.onclose = function(event) {
   if (event.wasClean) {
@@ -52,8 +55,8 @@ socket.onmessage = async function(event) {
   let response = JSON.parse(event.data);
   if (response['type'] === 'WKBHex') {
     for (const geom in response['geometries']) {
-      newWKBHexVectorLayer(
-        [response['geometries'][geom]['geometry']], 
+      newPolygonFeature(
+        [response['geometries'][geom]['geometry']],
         response['geometries'][geom]['meta']
       );
     }
@@ -61,23 +64,25 @@ socket.onmessage = async function(event) {
     /*
     for (const geom in response['geometries']) {
       newTopoVectorLayer(
-        response['geometries'][geom]['topology'], 
+        response['geometries'][geom]['topology'],
         response['geometries'][geom]['opts']
       );
     }
     */
     let processed = utf8_js(process_response({'rawdata':js_utf8(response)}));
     //console.log(JSON.stringify(response['meta']['vesseltype_generic']));
-    newGeoVectorLayer(processed, response['meta']);
+    newTrackFeature(processed, response['meta']);
     await socket.send(JSON.stringify({'type': 'ack'}));
     //await socket.send(JSON.stringify({'type': 'stop'}));
-  } 
-  
+  }
+
   else if (response['type'] === 'done') {
     document.getElementById('status-div').textContent = response['status'];
     document.getElementById('searchbtn').disabled = false;
     window.statusmsg = response['status'];
     //searchbtn.disabled = false;
+  } else if (response['type'] === 'validrange'){
+    setSearchRange(response['start'], response['end']);
   } else {
     let msg = `Unknown response from server`;
     document.getElementById('status-div').textContent = msg;

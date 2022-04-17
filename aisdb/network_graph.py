@@ -75,9 +75,11 @@ def staticinfo(track, domain):
         mmsi=_sanitize(track['mmsi']),
         imo=_sanitize(track['marinetraffic_info']['imo']),
         vessel_name=_sanitize(track['marinetraffic_info']['name']),
-        vesseltype_generic=_sanitize(track['marinetraffic_info']['name']),
-        vesseltype_detailed=_sanitize(track['marinetraffic_info']['name']),
-        callsign=_sanitize(track['marinetraffic_info']['name']),
+        vesseltype_generic=_sanitize(
+            track['marinetraffic_info']['vesseltype_generic']),
+        vesseltype_detailed=_sanitize(
+            track['marinetraffic_info']['vesseltype_detailed']),
+        callsign=_sanitize(track['marinetraffic_info']['callsign']),
         flag=_sanitize(track['marinetraffic_info']['flag']),
         gross_tonnage=_sanitize(track['marinetraffic_info']['gross_tonnage']),
         summer_dwt=_sanitize(track['marinetraffic_info']['summer_dwt']),

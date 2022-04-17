@@ -125,7 +125,7 @@ def _vinfo(track, conn):
                 'home_port': None,
                 'error404': 1,
                 }
-    if track['marinetraffic_info']['name'] is None or track['marinetraffic_info']['name'] == 0:
+    if track['marinetraffic_info']['name'] in (None, 0, '0', 'None', '') or 'name' not in track['marinetraffic_info'].keys():
         track['marinetraffic_info']['name'] = track['vessel_name']
     return track
 
@@ -221,6 +221,7 @@ class VesselInfo():
         mmsis = np.array(mmsis, dtype=int)
         imos = np.array(imos, dtype=int)
         assert mmsis.size == imos.size
+        print('.', end='')  # second dot
 
         # create a new info table if it doesnt exist yet
         createtable_sqlfile = os.path.join(
@@ -240,25 +241,20 @@ class VesselInfo():
         sqlcount += 'ORDER BY mmsi'
         with trafficDB as conn:
             existing = conn.execute(sqlcount).fetchall()
+        print('.', end='')  # third dot
 
         # skip existing mmsis
-        for m, i in existing:
-            idx_m = mmsis == m
-            idx_i = imos == i
-            skip = np.logical_and(idx_m, idx_i)
-            if np.sum(skip) == 0:
-                continue
-            mmsis = mmsis[~skip]
-            imos = imos[~skip]
-
-        if mmsis.size == 0:
+        ex_mmsis, ex_imos = np.array(existing).T
+        xor_mmsis = np.setdiff1d(mmsis, ex_mmsis, assume_unique=True)
+        if xor_mmsis.size == 0:
             return
 
-        for mmsi, imo in zip(mmsis, imos):
+        print('.')  # fourth dot
+
+        for mmsi in xor_mmsis:
             if not 200000000 <= mmsi <= 780000000:
                 continue
-            suffix = f'/imo:{imo}' if imo > 0 else ''
-            url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}{suffix}'
-            self._getinfo(url, mmsi, imo)
+            url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}'
+            self._getinfo(url, mmsi, 0)
 
         return

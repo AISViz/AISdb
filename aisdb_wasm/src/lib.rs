@@ -70,7 +70,7 @@ pub fn process_response(txt: JsValue) -> JsValue {
     let coords = zip!(&geom.x, &geom.y)
         .map(|(xx, yy)| Coordinate { x: *xx, y: *yy })
         .collect();
-    let line = LineString(coords).simplifyvw(&0.01);
+    let line = LineString(coords).simplifyvw(&0.001);
     //console_log!("simplified line: {:?}", line);
     //
     let simplified_coords = line

@@ -3,26 +3,44 @@ import os
 # import ssl
 import json
 import websockets
-from datetime import datetime, timedelta
+import calendar
+from datetime import datetime
 
 from aisdb import zones_dir, DomainFromTxts
 from aisdb import sqlfcn_callbacks, DBQuery
 from aisdb import (
+    DBConn,
     TrackGen,
+    dbpath,
     encode_greatcircledistance,
     # split_timedelta,
     # max_tracklength,
+    haversine,
 )
 from aisdb.webdata.marinetraffic import trafficDB, _vinfo
 
-host = os.environ.get('AISDBHOSTALLOW', '*')
-port = os.environ.get('AISDBPORT', 9924)
-port = int(port)
 
-domain = DomainFromTxts(zones_dir.rsplit(os.path.sep, 1)[1], zones_dir)
+def request_size(*, xmin, xmax, ymin, ymax, start, end):
+    ''' restrict box size to 3000 kilometers diagonal distance per day '''
+    dist_diag = haversine(x1=xmin, y1=ymin, x2=xmax, y2=ymax) / 1000
+    delta_t = (end - start).total_seconds() / 60 / 60 / 24
+    if dist_diag * delta_t > 3000:
+        return False
+    else:
+        return True
 
 
 class SocketServ():
+    ''' Make vessel data available via websocket datastream, and respond
+        to client data requests
+    '''
+
+    def __init__(self):
+        self.host = os.environ.get('AISDBHOSTALLOW', '*')
+        port = os.environ.get('AISDBPORT', 9924)
+        self.port = int(port)
+        self.domain = DomainFromTxts(
+            zones_dir.rsplit(os.path.sep, 1)[1], zones_dir)
 
     async def handler(self, websocket):
         async for clientmsg in websocket:
@@ -35,18 +53,35 @@ class SocketServ():
                 await self.req_zones(req, websocket)
 
             elif req['type'] == 'track_vectors':
-                start = datetime(*map(int, req['start'].split('-')))
-                end = datetime(*map(int, req['end'].split('-')))
-                await self.req_tracks_raw(
-                    req,
-                    websocket,
-                    start=start,
-                    end=end,
-                )
+                await self.req_tracks_raw(req, websocket)
+
+            elif req['type'] == 'validrange':
+                await self.req_valid_range(req, websocket)
+
+    async def req_valid_range(self, req, websocket):
+        with DBConn(dbpath).conn as conn:
+            res = sorted([
+                s.split('_')[1] for line in conn.execute(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type='table' AND name LIKE '%_dynamic'").fetchall()
+                for s in line
+            ])
+        startyear = max(int(res[0][:4]), 2012)
+        start_month_range = calendar.monthrange(startyear, int(res[0][4:]))[-1]
+        end_month_range = calendar.monthrange(int(res[-1][:4]),
+                                              int(res[-1][4:]))[-1]
+        startval = f'{startyear}-{res[0][4:]}-{start_month_range}'
+        endval = f'{res[-1][:4]}-{res[-1][4:]}-{end_month_range}'
+        await websocket.send(
+            json.dumps({
+                'type': 'validrange',
+                'start': startval,
+                'end': endval,
+            }))
 
     async def req_zones(self, req, websocket):
         zones = {'type': 'WKBHex', 'geometries': []}
-        for zone in domain.zones:
+        for zone in self.domain.zones:
             event = {
                 'geometry': zone['geometry'].wkb_hex,
                 'meta': {
@@ -56,18 +91,21 @@ class SocketServ():
             zones['geometries'].append(event)
         await websocket.send(json.dumps(zones).replace(' ', ''))
 
-    async def req_tracks_raw(self, req, websocket, *, start, end):
+    async def req_tracks_raw(self, req, websocket):
+        start = datetime(*map(int, req['start'].split('-')))
+        end = datetime(*map(int, req['end'].split('-')))
         qry = DBQuery(
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
-            xmin=domain.minX,
-            xmax=domain.maxX,
-            ymin=domain.minY,
-            ymax=domain.maxY,
+            xmin=req['area']['minX'],
+            xmax=req['area']['maxX'],
+            ymin=req['area']['minY'],
+            ymax=req['area']['maxY'],
         )
         qrygen = encode_greatcircledistance(
-            TrackGen(qry.gen_qry(printqry=os.environ.get('DEBUG', False))),
+            TrackGen(qry.gen_qry(printqry=os.environ.get('DEBUG', False)),
+                     allow_empty=True),
             distance_threshold=250000,
             minscore=0,
             speed_threshold=50,
@@ -102,20 +140,27 @@ class SocketServ():
                             'type': 'done',
                             'status': 'Halted search'
                         }))
-                    break
+                    return
                 else:
                     raise RuntimeWarning(
                         f'Unhandled client message: {response}')
-            await websocket.send(
-                json.dumps({
-                    'type': 'done',
-                    'status': f'Done. Count: {count}'
-                }))
+            if count > 0:
+                await websocket.send(
+                    json.dumps({
+                        'type': 'done',
+                        'status': f'Done. Count: {count}'
+                    }))
+            else:
+                await websocket.send(
+                    json.dumps({
+                        'type': 'done',
+                        'status': 'No data for selection'
+                    }))
 
     async def main(self):
         async with websockets.serve(self.handler,
-                                    host=host,
-                                    port=port,
+                                    host=self.host,
+                                    port=self.port,
                                     close_timeout=300,
                                     ping_interval=None):
             await asyncio.Future()

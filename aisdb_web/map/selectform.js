@@ -1,4 +1,5 @@
 import socket from "./clientsocket"
+import {map, draw, drawSource, addInteraction, clearFeatures} from "./map"
 
 let statusdiv = document.getElementById('status-div');
 
@@ -6,40 +7,65 @@ async function requestZones() {
   await socket.send(JSON.stringify({"type": "zones"}));
 }
 
+const selectbtn = document.getElementById("selectbtn");
+//selectbtn.style.display = "None";
+selectbtn.onclick = function () {
+  map.removeInteraction(draw);
+  drawSource.clear();
+  addInteraction();
+}
 
-let searchbtn = document.getElementById('searchbtn');
+
+const searchbtn = document.getElementById('searchbtn');
 let searchstate = true;
-
 searchbtn.onclick = async function() {
-  if (searchstate === true) {
+  if ( window.searcharea === null ) {
+    statusdiv.textContent = 'Error: No area selected'
+    window.statusmsg = statusdiv.textContent
+  } else if (searchstate === true) {
     var start = document.getElementById('time-select-start').value;
     var end = document.getElementById('time-select-end').value;
     statusdiv.textContent = `Searching...`;
     window.statusmsg = statusdiv.textContent;
-    await socket.send(JSON.stringify({"type": "track_vectors", "start": start, "end": end,}));
+    await socket.send(JSON.stringify({"type": "track_vectors", "start": start, "end": end, area: window.searcharea,}));
     searchbtn.textContent = 'Stop';
     searchstate = false;
-  }
-  else {
+    drawSource.clear();
+  } else {
     await socket.send(JSON.stringify({'type': 'stop'}));
     searchbtn.textContent = 'Search';
     searchstate = true;
     searchbtn.disabled = true;
   }
+  map.removeInteraction(draw);
 }
 
 
-let clearbtn = document.getElementById('clearbtn');
+const clearbtn = document.getElementById('clearbtn');
 
 clearbtn.onclick = function() {
   //map.layers = [];
+  window.searcharea = null;
   window.statusmsg = '';
-  document.getElementById('status-div').textContent = '';
+  statusdiv.textContent = '';
   if (searchstate === false) {
-    //socket.send(JSON.stringify({'type': 'stop'}));
+    socket.send(JSON.stringify({'type': 'stop'}));
     searchbtn.textContent = 'Search';
     searchstate = true;
   }
+  searchbtn.disabled = false;
+  map.removeInteraction(draw);
+  clearFeatures();
 }
 
-export { searchbtn, clearbtn };
+const timeselectstart = document.getElementById('time-select-start');
+const timeselectend = document.getElementById('time-select-end');
+
+function setSearchRange(start, end) {
+  timeselectstart.min = start;
+  timeselectend.min = start;
+  timeselectstart.max = end;
+  timeselectend.max = end;
+}
+
+export { searchbtn, clearbtn, setSearchRange };
