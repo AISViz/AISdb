@@ -22,7 +22,6 @@ Package features:
 
 .. raw:: html 
 
-
    <a href='_images/scriptoutput.png'>
       <img 
         src='_images/scriptoutput.png' 
@@ -30,11 +29,16 @@ Package features:
         onerror="this.html=''; this.width=0px;"
       ></img>
    </a>
+
    <!--
    <iframe name="map_embed" src="/map" frameborder="0" scrolling="no" height="500" width="100%" marginwidth="0" marginheight="0"></iframe>
    -->
 
 
+| Web Interface:
+  https://aisdb.meridian.cs.dal.ca/map/
+| Documentation:
+  https://aisdb.meridian.cs.dal.ca/readme.html
 | Source Code: 
   https://gitlab.meridian.cs.dal.ca/public_projects/aisdb
 

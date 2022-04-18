@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.1.0
+------
+
+update readme #version:minor
+
+
 v1.0.106
 --------
 
