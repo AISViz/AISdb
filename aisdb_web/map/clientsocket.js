@@ -15,9 +15,8 @@ if (port == undefined) {
 let utf8encode = new TextEncoder();
 let utf8decode = new TextDecoder();
 
-//const socketHost = `wss://${hostname}:${port}`
-//let socket = new WebSocket(socketHost, ['TLSv1.2', 'TLSv1.3']);
-const socketHost = `ws://${hostname}:${port}`
+//const socketHost = `ws://${hostname}:${port}`
+const socketHost = `wss://${hostname}/ws`
 let socket = new WebSocket(socketHost);
 
 function js_utf8(obj) {
@@ -29,22 +28,24 @@ function utf8_js(obj) {
 
 window.statusmsg = null;
 socket.onopen = function(event) {
-  console.log(`Established connection to ${socketHost}\nCaution: connection is unencrypted!`);
+  let msg = `Established connection to ${socketHost}`;
+  if (socketHost.includes('ws://')) {
+    msg += '\nCaution: connection is unencrypted!'
+  }
+  console.log(msg);
   //socket.send(JSON.stringify({'type': 'zones'}));
   socket.send(JSON.stringify({'type': 'validrange'}));
 }
 socket.onclose = function(event) {
+  let msg;
   if (event.wasClean) {
-    let msg = `Closed connection with server`;
-    console.log(msg);
-    document.getElementById('status-div').textContent = msg;
-    window.statusmsg = msg;
+    msg = `Closed connection with server`;
   } else {
-    let msg = `Connection to server died unexpectedly`;
-    console.log(msg);
-    document.getElementById('status-div').textContent = msg;
-    window.statusmsg = msg;
+    msg = `Connection to server died unexpectedly [${event.code}]`;
   }
+  console.log(msg);
+  document.getElementById('status-div').textContent = msg;
+  window.statusmsg = msg;
 }
 socket.onerror = async function(error) {
   let msg = `An unexpected error occurred`;

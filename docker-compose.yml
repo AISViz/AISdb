@@ -40,6 +40,7 @@ services:
     environment: 
       AISDBHOST: ${AISDBHOST:-127.0.0.1}
       AISDBPORT: ${AISDBPORT:-9924}
+      USEPROXYSERVERNAME: ${USEPROXYSERVERNAME:-off}
     ports:
      - "80:80"
      - "443:443"
@@ -49,10 +50,9 @@ services:
         ipv6_address: "fc00::2"
     volumes:
       - ./docker/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
-      # - ./nginx/certbot/conf:/etc/letsencrypt
-      # - ./nginx/certbot/www:/var/www/certbot
+      # - ~/cert/conf:/etc/letsencrypt
     command:
-      ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && exec nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
+      ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT} $${USEPROXYSERVERNAME}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
 
 
   # nodeJS docs server + webapp
@@ -68,11 +68,8 @@ services:
         AISDBPORT: ${AISDBPORT:-9924}
     command:
       ['npm', '--prefix', 'aisdb_web/', 'start']
-    #expose:
-    #  - "8080"
     depends_on:
       - nginx
-      #- certbot
     networks:
       ipv6_private:
         ipv6_address: "fc00::3"
@@ -82,9 +79,11 @@ services:
     container_name: websocket
     build:
       target: build_python
+      #target: aisdb_python_root
       context: .
       dockerfile: ./docker/Dockerfile
     environment:
+      AISDBHOST: ${AISDBHOST:-127.0.0.1}
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
       AISDBPORT: ${AISDBPORT:-9924}
     command:
@@ -94,29 +93,17 @@ services:
     networks: 
       ipv6_private:
         ipv6_address: "fc00::6"
-    #expose:
-    #  - "9924"
-    #deploy:
-    #  replicas: 8
-    #  resources:
-    #    limits:
-    #      cpus: '1'
-    #      memory: '3072M'
-    #  restart_policy:
-    #    condition: on-failure
-    #    delay: 5s
-    #    max_attempts: 3
-    #    window: 120s
 
-  #certbot:
-  #image: certbot/certbot
-  #container_name: aisdb_certbot
-  #volumes:
-  #  - ./nginx/certbot/conf:/etc/letsencrypt
-  #  - ./nginx/certbot/www:/var/www/certbot
-  #networks:
-  #  ipv6_private:
-  #    ipv6_address: "fc00::4"
+  # https://eff-certbot.readthedocs.io/en/stable/using.html#where-are-my-certificates
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    #volumes:
+    #  - ~/cert/conf:/etc/letsencrypt
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::7"
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 
 networks:

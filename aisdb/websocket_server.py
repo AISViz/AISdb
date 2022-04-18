@@ -19,10 +19,6 @@ from aisdb import (
 )
 from aisdb.webdata.marinetraffic import trafficDB, _vinfo
 
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-sslpath = os.path.join(os.path.expanduser('~'), 'websocket_cert.pem')
-ssl_context.load_cert_chain(os.environ.get('SSL_CRT', sslpath),
-                            os.environ.get('SSL_KEY', sslpath))
 
 
 def request_size(*, xmin, xmax, ymin, ymax, start, end):
@@ -40,12 +36,23 @@ class SocketServ():
         to client data requests
     '''
 
-    def __init__(self):
+    def __init__(self, enable_ssl=True):
         self.host = os.environ.get('AISDBHOSTALLOW', '*')
         port = os.environ.get('AISDBPORT', 9924)
         self.port = int(port)
         self.domain = DomainFromTxts(
             zones_dir.rsplit(os.path.sep, 1)[1], zones_dir)
+
+        if enable_ssl:
+            sslpath = os.path.join('/etc/letsencrypt/live/', os.environ.get('AISDBHOST', '127.0.0.1'))
+            CRT = os.path.join(sslpath, 'fullchain.pem')
+            KEY = os.path.join(sslpath, 'privkey.pem')
+            print(f'loading SSL context: {CRT} {KEY}')
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.load_cert_chain(CRT, KEY)
+            self.ssl_args = {'ssl': ssl_context}
+        else:
+            self.ssl_args = {}
 
     async def handler(self, websocket):
         async for clientmsg in websocket:
@@ -170,11 +177,12 @@ class SocketServ():
                 self.handler,
                 host=self.host,
                 port=self.port,
-                #ssl=ssl_context,
+                **self.ssl_args,
         ):
             await asyncio.Future()
 
 
 if __name__ == '__main__':
-    serv = SocketServ()
+    # by default let nginx handle SSL
+    serv = SocketServ(enable_ssl=False)
     asyncio.run(serv.main())
