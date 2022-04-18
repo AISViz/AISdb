@@ -1,9 +1,11 @@
+**.crt
 **.lock
 **.log
 **/__pycache__
 **/node_modules/*
 **package-lock.json
 *.cookie
+*.crt
 *.csv
 *.db
 *.db-journal

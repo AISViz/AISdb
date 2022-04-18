@@ -198,5 +198,4 @@ map.on("pointermove", function (e) {
   }
 });
 
-window.map = map;
 export { map, draw, addInteraction, clearFeatures, drawSource, newPolygonFeature, newTrackFeature };

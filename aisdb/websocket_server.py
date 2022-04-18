@@ -1,6 +1,6 @@
 import asyncio
 import os
-# import ssl
+import ssl
 import json
 import websockets
 import calendar
@@ -18,6 +18,11 @@ from aisdb import (
     haversine,
 )
 from aisdb.webdata.marinetraffic import trafficDB, _vinfo
+
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+sslpath = os.path.join(os.path.expanduser('~'), 'websocket_cert.pem')
+ssl_context.load_cert_chain(os.environ.get('SSL_CRT', sslpath),
+                            os.environ.get('SSL_KEY', sslpath))
 
 
 def request_size(*, xmin, xmax, ymin, ymax, start, end):
@@ -57,6 +62,9 @@ class SocketServ():
 
             elif req['type'] == 'validrange':
                 await self.req_valid_range(req, websocket)
+
+            elif req['type'] == 'ack':
+                pass
 
     async def req_valid_range(self, req, websocket):
         with DBConn(dbpath).conn as conn:
@@ -158,13 +166,15 @@ class SocketServ():
                     }))
 
     async def main(self):
-        async with websockets.serve(self.handler,
-                                    host=self.host,
-                                    port=self.port,
-                                    close_timeout=300,
-                                    ping_interval=None):
+        async with websockets.serve(
+                self.handler,
+                host=self.host,
+                port=self.port,
+                #ssl=ssl_context,
+        ):
             await asyncio.Future()
 
 
-serv = SocketServ()
-asyncio.run(serv.main())
+if __name__ == '__main__':
+    serv = SocketServ()
+    asyncio.run(serv.main())

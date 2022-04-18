@@ -19,12 +19,15 @@ selectbtn.onclick = function () {
 const searchbtn = document.getElementById('searchbtn');
 let searchstate = true;
 searchbtn.onclick = async function() {
+  var start = document.getElementById('time-select-start').value;
+  var end = document.getElementById('time-select-end').value;
   if ( window.searcharea === null ) {
     statusdiv.textContent = 'Error: No area selected'
     window.statusmsg = statusdiv.textContent
+  } else if (start === '' || end === '') {
+    statusdiv.textContent = 'Error: No time selected'
+    window.statusmsg = statusdiv.textContent
   } else if (searchstate === true) {
-    var start = document.getElementById('time-select-start').value;
-    var end = document.getElementById('time-select-end').value;
     statusdiv.textContent = `Searching...`;
     window.statusmsg = statusdiv.textContent;
     await socket.send(JSON.stringify({"type": "track_vectors", "start": start, "end": end, area: window.searcharea,}));
@@ -43,19 +46,22 @@ searchbtn.onclick = async function() {
 
 const clearbtn = document.getElementById('clearbtn');
 
-clearbtn.onclick = function() {
+clearbtn.onclick = async function() {
   //map.layers = [];
+  searchbtn.disabled = true;
   window.searcharea = null;
   window.statusmsg = '';
   statusdiv.textContent = '';
   if (searchstate === false) {
-    socket.send(JSON.stringify({'type': 'stop'}));
+    //statusdiv.textContent = 'Stopping...';
+    //window.statusmsg = statusdiv.textContent;
+    await socket.send(JSON.stringify({'type': 'stop'}));
     searchbtn.textContent = 'Search';
     searchstate = true;
   }
-  searchbtn.disabled = false;
   map.removeInteraction(draw);
   clearFeatures();
+  searchbtn.disabled = false;
 }
 
 const timeselectstart = document.getElementById('time-select-start');
@@ -67,5 +73,9 @@ function setSearchRange(start, end) {
   timeselectstart.max = end;
   timeselectend.max = end;
 }
+
+
+// const downloadbtn = document.getElementById('downloadbtn');
+// downloadbtn.style.display = 'none';
 
 export { searchbtn, clearbtn, setSearchRange };

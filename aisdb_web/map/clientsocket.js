@@ -15,6 +15,8 @@ if (port == undefined) {
 let utf8encode = new TextEncoder();
 let utf8decode = new TextDecoder();
 
+//const socketHost = `wss://${hostname}:${port}`
+//let socket = new WebSocket(socketHost, ['TLSv1.2', 'TLSv1.3']);
 const socketHost = `ws://${hostname}:${port}`
 let socket = new WebSocket(socketHost);
 
@@ -44,12 +46,12 @@ socket.onclose = function(event) {
     window.statusmsg = msg;
   }
 }
-socket.onerror = function(error) {
+socket.onerror = async function(error) {
   let msg = `An unexpected error occurred`;
   console.log(msg);
   document.getElementById('status-div').textContent = msg;
   window.statusmsg = msg;
-  socket.close();
+  await socket.close();
 }
 socket.onmessage = async function(event) {
   let response = JSON.parse(event.data);
