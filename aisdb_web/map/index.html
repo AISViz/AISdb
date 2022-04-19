@@ -4,25 +4,30 @@
   <head>
     <meta charset="utf-8">
     <link rel="stylesheet" href="./app.css" type="text/css">
+    <link rel="manifest" href="./manifest.json">
     <title>AISDB</title>
     <meta name="description" content="Ship Tracking Database">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- 
+      Favicon attribution:
+      By https://commons.wikimedia.org/w/index.php?title=File:Antu_tag-places.svg&amp;action=history - File:Antu tag-places.svg, CC BY 3.0, https://commons.wikimedia.org/w/index.php?curid=53807735 
+    -->
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   </head>
 
   <body>
     <div id="application">
       <div id="map" class="map"></div>
-      <div class='flexfill'></div>
+      <div class="flexfill"></div>
       <div id="formDiv" class="formdiv">
         <form action="/mapselect" method="POST" class="optionSelectContainer">
-        <!--
+
         <input type="hidden" name="_csrf" value="{{csrfToken}}">
-        -->
 
         <!--
-        <div class='flexvfill'></div>
+        <div class="flexvfill"></div>
 
-        <label id='layer-select-label' for='layer-select'>Map Layer</label>
+        <label id="layer-select-label" for="layer-select">Map Layer</label>
 	<select id="layer-select">
 	  <option value="Aerial" selected>Aerial</option>
 	  <option value="AerialWithLabelsOnDemand">Aerial with labels</option>
@@ -32,37 +37,37 @@
         -->
 
 
-        <div class='smallfill'></div>
+        <div class="smallfill"></div>
 
-        <button id='selectbtn' type='button'>Select Area</button>
+        <button id="selectbtn" type="button">Select Area</button>
 
-        <div class='smallfill'></div>
+        <div class="smallfill"></div>
 
-        <label for='time-select-start'>Start</label>
-        <input id='time-select-start' type="date" name="timeSelect" required>
+        <label for="time-select-start">Start</label>
+        <input id="time-select-start" type="date" name="timeSelect" required>
 
-        <label for='time-select-end'>End</label>
-        <input id='time-select-end' type="date" name="timeSelect" required>
+        <label for="time-select-end">End</label>
+        <input id="time-select-end" type="date" name="timeSelect" required>
 
-        <div id='status-div' class='flexfill statusmsg' ></div>
-        <div class='smallfill'></div>
+        <div id="status-div" class="flexfill statusmsg" ></div>
+        <div class="smallfill"></div>
 
-        <button id='searchbtn' type='button'>Search</button>
+        <button id="searchbtn" type="button">Search</button>
 
-        <div class='smallfill'></div>
+        <div class="smallfill"></div>
 
-        <button id='clearbtn' type='button'>Clear</button>
+        <button id="clearbtn" type="button">Clear</button>
 
-        <div class='smallfill'></div>
+        <div class="smallfill"></div>
 
         <!--
-        <button id='downloadbtn' class='download' type='button'>Download</button>
-        <div class='smallfill download'></div>
+        <button id="downloadbtn" class="download" type="button">Download</button>
+        <div class="smallfill download"></div>
         -->
 
         </form>
       </div>
-      <div class='flexvfill'></div>
+      <div class="flexvfill"></div>
     </div>
     <script type="module" src="./app.js" ></script>
   </body>

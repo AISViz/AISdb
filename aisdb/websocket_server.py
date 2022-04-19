@@ -20,11 +20,10 @@ from aisdb import (
 from aisdb.webdata.marinetraffic import trafficDB, _vinfo
 
 
-
 def request_size(*, xmin, xmax, ymin, ymax, start, end):
-    ''' restrict box size to 3000 kilometers diagonal distance per day '''
+    ''' restrict box size to 3000 kilometers diagonal distance per month'''
     dist_diag = haversine(x1=xmin, y1=ymin, x2=xmax, y2=ymax) / 1000
-    delta_t = (end - start).total_seconds() / 60 / 60 / 24
+    delta_t = (end - start).total_seconds() / 60 / 60 / 24 / 30
     if dist_diag * delta_t > 3000:
         return False
     else:
@@ -44,7 +43,8 @@ class SocketServ():
             zones_dir.rsplit(os.path.sep, 1)[1], zones_dir)
 
         if enable_ssl:
-            sslpath = os.path.join('/etc/letsencrypt/live/', os.environ.get('AISDBHOST', '127.0.0.1'))
+            sslpath = os.path.join('/etc/letsencrypt/live/',
+                                   os.environ.get('AISDBHOST', '127.0.0.1'))
             CRT = os.path.join(sslpath, 'fullchain.pem')
             KEY = os.path.join(sslpath, 'privkey.pem')
             print(f'loading SSL context: {CRT} {KEY}')
