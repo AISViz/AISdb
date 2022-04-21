@@ -10,8 +10,8 @@
       "type": "image/svg+xml"
     }
   ],
-  "start_url": "/map",
-  "scope": "/map",
+  "start_url": "..",
+  "scope": "..",
   "background_color" : "#282c34",
   "theme_color": "#282c34",
   "display": "fullscreen",
@@ -21,7 +21,7 @@
       "name": "Ecoregions Demo",
       "short_name": "Ecoregions",
       "description": "Load ecoregions polygons, and display vessel data within regional domain bounding area",
-      "url": "/map?qry=ecoregionsdemo",
+      "url": "./index.html?qry=ecoregionsdemo",
       "icons": [
         {
           "src": "./favicon.svg",

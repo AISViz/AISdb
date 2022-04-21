@@ -87,7 +87,7 @@ services:
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
       AISDBPORT: ${AISDBPORT:-9924}
     command:
-      ['python', '-u', 'aisdb/websocket_server.py']
+      ['python', '-Ou', 'aisdb/websocket_server.py']
     depends_on:
       - nginx
     networks: 

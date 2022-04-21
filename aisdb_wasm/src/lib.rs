@@ -13,6 +13,7 @@ use wasm_bindgen::prelude::*;
 #[cfg(debug_assertions)]
 use std::panic;
 
+#[cfg(debug_assertions)]
 extern crate console_error_panic_hook;
 
 #[derive(Serialize, Deserialize)]
