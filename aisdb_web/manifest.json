@@ -4,14 +4,14 @@
   "description": "Web Interface for AIS Ship Tracking Database",
   "icons": [
     {
-      "src": "./favicon.svg",
+      "src": "/favicon.svg",
       "purpose": "monochrome any",
       "sizes": "any 192x192 256x256 512x512",
       "type": "image/svg+xml"
     }
   ],
-  "start_url": "..",
-  "scope": "..",
+  "start_url": "/map",
+  "scope": "/map",
   "background_color" : "#282c34",
   "theme_color": "#282c34",
   "display": "fullscreen",
@@ -21,10 +21,10 @@
       "name": "Ecoregions Demo",
       "short_name": "Ecoregions",
       "description": "Load ecoregions polygons, and display vessel data within regional domain bounding area",
-      "url": "./index.html?qry=ecoregionsdemo",
+      "url": "/map/index.html?qry=ecoregionsdemo",
       "icons": [
         {
-          "src": "./favicon.svg",
+          "src": "/favicon.svg",
           "purpose": "monochrome any",
           "sizes": "any 192x192 256x256 512x512",
           "type": "image/svg+xml"

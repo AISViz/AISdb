@@ -31,3 +31,10 @@ def test_leftjoin():
     month = "202105"
     txt = sqlfcn.leftjoin(month=month)
     print(txt)
+
+
+def test_crawl():
+    months = ['202105']
+    callback = sqlfcn_callbacks.in_time_bbox_validmmsi
+    txt = sqlfcn.crawl(months, callback, **kwargs)
+    print(txt)

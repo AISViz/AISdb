@@ -31,7 +31,7 @@ services:
       ipv6_private:
         ipv6_address: "fc00::5"
     command:
-      ["python", "-m", "pytest", "--color=yes", "--tb=native", "-k", "not merge", "tests/"]
+      ["python", "-m", "pytest", "--color=yes", "--tb=native", "tests/"]
 
   # proxy router
   nginx:

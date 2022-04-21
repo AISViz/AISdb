@@ -79,7 +79,10 @@ class DBQuery(UserDict):
 
         # if sum(map(lambda t: t in kwargs.keys(), ('start', 'end',))) == 2:
         if 'start' in self.data.keys() and 'end' in self.data.keys():
-            if isinstance(kwargs['start'], datetime):
+
+            if self.data['start'] >= self.data['end']:
+                raise ValueError('Start must occur before end')
+            elif isinstance(kwargs['start'], datetime):
                 self.data.update({'months': dt2monthstr(**kwargs)})
             elif isinstance(kwargs['start'], (float, int)):
                 self.data.update({'months': epoch2monthstr(**kwargs)})

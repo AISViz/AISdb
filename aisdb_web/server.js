@@ -27,6 +27,9 @@ app.get('/mapselect', csrfProtection, (req, res) => {
 app.use('/', express.static('../docs/html'));
 app.use('/map', express.static('../aisdb_web/dist'));
 app.use('/assets', express.static('../aisdb_web/dist/assets'));
+app.use('/manifest.json', express.static('./manifest.json'));
+app.use('/favicon.svg', express.static('./favicon.svg'));
+
 
 app.listen(port, '::', () => {
   loop1: for (key of Object.keys(networkInterfaces()).reverse()) {

@@ -21,20 +21,30 @@ let searchstate = true;
 searchbtn.onclick = async function() {
   var start = document.getElementById('time-select-start').value;
   var end = document.getElementById('time-select-end').value;
+
+  // validate input
   if ( window.searcharea === null ) {
     statusdiv.textContent = 'Error: No area selected'
     window.statusmsg = statusdiv.textContent
   } else if (start === '' || end === '') {
     statusdiv.textContent = 'Error: No time selected'
     window.statusmsg = statusdiv.textContent
-  } else if (searchstate === true) {
+  } else if (start >= end) {
+    statusdiv.textContent = 'Error: Start must occur before end'
+    window.statusmsg = statusdiv.textContent
+  }
+
+  // send search request if not already searching
+  else if (searchstate === true) {
     statusdiv.textContent = `Searching...`;
     window.statusmsg = statusdiv.textContent;
     await socket.send(JSON.stringify({"type": "track_vectors", "start": start, "end": end, area: window.searcharea,}));
     searchbtn.textContent = 'Stop';
     searchstate = false;
     drawSource.clear();
-  } else {
+  }
+  // if already searching, send STOP
+  else {
     await socket.send(JSON.stringify({'type': 'stop'}));
     searchbtn.textContent = 'Search';
     searchstate = true;
