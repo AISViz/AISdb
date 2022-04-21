@@ -29,18 +29,20 @@ app.use('/map', express.static('../aisdb_web/dist'));
 app.use('/assets', express.static('../aisdb_web/dist/assets'));
 app.use('/manifest.json', express.static('./manifest.json'));
 app.use('/favicon.svg', express.static('./favicon.svg'));
+app.use('/robots.txt', express.static('./robots.txt'));
 
 
 app.listen(port, '::', () => {
-  loop1: for (key of Object.keys(networkInterfaces()).reverse()) {
+  loop1: for (let key of Object.keys(networkInterfaces()).reverse()) {
     if ([ 'lo', '127.0.0.1', '::1' ].indexOf(key) >= 0) {
       continue loop1;
     }
 
-    loop2: for (net of networkInterfaces()[key].reverse()) {
-      if (net.family == 'IPv4') {
+    let addr = null;
+    loop2: for (let net of networkInterfaces()[key].reverse()) {
+      if (net.family === 'IPv4') {
         addr = net.address;
-      } else if (net.family == 'IPv6' && net.scopeid == 0) {
+      } else if (net.family === 'IPv6' && net.scopeid === 0) {
         addr = `[${net.address}]`;
       } else {
         continue loop2;

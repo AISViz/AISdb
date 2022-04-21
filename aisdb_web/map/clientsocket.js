@@ -47,12 +47,12 @@ socket.onclose = function(event) {
   document.getElementById('status-div').textContent = msg;
   window.statusmsg = msg;
 }
-socket.onerror = async function(error) {
+socket.onerror = function(error) {
   let msg = `An unexpected error occurred`;
   console.log(msg);
   document.getElementById('status-div').textContent = msg;
   window.statusmsg = msg;
-  await socket.close();
+  socket.close();
 }
 socket.onmessage = async function(event) {
   let response = JSON.parse(event.data);

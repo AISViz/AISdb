@@ -2,7 +2,8 @@
  *  https://web.dev/offline-fallback-page/
  */
 
-// eslint-disable-next-line no-unused-vars
+/*
+  // eslint-disable-next-line no-unused-vars
 const OFFLINE_VERSION = 1;
 const CACHE_NAME = 'offline';
 const OFFLINE_URL = "index.html";
@@ -45,7 +46,7 @@ self.addEventListener("activate", (event) => {
     })()
   );
 
-  // Tell the active service worker to take control of the page immediately.
+// Tell the active service worker to take control of the page immediately.
   self.clients.claim();
 });
 
@@ -80,9 +81,10 @@ self.addEventListener("fetch", (event) => {
     );
   }
 
-  // If our if() condition is false, then this fetch handler won't intercept the
-  // request. If there are any other fetch handlers registered, they will get a
-  // chance to call event.respondWith(). If no fetch handlers call
-  // event.respondWith(), the request will be handled by the browser as if there
-  // were no service worker involvement.
+// If our if() condition is false, then this fetch handler won't intercept the
+// request. If there are any other fetch handlers registered, they will get a
+// chance to call event.respondWith(). If no fetch handlers call
+// event.respondWith(), the request will be handled by the browser as if there
+// were no service worker involvement.
 });
+*/

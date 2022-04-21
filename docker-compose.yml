@@ -73,13 +73,14 @@ services:
     networks:
       ipv6_private:
         ipv6_address: "fc00::3"
+    #env_file:
+    #  - ./.env
 
   # database server
   websocket:
     container_name: websocket
     build:
       target: build_python
-      #target: aisdb_python_root
       context: .
       dockerfile: ./docker/Dockerfile
     environment:

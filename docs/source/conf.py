@@ -61,6 +61,8 @@ html_static_path = ['.']
 html_css_files = [
     #'custom.css',
 ]
+
+html_favicon = 'favicon.svg'
 '''
 def skip(app, what, name, obj, would_skip, options):
     if "fromFunction" in name:

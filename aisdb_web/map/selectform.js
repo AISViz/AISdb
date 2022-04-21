@@ -1,5 +1,11 @@
 import socket from "./clientsocket"
-import {map, draw, drawSource, addInteraction, clearFeatures} from "./map"
+import {
+  addInteraction,
+  clearFeatures,
+  draw,
+  drawSource,
+  map,
+} from "./map"
 
 let statusdiv = document.getElementById('status-div');
 
