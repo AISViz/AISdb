@@ -40,7 +40,6 @@ services:
     environment: 
       AISDBHOST: ${AISDBHOST:-127.0.0.1}
       AISDBPORT: ${AISDBPORT:-9924}
-      USEPROXYSERVERNAME: ${USEPROXYSERVERNAME:-off}
     ports:
      - "80:80"
      - "443:443"
@@ -53,6 +52,9 @@ services:
       # - ~/cert/conf:/etc/letsencrypt
     command:
       ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT} $${USEPROXYSERVERNAME}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
+    depends_on:
+      - webserver
+      - websocket
 
 
   # nodeJS docs server + webapp
@@ -68,8 +70,6 @@ services:
         AISDBPORT: ${AISDBPORT:-9924}
     command:
       ['npm', '--prefix', 'aisdb_web/', 'start']
-    depends_on:
-      - nginx
     networks:
       ipv6_private:
         ipv6_address: "fc00::3"
@@ -89,8 +89,6 @@ services:
       AISDBPORT: ${AISDBPORT:-9924}
     command:
       ['python', '-Ou', 'aisdb/websocket_server.py']
-    depends_on:
-      - nginx
     networks: 
       ipv6_private:
         ipv6_address: "fc00::6"

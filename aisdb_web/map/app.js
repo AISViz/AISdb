@@ -1,8 +1,7 @@
-// debugger;
-import './map';
 import './wasm_hook';
 import './clientsocket';
 import './selectform';
+import './map';
 
 /*
 window.addEventListener('load', () => {

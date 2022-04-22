@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.1.1
+------
+
+numerous bug fixes in webapp
+
+
 v1.1.0
 ------
 

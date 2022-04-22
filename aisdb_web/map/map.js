@@ -1,6 +1,6 @@
 import 'ol/ol.css';
 import * as olProj from 'ol/proj';
-import Map from 'ol/Map';
+import { Map as _Map } from 'ol';
 import BingMaps from 'ol/source/BingMaps';
 import TileLayer from 'ol/layer/Tile';
 import View from 'ol/View';
@@ -10,15 +10,20 @@ import { Vector as VectorSource } from 'ol/source';
 import { Vector as VectorLayer } from 'ol/layer';
 import Draw, { createBox } from 'ol/interaction/Draw';
 
-import { vesseltypes, polyStyle, selectStyle, vesselStyles } from './palette';
+import {
+  polyStyle,
+  selectStyle,
+  vesselStyles,
+  vesseltypes,
+} from './palette';
 
 
 const statusdiv = document.getElementById('status-div');
 
 
 let mapLayer = new TileLayer({
-  visible: true,
-  preload: Infinity,
+  //visible: true,
+  //preload: Infinity,
   source: new BingMaps({
     key: import.meta.env.VITE_BINGMAPSKEY,
     imagerySet: "Aerial",
@@ -26,12 +31,21 @@ let mapLayer = new TileLayer({
     // "no photos at this zoom level" tiles
     // maxZoom: 19
   }),
-  zIndex: 0,
+  //zIndex: 0,
 });
 /*
 import OSM from 'ol/source/OSM';
+let mapSource = new OSM();
+mapSource.on('tileloadstart', () => {
+  console.log('started loading source...');
+});
+mapSource.on('tileloadend', () => {
+  console.log('finishing loading source.');
+});
+
 let mapLayer = new TileLayer({
-  source: new OSM(),
+  visible: true,
+  source: mapSource,
 });
 */
 
@@ -51,17 +65,26 @@ const lineLayer = new VectorLayer({
   zIndex: 2,
 });
 
-let map = new Map({
+
+let mapview = new View({
+  // center: olProj.fromLonLat([-63.6, 44.6]), //east
+  // center: olProj.fromLonLat([-123.0, 49.2]), //west
+  center: olProj.fromLonLat([ -100, 57 ]), // west
+  zoom: 4.5,
+});
+/*
+let map = new _Map({
   target: 'map', // div item in index.html
   layers: [ mapLayer, polyLayer, lineLayer, drawLayer ],
-  //layers: [ polyLayer, lineLayer, drawLayer ],
-  view: new View({
-    // center: olProj.fromLonLat([-63.6, 44.6]), //east
-    // center: olProj.fromLonLat([-123.0, 49.2]), //west
-    center: olProj.fromLonLat([ -100, 57 ]), // west
-    zoom: 4,
-  }),
+  view: mapview,
 });
+*/
+let map = new _Map();
+
+
+map.setLayers([ mapLayer, polyLayer, lineLayer, drawLayer ]);
+map.setView(mapview);
+map.setTarget('mapDiv');
 
 /* map interactions */
 window.searcharea = null;
@@ -194,6 +217,7 @@ map.on('pointermove', (e) => {
     statusdiv.innerHTML = window.statusmsg;
   }
 });
+
 
 export {
   addInteraction,

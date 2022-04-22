@@ -65,7 +65,7 @@ RUN /bin/bash ./sphinxbuild.sh
 COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 RUN cd aisdb_wasm && wasm-pack build --target web --out-dir pkg --release
 COPY --chown=ais_env aisdb_web/ aisdb_web/
-RUN cp -r aisdb_wasm/pkg aisdb_web/pkg
+RUN mv aisdb_wasm/pkg aisdb_web/pkg
 # RUN wasm-opt ...
 RUN cd aisdb_web \
   && VITE_BINGMAPSKEY=$BINGMAPSKEY \
