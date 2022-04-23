@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.1.3
+------
+
+update server to vectorize zone geometry when sending to client
+
+
 v1.1.2
 ------
 

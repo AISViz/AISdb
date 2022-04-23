@@ -73,6 +73,29 @@ class SocketServ():
             elif req['type'] == 'ack':
                 pass
 
+    async def await_response(self, websocket):
+        clientresponse = await websocket.recv()
+        response = json.loads(clientresponse)
+        if 'type' not in response.keys():
+            raise RuntimeWarning(f'Unhandled client message: {response}')
+        elif response['type'] == 'ack':
+            pass
+        elif response['type'] == 'stop':
+            await websocket.send(
+                json.dumps({
+                    'type': 'done',
+                    'status': 'Halted search'
+                }))
+            return 'HALT'
+        elif response['type'] == 'zones':
+            await self.req_zones(response, websocket)
+
+        elif response['type'] == 'track_vectors':
+            await self.req_tracks_raw(response, websocket)
+        else:
+            raise RuntimeWarning(f'Unhandled client message: {response}')
+        return 0
+
     async def req_valid_range(self, req, websocket):
         with DBConn(dbpath).conn as conn:
             res = sorted([
@@ -95,16 +118,22 @@ class SocketServ():
             }))
 
     async def req_zones(self, req, websocket):
-        zones = {'type': 'WKBHex', 'geometries': []}
+        #zones = {'type': 'WKBHex', 'geometries': []}
+        zones = {'type': 'zones', 'geometries': []}
         for zone in self.domain.zones:
+            x, y = zone['geometry'].boundary.coords.xy
             event = {
-                'geometry': zone['geometry'].wkb_hex,
+                'msgtype': 'zone',
+                'x': list(x),
+                'y': list(y),
+                't': [],
                 'meta': {
-                    'label': zone['name'],
+                    'name': zone['name'],
+                    'maxradius': str(zone['maxradius']),
                 },
             }
-            zones['geometries'].append(event)
-        await websocket.send(json.dumps(zones).replace(' ', ''))
+            await websocket.send(json.dumps(event).replace(' ', ''))
+        #await websocket.send(json.dumps(zones).replace(' ', ''))
 
     async def req_tracks_raw(self, req, websocket):
         start = datetime(*map(int, req['start'].split('-')))
@@ -140,8 +169,11 @@ class SocketServ():
                             **track['marinetraffic_info']).items()
                     },
                 }
-                await websocket.send(json.dumps(event).replace(' ', ''))
+                await websocket.send(json.dumps(event).replace(', ', ','))
                 count += 1
+                if await self.await_response(websocket) == 'HALT':
+                    return
+                '''
                 clientresponse = await websocket.recv()
                 response = json.loads(clientresponse)
                 if 'type' not in response.keys():
@@ -159,6 +191,7 @@ class SocketServ():
                 else:
                     raise RuntimeWarning(
                         f'Unhandled client message: {response}')
+                '''
             if count > 0:
                 await websocket.send(
                     json.dumps({
