@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.1.2
+------
+
+docker build: optimize generated webassembly
+
+
 v1.1.1
 ------
 
