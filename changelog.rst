@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.1.6
+------
+
+update website build
+
+
 v1.1.5
 ------
 
