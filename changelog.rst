@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.1.4
+------
+
+update nginx routing
+
+
 v1.1.3
 ------
 
