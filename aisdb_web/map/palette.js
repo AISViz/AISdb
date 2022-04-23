@@ -21,6 +21,16 @@ const selectStyle = new Style({
   }),
 });
 
+const hiddenStyle = new Style({
+  fill: new Fill({
+    color: 'rgba(255, 255, 255, 0)',
+  }),
+  stroke: new Stroke({
+    color: 'rgba(255, 255, 255, 0)',
+    width: 0,
+  }),
+});
+
 const palette = [
   // [0, 0, 0],
   // [1, 0, 103],
@@ -172,4 +182,11 @@ for (const key of Object.keys(vesseltypes)) {
   });
 }
 
-export { vesseltypes, selectStyle, polyStyle, vesselStyles };
+export {
+  hiddenStyle,
+  polyStyle,
+  selectStyle,
+  vesselStyles,
+  vessellabels,
+  vesseltypes,
+};

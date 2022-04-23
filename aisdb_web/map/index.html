@@ -3,16 +3,19 @@
 
   <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="./styles.css" type="text/css">
     <title>AISDB</title>
     <meta name="description" content="Ship Tracking Database">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#282c34">
     <!-- 
-      Favicon attribution:
-      By https://commons.wikimedia.org/w/index.php?title=File:Antu_tag-places.svg&amp;action=history - File:Antu tag-places.svg, CC BY 3.0, https://commons.wikimedia.org/w/index.php?curid=53807735 
+      Favicon attribution: 
+      https://commons.wikimedia.org/w/index.php?title=File:Antu_tag-places.svg&amp;action=history
+      File:Antu tag-places.svg, CC BY 3.0, https://commons.wikimedia.org/w/index.php?curid=53807735 
     -->
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="./favicon.png" type="image/png">
+    <link rel="stylesheet" href="./styles.css" type="text/css">
+    <link rel="manifest" href="/manifest.webmanifest">
   </head>
 
   <body>
@@ -49,7 +52,15 @@
         <label for="time-select-end">End</label>
         <input id="time-select-end" type="date" name="timeSelect" required>
 
+        <div class="smallfill"></div>
+
+        <label id="vesseltype-select-label" for="vesseltype-select">Vessel Type</label>
+        <select id="vesseltype-select">
+	  <option value="All" selected>All</option>
+        </select>
+
         <div id="status-div" class="flexfill statusmsg" ></div>
+
         <div class="smallfill"></div>
 
         <button id="searchbtn" type="button">Search</button>

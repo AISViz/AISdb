@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.1.5
+------
+
+web client: enable filtering tracks by vessel type, and add ecoregions polygon display via GET request
+
+
 v1.1.4
 ------
 

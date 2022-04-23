@@ -17,21 +17,23 @@ import {
   vesseltypes,
 } from './palette';
 
+import { set_track_style } from './selectform';
+
 
 const statusdiv = document.getElementById('status-div');
 
 
 let mapLayer = new TileLayer({
-  //visible: true,
-  //preload: Infinity,
+  // visible: true,
+  // preload: Infinity,
   source: new BingMaps({
     key: import.meta.env.VITE_BINGMAPSKEY,
-    imagerySet: "Aerial",
+    imagerySet: 'Aerial',
     // use maxZoom 19 to see stretched tiles instead of the BingMaps
     // "no photos at this zoom level" tiles
     // maxZoom: 19
   }),
-  //zIndex: 0,
+  // zIndex: 0,
 });
 /*
 import OSM from 'ol/source/OSM';
@@ -150,13 +152,22 @@ function newTrackFeature(geojs, meta) {
   if (meta.flag !== 'None') {
     meta_str = `${meta_str }flag: ${meta.flag}  `;
   }
-  feature.setProperties({ meta: meta, meta_str: meta_str, });
-  feature.setStyle(vesselStyles[meta.vesseltype_generic]);
+  feature.setProperties({ meta: meta, meta_str: meta_str.replace(' ', '&nbsp;'), });
+  // feature.setStyle(vesselStyles[meta.vesseltype_generic]);
+  set_track_style(feature);
   feature.set('COLOR', vesseltypes[meta.vesseltype_generic]);
   lineSource.addFeature(feature);
 }
 
-function newPolygonFeature(wkbFeatures, meta) {
+function newPolygonFeature(geojs, meta) {
+  const format = new GeoJSON();
+  const feature = format.readFeature(geojs, {
+    dataProjection: 'EPSG:4326',
+    featureProjection: 'EPSG:3857',
+  });
+  feature.setProperties({ meta_str: meta.name });
+  polySource.addFeature(feature);
+  /*
   const format = new WKB();
   for (let i = 0, ii = wkbFeatures.length; i < ii; ++i) {
     const feature = format.readFeature(wkbFeatures[i], {
@@ -169,6 +180,7 @@ function newPolygonFeature(wkbFeatures, meta) {
     // feature.setStyle(polyStyle);
     polySource.addFeature(feature);
   }
+  */
 }
 
 
@@ -191,7 +203,8 @@ map.on('pointermove', (e) => {
   if (previous !== null &&
     previous !== selected &&
     previous.get('meta') !== undefined) {
-    previous.setStyle(vesselStyles[previous.get('meta').vesseltype_generic]);
+    // previous.setStyle(vesselStyles[previous.get('meta').vesseltype_generic]);
+    set_track_style(previous);
   }
 
   // highlight feature at cursor
@@ -224,6 +237,7 @@ export {
   clearFeatures,
   draw,
   drawSource,
+  lineSource,
   map,
   newPolygonFeature,
   newTrackFeature
