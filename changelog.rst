@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.1.8
+------
+
+front end overhaul
+
+
 v1.1.7
 ------
 

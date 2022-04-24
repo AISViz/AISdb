@@ -9,6 +9,8 @@ import GeoJSON from 'ol/format/GeoJSON';
 import { Vector as VectorSource } from 'ol/source';
 import { Vector as VectorLayer } from 'ol/layer';
 import Draw, { createBox } from 'ol/interaction/Draw';
+import { DragBox, Select } from 'ol/interaction';
+import Feature from 'ol/Feature';
 
 import {
   polyStyle,
@@ -37,17 +39,9 @@ let mapLayer = new TileLayer({
 });
 /*
 import OSM from 'ol/source/OSM';
-let mapSource = new OSM();
-mapSource.on('tileloadstart', () => {
-  console.log('started loading source...');
-});
-mapSource.on('tileloadend', () => {
-  console.log('finishing loading source.');
-});
-
 let mapLayer = new TileLayer({
   visible: true,
-  source: mapSource,
+  source: new OSM(),
 });
 */
 
@@ -69,38 +63,60 @@ const lineLayer = new VectorLayer({
 
 
 let mapview = new View({
-  center: olProj.fromLonLat([-63.6, 44.0]), //east
+  center: olProj.fromLonLat([ -63.6, 44.0 ]), // east
   // center: olProj.fromLonLat([-123.0, 49.2]), //west
-  //center: olProj.fromLonLat([ -100, 57 ]), // canada
+  // center: olProj.fromLonLat([ -100, 57 ]), // canada
   zoom: 7,
 });
-/*
 let map = new _Map({
-  target: 'map', // div item in index.html
+  target: 'mapDiv', // div item in index.html
   layers: [ mapLayer, polyLayer, lineLayer, drawLayer ],
   view: mapview,
 });
-*/
+
+/*
 let map = new _Map();
-
-
 map.setLayers([ mapLayer, polyLayer, lineLayer, drawLayer ]);
 map.setView(mapview);
 map.setTarget('mapDiv');
+*/
 
 /* map interactions */
 window.searcharea = null;
+
+/* cursor styling: indicate to the user that we are selecting an area */
+/*
 let draw = null; // global so we can remove it later
 function addInteraction() {
   draw = new Draw({
-    source: drawSource,
-    type: 'Circle',
-    geometryFunction: createBox(),
-    geometryName: 'selectbox',
-    zIndex: 10,
+    //source: drawSource,
+    //type: 'Circle',
+    //geometryFunction: createBox(),
+    //geometryName: 'selectbox',
+    //zIndex: 10,
   });
   map.addInteraction(draw);
 }
+*/
+let draw = new Draw({
+  type: 'Point',
+});
+
+const dragBox = new DragBox({});
+dragBox.on('boxend', () => {
+  window.geom = dragBox.getGeometry();
+  let selectFeature = new Feature({
+    geometry: dragBox.getGeometry(),
+    name: 'selectionArea',
+  });
+  map.removeInteraction(dragBox);
+  drawSource.addFeature(selectFeature);
+});
+function addInteraction() {
+  map.addInteraction(draw);
+  map.addInteraction(dragBox);
+}
+
 drawSource.on('addfeature', (e) => {
   let selectbox = drawSource.getFeatures()[0].getGeometry().clone()
     .transform('EPSG:3857', 'EPSG:4326').getCoordinates()[0];
@@ -114,6 +130,7 @@ drawSource.on('addfeature', (e) => {
     selectbox[2][1], selectbox[3][1], selectbox[4][1]);
   window.searcharea = { minX:minX, maxX:maxX, minY:minY, maxY:maxY };
   map.removeInteraction(draw);
+  map.removeInteraction(dragBox);
 });
 
 
@@ -134,10 +151,10 @@ function newTrackFeature(geojs, meta) {
   if (meta.mmsi !== 'None') {
     meta_str = `${meta_str}MMSI: ${meta.mmsi}&emsp;`;
   }
-  if (meta.imo !== 'None') {
+  if (meta.imo !== 'None' && meta.imo !== 0) {
     meta_str = `${meta_str}IMO: ${meta.imo}&emsp;`;
   }
-  if (meta.name !== 'None') {
+  if (meta.name !== 'None' && meta.name !== 0) {
     meta_str = `${meta_str}name: ${meta.name}&emsp;`;
   }
   if (meta.vesseltype_generic !== 'None') {
@@ -152,8 +169,10 @@ function newTrackFeature(geojs, meta) {
   if (meta.flag !== 'None') {
     meta_str = `${meta_str }flag: ${meta.flag}  `;
   }
-  feature.setProperties({ meta: meta, meta_str: meta_str.replace(' ', '&nbsp;'), });
-  // feature.setStyle(vesselStyles[meta.vesseltype_generic]);
+  feature.setProperties({
+    meta: meta,
+    meta_str: meta_str.replace(' ', '&nbsp;'),
+  });
   set_track_style(feature);
   feature.set('COLOR', vesseltypes[meta.vesseltype_generic]);
   lineSource.addFeature(feature);
@@ -167,20 +186,6 @@ function newPolygonFeature(geojs, meta) {
   });
   feature.setProperties({ meta_str: meta.name });
   polySource.addFeature(feature);
-  /*
-  const format = new WKB();
-  for (let i = 0, ii = wkbFeatures.length; i < ii; ++i) {
-    const feature = format.readFeature(wkbFeatures[i], {
-      dataProjection: 'EPSG:4326',
-      featureProjection: 'EPSG:3857',
-    });
-    // feature.setGeometryName(meta['label']);
-    feature.setProperties({ meta_str: meta.label });
-    // feature.setId(meta['label']);
-    // feature.setStyle(polyStyle);
-    polySource.addFeature(feature);
-  }
-  */
 }
 
 
@@ -236,9 +241,11 @@ export {
   addInteraction,
   clearFeatures,
   draw,
+  dragBox,
   drawSource,
   lineSource,
   map,
+  mapview,
   newPolygonFeature,
   newTrackFeature
 };

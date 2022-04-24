@@ -27,21 +27,6 @@
       <div id="formDiv" class="formdiv">
         <form action="/mapselect" method="POST" class="optionSelectContainer">
 
-
-        <!--
-        <input type="hidden" name="_csrf" value="{{csrfToken}}">
-        <div class="flexvfill"></div>
-
-        <label id="layer-select-label" for="layer-select">Map Layer</label>
-	<select id="layer-select">
-	  <option value="Aerial" selected>Aerial</option>
-	  <option value="AerialWithLabelsOnDemand">Aerial with labels</option>
-	  <option value="RoadOnDemand">Road</option>
-	  <option value="CanvasDark">Road dark</option>
-	</select>
-        -->
-
-
         <div class="smallfill"></div>
 
         <button id="selectbtn" type="button">Select Area</button>
@@ -80,7 +65,7 @@
 
         </form>
       </div>
-      <div class="flexvfill"></div>
+      <div id="capture"></div>
     </div>
     <script type="module" src="./app.js" ></script>
     <!--

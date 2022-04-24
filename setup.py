@@ -52,6 +52,7 @@ setup(
         'wheel',
     ],
     install_requires=[
+        'aiosqlite',
         'numpy',
         'packaging',
         'pillow',
@@ -66,6 +67,7 @@ setup(
     extras_require={
         'testing': [
             'pytest',
+            'pytest-asyncio',
         ],
         'docs': [
             'sphinx',

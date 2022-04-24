@@ -1,8 +1,9 @@
-import socket from './clientsocket';
+import { socket, waitForTimerange } from './clientsocket';
 import {
   addInteraction,
   clearFeatures,
   draw,
+  dragBox,
   drawSource,
   lineSource,
   map,
@@ -22,18 +23,56 @@ const clearbtn = document.getElementById('clearbtn');
 
 selectbtn.onclick = function () {
   map.removeInteraction(draw);
+  map.removeInteraction(dragBox);
   drawSource.clear();
   addInteraction();
 };
 
 
 let searchstate = true;
+window.searchstate = function() {
+  console.log(searchstate);
+};
+
+async function resetSearchState() {
+  searchstate = true;
+}
+
+async function cancelSearch() {
+  searchbtn.disabled = true;
+  searchbtn.textContent = 'Search';
+  statusdiv.textContent = 'Cancelling...';
+  window.statusmsg = statusdiv.textContent;
+  await socket.send(JSON.stringify({ type: 'stop' }));
+}
+
+async function newSearch(start, end) {
+  searchstate = false;
+  statusdiv.textContent = 'Searching...';
+  searchbtn.textContent = 'Cancel';
+  window.statusmsg = statusdiv.textContent;
+  await socket.send(JSON.stringify({
+    type: 'track_vectors',
+    start: start,
+    end: end,
+    area: window.searcharea,
+  }));
+  window.searcharea = null;
+  drawSource.clear();
+}
+
 searchbtn.onclick = async function() {
-  let start = document.getElementById('time-select-start').value;
-  let end = document.getElementById('time-select-end').value;
+  let start = timeselectstart.value;
+  let end = timeselectend.value;
+
+  await waitForTimerange();
 
   // validate input and create database request
-  if (window.searcharea === null) {
+
+  if (searchstate === false) {
+    // if already searching, send STOP
+    await cancelSearch();
+  } else if (window.searcharea === null) {
     // validate area input
     statusdiv.textContent = 'Error: No area selected';
     window.statusmsg = statusdiv.textContent;
@@ -53,55 +92,39 @@ searchbtn.onclick = async function() {
     // validate time input
     statusdiv.textContent = `Error: No data after ${timeselectend.max}`;
     window.statusmsg = statusdiv.textContent;
-  } else if (searchstate !== true) {
-    // if already searching, send STOP
-    await socket.send(JSON.stringify({ type: 'stop' }));
-    searchbtn.textContent = 'Search';
-    searchstate = true;
-    searchbtn.disabled = true;
   } else if (searchstate === true) {
     // create database request if everything is OK
-    statusdiv.textContent = 'Searching...';
-    window.statusmsg = statusdiv.textContent;
-    await socket.send(JSON.stringify({
-      type: 'track_vectors',
-      start: start,
-      end: end,
-      area: window.searcharea,
-    }));
-    searchbtn.textContent = 'Stop';
-    searchstate = false;
-    drawSource.clear();
+    await newSearch(start, end);
   }
   map.removeInteraction(draw);
+  map.removeInteraction(dragBox);
 };
 
 
 clearbtn.onclick = async function() {
-  // map.layers = [];
-  searchbtn.disabled = true;
   window.searcharea = null;
   window.statusmsg = '';
   statusdiv.textContent = '';
   if (searchstate === false) {
-    // statusdiv.textContent = 'Stopping...';
-    // window.statusmsg = statusdiv.textContent;
-    await socket.send(JSON.stringify({ type: 'stop' }));
-    searchbtn.textContent = 'Search';
-    searchstate = true;
+    await cancelSearch();
   }
   map.removeInteraction(draw);
+  map.removeInteraction(dragBox);
   clearFeatures();
-  searchbtn.disabled = false;
 };
 
 
-function setSearchRange(start, end) {
+async function setSearchRange(start, end) {
   /* set min/max time range values */
   timeselectstart.min = start;
   timeselectend.min = start;
   timeselectstart.max = end;
   timeselectend.max = end;
+}
+
+async function setSearchValue(start, end) {
+  timeselectstart.value = start;
+  timeselectend.value = end;
 }
 
 for (let label of vessellabels) {
@@ -147,9 +170,21 @@ vesseltypeselect.addEventListener('change', update_vesseltype_styles);
 // const downloadbtn = document.getElementById('downloadbtn');
 // downloadbtn.style.display = 'none';
 
+async function waitForSearchState() {
+  while (searchstate === false) {
+    await new Promise((resolve) => {
+      return setTimeout(resolve, 250);
+    });
+  }
+}
+
 export {
   clearbtn,
   searchbtn,
+  resetSearchState,
   setSearchRange,
+  setSearchValue,
   set_track_style,
+  update_vesseltype_styles,
+  waitForSearchState,
 };

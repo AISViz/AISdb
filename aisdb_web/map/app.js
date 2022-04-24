@@ -1,9 +1,10 @@
+import './wasm_hook';
 import './map';
 import './selectform';
 import './clientsocket';
-import './wasm_hook';
+import './render';
 
-  /*
+/*
 import { registerSW } from 'virtual:pwa-register';
 
 window.addEventListener('load', () => {
@@ -12,4 +13,4 @@ window.addEventListener('load', () => {
     registerSW();
   }
 });
-  */
+*/
