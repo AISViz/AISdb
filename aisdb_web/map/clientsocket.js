@@ -1,6 +1,7 @@
 import { newPolygonFeature, newTrackFeature } from './map';
 import { process_response } from '../pkg/client';
 import { setSearchRange } from './selectform';
+import parseUrl from './url';
 
 let hostname = import.meta.env.VITE_AISDBHOST;
 if (hostname === undefined) {
@@ -30,6 +31,7 @@ socket.onopen = function(event) {
   let msg = `Established connection to ${socketHost}`;
   console.log(msg);
   socket.send(JSON.stringify({ type: 'validrange' }));
+  parseUrl();
 };
 socket.onclose = function(event) {
   let msg = null;

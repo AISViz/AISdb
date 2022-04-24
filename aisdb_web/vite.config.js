@@ -3,6 +3,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   root: 'map',
+  /*
   plugins: [
     VitePWA({
       includeAssets: [ 'favicon.svg', 'robots.txt' ],
@@ -32,10 +33,10 @@ export default defineConfig({
         orientation: 'landscape',
         shortcuts: [
           {
-            name: 'Ecoregions Demo',
+            name: 'Ecoregions Shortcut',
             short_name: 'Ecoregions',
-            description: 'Load ecoregions polygons, and display vessel data within regional domain bounding area',
-            url: '/map/index.html?qry=ecoregionsdemo',
+            description: 'Display map with ecoregion polygons overlay',
+            url: '/map/index.html?ecoregions',
             icons: [
               {
                 src: '/favicon.svg',
@@ -49,4 +50,5 @@ export default defineConfig({
       }
     })
   ],
+  */
 });

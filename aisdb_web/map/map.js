@@ -69,10 +69,10 @@ const lineLayer = new VectorLayer({
 
 
 let mapview = new View({
-  // center: olProj.fromLonLat([-63.6, 44.6]), //east
+  center: olProj.fromLonLat([-63.6, 44.0]), //east
   // center: olProj.fromLonLat([-123.0, 49.2]), //west
-  center: olProj.fromLonLat([ -100, 57 ]), // west
-  zoom: 4.5,
+  //center: olProj.fromLonLat([ -100, 57 ]), // canada
+  zoom: 7,
 });
 /*
 let map = new _Map({
