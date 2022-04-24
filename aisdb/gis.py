@@ -179,6 +179,12 @@ class Domain():
         assert self.maxX is not None
         assert self.minY is not None
         assert self.maxY is not None
+        self.boundary = {
+            'xmin': self.minX,
+            'xmax': self.maxX,
+            'ymin': self.minY,
+            'ymax': self.maxY
+        }
 
     def nearest_polygons_to_point(self, x, y):
         ''' compute great circle distance for this point to each polygon centroid,
