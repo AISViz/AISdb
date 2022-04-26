@@ -38,20 +38,21 @@ async function resetSearchState() {
   searchstate = true;
 }
 
-async function cancelSearch() {
-  searchbtn.disabled = true;
-  searchbtn.textContent = 'Search';
-  statusdiv.textContent = 'Cancelling...';
-  window.statusmsg = statusdiv.textContent;
-  await socket.send(JSON.stringify({ type: 'stop' }));
-}
-
 async function waitForSearchState() {
   while (searchstate === false) {
     await new Promise((resolve) => {
       return setTimeout(resolve, 250);
     });
   }
+}
+
+async function cancelSearch() {
+  searchbtn.disabled = true;
+  searchbtn.textContent = 'Search';
+  statusdiv.textContent = 'Cancelling...';
+  window.statusmsg = statusdiv.textContent;
+  await socket.send(JSON.stringify({ type: 'stop' }));
+  await waitForSearchState();
 }
 
 async function newSearch(start, end) {
