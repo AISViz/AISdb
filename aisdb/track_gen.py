@@ -138,7 +138,7 @@ async def TrackGen_async(
                 static=staticcols,
                 dynamic=dynamiccols,
             )
-            async for segment in _segment_longitude(trackdict):
+            for segment in _segment_longitude(trackdict):
                 yield segment
 
 
