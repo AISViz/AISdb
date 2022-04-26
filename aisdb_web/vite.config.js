@@ -1,9 +1,23 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const root = resolve(__dirname, 'dist_sphinx');
+const outDir = resolve(__dirname, 'dist');
+
 export default defineConfig({
-  root: 'map',
-  /*
+  root: root,
+  build: {
+    outDir: outDir,
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: resolve(root, 'index.html'),
+        map: resolve(root, 'map', 'index.html'),
+        // rust: resolve(root, 'rust', 'doc', 'aisdb', 'index.html'),
+      }
+    }
+  },
   plugins: [
     VitePWA({
       includeAssets: [ 'favicon.svg', 'robots.txt' ],
@@ -50,5 +64,4 @@ export default defineConfig({
       }
     })
   ],
-  */
 });

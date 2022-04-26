@@ -60,13 +60,10 @@ ARG AISDBPORT
 COPY --chown=ais_env readme.rst ./readme.rst
 COPY --chown=ais_env docs/ docs/
 COPY --chown=ais_env changelog.rst ./changelog.rst
-COPY --chown=ais_env sphinxbuild.sh ./sphinxbuild.sh
-RUN /bin/bash ./sphinxbuild.sh
+COPY --chown=ais_env build_website.sh ./build_website.sh
 COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
-RUN cd aisdb_wasm && wasm-pack build --target web --out-dir pkg --release
-RUN wasm-opt -O3 -o aisdb_wasm/pkg/client_bg.wasm aisdb_wasm/pkg/client_bg.wasm
 COPY --chown=ais_env aisdb_web/ aisdb_web/
-RUN mv aisdb_wasm/pkg aisdb_web/pkg
+RUN /bin/bash ./build_website.sh
 RUN cd aisdb_web \
   && VITE_BINGMAPSKEY=$BINGMAPSKEY \
      VITE_AISDBHOST=$AISDBHOST \

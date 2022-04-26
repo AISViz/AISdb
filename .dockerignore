@@ -35,6 +35,8 @@ aisdb_wasm/target
 aisdb_web/dist
 aisdb_web/node_modules
 aisdb_web/pkg
+aisdb_web/dist
+aisdb_web/dist_sphinx
 docs/html
 docs/source/api
 tag_img.sh

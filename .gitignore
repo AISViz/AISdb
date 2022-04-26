@@ -28,6 +28,9 @@ aisdb_rust/testdata
 aisdb_wasm/release
 aisdb_wasm/target
 aisdb_web/pkg
+aisdb_web/dist
+aisdb_web/dist_sphinx
+aisdb_web/node_modules
 docker-compose.override.yml
 docs/html/*
 docs/source/api/*

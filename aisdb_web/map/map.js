@@ -13,6 +13,7 @@ import { DragBox, Select } from 'ol/interaction';
 import Feature from 'ol/Feature';
 
 import {
+  dragBoxStyle,
   polyStyle,
   selectStyle,
   vesselStyles,
@@ -47,7 +48,7 @@ let mapLayer = new TileLayer({
 
 
 const drawSource = new VectorSource({ wrapX: false });
-const drawLayer = new VectorLayer({ source: drawSource, zIndex: 10 });
+const drawLayer = new VectorLayer({ source: drawSource, zIndex: 2 });
 
 const polySource = new VectorSource({});
 const polyLayer = new VectorLayer({
@@ -58,7 +59,7 @@ const lineSource = new VectorSource({});
 const lineLayer = new VectorLayer({
   source: lineSource,
   style: vesselStyles.Unspecified,
-  zIndex: 2,
+  zIndex: 3,
 });
 
 
@@ -109,8 +110,9 @@ dragBox.on('boxend', () => {
     geometry: dragBox.getGeometry(),
     name: 'selectionArea',
   });
-  map.removeInteraction(dragBox);
+  selectFeature.setStyle(dragBoxStyle);
   drawSource.addFeature(selectFeature);
+  map.removeInteraction(dragBox);
 });
 function addInteraction() {
   map.addInteraction(draw);
@@ -138,7 +140,6 @@ function clearFeatures() {
   /** clear all geometry features from map */
   drawSource.clear();
   lineSource.clear();
-  polySource.clear();
 }
 
 function newTrackFeature(geojs, meta) {

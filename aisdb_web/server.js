@@ -24,9 +24,9 @@ app.get('/mapselect', csrfProtection, (req, res) => {
 */
 
 // start the application
-app.use('/', express.static('../docs/html'));
-app.use('/map', express.static('../aisdb_web/dist'));
-app.use('/assets', express.static('../aisdb_web/dist/assets'));
+// app.use('/', express.static('../docs/html'));
+app.use('/', express.static('./dist'));
+// app.use('/assets', express.static('../aisdb_web/dist/assets'));
 // app.use('/manifest.json', express.static('./manifest.json'));
 // app.use('/favicon.svg', express.static('./favicon.svg'));
 // app.use('/robots.txt', express.static('./robots.txt'));

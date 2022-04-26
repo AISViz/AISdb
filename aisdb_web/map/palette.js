@@ -31,6 +31,16 @@ const hiddenStyle = new Style({
   }),
 });
 
+const dragBoxStyle = new Style({
+  fill: new Fill({
+    color: 'rgba(255, 255, 255, 0)',
+  }),
+  stroke: new Stroke({
+    color: 'rgba(0, 200, 255, .5)',
+    width: 3,
+  }),
+});
+
 const palette = [
   // [0, 0, 0],
   // [1, 0, 103],
@@ -183,6 +193,7 @@ for (const key of Object.keys(vesseltypes)) {
 }
 
 export {
+  dragBoxStyle,
   hiddenStyle,
   polyStyle,
   selectStyle,

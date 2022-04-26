@@ -11,6 +11,10 @@ body {
 
 button {
   font-size: 1em;
+  background-color: rgba(100,100,100,0.2);
+  border: 1px solid black;
+  --cursor: pointer;
+  border-radius: 2px;
 }
 
 select, input {
@@ -18,8 +22,66 @@ select, input {
   width: 8em;
   text-align: right;
   margin-left: .5em;
-  margin-right: .5em;
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+
+.hiddenmenu-btn {
+  font-size: 0.98em;
+  --background-color: rgba(100,100,100,0.2);
+  --border: 1px solid black;
+  cursor: pointer;
+  --border-radius: 0px;
+  --width: 10em;
+  overflow: auto;
+}
+
+.hiddenmenu-btn:hover, .hiddenmenu-btn:focus {
+
+}
+
+.hiddenmenu {
+  position: relative;
+  display: inline-block;
+  flex-direction: column-reverse;
+  text-align: center;
+  --overflow: scroll;
+  width: 8vw;
+}
+
+.hiddenmenu-content {
+  display: none;
+  position: absolute;
+  bottom: 24px;
+  z-index: 1;
+  --width: 100%;
+  --overflow: auto;
+  --overflow-y: auto;
+  background-color: #FFFFFF;
+  text-align: right;
+}
+
+.hiddenmenu-content a {
+  text-decoration: none;
+  display: block;
+  padding: 0px 6px;
+  width: 12em;
+}
+
+.hiddenmenu-content a:hover {
+  background-color: rgba(100,100,100,0.4);
+}
+
+.hiddenmenu-content div {
+  display: inline-block;
+}
+
+.colordot {
+  --font-size: 125%;
+}
+
+.show {
+  display: block;
 }
 
 

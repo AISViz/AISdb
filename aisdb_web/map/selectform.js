@@ -9,7 +9,7 @@ import {
   map,
 } from './map';
 
-import { vessellabels, vesselStyles, hiddenStyle } from './palette';
+import { vessellabels, vesseltypes, vesselStyles, hiddenStyle } from './palette';
 
 
 let statusdiv = document.getElementById('status-div');
@@ -46,6 +46,14 @@ async function cancelSearch() {
   await socket.send(JSON.stringify({ type: 'stop' }));
 }
 
+async function waitForSearchState() {
+  while (searchstate === false) {
+    await new Promise((resolve) => {
+      return setTimeout(resolve, 250);
+    });
+  }
+}
+
 async function newSearch(start, end) {
   searchstate = false;
   statusdiv.textContent = 'Searching...';
@@ -58,6 +66,7 @@ async function newSearch(start, end) {
     area: window.searcharea,
   }));
   window.searcharea = null;
+  await waitForSearchState();
   drawSource.clear();
 }
 
@@ -127,22 +136,14 @@ async function setSearchValue(start, end) {
   timeselectend.value = end;
 }
 
-for (let label of vessellabels) {
-  let opt = document.createElement('option');
-  opt.value = label;
-  opt.innerHTML = label;
-  vesseltypeselect.appendChild(opt);
-}
-let opt = document.createElement('option');
-opt.value = 'None';
-opt.innerHTML = 'Unknown';
-vesseltypeselect.appendChild(opt);
+const vesselmenu = document.getElementById('vesseltype-menu');
+let selectedType = 'All';
 
 function set_track_style(ft) {
   /* set feature style according to vessel type and currently displayed types */
-  if (vesseltypeselect.value === 'All') {
+  if (selectedType === 'All') {
     ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
-  } else if (ft.get('meta').vesseltype_generic.includes(vesseltypeselect.value)) {
+  } else if (ft.get('meta').vesseltype_generic.includes(selectedType)) {
     ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
   } else {
     ft.setStyle(hiddenStyle);
@@ -151,13 +152,13 @@ function set_track_style(ft) {
 
 function update_vesseltype_styles() {
   /* vessel types selector action */
-  if (vesseltypeselect.value === 'All') {
+  if (selectedType === 'All') {
     for (let ft of lineSource.getFeatures()) {
       ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
     }
   } else {
     for (let ft of lineSource.getFeatures()) {
-      if (ft.get('meta').vesseltype_generic.includes(vesseltypeselect.value)) {
+      if (ft.get('meta').vesseltype_generic.includes(selectedType)) {
         ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
       } else {
         ft.setStyle(hiddenStyle);
@@ -165,18 +166,38 @@ function update_vesseltype_styles() {
     }
   }
 }
-vesseltypeselect.addEventListener('change', update_vesseltype_styles);
+
+// vesseltypeselect.addEventListener('change', update_vesseltype_styles);
+function createVesselMenuItem(label, value, symbol) {
+  if (symbol === undefined) {
+    symbol = '⚫';
+  }
+  let opt = document.createElement('a');
+  // opt.href = '#';
+  let colordot = `<div class="colordot" style="color: rgb(${vesseltypes[label]}); display: inline-block;">${symbol}</div>`;
+  opt.className = 'hiddenmenu-item';
+  opt.innerHTML = `<div>${label}</div>&ensp;${colordot}`;
+  opt.dataset.value = value;
+  opt.onclick = function() {
+    selectedType = opt.dataset.value;
+    update_vesseltype_styles();
+    vesseltypeselect.innerHTML = `Vessel Type ${colordot}`;
+    vesselmenu.classList.toggle('show');
+  };
+  vesselmenu.appendChild(opt);
+}
+createVesselMenuItem('All', 'All', '⋀');
+for (let label of vessellabels) {
+  createVesselMenuItem(label, label);
+}
+createVesselMenuItem('Unknown', 'None', '⚪');
+vesseltypeselect.onclick = function() {
+  vesselmenu.classList.toggle('show');
+};
+
 
 // const downloadbtn = document.getElementById('downloadbtn');
 // downloadbtn.style.display = 'none';
-
-async function waitForSearchState() {
-  while (searchstate === false) {
-    await new Promise((resolve) => {
-      return setTimeout(resolve, 250);
-    });
-  }
-}
 
 export {
   clearbtn,
