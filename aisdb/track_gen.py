@@ -43,35 +43,6 @@ def _segment_longitude(track, tolerance=300):
         )
 
 
-async def _segment_longitude_async(track, tolerance=300):
-    ''' segment track vectors where difference in longitude exceeds 300 degrees
-    '''
-
-    if track['time'].size == 1:
-        yield track
-        return
-
-    diff = np.nonzero(
-        np.abs(track['lon'][1:] - track['lon'][:-1]) > tolerance)[0] + 1
-
-    if diff.size == 0:
-        yield track
-        return
-
-    segments_idx = reduce(np.append, ([0], diff, [track['time'].size]))
-    async for i in range(segments_idx.size - 1):
-        yield dict(
-            **{k: track[k]
-               for k in track['static']},
-            **{
-                k: track[k][segments_idx[i]:segments_idx[i + 1]]
-                for k in track['dynamic']
-            },
-            static=track['static'],
-            dynamic=track['dynamic'],
-        )
-
-
 async def TrackGen_async(
     rowgen: iter,
     colnames: list = [
@@ -167,7 +138,7 @@ async def TrackGen_async(
                 static=staticcols,
                 dynamic=dynamiccols,
             )
-            async for segment in _segment_longitude_async(trackdict):
+            async for segment in _segment_longitude(trackdict):
                 yield segment
 
 
