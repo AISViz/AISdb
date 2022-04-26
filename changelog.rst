@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.1.10
+-------
+
+fix bugs when viewing from firefox browser
+
+
 v1.1.9
 ------
 

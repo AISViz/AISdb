@@ -4,7 +4,6 @@ import ssl
 import json
 import websockets
 import calendar
-import concurrent.futures
 from datetime import datetime
 
 from aisdb import zones_dir, DomainFromTxts
@@ -126,6 +125,8 @@ class SocketServ():
                 },
             }
             await websocket.send(json.dumps(event).replace(' ', ''))
+            if await self.await_response(websocket) == 'HALT':
+                return
         await websocket.send(json.dumps({'type': 'doneZones'}))
 
     async def req_tracks_raw(self, req, websocket):

@@ -3,6 +3,7 @@ import { process_response } from '../pkg/client';
 import { searchbtn, resetSearchState, setSearchRange } from './selectform';
 import parseUrl from './url';
 
+
 let hostname = import.meta.env.VITE_AISDBHOST;
 if (hostname === undefined) {
   hostname = 'localhost';
@@ -55,6 +56,7 @@ socket.onopen = async function(event) {
   let msg = `Established connection to ${socketHost}`;
   console.log(msg);
   await socket.send(JSON.stringify({ type: 'validrange' }));
+  await waitForTimerange();
 
   await parseUrl();
 };
@@ -78,14 +80,7 @@ socket.onerror = function(error) {
 };
 socket.onmessage = async function(event) {
   let response = JSON.parse(event.data);
-  if (response.type === 'WKBHex') {
-    for (const geom in response.geometries) {
-      newPolygonFeature(
-        [ response.geometries[geom].geometry ],
-        response.geometries[geom].meta
-      );
-    }
-  } else if (response.msgtype === 'track_vector') {
+  if (response.msgtype === 'track_vector') {
     let processed = utf8_js(process_response({ rawdata:js_utf8(response) }));
     // console.log(JSON.stringify(response['meta']['vesseltype_generic']));
     newTrackFeature(processed, response.meta);
@@ -95,7 +90,7 @@ socket.onmessage = async function(event) {
     processed.type = 'Polygon';
     processed.coordinates = [ processed.coordinates ];
     newPolygonFeature(processed, response.meta);
-    // await socket.send(JSON.stringify({'type': 'ack'}));
+    await socket.send(JSON.stringify({ type: 'ack' }));
   } else if (response.type === 'done') {
     document.getElementById('status-div').textContent = response.status;
     window.statusmsg = response.status;

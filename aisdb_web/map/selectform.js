@@ -171,10 +171,11 @@ function update_vesseltype_styles() {
 // vesseltypeselect.addEventListener('change', update_vesseltype_styles);
 function createVesselMenuItem(label, value, symbol) {
   if (symbol === undefined) {
-    symbol = '⚫';
+    // symbol = '⚫';
+    // symbol = 'X';
+    symbol = '■';
   }
   let opt = document.createElement('a');
-  // opt.href = '#';
   let colordot = `<div class="colordot" style="color: rgb(${vesseltypes[label]}); display: inline-block;">${symbol}</div>`;
   opt.className = 'hiddenmenu-item';
   opt.innerHTML = `<div>${label}</div>&ensp;${colordot}`;
@@ -191,7 +192,9 @@ createVesselMenuItem('All', 'All', '⋀');
 for (let label of vessellabels) {
   createVesselMenuItem(label, label);
 }
-createVesselMenuItem('Unknown', 'None', '⚪');
+// '⚪'
+// createVesselMenuItem('Unknown', 'None', 'x');
+createVesselMenuItem('Unknown', 'None', '□');
 vesseltypeselect.onclick = function() {
   vesselmenu.classList.toggle('show');
 };

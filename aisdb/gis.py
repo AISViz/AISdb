@@ -221,9 +221,6 @@ class DomainFromTxts(Domain):
         )).T)
 
     def adjust_coords(self, longitudes):
-        '''
-            longitudes = np.array([-181, -179, 0, 179, 181])
-        '''
         longitudes[np.where(longitudes >= 180)[0]] = -180
         longitudes[np.where(longitudes <= -180)[0]] = 180
         return longitudes
@@ -234,12 +231,12 @@ class DomainFromTxts(Domain):
         decomp = shapely.ops.polygonize(border)
         return decomp
 
-    def __init__(self, domainName, folder):
+    def __init__(self, domainName, folder, ext='txt'):
         self.minX = None
         self.maxX = None
         self.minY = None
         self.maxY = None
-        files = glob_files(folder, ext='txt')
+        files = glob_files(folder, ext=ext)
         zones = []
         for txt in files:
             filename = txt.rsplit(os.path.sep, 1)[1].split('.')[0]
