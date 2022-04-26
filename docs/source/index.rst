@@ -1,9 +1,3 @@
-Webmap
-======
-
-`Webmap <./map>`_  
-
-
 AISDB Docs: Index
 =================
 
@@ -11,6 +5,7 @@ AISDB Docs: Index
    :maxdepth: 4
    :caption: Contents:
 
+   Webmap </map/index.html#http://>  
    readme
    docker
    database
@@ -33,6 +28,4 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-   
 

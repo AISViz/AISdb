@@ -1,68 +1,108 @@
 version: '3.9'
 
 services:
-
-  aisdb_rust:
-    container_name: aisdb_rust
+  # compile rust and run rust tests
+  rust-test:
+    container_name: rust-test
     environment:
       - RUST_BACKTRACE=1
     build:
-      target: test_rust
+      target: build_rust
       context: .
       dockerfile: ./docker/Dockerfile
     environment:
       - RUST_BACKTRACE=1
     networks:
-      - ipv6_private
+      ipv6_private:
+        ipv6_address: "fc00::4"
+    command:
+      ["cargo", "test", "--manifest-path=aisdb_rust/Cargo.toml", "--color=always"]
 
-  aisdb_test:
-    container_name: aisdb_test
+  # build python package and run python tests
+  python-test:
+    container_name: python-test
     build:
-      target: test_python
+      target: build_python
       context: .
       dockerfile: ./docker/Dockerfile
     environment:
       - RUST_BACKTRACE=1
     networks:
-      - ipv6_private
+      ipv6_private:
+        ipv6_address: "fc00::5"
+    command:
+      ["python", "-m", "pytest", "--color=yes", "--tb=native", "tests/"]
 
-  aisdb_web:
-    container_name: aisdb_web
+  # proxy router
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    environment: 
+      AISDBHOST: ${AISDBHOST:-127.0.0.1}
+      AISDBPORT: ${AISDBPORT:-9924}
+    ports:
+     - "80:80"
+     - "443:443"
+     - "${AISDBPORT:-9924}:${AISDBPORT:-9924}"
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::2"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
+      # - ~/cert/conf:/etc/letsencrypt
+    command:
+      ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT} $${USEPROXYSERVERNAME}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
+    depends_on:
+      - webserver
+      - websocket
+
+
+  # nodeJS docs server + webapp
+  webserver:
+    container_name: webserver
     build: 
       target: webserv
       context: .
       dockerfile: ./docker/Dockerfile
       args:
         BINGMAPSKEY: ${BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
-    #expose:
-    #  - "8080"
+        AISDBHOST: ${AISDBHOST:-127.0.0.1}
+        AISDBPORT: ${AISDBPORT:-9924}
+    command:
+      ['npm', '--prefix', 'aisdb_web/', 'start']
     networks:
       ipv6_private:
         ipv6_address: "fc00::3"
+    #env_file:
+    #  - ./.env
 
-  nginx:
-    image: nginx:latest
-    container_name: aisdb_nginx
-    volumes:
-      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
-      # - ./nginx/certbot/conf:/etc/letsencrypt
-      # - ./nginx/certbot/www:/var/www/certbot
-    ports:
-     - "80:80"
-     - "443:443"
+  # database server
+  websocket:
+    container_name: websocket
+    build:
+      target: build_python
+      context: .
+      dockerfile: ./docker/Dockerfile
+    environment:
+      AISDBHOST: ${AISDBHOST:-127.0.0.1}
+      AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
+      AISDBPORT: ${AISDBPORT:-9924}
+    command:
+      ['python', '-Ou', 'aisdb/websocket_server.py']
+    networks: 
+      ipv6_private:
+        ipv6_address: "fc00::6"
+
+  # https://eff-certbot.readthedocs.io/en/stable/using.html#where-are-my-certificates
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    #volumes:
+    #  - ~/cert/conf:/etc/letsencrypt
     networks:
       ipv6_private:
-        ipv6_address: "fc00::2"
-
-  #certbot:
-  #image: certbot/certbot
-  #container_name: aisdb_certbot
-  #volumes:
-  #  - ./nginx/certbot/conf:/etc/letsencrypt
-  #  - ./nginx/certbot/www:/var/www/certbot
-  #networks:
-  #  ipv6_private:
-  #    ipv6_address: "fc00::4"
+        ipv6_address: "fc00::7"
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 
 networks:

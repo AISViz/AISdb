@@ -1,6 +1,7 @@
 INSERT OR IGNORE INTO webdata_marinetraffic (
     mmsi, 
     imo, 
+    name,
     vesseltype_generic,
     vesseltype_detailed,
     callsign,
@@ -11,4 +12,4 @@ INSERT OR IGNORE INTO webdata_marinetraffic (
     year_built,
     home_port
   )
-VALUES (CAST(? AS INT),CAST(? AS INT),?,?,?,?,?,?,?,?,?);
+VALUES (CAST(? AS INT),CAST(? AS INT),?,?,?,?,?,?,?,?,?,?);

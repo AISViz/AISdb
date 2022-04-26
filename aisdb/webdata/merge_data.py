@@ -5,7 +5,7 @@ import numpy as np
 from wsa import wsa
 from webdata.bathymetry import Gebco
 from webdata.shore_dist import shore_dist_gfw
-from webdata import marinetraffic
+#from webdata import marinetraffic
 
 
 def merge_tracks_shoredist(tracks):
@@ -51,26 +51,6 @@ def merge_tracks_bathymetry(tracks, context=None):
             ]) * -1
             track['dynamic'] = set(track['dynamic']).union(
                 set(['depth_metres']))
-            yield track
-
-
-def merge_tracks_hullgeom(tracks, retry_zero=False, skip_missing=True):
-    with marinetraffic.scrape_tonnage() as hullgeom:
-        for track in tracks:
-            assert 'imo' in track.keys(), f'missing IMO!\n{track = }'
-            track['deadweight_tonnage'] = hullgeom.get_tonnage_mmsi_imo(
-                track['mmsi'],
-                track['imo'],
-                retry_zero=retry_zero,
-                skip_missing=skip_missing)
-            assert 'deadweight_tonnage' in track.keys(
-            ), f'missing deadweight tonnage!\n{track = }'
-            track['submerged_hull_m^2'] = wsa(track['deadweight_tonnage'],
-                                              track['ship_type'] or 0)
-            assert 'submerged_hull_m^2' in track.keys(
-            ), f'missing submerged_hull_m^2!\n{track = }'
-            track['static'] = set(track['static']).union(
-                set(['submerged_hull_m^2', 'deadweight_tonnage']))
             yield track
 
 
@@ -150,8 +130,6 @@ def merge_layers(
         bathymetry = Gebco()
     if sdist is None:
         sdist = shore_dist_gfw()
-    if hullgeom is None:
-        hullgeom = marinetraffic.scrape_tonnage()
 
     for track in tracks:
         yield _mergetrack(

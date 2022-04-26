@@ -44,27 +44,30 @@ setup(
         'aisdb_rust',
         'aisdb_sql',
     ],
+    package_data={'aisdb_sql': []},
+    include_package_data=True,
     setup_requires=[
         'numpy',
         'pip>=21.1.0',
         'wheel',
     ],
     install_requires=[
+        'aiosqlite',
         'numpy',
         'packaging',
         'pillow',
         'pip>=21.1.0',
-        'PyQt5',
         'pysqlite3',
         'requests',
         'selenium',
         'shapely',
-        'topojson',
         'tqdm',
+        'websockets',
     ],
     extras_require={
         'testing': [
             'pytest',
+            'pytest-asyncio',
         ],
         'docs': [
             'sphinx',

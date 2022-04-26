@@ -2,10 +2,196 @@
 Changelog
 =========
 
+v1.1.10
+-------
+
+fix bugs when viewing from firefox browser
+
+
+v1.1.9
+------
+
+bug fix
+
+
+v1.1.8
+------
+
+front end overhaul
+
+
+v1.1.7
+------
+
+fully asynchronous server backend
+
+
+v1.1.6
+------
+
+update website build
+
+
+v1.1.5
+------
+
+web client: enable filtering tracks by vessel type, and add ecoregions polygon display via GET request
+
+
+v1.1.4
+------
+
+update nginx routing
+
+
+v1.1.3
+------
+
+update server to vectorize zone geometry when sending to client
+
+
+v1.1.2
+------
+
+docker build: optimize generated webassembly
+
+
+v1.1.1
+------
+
+numerous bug fixes in webapp
+
+
+v1.1.0
+------
+
+update readme #version:minor
+
+
+v1.0.106
+--------
+
+improved error handling for database query edge cases;
+
+
+v1.0.105
+--------
+
+bug fixes and improvements
+
+
+v1.0.104
+--------
+
+update socketserver and map
+
+
+v1.0.103
+--------
+
+more support for different message headers in decoder
+
+
+v1.0.102
+--------
+
+fix graph in network graph CSV file writing
+
+
+v1.0.101
+--------
+
+merge wasm-test feature branch
+
+
+v1.0.100
+--------
+
+minor front end fixes
+
+
+v1.0.99
+-------
+
+bug fixes in web scraping DB
+
+
+v1.0.98
+-------
+
+web client updates
+
+
+v1.0.97
+-------
+
+resolve trajectory linking issue
+
+
+v1.0.96
+-------
+
+update webapp
+
+
+v1.0.95
+-------
+
+refactor polygon geometry handling
+
+
+v1.0.94
+-------
+
+bug fixes and improvements to processing pipeline
+
+
+v1.0.93
+-------
+
+bug fixes in web scraping
+
+
+v1.0.92
+-------
+
+update database client
+
+
+v1.0.91
+-------
+
+database query improvements
+
+
+v1.0.90
+-------
+
+tuning network graph processing
+
+
+v1.0.89
+-------
+
+websocket server for web application database
+
+
+v1.0.88
+-------
+
+update python package build and docker build
+
+
+v1.0.87
+-------
+
+update sphinx documentation
+
+
 v1.0.86
 -------
 
-web application prototyping: Merge branch 'master' into webmap
+web application prototyping: Merge branch 'webmap' into master
 
 
 v1.0.85

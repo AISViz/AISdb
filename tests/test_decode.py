@@ -1,7 +1,7 @@
 import os
 from datetime import timedelta, datetime
 
-from aisdb import dbpath, rawdata_dir, tmp_dir
+from aisdb import dbpath, rawdata_dir
 from aisdb.database.decoder import decode_msgs
 
 from aisdb.proc_util import glob_files, getfiledate
@@ -21,6 +21,7 @@ def test_sort_1d():
     db = testdbs + 'test_12h.db'
 
     filepaths = glob_files(rawdata_dir, ext='.nm4')
+    print(filepaths)
     testset = [
         f for f in filepaths
         if getfiledate(f) - getfiledate(filepaths[0]) <= timedelta(hours=12)

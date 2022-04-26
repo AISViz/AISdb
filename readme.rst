@@ -1,10 +1,5 @@
-AISDB
-=====
-
-.. raw:: html
-
-    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
-
+AISDB: Readme
+=============
 
 .. description:
 
@@ -16,25 +11,37 @@ Package features:
   + Vessel position cleaning and trajectory modeling
   + Utilities for streaming and decoding AIS data in the NMEA binary string format (See `Base Station Deployment <AIS_base_station.html>`__)
   + Integration with public datasources including depth charts, distances from shore, vessel geometry, etc.
-  + Plotting with QGIS (work in progress)
   + Network graph analysis, MMSI deduplication, interpolation, and other processing utilities
+  + Data visualization
+
+
+.. raw:: html
+
+    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
 
 
 .. raw:: html 
 
-   <a href='docs/source/scriptoutput.png'>
+   <a href='_images/scriptoutput.png'>
       <img 
-        src='docs/source/scriptoutput.png' 
+        src='_images/scriptoutput.png' 
         width="800"
-        onerror="this.src='_images/scriptoutput.png'"
+        onerror="this.html=''; this.width=0px;"
       ></img>
    </a>
 
+   <!--
+   <iframe name="map_embed" src="/map" frameborder="0" scrolling="no" height="500" width="100%" marginwidth="0" marginheight="0"></iframe>
+   -->
 
+
+| Web Interface:
+  https://aisdb.meridian.cs.dal.ca/map/
+| Documentation:
+  https://aisdb.meridian.cs.dal.ca/readme.html
 | Source Code: 
   https://gitlab.meridian.cs.dal.ca/public_projects/aisdb
-| Documentation: 
-  https://docs.meridian.cs.dal.ca/aisdb/
+
 
 .. whatisais:
 
@@ -115,9 +122,6 @@ Code examples
 
 6. | Integrating data from web sources, such as depth charts, shore distance, etc.
    | Planned for v1.1 
-
-7. | Plot with QGIS
-   | Upcoming in a future version
 
 Collecting AIS Data
 -------------------

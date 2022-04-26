@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS webdata_marinetraffic (
     mmsi INTEGER,
     imo INTEGER,
+    name TEXT,
     vesseltype_generic TEXT,
     vesseltype_detailed TEXT,
     callsign TEXT,

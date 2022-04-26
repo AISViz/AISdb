@@ -141,9 +141,9 @@ class DBConn():
                                     detect_types=sqlite3.PARSE_DECLTYPES
                                     | sqlite3.PARSE_COLNAMES)
 
-        self.conn.execute('PRAGMA synchronous=0')
+        #self.conn.execute('PRAGMA synchronous=0')
         self.conn.execute('PRAGMA temp_store=MEMORY')
-        self.conn.execute('PRAGMA threads=3')
+        self.conn.execute('PRAGMA threads=6')
         self.conn.commit()
 
         self.cur = self.conn.cursor()
