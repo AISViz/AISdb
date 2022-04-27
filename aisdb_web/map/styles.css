@@ -27,7 +27,7 @@ select, input {
 
 
 .hiddenmenu-btn {
-  font-size: 0.98em;
+  --font-size: 0.98em;
   --background-color: rgba(100,100,100,0.2);
   --border: 1px solid black;
   cursor: pointer;
