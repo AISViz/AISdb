@@ -1,2 +1,2 @@
-import init from '../pkg/client';
+import init from './pkg/client';
 init();

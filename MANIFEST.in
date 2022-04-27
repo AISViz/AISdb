@@ -1,3 +1,4 @@
 include aisdb/*
 include aisdb_sql/*
-include aisdb_rust/*
+recursive-include aisdb_rust/*
+recursive-include aisdb_extra/*

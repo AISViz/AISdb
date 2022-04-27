@@ -25,11 +25,9 @@ app.get('/mapselect', csrfProtection, (req, res) => {
 
 // start the application
 // app.use('/', express.static('../docs/html'));
-app.use('/', express.static('./dist'));
-// app.use('/assets', express.static('../aisdb_web/dist/assets'));
-// app.use('/manifest.json', express.static('./manifest.json'));
-// app.use('/favicon.svg', express.static('./favicon.svg'));
-// app.use('/robots.txt', express.static('./robots.txt'));
+app.use('/', express.static('./dist_sphinx'));
+app.use('/map', express.static('./dist'));
+app.use('/rust', express.static('./dist_cargodoc'));
 
 
 app.listen(port, '::', () => {

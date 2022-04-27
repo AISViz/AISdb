@@ -1,5 +1,5 @@
 import { newPolygonFeature, newTrackFeature } from './map';
-import { process_response } from '../pkg/client';
+import { process_response } from './pkg/client';
 import { searchbtn, resetSearchState, setSearchRange } from './selectform';
 import parseUrl from './url';
 

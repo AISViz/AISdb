@@ -1,15 +1,16 @@
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-RSTSOURCEDIR="${SCRIPTPATH}/docs/source"
-HTMLOUTPUTDIR="${SCRIPTPATH}/aisdb_web/dist_sphinx"
+ROOTDIR="${SCRIPTPATH}"
 PKGDIR="${SCRIPTPATH}/aisdb"
-ROOTDIR="${SCRIPTPATH}/"
+RSTSOURCEDIR="${SCRIPTPATH}/docs/source"
 MAPDIR="${SCRIPTPATH}/aisdb_web/map"
+SPHINXDIR="${SCRIPTPATH}/aisdb_web/dist_sphinx"
+CARGODIR="${SCRIPTPATH}/aisdb_web/dist_cargodoc"
 WASMDIR="${SCRIPTPATH}/aisdb_wasm"
 
 
-rm -rf "$HTMLOUTPUTDIR"
+rm -rf "$SPHINXDIR"
 mkdir -p "${RSTSOURCEDIR}/api"
-mkdir -p "${HTMLOUTPUTDIR}/_images"
+mkdir -p "${SPHINXDIR}/_images"
 [[ ! -z `ls -A "${RSTSOURCEDIR}/api"` ]] && rm ${RSTSOURCEDIR}/api/*
 cargo doc \
   --document-private-items \
@@ -17,21 +18,24 @@ cargo doc \
   --no-deps \
   --package=aisdb \
   --release \
-  --target-dir="$HTMLOUTPUTDIR/rust"
+  --target-dir="${CARGODIR}"
 
 cp "$ROOTDIR/readme.rst" "${RSTSOURCEDIR}/readme.rst"
 cp "$ROOTDIR/changelog.rst" "${RSTSOURCEDIR}/changelog.rst"
 sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o "${RSTSOURCEDIR}/api" "${PKGDIR}"
-python -m sphinx -a -j auto -q -b=html "${RSTSOURCEDIR}" "${HTMLOUTPUTDIR}"
-cp "${RSTSOURCEDIR}/scriptoutput.png" "$HTMLOUTPUTDIR/_images/"
-cp -r "${SCRIPTPATH}/aisdb_web/public" "${HTMLOUTPUTDIR}/public"
-cp -r "${MAPDIR}" "${HTMLOUTPUTDIR}/map"
+python -m sphinx -a -j auto -q -b=html "${RSTSOURCEDIR}" "${SPHINXDIR}"
+cp "${RSTSOURCEDIR}/scriptoutput.png" "$SPHINXDIR/_images/"
 
-sed -i 's/<script /<script type="module" /g' "${HTMLOUTPUTDIR}/index.html"
-sed -i 's/"_static\//"\/_static\//g' "${HTMLOUTPUTDIR}/index.html"
-#sed -i 's/<\/head>/<script src="https:\/\/code.jquery.com\/jquery-3.6.0.min.js"><\/script><\/head>/g' "${HTMLOUTPUTDIR}/index.html"
+
+#cp -r "${ROOTDIR}/aisdb_web/public" "${SPHINXDIR}/public"
+#cp -r "${MAPDIR}" "${SPHINXDIR}/map"
+
+#sed -i 's/<script /<script type="module" /g' "${SPHINXDIR}/index.html"
+#sed -i 's/"_static\//"\/_static\//g' "${SPHINXDIR}/index.html"
+#sed -i 's/<\/head>/<script src="https:\/\/code.jquery.com\/jquery-3.6.0.min.js"><\/script><\/head>/g' "${SPHINXDIR}/index.html"
 
 cd "${WASMDIR}"
-wasm-pack build --target web --out-dir "${HTMLOUTPUTDIR}/pkg" --release
-wasm-opt -O3 -o "${HTMLOUTPUTDIR}/pkg/client_bg.wasm" "${HTMLOUTPUTDIR}/pkg/client_bg.wasm"
+wasm-pack build --target web --out-dir "${MAPDIR}/pkg" --release
+wasm-opt -O3 -o "${MAPDIR}/pkg/client_bg.wasm" "${MAPDIR}/pkg/client_bg.wasm"
+cd "${ROOTDIR}"
 
