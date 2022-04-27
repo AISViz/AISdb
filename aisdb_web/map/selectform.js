@@ -68,7 +68,6 @@ async function newSearch(start, end) {
   }));
   window.searcharea = null;
   await waitForSearchState();
-  drawSource.clear();
 }
 
 searchbtn.onclick = async function() {
