@@ -37,5 +37,10 @@ cp "${RSTSOURCEDIR}/scriptoutput.png" "$SPHINXDIR/_images/"
 cd "${WASMDIR}"
 wasm-pack build --target web --out-dir "${MAPDIR}/pkg" --release
 wasm-opt -O3 -o "${MAPDIR}/pkg/client_bg.wasm" "${MAPDIR}/pkg/client_bg.wasm"
-cd "${ROOTDIR}"
 
+
+cd "${MAPDIR}" 
+VITE_BINGMAPSKEY=$BINGMAPSKEY \
+  VITE_AISDBHOST=$AISDBHOST \
+  VITE_AISDBPORT=$AISDBPORT \
+  npx vite build --outDir "${MAPDIR}/../dist_map"

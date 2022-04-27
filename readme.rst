@@ -30,15 +30,13 @@ Package features:
       ></img>
    </a>
 
-   <!--
-   <iframe name="map_embed" src="/map" frameborder="0" scrolling="no" height="500" width="100%" marginwidth="0" marginheight="0"></iframe>
-   -->
-
 
 | Web Interface:
-  https://aisdb.meridian.cs.dal.ca/map/
-| Documentation:
-  https://aisdb.meridian.cs.dal.ca/readme.html
+  https://aisdb.meridian.cs.dal.ca/
+| Python Documentation:
+  https://aisdb.meridian.cs.dal.ca/doc/readme.html
+| Rust Documentation:
+  https://aisdb.meridian.cs.dal.ca/rust/doc/aisdb/index.html
 | Source Code: 
   https://gitlab.meridian.cs.dal.ca/public_projects/aisdb
 

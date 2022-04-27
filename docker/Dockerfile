@@ -67,8 +67,3 @@ COPY --chown=ais_env build_website.sh ./build_website.sh
 COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 COPY --chown=ais_env aisdb_web/ aisdb_web/
 RUN /bin/bash ./build_website.sh
-RUN cd aisdb_web \
-  && VITE_BINGMAPSKEY=$BINGMAPSKEY \
-     VITE_AISDBHOST=$AISDBHOST \
-     VITE_AISDBPORT=$AISDBPORT \
-     npx vite build --outDir ../dist
