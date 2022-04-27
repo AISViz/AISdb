@@ -26,9 +26,12 @@ RUN python -m ensurepip \
     numpy \
     pip \
     pytest \
+    setuptools-rust \
     wheel
 COPY --chown="ais_env" aisdb_rust/Cargo.toml aisdb_rust/Cargo.toml
 COPY --chown="ais_env" ./setup.py "/home/ais_env/setup.py"
+COPY --chown="ais_env" ./pyproject.toml pyproject.toml
+COPY --chown="ais_env" ./aisdb_extra aisdb_extra
 COPY --chown="ais_env" ./MANIFEST.in /home/ais_env/MANIFEST.in
 RUN cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml \
   && cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release
