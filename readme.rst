@@ -1,6 +1,11 @@
 AISDB: Readme
 =============
 
+.. raw:: html
+
+    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
+
+
 .. description:
 
 Description
@@ -14,10 +19,6 @@ Package features:
   + Network graph analysis, MMSI deduplication, interpolation, and other processing utilities
   + Data visualization
 
-
-.. raw:: html
-
-    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
 
 
 .. raw:: html 
@@ -99,8 +100,6 @@ Configuring
   rawdata_dir = $HOME/ais/rawdata/
   output_dir = $HOME/ais/scriptoutput/
 
-  host_addr = localhost
-  host_port = 9999
 
 Code examples
 -------------
@@ -118,8 +117,7 @@ Code examples
 5. `Compute network graph of vessel movements between
    polygons <./api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
 
-6. | Integrating data from web sources, such as depth charts, shore distance, etc.
-   | Planned for v1.1 
+6. Integrating data from web sources, such as depth charts, shore distance, etc.
 
 Collecting AIS Data
 -------------------
