@@ -1,33 +1,27 @@
 import os
-from datetime import timedelta, datetime
+from datetime import datetime
 
-from aisdb import dbpath, rawdata_dir
+from aisdb import data_dir
 from aisdb.database.decoder import decode_msgs
-
-from aisdb.proc_util import glob_files, getfiledate
 
 from tests.create_testing_data import create_testing_aisdata
 
-testdbs = os.path.join(os.path.dirname(dbpath), 'testdb') + os.path.sep
+testdb = os.path.join(os.path.dirname(data_dir), 'testdb')
 
-if not os.path.isdir(testdbs):
-    os.mkdir(testdbs)
+if not os.path.isdir(testdb):
+    os.mkdir(testdb)
 
 
 def test_sort_1d():
 
     create_testing_aisdata()
 
-    db = testdbs + 'test_12h.db'
+    db = os.path.join(testdb + 'test.db')
 
-    filepaths = glob_files(rawdata_dir, ext='.nm4')
+    filepaths = [os.path.join(testdb, 'testingdata.nm4')]
     print(filepaths)
-    testset = [
-        f for f in filepaths
-        if getfiledate(f) - getfiledate(filepaths[0]) <= timedelta(hours=12)
-    ]
     dt = datetime.now()
-    decode_msgs(testset, db)
+    decode_msgs(filepaths, db)
     delta = datetime.now() - dt
     print(f'total parse and insert time: {delta.total_seconds():.2f}s')
 

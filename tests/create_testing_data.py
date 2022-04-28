@@ -6,7 +6,7 @@ from datetime import datetime
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb import zones_dir, rawdata_dir, dbpath
+from aisdb import zones_dir, data_dir, dbpath
 from aisdb.proc_util import glob_files
 from aisdb.database.sqlfcn_callbacks import in_timerange
 from aisdb.database.dbqry import DBQuery
@@ -67,10 +67,6 @@ def zonegeoms_or_randompoly(randomize=False, count=10):
     if len(shapefilepaths) > 0 and not randomize:
         domain = DomainFromTxts('testdomain', zones_dir)
     else:
-        #zonegeoms = {
-        #    arrayhash(matrix): ZoneGeom(arrayhash(matrix), *matrix)
-        #    for matrix in
-        #}
         domain = Domain('testdomain',
                         [{
                             'name': 'random',
@@ -80,10 +76,10 @@ def zonegeoms_or_randompoly(randomize=False, count=10):
 
 
 def create_testing_aisdata():
-    if not os.path.isdir(rawdata_dir):
-        os.mkdir(rawdata_dir)
-    assert os.path.isdir(rawdata_dir)
-    fpath = os.path.join(rawdata_dir, 'testingdata.nm4')
+    testdir = os.path.join(data_dir, 'testdb')
+    if not os.path.isdir(testdir):
+        os.mkdir(testdir)
+    fpath = os.path.join(testdir, 'testingdata.nm4')
     print(f'creating testing data: {fpath}')
     with open(fpath, 'w') as f:
         f.write(r'''

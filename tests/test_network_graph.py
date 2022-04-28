@@ -36,7 +36,7 @@ def test_network_graph_geofencing():
     end = datetime(2000, 2, 1)
 
     z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
-    domain = Domain('gulf domain', zones=[{'z1': z1}])
+    domain = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
 
     args = DBQuery(
         start=start,
@@ -55,7 +55,6 @@ def test_network_graph_geofencing():
     distsplit = partial(
         encode_greatcircledistance,
         distance_threshold=250000,
-        cuttime=timedelta(weeks=1),
         speed_threshold=45,
         minscore=5e-07,
     )
@@ -79,7 +78,7 @@ def test_network_graph_merged_serialized():
     end = datetime(2000, 2, 1)
 
     z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
-    domain = Domain('gulf domain', zones=[{'z1': z1}])
+    domain = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
 
     args = DBQuery(
         start=start,
@@ -96,7 +95,6 @@ def test_network_graph_merged_serialized():
     distsplit = partial(
         encode_greatcircledistance,
         distance_threshold=250000,
-        cuttime=timedelta(weeks=1),
         speed_threshold=45,
         minscore=5e-07,
     )
