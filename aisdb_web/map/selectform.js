@@ -1,3 +1,4 @@
+/** @module selectform */
 import { socket, waitForTimerange } from './clientsocket';
 import {
   addInteraction,
@@ -12,32 +13,45 @@ import {
 import { vessellabels, vesseltypes, vesselStyles, hiddenStyle } from './palette';
 
 
-let statusdiv = document.getElementById('status-div');
-
+/** @constant {element} statusdiv status message div element */
+const statusdiv = document.getElementById('status-div');
+/** @constant {element} selectbtn select area button */
 const selectbtn = document.getElementById('selectbtn');
+/** @constant {element} timeselectstart time start date input */
 const timeselectstart = document.getElementById('time-select-start');
+/** @constant {element} timeselectend time end date input */
 const timeselectend = document.getElementById('time-select-end');
+/** @constant {element} vesseltypeselect filter by vessel type interaction */
 const vesseltypeselect = document.getElementById('vesseltype-select');
+/** @constant {element} searchbtn start new database search button */
 const searchbtn = document.getElementById('searchbtn');
+/** @constant {element} clearbtn map window reset button */
 const clearbtn = document.getElementById('clearbtn');
-
-selectbtn.onclick = function () {
-  map.removeInteraction(draw);
-  map.removeInteraction(dragBox);
-  drawSource.clear();
-  addInteraction();
-};
+/** @constant {element} vessel type selection popup menu element */
+const vesselmenu = document.getElementById('vesseltype-menu');
 
 
+/** searchstate true if not currently performing a search
+ * @see resetSearchState
+ * @type {boolean}
+ */
 let searchstate = true;
-window.searchstate = function() {
-  console.log(searchstate);
-};
+// window.searchstate = function() {
+//  console.log(searchstate);
+// };
 
+
+/** reset the search state
+ * @see searchstate
+ */
 async function resetSearchState() {
   searchstate = true;
 }
 
+
+/** awaits until searchstate is true
+ * @see searchstate
+ */
 async function waitForSearchState() {
   while (searchstate === false) {
     await new Promise((resolve) => {
@@ -46,6 +60,8 @@ async function waitForSearchState() {
   }
 }
 
+
+/** cancel button action */
 async function cancelSearch() {
   searchbtn.disabled = true;
   searchbtn.textContent = 'Search';
@@ -55,6 +71,12 @@ async function cancelSearch() {
   await waitForSearchState();
 }
 
+
+/** initiate new database query from server via socket
+ * @param {string} start start time as retrieved from date input, e.g.
+ * 2021-01-01
+ * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
+ */
 async function newSearch(start, end) {
   searchstate = false;
   statusdiv.textContent = 'Searching...';
@@ -71,6 +93,23 @@ async function newSearch(start, end) {
   drawSource.clear();
 }
 
+
+/** select button click action
+ * @callback selectbtn_onclick
+ * @function
+ */
+selectbtn.onclick = function () {
+  map.removeInteraction(draw);
+  map.removeInteraction(dragBox);
+  drawSource.clear();
+  addInteraction();
+};
+
+
+/** search button click action
+ * @callback searchbtn_onclick
+ * @function
+ */
 searchbtn.onclick = async function() {
   let start = timeselectstart.value;
   let end = timeselectend.value;
@@ -78,7 +117,6 @@ searchbtn.onclick = async function() {
   await waitForTimerange();
 
   // validate input and create database request
-
   if (searchstate === false) {
     // if already searching, send STOP
     await cancelSearch();
@@ -111,6 +149,10 @@ searchbtn.onclick = async function() {
 };
 
 
+/** reset button click action
+ * @callback clearbtn_onclick
+ * @function
+ */
 clearbtn.onclick = async function() {
   window.searcharea = null;
   window.statusmsg = '';
@@ -124,24 +166,45 @@ clearbtn.onclick = async function() {
 };
 
 
+/** set date input min/max values upon connection to server.
+ * a timerange request is made on connection, and this function will be
+ * called
+ * @param {string} start start time as retrieved from date input, e.g.
+ * 2021-01-01
+ * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
+ */
 async function setSearchRange(start, end) {
-  /* set min/max time range values */
   timeselectstart.min = start;
   timeselectend.min = start;
   timeselectstart.max = end;
   timeselectend.max = end;
 }
 
+
+/** set start/end date input default values. used by module:url for setting
+ * query time via GET request.
+ * @param {string} start start time as retrieved from date input, e.g.
+ * 2021-01-01
+ * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
+ */
 async function setSearchValue(start, end) {
   timeselectstart.value = start;
   timeselectend.value = end;
 }
 
-const vesselmenu = document.getElementById('vesseltype-menu');
+
+/** selectedType
+ * @type {String}
+ */
 let selectedType = 'All';
 
+
+/** set feature style according to vessel type and currently displayed types
+ * @param {ol.feature.Feature} ft track feature to be styled according to
+ * current selectedType
+ * @see selectedType
+ */
 function set_track_style(ft) {
-  /* set feature style according to vessel type and currently displayed types */
   if (selectedType === 'All') {
     ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
   } else if (ft.get('meta').vesseltype_generic.includes(selectedType)) {
@@ -151,6 +214,10 @@ function set_track_style(ft) {
   }
 }
 
+
+/** update all track features in lineSource according to current selectedType
+ * @see selectedType
+ */
 function update_vesseltype_styles() {
   /* vessel types selector action */
   if (selectedType === 'All') {
@@ -168,7 +235,15 @@ function update_vesseltype_styles() {
   }
 }
 
-// vesseltypeselect.addEventListener('change', update_vesseltype_styles);
+
+/** add a new item to the vesseltype selection popup menu
+ * @param {String} label menu item text
+ * @param {String} value menu item value - should be one of vessellabels
+ * @param {String} symbol unicode symbol to display next to item label
+ * @see module:palette:vessellabels
+ * @see module:palette:vesselStyles
+ * @see update_vesseltype_styles
+ */
 function createVesselMenuItem(label, value, symbol) {
   if (symbol === undefined) {
     symbol = '●';

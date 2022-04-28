@@ -27,6 +27,7 @@ app.get('/mapselect', csrfProtection, (req, res) => {
 app.use('/', express.static('./dist_map'));
 app.use('/doc', express.static('./dist_sphinx'));
 app.use('/rust', express.static('./dist_cargodoc'));
+app.use('/js', express.static(`./dist_jsdoc/${process.env.npm_package_name}/${process.env.npm_package_version}/`));
 app.use('/favicon.svg', express.static('./public/favicon.svg'));
 app.use('/favicon.png', express.static('./public/favicon.png'));
 app.use('/robots.txt', express.static('./public/robots.txt'));
