@@ -2,11 +2,10 @@ import os
 from datetime import datetime
 
 import pytest
-import asyncio
 
 from aisdb import DBQuery, data_dir, sqlfcn_callbacks
 
-db = os.path.join(data_dir, 'test1.db')
+db = os.path.join(data_dir, 'testdb', 'test1.db')
 start = datetime(2020, 9, 1)
 end = datetime(2020, 10, 1)
 
@@ -23,7 +22,7 @@ def test_query_emptytable():
         callback=sqlfcn_callbacks.in_timerange_validmmsi,
     )
     q.check_idx(dbpath=db)
-    _rows = q.run_qry(dbpath=db)
+    _rows = q.gen_qry(dbpath=db)
     cleanup()
 
 

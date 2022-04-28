@@ -35,9 +35,9 @@ def decode_msgs(filepaths, dbpath, vacuum=True, skip_checksum=False):
 
         example:
 
-            >>> from aisdb import dbpath, decode_msgs
+        >>> from aisdb import dbpath, decode_msgs
         >>> filepaths = ['~/ais/rawdata_dir/20220101.nm4',
-                ...              '~/ais/rawdata_dir/20220102.nm4']
+        ...              '~/ais/rawdata_dir/20220102.nm4']
         >>> decode_msgs(filepaths, dbpath)
     '''
     batchsize = 5

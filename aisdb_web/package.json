@@ -16,6 +16,7 @@
     "vite": "^2.9.0"
   },
   "devDependencies": {
+    "jsdoc": "^3.6.10",
     "vite-plugin-pwa": "^0.12.0"
   }
 }

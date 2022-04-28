@@ -17,7 +17,7 @@ end = datetime(2020, 10, 1)
 if not os.path.isdir(data_dir):
     os.mkdir(data_dir)
 
-db = os.path.join(data_dir, 'test1.db')
+db = os.path.join(data_dir, 'testdb', 'test1.db')
 
 
 def cleanup():
@@ -56,5 +56,5 @@ def test_query_emptytable():
         callback=in_timerange_validmmsi,
     )
     q.check_idx(dbpath=db)
-    _rows = q.run_qry(dbpath=db)
+    _rows = q.gen_qry(dbpath=db)
     cleanup()

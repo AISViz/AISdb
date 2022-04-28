@@ -171,14 +171,25 @@ class Domain():
                 'domain needs to have atleast one polygon geometry')
         self.name = name
         self.zones = zones
-        assert hasattr(self, 'minX')
-        assert hasattr(self, 'minY')
-        assert hasattr(self, 'maxX')
-        assert hasattr(self, 'maxY')
-        assert self.minX is not None
-        assert self.maxX is not None
-        assert self.minY is not None
-        assert self.maxY is not None
+        self.minX = 180
+        self.maxX = -180
+        self.minY = 90
+        self.maxY = -90
+        for zone in zones:
+            x, y = zone['geometry'].boundary.coords.xy
+            if np.min(x) < self.minX:
+                self.minX = np.min(x)
+            if np.max(x) > self.maxX:
+                self.maxX = np.max(x)
+            if np.min(y) < self.minY:
+                self.minY = np.min(y)
+            if np.max(y) > self.maxY:
+                self.maxY = np.max(y)
+            zone['maxradius'] = np.max([
+                haversine(zone['geometry'].centroid.x,
+                          zone['geometry'].centroid.y, x2, y2)
+                for x2, y2 in zip(x, y)
+            ])
         self.boundary = {
             'xmin': self.minX,
             'xmax': self.maxX,

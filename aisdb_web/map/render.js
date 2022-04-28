@@ -1,7 +1,12 @@
+/** @module render */
 import html2canvas from 'html2canvas';
 
 import { update_vesseltype_styles, waitForSearchState } from './selectform';
 
+/** callback to capture the current map canvas as PNG base64image.
+ * a download link is appended to the document, which will click itself,
+ * then remove itself.
+ */
 async function screenshot_callback() {
   await html2canvas(document.querySelector('.map')).then((canvas) => {
     let dl = `${document.getElementById('time-select-start').value}-`;
@@ -18,6 +23,22 @@ async function screenshot_callback() {
   });
 }
 
+/** take a screenshot using screenshot_callback() of each vessel type specified
+ * in opts. if opts is undefined, the following vesseltypes will be used:
+ * opts = {
+      renders: [
+        'All',
+        'Cargo',
+        'Tanker',
+        'Fishing',
+        'Tug',
+        'Pleasure Craft',
+        'Passenger',
+        'None',
+      ]
+    };
+ * @param {Object} opts render options
+ */
 async function screenshot(opts) {
   await waitForSearchState();
 
