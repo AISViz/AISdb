@@ -113,7 +113,7 @@ Code examples
 
 3. `Compute trajectories from database rows <./api/aisdb.track_gen.html#aisdb.track_gen.TrackGen>`__
 
-4. `Vessel trajectory cleaning and MMSI deduplication <./api/aisdb.track_gen.html#aisdb.track_gen.segment_tracks_encode_greatcircledistance>`__
+4. `Vessel trajectory cleaning and MMSI deduplication <./api/aisdb.track_gen.html#aisdb.track_gen.encode_greatcircledistance>`__
 
 5. `Compute network graph of vessel movements between
    polygons <./api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
