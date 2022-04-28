@@ -77,7 +77,8 @@ select, input {
 }
 
 .colordot {
-  --font-size: 125%;
+  font-size: 110%;
+  display: inline-block;
 }
 
 .show {

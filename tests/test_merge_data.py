@@ -26,7 +26,7 @@ def prepare_qry():
     sample_dynamictable_insertdata()
 
     z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
-    domain = Domain('gulf domain', geoms=[{'z1': z1}])
+    domain = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
 
     start = datetime(2000, 1, 1)
     end = datetime(2000, 2, 1)

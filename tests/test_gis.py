@@ -8,13 +8,14 @@ def test_domain_fakedata():
 
     print(dist_to_centroids)
 
-    for zone in domain.zones():
+    for zone in domain.zones:
         poly = zone['geometry']
         # assert poly.is_valid
         print(poly.type, end='|')
     print()
 
-    zoneID = domain.point_in_polygon(*zone['geometry'].centroid)
+    zoneID = domain.point_in_polygon(zone['geometry'].centroid.x,
+                                     zone['geometry'].centroid.y)
     print(f'{zoneID = }')
 
     print(f'{domain.minX=}\n{domain.maxX=}\n{domain.minY=}\n{domain.maxY=}')
@@ -26,14 +27,15 @@ def test_domain_realdata():
 
     print(dist_to_centroids)
 
-    for zone in domain.zones():
+    for zone in domain.zones:
         poly = zone['geometry']
         # assert poly.is_valid
         print(poly.type, end='|')
     print()
 
     # will be Z0 if outside of all zones (or empty geoms list)
-    zoneID = domain.point_in_polygon(*zone['geometry'].centroid)
-    print(f'{zoneID = }\t{len(domain.geoms.keys()) = }')
+    zoneID = domain.point_in_polygon(zone['geometry'].centroid.x,
+                                     zone['geometry'].centroid.y)
+    print(f'{zoneID = }\t{len(domain.zones) = }')
 
     print(f'{domain.minX=}\n{domain.maxX=}\n{domain.minY=}\n{domain.maxY=}')

@@ -26,9 +26,12 @@ RUN python -m ensurepip \
     numpy \
     pip \
     pytest \
+    setuptools-rust \
     wheel
 COPY --chown="ais_env" aisdb_rust/Cargo.toml aisdb_rust/Cargo.toml
 COPY --chown="ais_env" ./setup.py "/home/ais_env/setup.py"
+COPY --chown="ais_env" ./pyproject.toml pyproject.toml
+COPY --chown="ais_env" ./aisdb_extra aisdb_extra
 COPY --chown="ais_env" ./MANIFEST.in /home/ais_env/MANIFEST.in
 RUN cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml \
   && cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release
@@ -60,12 +63,6 @@ ARG AISDBPORT
 COPY --chown=ais_env readme.rst ./readme.rst
 COPY --chown=ais_env docs/ docs/
 COPY --chown=ais_env changelog.rst ./changelog.rst
-COPY --chown=ais_env build_website.sh ./build_website.sh
 COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 COPY --chown=ais_env aisdb_web/ aisdb_web/
-RUN /bin/bash ./build_website.sh
-RUN cd aisdb_web \
-  && VITE_BINGMAPSKEY=$BINGMAPSKEY \
-     VITE_AISDBHOST=$AISDBHOST \
-     VITE_AISDBPORT=$AISDBPORT \
-     npx vite build --outDir ../dist
+RUN /bin/bash ./aisdb_web/build_website.sh

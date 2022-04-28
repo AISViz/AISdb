@@ -43,105 +43,6 @@ def _segment_longitude(track, tolerance=300):
         )
 
 
-async def TrackGen_async(
-    rowgen: iter,
-    colnames: list = [
-        'mmsi', 'time', 'lon', 'lat', 'imo', 'vessel_name', 'dim_bow',
-        'dim_stern', 'dim_port', 'dim_star', 'ship_type', 'ship_type_txt'
-    ],
-) -> dict:
-    ''' generator converting sets of rows sorted by MMSI to a
-        dictionary containing track column vectors.
-        each row contains columns from database: mmsi time lon lat name ...
-        rows must be sorted by first by mmsi, then time
-
-        args:
-            rowgen (aisdb.database.dbqry.DBQuery.async_qry())
-                DBQuery rows generator. Yields rows returned
-                by a database query
-            colnames (list of strings)
-                description of each column in rows.
-                first two columns must be ['mmsi', 'time']
-
-        yields:
-            dictionary containing track column vectors.
-            static data (e.g. mmsi, name, geometry) will be stored as
-            scalar values
-
-        >>> from datetime import datetime
-        >>> from aisdb import dbpath, DBQuery
-        >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
-
-        >>> q = DBQuery(callback=in_timerange_validmmsi,
-        ...             start=datetime(2022, 1, 1),
-        ...             end=datetime(2022, 1, 7),
-        ...             )
-
-        >>> q.check_idx()  # build index if necessary
-        >>> print(f'iterating over rows returned from {dbpath}')
-        >>> rowgen = q.gen_qry()
-
-        >>> from aisdb import TrackGen
-        >>> for track in TrackGen(rowgen):
-        ...     print(track['mmsi'])
-        ...     print(f'messages in track segment: {track["time"].size}')
-        ...     print(f'keys: {track.keys()}')
-    '''
-    mmsi_col = [
-        i for i, c in zip(range(len(colnames)), colnames)
-        if c.lower() == 'mmsi'
-    ][0]
-
-    staticcols = set(colnames) & set([
-        'mmsi',
-        'vessel_name',
-        'ship_type',
-        'ship_type_txt',
-        'dim_bow',
-        'dim_stern',
-        'dim_port',
-        'dim_star',
-        'imo',
-    ])
-
-    dynamiccols = set(colnames) - staticcols
-
-    async for rows in rowgen:
-
-        if rows is None:
-            break
-
-        elif rows.shape == ():
-            break
-
-        elif len(rows) == 0:
-            break
-
-        tracks_idx = np.append(
-            np.append([0],
-                      np.nonzero(rows[:, mmsi_col].astype(int)[1:] !=
-                                 rows[:, mmsi_col].astype(int)[:-1])[0] + 1),
-            rows.size)
-
-        for i in range(len(tracks_idx) - 1):
-            trackdict = dict(
-                **{
-                    n: (rows[tracks_idx[i]][c] or 0)
-                    for c, n in zip(range(len(colnames)), colnames)
-                    if n in staticcols
-                },
-                **{
-                    n: rows[tracks_idx[i]:tracks_idx[i + 1]].T[c]
-                    for c, n in zip(range(len(colnames)), colnames)
-                    if n in dynamiccols
-                },
-                static=staticcols,
-                dynamic=dynamiccols,
-            )
-            for segment in _segment_longitude(trackdict):
-                yield segment
-
-
 def TrackGen(
     rowgen: iter,
     colnames: list = [
@@ -171,19 +72,16 @@ def TrackGen(
             scalar values
 
         >>> from datetime import datetime
-        >>> from aisdb import dbpath, DBQuery
-        >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
+        >>> from aisdb import dbpath, DBQuery, sqlfcn_callbacks, TrackGen
 
-        >>> q = DBQuery(callback=in_timerange_validmmsi,
+        >>> q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
         ...             start=datetime(2022, 1, 1),
         ...             end=datetime(2022, 1, 7),
         ...             )
-
-        >>> q.check_idx()  # build index if necessary
-        >>> print(f'iterating over rows returned from {dbpath}')
         >>> rowgen = q.gen_qry()
+        >>> q.check_idx()  # build index if necessary
 
-        >>> from aisdb import TrackGen
+        >>> print(f'iterating over rows returned from {dbpath}')
         >>> for track in TrackGen(rowgen):
         ...     print(track['mmsi'])
         ...     print(f'messages in track segment: {track["time"].size}')
@@ -245,6 +143,71 @@ def TrackGen(
             )
             for segment in _segment_longitude(trackdict):
                 yield segment
+
+
+async def TrackGen_async(
+    rowgen: iter,
+    colnames: list = [
+        'mmsi', 'time', 'lon', 'lat', 'imo', 'vessel_name', 'dim_bow',
+        'dim_stern', 'dim_port', 'dim_star', 'ship_type', 'ship_type_txt'
+    ],
+) -> dict:
+    mmsi_col = [
+        i for i, c in zip(range(len(colnames)), colnames)
+        if c.lower() == 'mmsi'
+    ][0]
+
+    staticcols = set(colnames) & set([
+        'mmsi',
+        'vessel_name',
+        'ship_type',
+        'ship_type_txt',
+        'dim_bow',
+        'dim_stern',
+        'dim_port',
+        'dim_star',
+        'imo',
+    ])
+
+    dynamiccols = set(colnames) - staticcols
+
+    async for rows in rowgen:
+
+        if rows is None:
+            break
+
+        elif rows.shape == ():
+            break
+
+        elif len(rows) == 0:
+            break
+
+        tracks_idx = np.append(
+            np.append([0],
+                      np.nonzero(rows[:, mmsi_col].astype(int)[1:] !=
+                                 rows[:, mmsi_col].astype(int)[:-1])[0] + 1),
+            rows.size)
+
+        for i in range(len(tracks_idx) - 1):
+            trackdict = dict(
+                **{
+                    n: (rows[tracks_idx[i]][c] or 0)
+                    for c, n in zip(range(len(colnames)), colnames)
+                    if n in staticcols
+                },
+                **{
+                    n: rows[tracks_idx[i]:tracks_idx[i + 1]].T[c]
+                    for c, n in zip(range(len(colnames)), colnames)
+                    if n in dynamiccols
+                },
+                static=staticcols,
+                dynamic=dynamiccols,
+            )
+            for segment in _segment_longitude(trackdict):
+                yield segment
+
+
+TrackGen_async.__doc__ = TrackGen.__doc__
 
 
 def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
@@ -350,12 +313,11 @@ def encode_greatcircledistance(
     tracks,
     *,
     distance_threshold,
-    #cuttime,
-    #time_threshold,
     speed_threshold=50,
     minscore=1e-6,
 ):
-    ''' partitions tracks where delta speeds exceed speed_threshold.
+    ''' partitions tracks where delta speeds exceed speed_threshold or
+        delta_meters exceeds distance_threshold.
         concatenates track segments with the highest likelihood of being
         sequential, as encoded by a distance/time score function
 
@@ -369,6 +331,24 @@ def encode_greatcircledistance(
             minscore (float)
                 minimum score threshold at which to allow track
                 segments to be linked
+
+        >>> from datetime import datetime, timedelta
+        >>> from aisdb import dbpath, DBQuery, sqlfcn_callbacks
+        >>> from aisdb import TrackGen, encode_greatcircledistance
+
+        >>> q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
+        ...             start=datetime(2022, 1, 1),
+        ...             end=datetime(2022, 1, 7))
+        >>> rowgen = q.gen_qry()
+
+        >>> for track in encode_greatcircledistance(
+        ...         TrackGen(rowgen),
+        ...         distance_threshold=250000, # metres
+        ...         time_threshold=timedelta(hours=24),
+        ...         minscore=0):
+        ...     print(track['mmsi'])
+        ...     print(f'messages in track segment: {track["time"].size}')
+        ...     print(f'keys: {track.keys()}')
     '''
     n = 0
     for track in tracks:
@@ -457,21 +437,6 @@ async def encode_greatcircledistance_async(
     speed_threshold=50,
     minscore=1e-6,
 ):
-    ''' partitions tracks where delta speeds exceed speed_threshold.
-        concatenates track segments with the highest likelihood of being
-        sequential, as encoded by a distance/time score function
-
-        args:
-            tracks (aisdb.track_gen.TrackGen)
-                track vectors generator
-            distance_threshold (int)
-                distance in meters that will be used as a
-                speed score numerator
-            time_threshold (datetime.timedelta)
-            minscore (float)
-                minimum score threshold at which to allow track
-                segments to be linked
-    '''
     n = 0
     async for track in tracks:
 
@@ -550,6 +515,9 @@ async def encode_greatcircledistance_async(
             pathway['static'] = set(pathway['static']).union({'label'})
             assert 'label' in pathway.keys()
             yield pathway
+
+
+encode_greatcircledistance_async.__doc__ = encode_greatcircledistance.__doc__
 
 
 def max_tracklength(tracks, max_length=100000):
