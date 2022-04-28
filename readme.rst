@@ -38,6 +38,8 @@ Package features:
   https://aisdb.meridian.cs.dal.ca/doc/readme.html
 | Rust Documentation:
   https://aisdb.meridian.cs.dal.ca/rust/doc/aisdb/index.html
+| JavaScript Documentation:
+  https://aisdb.meridian.cs.dal.ca/js/
 | Source Code: 
   https://gitlab.meridian.cs.dal.ca/public_projects/aisdb
 

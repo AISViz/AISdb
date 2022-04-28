@@ -63,7 +63,6 @@ ARG AISDBPORT
 COPY --chown=ais_env readme.rst ./readme.rst
 COPY --chown=ais_env docs/ docs/
 COPY --chown=ais_env changelog.rst ./changelog.rst
-COPY --chown=ais_env build_website.sh ./build_website.sh
 COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 COPY --chown=ais_env aisdb_web/ aisdb_web/
-RUN /bin/bash ./build_website.sh
+RUN /bin/bash ./aisdb_web/build_website.sh
