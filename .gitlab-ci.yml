@@ -27,7 +27,7 @@ python-test:
   stage: python-test
   script:
     - python -m pip install .
-    - python -m pytest --color=yes --tb=native tests/ -k "not merge"
+    - python -m pytest --color=yes --tb=native --doctest-modules tests/ -k "not merge"
 
 docs:
   stage: docs

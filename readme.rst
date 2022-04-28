@@ -1,6 +1,11 @@
 AISDB: Readme
 =============
 
+.. raw:: html
+
+    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
+
+
 .. description:
 
 Description
@@ -15,10 +20,6 @@ Package features:
   + Data visualization
 
 
-.. raw:: html
-
-    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
-
 
 .. raw:: html 
 
@@ -30,15 +31,15 @@ Package features:
       ></img>
    </a>
 
-   <!--
-   <iframe name="map_embed" src="/map" frameborder="0" scrolling="no" height="500" width="100%" marginwidth="0" marginheight="0"></iframe>
-   -->
-
 
 | Web Interface:
-  https://aisdb.meridian.cs.dal.ca/map/
-| Documentation:
-  https://aisdb.meridian.cs.dal.ca/readme.html
+  https://aisdb.meridian.cs.dal.ca/
+| Python Documentation:
+  https://aisdb.meridian.cs.dal.ca/doc/readme.html
+| Rust Documentation:
+  https://aisdb.meridian.cs.dal.ca/rust/doc/aisdb/index.html
+| JavaScript Documentation:
+  https://aisdb.meridian.cs.dal.ca/js/
 | Source Code: 
   https://gitlab.meridian.cs.dal.ca/public_projects/aisdb
 
@@ -101,8 +102,6 @@ Configuring
   rawdata_dir = $HOME/ais/rawdata/
   output_dir = $HOME/ais/scriptoutput/
 
-  host_addr = localhost
-  host_port = 9999
 
 Code examples
 -------------
@@ -115,13 +114,12 @@ Code examples
 
 3. `Compute trajectories from database rows <./api/aisdb.track_gen.html#aisdb.track_gen.TrackGen>`__
 
-4. `Vessel trajectory cleaning and MMSI deduplication <./api/aisdb.track_gen.html#aisdb.track_gen.segment_tracks_encode_greatcircledistance>`__
+4. `Vessel trajectory cleaning and MMSI deduplication <./api/aisdb.track_gen.html#aisdb.track_gen.encode_greatcircledistance>`__
 
 5. `Compute network graph of vessel movements between
    polygons <./api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
 
-6. | Integrating data from web sources, such as depth charts, shore distance, etc.
-   | Planned for v1.1 
+6. Integrating data from web sources, such as depth charts, shore distance, etc.
 
 Collecting AIS Data
 -------------------

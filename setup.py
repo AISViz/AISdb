@@ -1,19 +1,10 @@
 import os
-import sys
-import pip
 import shutil
 import subprocess
 from setuptools import setup
+from setuptools_rust import Binding, RustExtension
 
 thispath = os.path.dirname(__file__)
-
-# upgrade pip if necessary
-majorver = int(pip.__version__.split('.')[0])
-if majorver < 21:
-    print('pip version too low! pip will now be upgraded')
-    os.system(f'{sys.executable} -m pip install --upgrade pip numpy wheel')
-    from importlib import reload
-    reload(pip)
 
 # compile rust target
 cargopath = shutil.which('cargo')
@@ -26,6 +17,7 @@ if cargopath:
 versionfile = os.path.join(thispath, 'aisdb', 'version.py')
 with open(versionfile, 'r') as f:
     pkgversion = f.read()
+# create __version__ definition
 exec(pkgversion)
 
 setup(
@@ -43,20 +35,25 @@ setup(
         'aisdb.webdata',
         'aisdb_rust',
         'aisdb_sql',
+        'aisdb_extra',
     ],
     package_data={'aisdb_sql': []},
     include_package_data=True,
     setup_requires=[
         'numpy',
-        'pip>=21.1.0',
         'wheel',
+        'setuptools-rust>=0.10.1',
+    ],
+    rust_extensions=[
+        RustExtension("aisdb_extra.aisdb_extra",
+                      os.path.join('aisdb_extra', 'Cargo.toml'),
+                      binding=Binding.PyO3)
     ],
     install_requires=[
         'aiosqlite',
         'numpy',
         'packaging',
         'pillow',
-        'pip>=21.1.0',
         'pysqlite3',
         'requests',
         'selenium',
@@ -73,4 +70,5 @@ setup(
             'sphinx',
         ],
     },
+    zip_safe=False,
 )

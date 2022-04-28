@@ -1,9 +1,9 @@
-import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const root = resolve(__dirname, 'dist_sphinx');
-const outDir = resolve(__dirname, 'dist');
+const root = resolve(__dirname);
+const outDir = resolve(__dirname, '..', 'dist_map');
 
 export default defineConfig({
   root: root,
@@ -13,8 +13,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(root, 'index.html'),
-        map: resolve(root, 'map', 'index.html'),
-        // rust: resolve(root, 'rust', 'doc', 'aisdb', 'index.html'),
       }
     }
   },
@@ -39,8 +37,8 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ],
-        start_url: '/map',
-        scope: '/map',
+        start_url: '/',
+        scope: '/',
         background_color : '#282c34',
         theme_color: '#282c34',
         display: 'fullscreen',
@@ -50,7 +48,7 @@ export default defineConfig({
             name: 'Ecoregions Shortcut',
             short_name: 'Ecoregions',
             description: 'Display map with ecoregion polygons overlay',
-            url: '/map/index.html?ecoregions',
+            url: '/?ecoregions',
             icons: [
               {
                 src: '/favicon.svg',

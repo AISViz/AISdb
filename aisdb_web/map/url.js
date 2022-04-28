@@ -1,3 +1,5 @@
+/** @module url */
+
 import * as olProj from 'ol/proj';
 
 import {
@@ -10,9 +12,14 @@ import { mapview } from './map';
 import { searchbtn, setSearchValue } from './selectform';
 import { screenshot } from './render';
 
+/** @constant {URLSearchParams} urlParams parses GET request */
 const urlParams = new URLSearchParams(window.location.search);
 
 
+/** checks if n is numeric
+ * @param {String} n string to be checked
+ * @returns {boolean}
+ */
 function isNumeric(n) {
   if (isNaN(n) === false && n !== null) {
     return true;
@@ -20,11 +27,10 @@ function isNumeric(n) {
   return false;
 }
 
+/** set map display parameters via GET request. example:
+ * http://localhost:3000/?ecoregions=1&x=-65&y=59.75&z=4&start=2021-01-01&end=2021-01-02&xmin=-95.7&xmax=-39.5&ymin=34.4&ymax=74.2
+ */
 async function parseUrl() {
-  /** set map display via GET request
-   * http://localhost:3000/?ecoregions=1&x=-65&y=59.75&z=4&start=2021-01-01&end=2021-01-02&xmin=-95.7&xmax=-39.5&ymin=34.4&ymax=74.2
-   */
-
   if (isNumeric(urlParams.get('x')) && isNumeric(urlParams.get('y'))) {
     let lon = parseFloat(urlParams.get('x'));
     let lat = parseFloat(urlParams.get('y'));

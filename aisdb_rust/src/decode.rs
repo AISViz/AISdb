@@ -61,7 +61,7 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
                         return Some((payload.to_string(), i));
                     } else if let Ok(i) = tag[3..].parse::<i32>() {
                         return Some((payload.to_string(), i));
-                    } else if let Ok(i) = tag.split_once(' ').unwrap().0.parse::<u64>() {
+                    } else if let Ok(i) = tag.split_once(' ').unwrap_or(("", "")).0.parse::<u64>() {
                         if 946731600 < i
                             && i <= std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)

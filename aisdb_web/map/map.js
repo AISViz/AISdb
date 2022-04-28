@@ -1,15 +1,15 @@
+/** @module map */
 import 'ol/ol.css';
 import * as olProj from 'ol/proj';
 import { Map as _Map } from 'ol';
 import BingMaps from 'ol/source/BingMaps';
 import TileLayer from 'ol/layer/Tile';
 import View from 'ol/View';
-import WKB from 'ol/format/WKB';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Vector as VectorSource } from 'ol/source';
 import { Vector as VectorLayer } from 'ol/layer';
-import Draw, { createBox } from 'ol/interaction/Draw';
-import { DragBox, Select } from 'ol/interaction';
+import Draw from 'ol/interaction/Draw';
+import { DragBox } from 'ol/interaction';
 import Feature from 'ol/Feature';
 
 import {
@@ -23,9 +23,11 @@ import {
 import { set_track_style } from './selectform';
 
 
+/** status message div item */
 const statusdiv = document.getElementById('status-div');
 
 
+/** ol map TileLayer */
 let mapLayer = new TileLayer({
   // visible: true,
   // preload: Infinity,
@@ -47,15 +49,22 @@ let mapLayer = new TileLayer({
 */
 
 
+/** contains geometry for map selection feature */
 const drawSource = new VectorSource({ wrapX: false });
+/** contains drawSource for map selection layer */
 const drawLayer = new VectorLayer({ source: drawSource, zIndex: 2 });
 
+/** contains geometry for map zone polygons */
 const polySource = new VectorSource({});
+/** contains polySource for map zone polygons */
 const polyLayer = new VectorLayer({
   source: polySource,
   style: polyStyle, zIndex: 1,
 });
+
+/** contains map vessel line geometries */
 const lineSource = new VectorSource({});
+/** contains map lineSource layer */
 const lineLayer = new VectorLayer({
   source: lineSource,
   style: vesselStyles.Unspecified,
@@ -63,42 +72,32 @@ const lineLayer = new VectorLayer({
 });
 
 
+/** default map position
+ * @see module:url
+ */
 let mapview = new View({
   center: olProj.fromLonLat([ -63.6, 44.0 ]), // east
   // center: olProj.fromLonLat([-123.0, 49.2]), //west
   // center: olProj.fromLonLat([ -100, 57 ]), // canada
   zoom: 7,
 });
+
+/** map window
+ * @param {string} target target HTML item by ID
+ * @param {Array} layers map layers to display
+ * @param {ol/View) view default map view positioning
+ */
 let map = new _Map({
   target: 'mapDiv', // div item in index.html
   layers: [ mapLayer, polyLayer, lineLayer, drawLayer ],
   view: mapview,
 });
 
-/*
-let map = new _Map();
-map.setLayers([ mapLayer, polyLayer, lineLayer, drawLayer ]);
-map.setView(mapview);
-map.setTarget('mapDiv');
-*/
 
 /* map interactions */
 window.searcharea = null;
 
 /* cursor styling: indicate to the user that we are selecting an area */
-/*
-let draw = null; // global so we can remove it later
-function addInteraction() {
-  draw = new Draw({
-    //source: drawSource,
-    //type: 'Circle',
-    //geometryFunction: createBox(),
-    //geometryName: 'selectbox',
-    //zIndex: 10,
-  });
-  map.addInteraction(draw);
-}
-*/
 let draw = new Draw({
   type: 'Point',
 });
@@ -114,11 +113,14 @@ dragBox.on('boxend', () => {
   drawSource.addFeature(selectFeature);
   map.removeInteraction(dragBox);
 });
+
+/** add draw selection box interaction to map */
 function addInteraction() {
   map.addInteraction(draw);
   map.addInteraction(dragBox);
 }
 
+/** draw layer addfeature event */
 drawSource.on('addfeature', (e) => {
   let selectbox = drawSource.getFeatures()[0].getGeometry().clone()
     .transform('EPSG:3857', 'EPSG:4326').getCoordinates()[0];
@@ -136,12 +138,16 @@ drawSource.on('addfeature', (e) => {
 });
 
 
+/** clear all geometry features from map */
 function clearFeatures() {
-  /** clear all geometry features from map */
   drawSource.clear();
   lineSource.clear();
 }
 
+/** new track geometry feature
+ * @param {Object} geojs GeoJSON LineString object
+ * @param {Object} meta geometry metadata
+ */
 function newTrackFeature(geojs, meta) {
   const format = new GeoJSON();
   const feature = format.readFeature(geojs, {
@@ -179,6 +185,10 @@ function newTrackFeature(geojs, meta) {
   lineSource.addFeature(feature);
 }
 
+/** new zone polygon feature
+ * @param {Object} geojs GeoJSON Polygon object
+ * @param {Object} meta geometry metadata
+ */
 function newPolygonFeature(geojs, meta) {
   const format = new GeoJSON();
   const feature = format.readFeature(geojs, {
@@ -190,6 +200,10 @@ function newPolygonFeature(geojs, meta) {
 }
 
 
+/** callback for map pointermove event
+ * @param {VectorLayer} l ol VectorLayer
+ * @returns {boolean}
+ */
 function layerFilterCallback(l) {
   if (l === lineLayer || l === polyLayer) {
     return true;

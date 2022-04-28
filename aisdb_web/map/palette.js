@@ -1,5 +1,10 @@
+/**
+ * map styling and colorschemes
+ * @module palette
+ */
 import { Fill, Stroke, Style } from 'ol/style';
 
+/** default zone polygon map style */
 const polyStyle = new Style({
   stroke: new Stroke({
     color: '#000000',
@@ -9,7 +14,7 @@ const polyStyle = new Style({
   }),
 });
 
-/* on mousever status info */
+/** on mousever status info */
 const selectStyle = new Style({
   fill: new Fill({
     color: '#eeeeee',
@@ -21,6 +26,7 @@ const selectStyle = new Style({
   }),
 });
 
+/** hidden feature style */
 const hiddenStyle = new Style({
   fill: new Fill({
     color: 'rgba(255, 255, 255, 0)',
@@ -31,6 +37,7 @@ const hiddenStyle = new Style({
   }),
 });
 
+/** map window selection area feature style */
 const dragBoxStyle = new Style({
   fill: new Fill({
     color: 'rgba(255, 255, 255, 0)',
@@ -41,6 +48,7 @@ const dragBoxStyle = new Style({
   }),
 });
 
+/** tracks color palette */
 const palette = [
   // [0, 0, 0],
   // [1, 0, 103],
@@ -108,6 +116,7 @@ const palette = [
   [ 232, 94, 190 ],
 ];
 
+/** known vessel types */
 const vessellabels = [
   // '',
   // '-',
@@ -178,6 +187,7 @@ vesseltypes['Tanker-HazardB'] = vesseltypes.Tanker;
 vesseltypes['Tanker-HazardC(Minor)'] = vesseltypes.Tanker;
 vesseltypes['Tanker-HazardD(Recognizable)'] = vesseltypes.Tanker;
 
+/** maps vessellabels to colors in palette */
 let vesselStyles = {};
 // vesseltypes.forEach((key) => {
 for (const key of Object.keys(vesseltypes)) {
