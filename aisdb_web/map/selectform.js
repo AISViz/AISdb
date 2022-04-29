@@ -8,6 +8,7 @@ import {
   drawSource,
   lineSource,
   map,
+  setSearchAreaFromSelected,
 } from './map';
 
 import { vessellabels, vesseltypes, vesselStyles, hiddenStyle } from './palette';
@@ -140,6 +141,10 @@ searchbtn.onclick = async function() {
     // validate time input
     statusdiv.textContent = `Error: No data after ${timeselectend.max}`;
     window.statusmsg = statusdiv.textContent;
+  } else if (Math.floor((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)) > 31) {
+    // validate time input
+    statusdiv.textContent = 'Error: select a time range of one month or less';
+    window.statusmsg = statusdiv.textContent;
   } else if (searchstate === true) {
     // create database request if everything is OK
     await newSearch(start, end);
@@ -155,6 +160,7 @@ searchbtn.onclick = async function() {
  */
 clearbtn.onclick = async function() {
   window.searcharea = null;
+  await setSearchAreaFromSelected();
   window.statusmsg = '';
   statusdiv.textContent = '';
   if (searchstate === false) {
