@@ -44,8 +44,8 @@ async function parseUrl() {
 
   if (Date.parse(urlParams.get('start')) > 0 &&
     Date.parse(urlParams.get('end')) > 0) {
+    // await waitForTimerange();
     await setSearchValue(urlParams.get('start'), urlParams.get('end'));
-    await waitForTimerange();
   }
 
   if (isNumeric(urlParams.get('xmin')) &&
@@ -64,12 +64,14 @@ async function parseUrl() {
     };
   }
 
+  /*
   if (urlParams.get('ecoregions') !== undefined &&
     urlParams.get('ecoregions') !== null) {
     await resetLoadingZones();
     await socket.send(JSON.stringify({ type: 'zones' }));
     await waitForZones();
   }
+  */
 
   if (urlParams.get('search') !== null) {
     await searchbtn.click();

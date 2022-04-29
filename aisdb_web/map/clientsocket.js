@@ -22,7 +22,6 @@ if (port === undefined) {
 }
 
 
-// const socketHost = `ws://${hostname}:${port}`
 /** @constant {string} socketHost socket host address */
 const socketHost = `wss://${hostname}/ws`;
 /** @constant {WebSocket} socket database websocket */

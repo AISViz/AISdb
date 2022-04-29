@@ -313,13 +313,14 @@ map.on('click', async (e) => {
 export {
   addInteraction,
   clearFeatures,
-  draw,
   dragBox,
+  draw,
   drawSource,
   lineSource,
   map,
   mapview,
   newPolygonFeature,
   newTrackFeature,
+  polySource,
   setSearchAreaFromSelected,
 };

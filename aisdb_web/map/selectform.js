@@ -9,9 +9,16 @@ import {
   lineSource,
   map,
   setSearchAreaFromSelected,
+  polySource,
 } from './map';
 
-import { vessellabels, vesseltypes, vesselStyles, hiddenStyle } from './palette';
+import {
+  hiddenStyle,
+  polyStyle,
+  vesselStyles,
+  vessellabels,
+  vesseltypes,
+} from './palette';
 
 
 /** @constant {element} statusdiv status message div element */
@@ -28,7 +35,9 @@ const vesseltypeselect = document.getElementById('vesseltype-select');
 const searchbtn = document.getElementById('searchbtn');
 /** @constant {element} clearbtn map window reset button */
 const clearbtn = document.getElementById('clearbtn');
-/** @constant {element} vessel type selection popup menu element */
+/** @constant {element} selectmenu area selection popup menu element */
+const selectmenu = document.getElementById('select-menu');
+/** @constant {element} vesselmenu vessel type selection popup menu element */
 const vesselmenu = document.getElementById('vesseltype-menu');
 
 
@@ -99,12 +108,35 @@ async function newSearch(start, end) {
  * @callback selectbtn_onclick
  * @function
  */
+/*
 selectbtn.onclick = function () {
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
   drawSource.clear();
   addInteraction();
 };
+*/
+selectbtn.onclick = function() {
+  selectmenu.classList.toggle('show');
+};
+selectmenu.childNodes.forEach((opt) => {
+  opt.onclick = async function() {
+    selectmenu.classList.toggle('show');
+    selectbtn.textContent = opt.dataset.label;
+    if (opt.dataset.value === 'ecoregions') {
+      map.removeInteraction(draw);
+      map.removeInteraction(dragBox);
+      drawSource.clear();
+      await socket.send(JSON.stringify({ type: 'zones' }));
+    } else if (opt.dataset.value === 'selectbox') {
+      polySource.clear();
+      map.removeInteraction(draw);
+      map.removeInteraction(dragBox);
+      drawSource.clear();
+      addInteraction();
+    }
+  };
+});
 
 
 /** search button click action
@@ -159,6 +191,7 @@ searchbtn.onclick = async function() {
  * @function
  */
 clearbtn.onclick = async function() {
+  selectbtn.textContent = 'Select Area';
   window.searcharea = null;
   await setSearchAreaFromSelected();
   window.statusmsg = '';
@@ -169,6 +202,10 @@ clearbtn.onclick = async function() {
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
   clearFeatures();
+  for (let ft of polySource.getFeatures()) {
+    ft.set('selected', false);
+    ft.setStyle(polyStyle);
+  }
 };
 
 
@@ -184,6 +221,10 @@ async function setSearchRange(start, end) {
   timeselectend.min = start;
   timeselectstart.max = end;
   timeselectend.max = end;
+  if (timeselectstart.value === '' && timeselectend.value === '' && start < '2021-07-01' && end > '2021-07-14') {
+    timeselectstart.value = '2021-07-01';
+    timeselectend.value = '2021-07-14';
+  }
 }
 
 
