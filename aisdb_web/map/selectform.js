@@ -122,7 +122,7 @@ selectbtn.onclick = function() {
 selectmenu.childNodes.forEach((opt) => {
   opt.onclick = async function() {
     selectmenu.classList.toggle('show');
-    selectbtn.textContent = opt.dataset.label;
+    // selectbtn.textContent = opt.dataset.label;
     if (opt.dataset.value === 'ecoregions') {
       map.removeInteraction(draw);
       map.removeInteraction(dragBox);
