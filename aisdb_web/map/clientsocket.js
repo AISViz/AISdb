@@ -86,7 +86,6 @@ socket.onopen = async function(event) {
   console.log(msg);
   await socket.send(JSON.stringify({ type: 'validrange' }));
   await waitForTimerange();
-
   await parseUrl();
 };
 

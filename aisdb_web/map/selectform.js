@@ -1,4 +1,7 @@
 /** @module selectform */
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.css';
+
 import { socket, waitForTimerange } from './clientsocket';
 import {
   addInteraction,
@@ -40,6 +43,18 @@ const selectmenu = document.getElementById('select-menu');
 /** @constant {element} vesselmenu vessel type selection popup menu element */
 const vesselmenu = document.getElementById('vesseltype-menu');
 
+
+window.timeselectstart = timeselectstart;
+const timeselectstart_fp = flatpickr(timeselectstart, {
+  onChange: function(selectedDates, dateStr, instance) {
+    timeselectstart.value = dateStr;
+  }
+});
+const timeselectend_fp = flatpickr(timeselectend, {
+  onChange: function(selectedDates, dateStr, instance) {
+    timeselectend.value = dateStr;
+  }
+});
 
 /** searchstate true if not currently performing a search
  * @see resetSearchState
@@ -159,11 +174,11 @@ searchbtn.onclick = async function() {
     // validate time input
     statusdiv.textContent = 'Error: Start must occur before end';
     window.statusmsg = statusdiv.textContent;
-  } else if (start < timeselectstart.min) {
+  } else if (start < timeselectstart_fp.config.minDate) {
     // validate time input
     statusdiv.textContent = `Error: No data before ${timeselectstart.min}`;
     window.statusmsg = statusdiv.textContent;
-  } else if (end > timeselectend.max) {
+  } else if (end > timeselectend_fp.config.maxDate) {
     // validate time input
     statusdiv.textContent = `Error: No data after ${timeselectend.max}`;
     window.statusmsg = statusdiv.textContent;
@@ -211,13 +226,17 @@ clearbtn.onclick = async function() {
  * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
  */
 async function setSearchRange(start, end) {
-  timeselectstart.min = start;
-  timeselectend.min = start;
-  timeselectstart.max = end;
-  timeselectend.max = end;
-  if (timeselectstart.value === '' && timeselectend.value === '' && start < '2021-07-01' && end > '2021-07-14') {
-    timeselectstart.value = '2021-07-01';
-    timeselectend.value = '2021-07-14';
+  timeselectstart_fp.set('minDate', start);
+  timeselectend_fp.set('minDate', start);
+  timeselectstart_fp.set('maxDate', end);
+  timeselectend_fp.set('maxDate', end);
+  let defaultStart = '2021-07-01';
+  let defaultEnd = '2021-07-14';
+  if (timeselectstart.value === '' && timeselectend.value === '' && start < defaultStart && end > defaultEnd) {
+    timeselectstart_fp.set('defaultDate', defaultStart);
+    timeselectstart.value = defaultStart;
+    timeselectend_fp.set('defaultDate', defaultEnd);
+    timeselectend.value = defaultEnd;
   }
 }
 
@@ -229,8 +248,13 @@ async function setSearchRange(start, end) {
  * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
  */
 async function setSearchValue(start, end) {
+  /*
   timeselectstart.value = start;
   timeselectend.value = end;
+  */
+  timeselectstart_fp.set('defaultDate', start);
+  timeselectstart_fp.jumpToDate(start, true);
+  timeselectend_fp.config.defaultDate = end;
 }
 
 

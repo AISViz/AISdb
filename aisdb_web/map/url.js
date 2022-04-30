@@ -2,12 +2,7 @@
 
 import * as olProj from 'ol/proj';
 
-import {
-  resetLoadingZones,
-  socket,
-  waitForTimerange,
-  waitForZones,
-} from './clientsocket';
+import { waitForTimerange } from './clientsocket';
 import { mapview } from './map';
 import { searchbtn, setSearchValue } from './selectform';
 import { screenshot } from './render';
@@ -44,7 +39,7 @@ async function parseUrl() {
 
   if (Date.parse(urlParams.get('start')) > 0 &&
     Date.parse(urlParams.get('end')) > 0) {
-    // await waitForTimerange();
+    await waitForTimerange();
     await setSearchValue(urlParams.get('start'), urlParams.get('end'));
   }
 

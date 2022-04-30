@@ -129,7 +129,7 @@ label {
   }
 }
 
-@media screen and (min-width: 700px) {
+@media screen and (min-width: 800px) {
   .map {
     height: calc(100vh - 4.5em);
     width: 100vw;
@@ -139,12 +139,12 @@ label {
     height: 4.5em;
   }
   .col {
-    min-width: 20vw;
+    min-width: 18vw;
     margin-left: 2px;
     margin-right: 2px;
   }
   .shortcol {
-    min-width: 8vw;
+    min-width: 4vw;
   }
   .flexfill {
     flex-grow: 100;
@@ -153,7 +153,7 @@ label {
   }
 }
 
-@media screen and (min-width: 1500px) {
+@media screen and (min-width: 1800px) {
   .map {
     height: calc(100vh - 2.25em);
     width: 100vw;
@@ -163,12 +163,13 @@ label {
     height: 2.25em;
   }
   .col {
-    min-width: 6vw;
+    min-width: 4vw;
+    max-width: 10em;
     margin-left: 2px;
     margin-right: 2px;
   }
   .shortcol {
-    min-width: 4vw;
+    min-width: 3vw;
   }
   .flexfill {
     flex-grow: 90;
