@@ -3,13 +3,13 @@ import { socket, waitForTimerange } from './clientsocket';
 import {
   addInteraction,
   clearFeatures,
-  draw,
   dragBox,
+  draw,
   drawSource,
   lineSource,
   map,
-  setSearchAreaFromSelected,
   polySource,
+  setSearchAreaFromSelected,
 } from './map';
 
 import {
@@ -46,9 +46,6 @@ const vesselmenu = document.getElementById('vesseltype-menu');
  * @type {boolean}
  */
 let searchstate = true;
-// window.searchstate = function() {
-//  console.log(searchstate);
-// };
 
 
 /** reset the search state
@@ -108,21 +105,18 @@ async function newSearch(start, end) {
  * @callback selectbtn_onclick
  * @function
  */
-/*
-selectbtn.onclick = function () {
-  map.removeInteraction(draw);
-  map.removeInteraction(dragBox);
-  drawSource.clear();
-  addInteraction();
-};
-*/
 selectbtn.onclick = function() {
   selectmenu.classList.toggle('show');
 };
+
+
+/** select menu options click actions
+ * @callback selectmenu_childNodes_onclick
+ * @function
+ */
 selectmenu.childNodes.forEach((opt) => {
   opt.onclick = async function() {
     selectmenu.classList.toggle('show');
-    // selectbtn.textContent = opt.dataset.label;
     if (opt.dataset.value === 'ecoregions') {
       map.removeInteraction(draw);
       map.removeInteraction(dragBox);

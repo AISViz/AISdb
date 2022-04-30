@@ -22,10 +22,13 @@ button:active {
 
 select, input {
   display: flex;
-  width: 8em;
+  min-width: 8em;
   text-align: right;
   margin-left: .5em;
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+label {
+  text-align: right;
 }
 
 
@@ -49,7 +52,7 @@ select, input {
   flex-direction: column-reverse;
   text-align: center;
   --overflow: scroll;
-  width: 7.25vw;
+  min-width: 7.25vw;
 }
 
 .hiddenmenu-content {
@@ -68,7 +71,7 @@ select, input {
   text-decoration: none;
   display: block;
   padding: 0px 6px;
-  width: 12em;
+  min-width: 14em;
 }
 
 .hiddenmenu-content a:hover {
@@ -89,34 +92,93 @@ select, input {
 }
 
 
-.map {
-  height: calc(100vh - 2em);
-  width: 100vw;
-  background-color: #282c34;
-}
-
 .optionSelectContainer {
   font-size: .8em;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-}
-
-.formdiv {
   margin-top: .3em;
-  margin-left: .5em;
-  margin-right: .5em;
-}
-
-.smallfill {
-  width: calc(100vh / 64);
-}
-
-.flexfill {
+  --margin-left: .5em;
+  --margin-right: .5em;
   flex-grow: 100;
+}
+
+
+@media screen and (min-width: 10px) {
+  .map {
+    height: calc(100vh - 8em);
+    width: 100vw;
+    background-color: #282c34;
+  }
+  .liquidlayout {
+    height: 8em;
+  }
+  .col {
+    min-width: 40vw;
+    margin-left: 2px;
+    margin-right: 2px;
+  }
+  .shortcol {
+    min-width: 40vw;
+  }
+  .flexfill {
+    flex-grow: 100;
+    min-width: 90vw;
+    min-height: 2em;
+  }
+}
+
+@media screen and (min-width: 700px) {
+  .map {
+    height: calc(100vh - 4.5em);
+    width: 100vw;
+    background-color: #282c34;
+  }
+  .liquidlayout {
+    height: 4.5em;
+  }
+  .col {
+    min-width: 20vw;
+    margin-left: 2px;
+    margin-right: 2px;
+  }
+  .shortcol {
+    min-width: 8vw;
+  }
+  .flexfill {
+    flex-grow: 100;
+    min-width: 90vw;
+    min-height: 1em;
+  }
+}
+
+@media screen and (min-width: 1500px) {
+  .map {
+    height: calc(100vh - 2.25em);
+    width: 100vw;
+    background-color: #282c34;
+  }
+  .liquidlayout {
+    height: 2.25em;
+  }
+  .col {
+    min-width: 6vw;
+    margin-left: 2px;
+    margin-right: 2px;
+  }
+  .shortcol {
+    min-width: 4vw;
+  }
+  .flexfill {
+    flex-grow: 90;
+    min-width: 25vw;
+    min-height: 1em;
+  }
 }
 
 .statusmsg {
   text-align: right;
+  margin-right: 1em;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
