@@ -9,7 +9,8 @@ from datetime import datetime
 from aisdb import zones_dir, DomainFromTxts
 from aisdb import sqlfcn_callbacks, DBQuery
 from aisdb.track_gen import TrackGen_async, encode_greatcircledistance_async
-from aisdb import (DBConn, dbpath, haversine)
+from aisdb import (DBConn, dbpath)
+from aisdb import haversine
 from aisdb.webdata.marinetraffic import trafficDB, _vinfo
 
 

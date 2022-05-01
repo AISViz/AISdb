@@ -148,7 +148,7 @@ with import_handler() as importconfigs:
         distance3D,
         dt_2_epoch,
         epoch_2_dt,
-        haversine,
+        #haversine,
         radial_coordinate_boundary,
         vesseltrack_3D_dist,
     )
@@ -177,6 +177,8 @@ with import_handler() as importconfigs:
     )
 
     from .wsa import wsa
+
+    from .aisdb import haversine, decode_native
 
 import sqlite3
 if (sqlite3.sqlite_version_info[0] < 3

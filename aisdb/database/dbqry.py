@@ -4,10 +4,8 @@
 
 import asyncio
 import aiosqlite
-import concurrent.futures
 from collections import UserDict
 from datetime import datetime
-from functools import partial
 
 import numpy as np
 from shapely.geometry import Polygon
@@ -16,14 +14,18 @@ from aisdb.common import dbpath
 from database import sqlfcn_callbacks
 from database.dbconn import DBConn
 from database.sqlfcn import crawl
-from database.sqlfcn_callbacks import dt2monthstr, arr2polytxt, epoch2monthstr
+from database.sqlfcn_callbacks import dt2monthstr, arr2polytxt
 from database.create_tables import (
     aggregate_static_msgs,
     sqlite_createtable_dynamicreport,
     sqlite_createtable_staticreport,
 )
 from aisdb.webdata.marinetraffic import VesselInfo
-from aisdb.track_gen import TrackGen, zone_mask
+
+from aisdb.gis import epoch_2_dt
+
+epoch2monthstr = lambda start, end, **_: dt2monthstr(epoch_2_dt(start),
+                                                     epoch_2_dt(end))
 
 
 class DBQuery(UserDict):

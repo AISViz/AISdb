@@ -1,2 +1,7 @@
 [build-system]
-requires = ["setuptools", "wheel", "setuptools-rust"]
+#requires = ["setuptools", "wheel", "setuptools-rust"]
+requires = ['maturin>=0.12']
+build-backend = 'maturin'
+
+[tool.maturin]
+sdist-include = ["aisdb_sql/*"]

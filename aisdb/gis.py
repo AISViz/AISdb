@@ -11,8 +11,6 @@ from shapely.geometry import Polygon, LineString, Point
 
 from aisdb.proc_util import glob_files
 
-# shiftcoord = lambda x, rng=360: ((np.array(x) + (rng / 2)) % 360) - (rng / 2)
-
 
 def shiftcoord(x, rng=180):
     ''' Correct longitude coordinates to be within range(-180, 180).
@@ -57,6 +55,7 @@ def epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
         raise ValueError('input must be integer or array of integers')
 
 
+"""
 def haversine(x1, y1, x2, y2):
     ''' https://en.wikipedia.org/wiki/Haversine_formula '''
     x1r, y1r, x2r, y2r = map(np.radians, [x1, y1, x2, y2])
@@ -65,6 +64,7 @@ def haversine(x1, y1, x2, y2):
         np.sqrt(
             np.sin(dlat / 2.)**2 +
             np.cos(y1r) * np.cos(y2r) * np.sin(dlon / 2.)**2)) * 1000
+"""
 
 
 def delta_meters(track, rng=None):

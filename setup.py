@@ -7,11 +7,13 @@ from setuptools_rust import Binding, RustExtension
 thispath = os.path.dirname(__file__)
 
 # compile rust target
+'''
 cargopath = shutil.which('cargo')
 if cargopath:
     projpath = os.path.join(thispath, 'aisdb_rust', 'Cargo.toml')
     subprocess.run(
         f'{cargopath} build --manifest-path={projpath} --release'.split())
+'''
 
 # parse pkg version file
 versionfile = os.path.join(thispath, 'aisdb', 'version.py')

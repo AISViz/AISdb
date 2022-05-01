@@ -8,9 +8,10 @@ from hashlib import md5
 
 from aisdb.index import index
 from aisdb.database.dbconn import DBConn
+from aisdb import decode_native
 
 
-def decode_msgs(filepaths, dbpath, vacuum=True, skip_checksum=False):
+def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
@@ -74,12 +75,15 @@ def decode_msgs(filepaths, dbpath, vacuum=True, skip_checksum=False):
                     )
 
         for j in range(0, len(filepaths), batchsize):
-
+            '''
             cmd = [rustbinary, '--dbpath', dbpath]
             for file in filepaths[j:j + batchsize]:
                 cmd += ['--file', file]
 
             subprocess.run(cmd, check=True)
+            '''
+
+            decode_native(dbpath, filepaths[j:j + batchsize])
 
             if not skip_checksum:
                 for file in filepaths[j:j + batchsize]:

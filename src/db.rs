@@ -1,4 +1,4 @@
-use std::env::current_exe;
+//use std::env::current_exe;
 use std::fs::read_to_string;
 
 use chrono::MIN_DATETIME;
@@ -26,6 +26,7 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
 
 /// get absolute path to SQL source code
 pub fn sqlfiles_abspath(fname: &str) -> std::path::PathBuf {
+    /*
     let mut exepath = current_exe().unwrap();
     while &exepath.to_str().unwrap()[&exepath.to_str().unwrap().len() - 10..] != "aisdb_rust" {
         exepath = exepath.parent().unwrap().to_path_buf();
@@ -37,6 +38,8 @@ pub fn sqlfiles_abspath(fname: &str) -> std::path::PathBuf {
     exename += &format!("aisdb_sql/{}", fname).to_string();
 
     std::path::PathBuf::from(exename)
+    */
+    std::path::PathBuf::from(format!("aisdb_sql/{}", fname))
 }
 
 /// create position reports table

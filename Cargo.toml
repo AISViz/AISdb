@@ -1,0 +1,30 @@
+[package]
+version = '1.0.0'
+name = 'aisdb'
+authors = ['MERIDIAN // Matt Smith matthew.smith@dal.ca']
+edition = '2021'
+include = ['src']
+
+[lib]
+crate-type=['cdylib', 'rlib']
+path = 'src/lib.rs'
+
+[[bin]]
+name = 'aisdb'
+path = 'src/bin.rs'
+doc = true
+test = true
+doctest = false
+
+[dependencies]
+geo = '0.20.1'
+pyo3        = {version = '0.16.4', features = ['extension-module']}
+async-std   = {version = '1.11.0', features = ['attributes']}
+chrono      = {version = '0.4'}
+csv         = {version = '1.1'}
+#futures     = {version = '0.3'}
+log         = {version = '0.4.16'}
+nmea-parser = {version = '0.9'}
+pico-args   = {version = '0.4.2', features = ['eq-separator']}
+rusqlite    = {version = '0.26'}
+

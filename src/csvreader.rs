@@ -40,7 +40,7 @@ pub fn filter_vesseldata_csv(row: StringRecord) -> Option<(StringRecord, i32, bo
 }
 
 //pub fn decodemsgs_ee_csv(filename: &str) -> (Vec<VesselData>, Vec<VesselData>) {
-pub async fn decodemsgs_ee_csv(
+pub fn decodemsgs_ee_csv(
     dbpath: &std::path::Path,
     filename: &std::path::PathBuf,
 ) -> Result<(), Error> {

@@ -6,7 +6,9 @@ from datetime import timedelta
 import numpy as np
 
 from shapely.geometry import LineString
-from gis import haversine, delta_knots, delta_meters
+
+import aisdb
+from gis import delta_knots, delta_meters
 from proc_util import _segment_rng
 
 meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
@@ -260,7 +262,7 @@ def _score_fcn(xy1, xy2, t1, t2, *, speed_threshold, distance_threshold):
                 the score will be set to -1. Measured in meters
     '''
     # great circle distance between coordinate pairs (meters)
-    dm = max(haversine(*xy1, *xy2), 1.)
+    dm = max(aisdb.haversine(*xy1, *xy2), 1.)
 
     # elapsed time between coordinate pair timestamps (seconds)
     dt = max(abs(t2 - t1), 10.)

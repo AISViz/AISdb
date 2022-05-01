@@ -99,7 +99,7 @@ pub fn epoch_2_dt(e: i64) -> DateTime<Utc> {
 
 mod tests {
     use super::glob_dir;
-    use crate::HELP;
+    use super::HELP;
 
     #[test]
     fn test_glob_dir() {

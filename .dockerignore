@@ -1,4 +1,6 @@
 **.csv
+target
+release
 **.db
 **.db
 **.egg-info
@@ -6,6 +8,7 @@
 **.log
 **.nm4
 **.pickle
+**.so
 **/debug
 **/debug/*
 **__pycache__**
@@ -31,14 +34,14 @@ aisdb_extra/target
 aisdb_rust/.git
 aisdb_rust/.gitignore
 aisdb_rust/target
-aisdb_rust/testdata
+**/testdata
 aisdb_wasm/release
 aisdb_wasm/target
-aisdb_web/dist_cargodoc
-aisdb_web/dist_map
-aisdb_web/dist_jsdoc
-aisdb_web/dist_sphinx
 aisdb_web/dist**
+aisdb_web/dist_cargodoc
+aisdb_web/dist_jsdoc
+aisdb_web/dist_map
+aisdb_web/dist_sphinx
 aisdb_web/map/pkg
 aisdb_web/node_modules
 build

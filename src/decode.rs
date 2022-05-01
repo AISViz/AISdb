@@ -151,7 +151,7 @@ pub fn filter_vesseldata(
 /// open .nm4 file and decode each line, keeping only vessel data.
 /// decoded vessel data will be inserted into the SQLite database
 /// located at dbpath
-pub async fn decode_insert_msgs(
+pub fn decode_insert_msgs(
     dbpath: &std::path::Path,
     filename: &std::path::Path,
     mut parser: NmeaParser,
@@ -325,7 +325,6 @@ pub mod tests {
                 &std::path::Path::new(&filepath).to_path_buf(),
                 parser,
             )
-            .await
             .expect("test decode and insert");
         }
 
