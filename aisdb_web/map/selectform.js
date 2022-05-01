@@ -132,7 +132,8 @@ selectbtn.onclick = function() {
 selectmenu.childNodes.forEach((opt) => {
   opt.onclick = async function() {
     selectmenu.classList.toggle('show');
-    if (opt.dataset.value === 'ecoregions') {
+    if (opt.dataset.value === 'ecoregions' &&
+      polySource.getFeatures().length === 0) {
       map.removeInteraction(draw);
       map.removeInteraction(dragBox);
       drawSource.clear();
@@ -232,10 +233,15 @@ async function setSearchRange(start, end) {
   timeselectend_fp.set('maxDate', end);
   let defaultStart = '2021-07-01';
   let defaultEnd = '2021-07-14';
-  if (timeselectstart.value === '' && timeselectend.value === '' && start < defaultStart && end > defaultEnd) {
+  if (timeselectstart.value === '' &&
+    timeselectend.value === '' &&
+    start < defaultStart &&
+    end > defaultEnd) {
     timeselectstart_fp.set('defaultDate', defaultStart);
+    timeselectstart_fp.jumpToDate(defaultStart, true);
     timeselectstart.value = defaultStart;
     timeselectend_fp.set('defaultDate', defaultEnd);
+    timeselectend_fp.jumpToDate(defaultEnd, true);
     timeselectend.value = defaultEnd;
   }
 }
@@ -254,7 +260,8 @@ async function setSearchValue(start, end) {
   */
   timeselectstart_fp.set('defaultDate', start);
   timeselectstart_fp.jumpToDate(start, true);
-  timeselectend_fp.config.defaultDate = end;
+  timeselectend_fp.set('defaultDate', end);
+  timeselectend_fp.jumpToDate(end, true);
 }
 
 
