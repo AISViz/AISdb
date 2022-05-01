@@ -6,17 +6,17 @@ import websockets
 import calendar
 from datetime import datetime
 
+import aisdb
 from aisdb import zones_dir, DomainFromTxts
 from aisdb import sqlfcn_callbacks, DBQuery
 from aisdb.track_gen import TrackGen_async, encode_greatcircledistance_async
 from aisdb import (DBConn, dbpath)
-from aisdb import haversine
 from aisdb.webdata.marinetraffic import trafficDB, _vinfo
 
 
 def request_size(*, xmin, xmax, ymin, ymax, start, end):
     ''' restrict box size to 3000 kilometers diagonal distance per month'''
-    dist_diag = haversine(x1=xmin, y1=ymin, x2=xmax, y2=ymax) / 1000
+    dist_diag = aisdb.haversine(x1=xmin, y1=ymin, x2=xmax, y2=ymax) / 1000
     delta_t = (end - start).total_seconds() / 60 / 60 / 24 / 30
     if dist_diag * delta_t > 3000:
         return False

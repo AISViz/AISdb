@@ -8,7 +8,7 @@ from hashlib import md5
 
 from aisdb.index import index
 from aisdb.database.dbconn import DBConn
-from aisdb import decode_native
+import aisdb
 
 
 def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
@@ -43,21 +43,9 @@ def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
     '''
     batchsize = 5
 
-    assert len(filepaths) > 0
+    if len(filepaths) == 0:
+        raise ValueError('must supply atleast one filepath.')
 
-    rustbinary = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), '..', '..', 'aisdb_rust',
-                     'target', 'release', 'aisdb'))
-
-    testbinary = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), '..', '..', 'aisdb_rust',
-                     'target', 'debug', 'aisdb'))
-
-    if os.path.isfile(testbinary) and os.environ.get('RUST_BACKTRACE') == 1:
-        print('using debug binary...')
-        rustbinary = testbinary
-
-    assert os.path.isfile(rustbinary), 'cant find rust executable!'
     dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
 
     with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
@@ -75,15 +63,7 @@ def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
                     )
 
         for j in range(0, len(filepaths), batchsize):
-            '''
-            cmd = [rustbinary, '--dbpath', dbpath]
-            for file in filepaths[j:j + batchsize]:
-                cmd += ['--file', file]
-
-            subprocess.run(cmd, check=True)
-            '''
-
-            decode_native(dbpath, filepaths[j:j + batchsize])
+            aisdb.decode_native(dbpath, filepaths[j:j + batchsize])
 
             if not skip_checksum:
                 for file in filepaths[j:j + batchsize]:
