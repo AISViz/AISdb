@@ -42,8 +42,8 @@ label {
   overflow: auto;
 }
 
-.hiddenmenu-btn:hover, .hiddenmenu-btn:focus {
-
+.hiddenmenu-item {
+  cursor: pointer;
 }
 
 .hiddenmenu {

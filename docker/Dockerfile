@@ -19,13 +19,13 @@ RUN python -m ensurepip && python -m pip install --upgrade pip numpy wheel
 COPY --chown="ais_env" docs/requirements.txt docs/requirements.txt
 RUN python -m pip install -r ./docs/requirements.txt
 RUN python -m pip install pytest 
+COPY --chown=ais_env aisdb_web/package.json aisdb_web/package.json
+RUN cd aisdb_web && npm install
 COPY --chown="ais_env" ./target/wheels/aisdb-1.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl .
 RUN python -m pip install aisdb-1.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
 # build sphinx docs and nodejs webapp
 FROM aisdb AS webserv
-COPY --chown=ais_env aisdb_web/package.json aisdb_web/package.json
-RUN cd aisdb_web && npm install
 ARG BINGMAPSKEY
 ARG AISDBHOST
 ARG AISDBPORT

@@ -3,11 +3,13 @@ from multiprocessing import set_start_method
 set_start_method('forkserver')
 from multiprocessing import Pool, Queue
 '''
+import os
 from datetime import datetime
 from functools import partial
 
 from shapely.geometry import Polygon
 
+from aisdb import data_dir
 from aisdb.database.dbqry import DBQuery
 from aisdb.database.sqlfcn_callbacks import (
     in_bbox_time, )
@@ -29,6 +31,8 @@ from aisdb.tests.create_testing_data import (
     sample_gulfstlawrence_bbox,
 )
 
+testdbpath = os.path.join(data_dir, 'testdb', 'test.db')
+
 
 def test_network_graph_geofencing():
     # query configs
@@ -48,9 +52,9 @@ def test_network_graph_geofencing():
         callback=in_bbox_time,
     )
 
-    args.check_idx()
+    args.check_idx(dbpath=testdbpath)
 
-    sample_dynamictable_insertdata()
+    sample_dynamictable_insertdata(testdbpath)
     # processing configs
     distsplit = partial(
         encode_greatcircledistance,
@@ -62,8 +66,9 @@ def test_network_graph_geofencing():
 
     # query db for points in domain bounding box
     try:
-        _test = next(TrackGen(args.gen_qry()))
-        _test2 = next(geofenced(distsplit(TrackGen(args.gen_qry()))))
+        _test = next(TrackGen(args.gen_qry(dbpath=testdbpath)))
+        _test2 = next(
+            geofenced(distsplit(TrackGen(args.gen_qry(dbpath=testdbpath)))))
         #_test3 = next(
         #    serialized(geofenced(distsplit(TrackGen(args.gen_qry())))))
     except ValueError as err:
@@ -90,7 +95,7 @@ def test_network_graph_merged_serialized():
         callback=in_bbox_time,
     )
 
-    args.check_idx()
+    args.check_idx(dbpath=testdbpath)
 
     distsplit = partial(
         encode_greatcircledistance,
@@ -106,7 +111,9 @@ def test_network_graph_merged_serialized():
             merge_tracks_shoredist(
                 merge_tracks_portdist(
                     #merge_tracks_hullgeom(
-                    geofenced(distsplit(TrackGen(args.gen_qry())))))))
+                    geofenced(
+                        distsplit(TrackGen(args.gen_qry(dbpath=testdbpath)))
+                    )))))
     #)
     assert False
     next(pipeline)

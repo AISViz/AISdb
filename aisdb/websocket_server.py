@@ -44,8 +44,9 @@ class SocketServ():
         self.host = os.environ.get('AISDBHOSTALLOW', '*')
         port = os.environ.get('AISDBPORT', 9924)
         self.port = int(port)
-        self.domain = DomainFromTxts(
-            zones_dir.rsplit(os.path.sep, 1)[1], zones_dir)
+        self.domain = DomainFromTxts(zones_dir.rsplit(os.path.sep, 1)[1],
+                                     zones_dir,
+                                     correct_coordinate_range=False)
 
         if enable_ssl:
             sslpath = os.path.join('/etc/letsencrypt/live/',
@@ -128,8 +129,8 @@ class SocketServ():
             x, y = zone['geometry'].boundary.coords.xy
             event = {
                 'msgtype': 'zone',
-                'x': x.astype(np.float32),
-                'y': y.astype(np.float32),
+                'x': np.array(x, dtype=np.float32),
+                'y': np.array(y, dtype=np.float32),
                 't': [],
                 'meta': {
                     'name': zone['name'],

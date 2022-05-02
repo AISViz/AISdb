@@ -16,18 +16,18 @@ from aisdb.gis import Domain, DomainFromTxts
 arrayhash = lambda matrix, nbytes=2: sha256(
     reduce(np.append, matrix).tobytes()).hexdigest()[nbytes * -8:]
 
-dbpath = os.path.join(data_dir, 'testdb', 'test.db')
+testdbpath = os.path.join(data_dir, 'testdb', 'test.db')
 
 
-def sample_dynamictable_insertdata():
+def sample_dynamictable_insertdata(testdbpath):
     args = DBQuery(
         start=datetime(2000, 1, 1),
         end=datetime(2000, 2, 1),
         callback=in_timerange,
     )
-    args.check_idx()
+    args.check_idx(dbpath=testdbpath)
 
-    db = DBConn(dbpath)
+    db = DBConn(dbpath=testdbpath)
     db.cur.execute(
         'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702800, -60.994833, 47.434647238127695, -1, -1)'
     )

@@ -8,6 +8,11 @@ services:
     image: ghcr.io/pyo3/maturin:main
     volumes:
       - ./:/io
+      #- ./aisdb:/io/aisdb
+      #- ./src:/io/src
+      #- ./target:/io/target
+      #- ./build.rs:/io/build.rs
+      #- ./Cargo.toml/io/Cargo.toml
     command: build --release --manylinux 2014
 
   # run rust tests
@@ -41,7 +46,7 @@ services:
     volumes:
       - ./aisdb/tests:/home/ais_env/tests
     command: 
-      ["python", "-m", "pytest", "--color=yes", "--tb=native", "--doctest-modules", "tests/"]
+      ["python", "-m", "pytest", "--color=yes", "--tb=native", "--doctest-modules", "tests/", "-s", "-k", "not merge"]
 
   # nodeJS docs server + webapp
   webserver:

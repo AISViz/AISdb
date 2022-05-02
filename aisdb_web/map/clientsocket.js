@@ -173,9 +173,9 @@ socket.onmessage = async function(event) {
  * @callback window_onbeforeunload
  *
  */
-window.onbefureunload = function() {
-  socket.onclose = function() {};
-  socket.close();
+window.onbefureunload = async function() {
+  // socket.onclose = function() {};
+  await socket.close();
 };
 
 

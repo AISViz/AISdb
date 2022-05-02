@@ -1,11 +1,13 @@
 //use std::env::current_exe;
-use std::fs::read_to_string;
+use include_dir::{include_dir, Dir};
 
 use chrono::MIN_DATETIME;
 use rusqlite::{params, Connection, Result, Transaction};
 
 use crate::util::epoch_2_dt;
 use crate::VesselData;
+
+static PROJECT_DIR: Dir<'_> = include_dir!("aisdb/aisdb_sql");
 
 /// open a new database connection at the specified path
 pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
@@ -24,22 +26,13 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
     Ok(conn)
 }
 
-/// get absolute path to SQL source code
-pub fn sqlfiles_abspath(fname: &str) -> std::path::PathBuf {
-    /*
-    let mut exepath = current_exe().unwrap();
-    while &exepath.to_str().unwrap()[&exepath.to_str().unwrap().len() - 10..] != "aisdb_rust" {
-        exepath = exepath.parent().unwrap().to_path_buf();
-    }
-    exepath = exepath.parent().unwrap().to_path_buf();
-
-    let mut exename = exepath.to_str().unwrap().to_string();
-    exename += "/";
-    exename += &format!("aisdb_sql/{}", fname).to_string();
-
-    std::path::PathBuf::from(exename)
-    */
-    std::path::PathBuf::from(format!("aisdb/aisdb_sql/{}", fname))
+/// embed SQL strings as literals
+pub fn sql_from_file(fname: &str) -> &str {
+    PROJECT_DIR
+        .get_file(fname)
+        .unwrap()
+        .contents_utf8()
+        .unwrap()
 }
 
 /// create position reports table
@@ -47,15 +40,7 @@ pub fn sqlite_createtable_dynamicreport(
     tx: &Transaction,
     mstr: &str,
 ) -> Result<usize, rusqlite::Error> {
-    let sqlfile = read_to_string(sqlfiles_abspath("createtable_dynamic_clustered.sql")).expect(
-        format!(
-            "Error reading SQL from file: {:?}",
-            sqlfiles_abspath("createtable_dynamic_clustered.sql")
-        )
-        .as_str(),
-    );
-    let sql = sqlfile.replace("{}", mstr);
-
+    let sql = sql_from_file("createtable_dynamic_clustered.sql").replace("{}", mstr);
     Ok(tx.execute(&sql, []).expect("creating dynamic table"))
 }
 
@@ -64,9 +49,7 @@ pub fn sqlite_createtable_staticreport(
     tx: &Transaction,
     mstr: &str,
 ) -> Result<usize, rusqlite::Error> {
-    let sqlfile =
-        read_to_string(sqlfiles_abspath("createtable_static.sql")).expect("reading SQL from file");
-    let sql = sqlfile.replace("{}", mstr);
+    let sql = sql_from_file("createtable_static.sql").replace("{}", mstr);
     Ok(tx.execute(&sql, []).expect("creating static table"))
 }
 
@@ -75,29 +58,21 @@ pub fn sqlite_createtable_staticreport(
 /// currently not used
 pub fn sqlite_create_rtree(tx: &Transaction, mstr: &str) -> Result<usize, rusqlite::Error> {
     // create rtree index as virtual table
-    let sqlfile1 = read_to_string(sqlfiles_abspath("createtable_dynamic_rtree.sql"))
-        .expect("reading SQL from file");
-    let sql1 = sqlfile1.replace("{}", mstr);
+    let sql1 = sql_from_file("createtable_dynamic_rtree.sql").replace("{}", mstr);
     tx.execute(&sql1, []).expect("creating rtree table");
 
     // populate rtree index automatically in the future
-    let sqlfile2 = read_to_string(sqlfiles_abspath("createtrigger_dynamic_rtreeidx.sql"))
-        .expect("reading SQL from file");
-    let sql2 = sqlfile2.replace("{}", mstr);
+    let sql2 = sql_from_file("createtrigger_dynamic_rtreeidx.sql").replace("{}", mstr);
     tx.execute(&sql2, []).expect("creating rtree trigger");
 
     // populate rtree index manually from existing
-    let sqlfile3 = read_to_string(sqlfiles_abspath("insert_dynamic_rtreeidx.sql"))
-        .expect("reading SQL from file");
-    let sql3 = sqlfile3.replace("{}", mstr);
+    let sql3 = sql_from_file("insert_dynamic_rtreeidx.sql").replace("{}", mstr);
     Ok(tx.execute(&sql3, []).expect("inserting into rtree"))
 }
 
 /// insert static reports into database
 pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
-    let sqlfile =
-        read_to_string(sqlfiles_abspath("insert_static.sql")).expect("reading SQL from file");
-    let sql = sqlfile.replace("{}", mstr);
+    let sql = sql_from_file("insert_static.sql").replace("{}", mstr);
 
     let mut stmt = tx.prepare_cached(&sql)?;
     for msg in msgs {
@@ -130,9 +105,7 @@ pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str)
 
 /// insert position reports into database
 pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
-    let sqlfile = read_to_string(sqlfiles_abspath("insert_dynamic_clusteredidx.sql"))
-        .expect("reading SQL from file");
-    let sql = sqlfile.replace("{}", mstr);
+    let sql = sql_from_file("insert_dynamic_clusteredidx.sql").replace("{}", mstr);
 
     let mut stmt = tx
         .prepare_cached(sql.as_str())

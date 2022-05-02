@@ -28,8 +28,6 @@ requires-dist = [
   'pytest-asyncio',
   'requests',
   'selenium',
-  'setuptools',
-  'setuptools-rust>=0.10.1', 
   'shapely',
   'tqdm',
   'websockets',
@@ -54,6 +52,7 @@ chrono      = {version = '0.4'}
 csv         = {version = '1.1'}
 geo         = '0.20.1'
 geo-types   = "*"
+include_dir = "0.7.2"
 #log         = {version = '0.4.16'}
 nmea-parser = {version = '0.9'}
 #numpy       = {version = '0.16.2'}

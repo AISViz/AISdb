@@ -1,7 +1,9 @@
+import os
 from datetime import datetime
 
 from shapely.geometry import Polygon
 
+from aisdb import data_dir
 from aisdb.database.dbqry import DBQuery
 from aisdb.track_gen import TrackGen
 from aisdb.webdata.merge_data import (
@@ -19,7 +21,8 @@ from aisdb.tests.create_testing_data import (
 
 
 def prepare_qry():
-    sample_dynamictable_insertdata()
+    testdbpath = os.path.join(data_dir, 'testdb', 'test.db')
+    sample_dynamictable_insertdata(testdbpath)
 
     z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
     domain = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
@@ -35,7 +38,7 @@ def prepare_qry():
         ymin=domain.minY,
         ymax=domain.maxY,
         callback=sqlfcn_callbacks.in_timerange,
-    ).gen_qry()
+    ).gen_qry(dbpath=testdbpath)
 
     return rowgen
 

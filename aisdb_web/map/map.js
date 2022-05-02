@@ -9,7 +9,7 @@ import GeoJSON from 'ol/format/GeoJSON';
 import { Vector as VectorSource } from 'ol/source';
 import { Vector as VectorLayer } from 'ol/layer';
 import Draw from 'ol/interaction/Draw';
-import { DragBox } from 'ol/interaction';
+import { DragBox, defaults } from 'ol/interaction';
 import Feature from 'ol/Feature';
 import Select from 'ol/interaction/Select';
 import { click } from 'ol/events/condition';
@@ -93,6 +93,7 @@ let map = new _Map({
   target: 'mapDiv', // div item in index.html
   layers: [ mapLayer, polyLayer, lineLayer, drawLayer ],
   view: mapview,
+  interactions: defaults({ doubleClickZoom:false }),
 });
 
 

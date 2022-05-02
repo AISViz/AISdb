@@ -7,6 +7,7 @@ from functools import partial
 import numpy as np
 import shapely.wkb
 import shapely.ops
+import shapely.geometry
 from shapely.geometry import Polygon, LineString, Point
 
 from aisdb.proc_util import glob_files
@@ -156,10 +157,15 @@ class Domain():
             Must have keys 'name' (string) and 'geometry'
             (shapely.geometry.Polygon)
 
+    >>> domain = Domain(name='example', zones=[{
+    ...     'name': 'zone1',
+    ...     'geometry': shapely.geometry.Polygon([(-40,60), (-40, 61), (-41, 61), (-41, 60), (-40, 60)])
+    ...     }, ])
+
     attr:
         self.name
         self.zones
-        self.bounds
+        self.boundary
         self.minX
         self.minY
         self.maxX
@@ -167,26 +173,23 @@ class Domain():
 
     '''
 
-    def __init__(self, name, zones=[]):
+    def __init__(self, name, zones=[], **kw):
         if len(zones) == 0:
             raise ValueError(
                 'domain needs to have atleast one polygon geometry')
         self.name = name
         self.zones = zones
-        self.minX = 180
-        self.maxX = -180
-        self.minY = 90
-        self.maxY = -90
         for zone in zones:
             x, y = zone['geometry'].boundary.coords.xy
-            if np.min(x) < self.minX:
-                self.minX = np.min(x)
-            if np.max(x) > self.maxX:
-                self.maxX = np.max(x)
-            if np.min(y) < self.minY:
-                self.minY = np.min(y)
-            if np.max(y) > self.maxY:
-                self.maxY = np.max(y)
+            if 'setattrs' not in kw.keys() or kw['setattrs'] is True:
+                if not hasattr(self, 'minX') or np.min(x) < self.minX:
+                    self.minX = np.min(x)
+                if not hasattr(self, 'maxX') or np.max(x) > self.maxX:
+                    self.maxX = np.max(x)
+                if not hasattr(self, 'minY') or np.min(y) < self.minY:
+                    self.minY = np.min(y)
+                if not hasattr(self, 'maxY') or np.max(y) > self.maxY:
+                    self.maxY = np.max(y)
             zone['maxradius'] = np.max([
                 aisdb.haversine(zone['geometry'].centroid.x,
                                 zone['geometry'].centroid.y, x2, y2)
@@ -249,7 +252,11 @@ class DomainFromTxts(Domain):
         decomp = shapely.ops.polygonize(border)
         return decomp
 
-    def __init__(self, domainName, folder, ext='txt'):
+    def __init__(self,
+                 domainName,
+                 folder,
+                 ext='txt',
+                 correct_coordinate_range=True):
         self.minX = None
         self.maxX = None
         self.minY = None
@@ -275,7 +282,7 @@ class DomainFromTxts(Domain):
                 self.maxY = np.max(y)
             geom = Polygon(zip(x, y))
             minX, maxX = np.min(x), np.max(x)
-            if not (minX >= -180 and maxX <= 180):
+            if not (minX >= -180 and maxX <= 180) and correct_coordinate_range:
                 for g in self.split_geom(geom):
                     if g.centroid.x < -180:
                         x, y = np.array(g.boundary.coords.xy)
@@ -294,7 +301,7 @@ class DomainFromTxts(Domain):
                         zones.append({'name': filename, 'geometry': g})
             else:
                 zones.append({'name': filename, 'geometry': geom})
-
+        '''
         for zone in zones:
             zone['maxradius'] = np.max([
                 aisdb.haversine(zone['geometry'].centroid.x,
@@ -304,5 +311,6 @@ class DomainFromTxts(Domain):
                 for x, y in zip(*zone['geometry'].boundary.coords.xy)
             ])
             assert isinstance(zone['maxradius'], float)
+        '''
 
-        super().__init__(domainName, zones)
+        super().__init__(domainName, zones, setattrs=False)

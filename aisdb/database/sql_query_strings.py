@@ -22,7 +22,7 @@ def in_bbox(*, alias, xmin, xmax, ymin, ymax, **_):
     '''
     x0 = shiftcoord([xmin])[0]
     x1 = shiftcoord([xmax])[0]
-    if x0 <= x1:
+    if x0 < x1:
         return f'''{alias}.longitude >= {x0} AND
     {alias}.longitude <= {x1} AND
     {alias}.latitude >= {ymin} AND
