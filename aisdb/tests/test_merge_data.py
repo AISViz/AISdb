@@ -7,18 +7,14 @@ from aisdb.track_gen import TrackGen
 from aisdb.webdata.merge_data import (
     merge_layers,
     merge_tracks_bathymetry,
-    #merge_tracks_hullgeom,
     merge_tracks_shoredist,
+    # merge_tracks_hullgeom,
 )
-from aisdb.database.sqlfcn_callbacks import (
-    in_bbox_time_validmmsi,
-    in_timerange,
-)
+from aisdb.database import sqlfcn_callbacks
 from aisdb.gis import Domain
-from tests.create_testing_data import (
+from aisdb.tests.create_testing_data import (
     sample_dynamictable_insertdata,
     sample_gulfstlawrence_bbox,
-    zonegeoms_or_randompoly,
 )
 
 
@@ -38,7 +34,7 @@ def prepare_qry():
         xmax=domain.maxX,
         ymin=domain.minY,
         ymax=domain.maxY,
-        callback=in_timerange,
+        callback=sqlfcn_callbacks.in_timerange,
     ).gen_qry()
 
     return rowgen

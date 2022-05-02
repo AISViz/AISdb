@@ -3,7 +3,6 @@
 '''
 
 import os
-import subprocess
 from hashlib import md5
 
 from aisdb.index import index

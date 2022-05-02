@@ -3,7 +3,7 @@ from multiprocessing import set_start_method
 set_start_method('forkserver')
 from multiprocessing import Pool, Queue
 '''
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import partial
 
 from shapely.geometry import Polygon
@@ -18,15 +18,15 @@ from aisdb.track_gen import (
     TrackGen,
 )
 from aisdb.network_graph import serialize_network_edge
-from tests.create_testing_data import (
-    sample_dynamictable_insertdata,
-    sample_gulfstlawrence_bbox,
-)
 from aisdb.webdata.merge_data import (
     merge_tracks_bathymetry,
-    #merge_tracks_hullgeom,
     merge_tracks_portdist,
     merge_tracks_shoredist,
+    # merge_tracks_hullgeom,
+)
+from aisdb.tests.create_testing_data import (
+    sample_dynamictable_insertdata,
+    sample_gulfstlawrence_bbox,
 )
 
 
@@ -108,4 +108,5 @@ def test_network_graph_merged_serialized():
                     #merge_tracks_hullgeom(
                     geofenced(distsplit(TrackGen(args.gen_qry())))))))
     #)
+    assert False
     next(pipeline)

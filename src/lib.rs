@@ -1,5 +1,7 @@
+use geo::algorithm::simplifyvw::SimplifyVwIdx;
 use geo::point;
 use geo::prelude::*;
+use geo_types::{Coordinate, LineString};
 use nmea_parser::NmeaParser;
 use pyo3::prelude::*;
 
@@ -17,6 +19,14 @@ pub mod util;
 
 use csvreader::*;
 use decode::*;
+
+macro_rules! zip {
+    ($x: expr) => ($x);
+    ($x: expr, $($y: expr), +) => (
+        $x.iter().zip(
+            zip!($($y), +))
+        )
+}
 
 #[pyfunction]
 pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
@@ -55,13 +65,20 @@ pub fn decode_native(dbpath: &str, files: Vec<&str>) {
     }
 }
 
+#[pyfunction]
+pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<usize> {
+    let coords = zip!(&x, &y)
+        .map(|(xx, yy)| Coordinate { x: *xx, y: *yy })
+        .collect();
+    let line = LineString(coords).simplifyvw_idx(&precision);
+    line.into_iter().collect::<Vec<usize>>()
+}
+
 #[pymodule]
 #[allow(unused_variables)]
 pub fn aisdb(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(haversine))?;
     module.add_wrapped(wrap_pyfunction!(decode_native))?;
+    module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
     Ok(())
 }
-
-// pip/pac install maturin
-// maturin develop

@@ -113,6 +113,6 @@ mod tests {
             "benchmarking rust for SQLite DB inserts\n\ncompiles to ./target/release/aisdb\n\n",
             HELP
         );
-        let _ = std::fs::write("./readme.txt", txtfile);
+        let _ = std::fs::write("./src/readme.txt", txtfile);
     }
 }

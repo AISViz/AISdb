@@ -6,7 +6,7 @@ from datetime import datetime
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb import zones_dir, data_dir, dbpath
+from aisdb import zones_dir, data_dir
 from aisdb.proc_util import glob_files
 from aisdb.database.sqlfcn_callbacks import in_timerange
 from aisdb.database.dbqry import DBQuery
@@ -15,6 +15,8 @@ from aisdb.gis import Domain, DomainFromTxts
 
 arrayhash = lambda matrix, nbytes=2: sha256(
     reduce(np.append, matrix).tobytes()).hexdigest()[nbytes * -8:]
+
+dbpath = os.path.join(data_dir, 'testdb', 'test.db')
 
 
 def sample_dynamictable_insertdata():

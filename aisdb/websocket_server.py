@@ -1,17 +1,28 @@
 import asyncio
 import os
 import ssl
-import json
 import websockets
 import calendar
 from datetime import datetime
 
+import orjson as json
+import numpy as np
+
 import aisdb
-from aisdb import zones_dir, DomainFromTxts
-from aisdb import sqlfcn_callbacks, DBQuery
-from aisdb.track_gen import TrackGen_async, encode_greatcircledistance_async
-from aisdb import (DBConn, dbpath)
+from aisdb import (
+    DBConn,
+    DBQuery,
+    DomainFromTxts,
+    dbpath,
+    sqlfcn_callbacks,
+    zones_dir,
+)
 from aisdb.webdata.marinetraffic import trafficDB, _vinfo
+from aisdb.track_gen import (
+    TrackGen_async,
+    encode_greatcircledistance_async,
+    compress_tracks_async,
+)
 
 
 def request_size(*, xmin, xmax, ymin, ymax, start, end):
@@ -117,15 +128,16 @@ class SocketServ():
             x, y = zone['geometry'].boundary.coords.xy
             event = {
                 'msgtype': 'zone',
-                'x': list(x),
-                'y': list(y),
+                'x': x.astype(np.float32),
+                'y': y.astype(np.float32),
                 't': [],
                 'meta': {
                     'name': zone['name'],
                     'maxradius': str(zone['maxradius']),
                 },
             }
-            await websocket.send(json.dumps(event).replace(' ', ''))
+            await websocket.send(
+                json.dumps(event, option=json.OPT_SERIALIZE_NUMPY))
             if await self.await_response(websocket) == 'HALT':
                 return
         await websocket.send(json.dumps({'type': 'doneZones'}))
@@ -143,7 +155,7 @@ class SocketServ():
             ymax=req['area']['maxY'],
         )
         qrygen = encode_greatcircledistance_async(
-            TrackGen_async(qry.async_qry()),
+            compress_tracks_async(TrackGen_async(qry.async_qry()), 0.001),
             distance_threshold=250000,
             minscore=0,
             speed_threshold=50,
@@ -155,16 +167,17 @@ class SocketServ():
                 _vinfo(track, conn)
                 event = {
                     'msgtype': 'track_vector',
-                    'x': list(track['lon']),
-                    'y': list(track['lat']),
-                    't': list(track['time']),
+                    'x': track['lon'].astype(np.float32),
+                    'y': track['lat'].astype(np.float32),
+                    't': track['time'].astype(np.uint32),
                     'meta': {
                         str(k): str(v)
                         for k, v in dict(
                             **track['marinetraffic_info']).items()
                     },
                 }
-                await websocket.send(json.dumps(event).replace(', ', ','))
+                await websocket.send(
+                    json.dumps(event, option=json.OPT_SERIALIZE_NUMPY))
                 count += 1
 
                 if await self.await_response(websocket) == 'HALT':

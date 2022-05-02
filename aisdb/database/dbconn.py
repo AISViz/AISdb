@@ -7,7 +7,7 @@ if (sqlite3.sqlite_version_info[0] < 3
             and sqlite3.sqlite_version_info[1] < 35)):
     import pysqlite3 as sqlite3
 
-from common import dbpath
+from aisdb import dbpath
 
 
 def create_table_coarsetype(cur):

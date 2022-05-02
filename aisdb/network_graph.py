@@ -89,11 +89,6 @@ def staticinfo(track, domain):
         home_port=_sanitize(track['marinetraffic_info']['home_port']),
         error404=track['marinetraffic_info']['error404'],
         trackID=track["label"] if 'label' in track.keys() else '',
-        #vessel_name=(str(track['vessel_name']).replace("'", '').replace(
-        #    '"', '').replace(',', '').replace('`', '') or ''
-        #             if str(track['vessel_name']) != "0" else ""),
-        #vessel_type=track['ship_type_txt'] or '',
-        #vessel_length=(track['dim_bow'] + track['dim_stern']) or '',
         #summer_DWT=int(track['deadweight_tonnage'])
         #if 'deadweight_tonnage' in track.keys() else '',
         hull_submerged_surface_area=f"{track['submerged_hull_m^2']:.0f}"
@@ -115,7 +110,6 @@ def transitinfo(track, zoneset):
         rcv_zone=int(re.sub('[^0-9]', '', track['in_zone'][zoneset][-1])),
         transit_nodes=
         f"{track['in_zone'][zoneset][0]}_{track['in_zone'][zoneset][-1]}",
-        num_datapoints=len(track['time'][zoneset]),
 
         # timestamp info
         first_seen_in_zone=epoch_2_dt(

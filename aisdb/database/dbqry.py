@@ -10,12 +10,12 @@ from datetime import datetime
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb.common import dbpath
-from database import sqlfcn_callbacks
-from database.dbconn import DBConn
-from database.sqlfcn import crawl
-from database.sqlfcn_callbacks import dt2monthstr, arr2polytxt
-from database.create_tables import (
+from aisdb import dbpath
+from aisdb.database import sqlfcn_callbacks
+from aisdb.database.dbconn import DBConn
+from aisdb.database.sqlfcn import crawl
+from aisdb.database.sqlfcn_callbacks import dt2monthstr, arr2polytxt
+from aisdb.database.create_tables import (
     aggregate_static_msgs,
     sqlite_createtable_dynamicreport,
     sqlite_createtable_staticreport,

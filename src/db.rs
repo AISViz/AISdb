@@ -39,7 +39,7 @@ pub fn sqlfiles_abspath(fname: &str) -> std::path::PathBuf {
 
     std::path::PathBuf::from(exename)
     */
-    std::path::PathBuf::from(format!("aisdb_sql/{}", fname))
+    std::path::PathBuf::from(format!("aisdb/aisdb_sql/{}", fname))
 }
 
 /// create position reports table

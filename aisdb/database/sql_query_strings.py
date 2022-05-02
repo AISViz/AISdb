@@ -1,4 +1,4 @@
-from gis import dt_2_epoch, shiftcoord
+from aisdb.gis import dt_2_epoch, shiftcoord
 
 
 # callback functions

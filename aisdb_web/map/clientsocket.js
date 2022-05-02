@@ -22,6 +22,7 @@ if (port === undefined) {
 }
 
 
+// const socketHost = `ws://${hostname}:9924`;
 /** @constant {string} socketHost socket host address */
 const socketHost = `wss://${hostname}/ws`;
 /** @constant {WebSocket} socket database websocket */
@@ -121,6 +122,7 @@ socket.onerror = function(event) {
   socket.close();
 };
 
+
 /** socket message event.
  * handles messages from server according to response type
  * @callback socket_onmessage
@@ -128,7 +130,8 @@ socket.onerror = function(event) {
  * @param {Object} event onmessage event
  */
 socket.onmessage = async function(event) {
-  let response = JSON.parse(event.data);
+  let txt = await event.data.text();
+  let response = JSON.parse(txt);
   if (response.msgtype === 'track_vector') {
     let processed = convert_utf8_js(process_response({
       rawdata:convert_js_utf8(response)

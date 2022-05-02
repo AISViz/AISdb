@@ -8,10 +8,52 @@ import numpy as np
 from shapely.geometry import LineString
 
 import aisdb
-from gis import delta_knots, delta_meters
-from proc_util import _segment_rng
+from .gis import delta_knots, delta_meters
+from .proc_util import _segment_rng
 
 meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
+
+
+def compress_tracks(tracks, precision=0.001):
+    ''' remove unnecessary points from track using the visvalingham-whyatt
+        algorithm
+    '''
+    for track in tracks:
+        idx = np.array(
+            aisdb.simplify_linestring_idx(
+                track['lon'],
+                track['lat'],
+                precision,
+            ))
+        yield dict(
+            **{k: track[k]
+               for k in track['static']},
+            **{k: track[k][idx]
+               for k in track['dynamic']},
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )
+
+
+async def compress_tracks_async(tracks, precision=0.001):
+    ''' remove unnecessary points from track using the visvalingham-whyatt
+        algorithm
+    '''
+    async for track in tracks:
+        idx = np.array(
+            aisdb.simplify_linestring_idx(
+                track['lon'],
+                track['lat'],
+                precision,
+            ))
+        yield dict(
+            **{k: track[k]
+               for k in track['static']},
+            **{k: track[k][idx]
+               for k in track['dynamic']},
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )
 
 
 def _segment_longitude(track, tolerance=300):
@@ -24,13 +66,11 @@ def _segment_longitude(track, tolerance=300):
 
     diff = np.nonzero(
         np.abs(track['lon'][1:] - track['lon'][:-1]) > tolerance)[0] + 1
-    #breakpoint()
 
     if diff.size == 0:
         yield track
         return
 
-    # vector = LineString(zip(track['lon'], track['lat']))
     segments_idx = reduce(np.append, ([0], diff, [track['time'].size]))
     for i in range(segments_idx.size - 1):
         yield dict(
@@ -51,7 +91,6 @@ def TrackGen(
         'mmsi', 'time', 'lon', 'lat', 'imo', 'vessel_name', 'dim_bow',
         'dim_stern', 'dim_port', 'dim_star', 'ship_type', 'ship_type_txt'
     ],
-    allow_empty=False,
 ) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
@@ -89,62 +128,34 @@ def TrackGen(
         ...     print(f'messages in track segment: {track["time"].size}')
         ...     print(f'keys: {track.keys()}')
     '''
-    mmsi_col = [
-        i for i, c in zip(range(len(colnames)), colnames)
-        if c.lower() == 'mmsi'
-    ][0]
-    time_col = [
-        i for i, c in zip(range(len(colnames)), colnames)
-        if c.lower() == 'time'
-    ][0]
-
     staticcols = set(colnames) & set([
-        'mmsi',
-        'vessel_name',
-        'ship_type',
-        'ship_type_txt',
-        'dim_bow',
-        'dim_stern',
-        'dim_port',
-        'dim_star',
-        'imo',
+        'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow',
+        'dim_stern', 'dim_port', 'dim_star', 'imo'
     ])
-
     dynamiccols = set(colnames) - staticcols
+
+    colidx = list(zip(range(len(colnames)), colnames))
+    statcolidx = [(c, n) for c, n in colidx if n in staticcols]
+    poscolidx = [(c, n) for c, n in colidx if n in dynamiccols]
 
     for rows in rowgen:
 
-        if allow_empty and (rows is None or rows.size <= 1):
-            yield {}
-            return
-
-        elif rows is None or (rows.size <= 1):
+        if rows is None or (rows.size <= 1):
             raise ValueError(
                 'cannot create vector from zero-size track segment')
 
-        tracks_idx = np.append(
-            np.append([0],
-                      np.nonzero(rows[:, mmsi_col].astype(int)[1:] !=
-                                 rows[:, mmsi_col].astype(int)[:-1])[0] + 1),
-            rows.size)
-
-        for i in range(len(tracks_idx) - 1):
-            trackdict = dict(
-                **{
-                    n: (rows[tracks_idx[i]][c] or 0)
-                    for c, n in zip(range(len(colnames)), colnames)
-                    if n in staticcols
-                },
-                **{
-                    n: rows[tracks_idx[i]:tracks_idx[i + 1]].T[c]
-                    for c, n in zip(range(len(colnames)), colnames)
-                    if n in dynamiccols
-                },
-                static=staticcols,
-                dynamic=dynamiccols,
-            )
-            for segment in _segment_longitude(trackdict):
-                yield segment
+        idx = np.array(
+            aisdb.simplify_linestring_idx(rows.T[2], rows.T[3], 0.001))
+        trackdict = dict(
+            **{n: (rows[0][c] or '')
+               for c, n in statcolidx},
+            **{n: rows.T[c][idx]
+               for c, n in poscolidx},
+            static=staticcols,
+            dynamic=dynamiccols,
+        )
+        for segment in _segment_longitude(trackdict):
+            yield segment
 
 
 async def TrackGen_async(

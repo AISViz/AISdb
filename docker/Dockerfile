@@ -15,54 +15,24 @@ RUN useradd -m "ais_env"
 WORKDIR "/home/ais_env"
 USER "ais_env"
 RUN rustup install stable && rustup default stable
-RUN mkdir -p aisdb aisdb_rust/src aisdb_web \
-  && echo 'fn main(){}' > aisdb_rust/src/db.rs \
-  && echo 'fn main(){}' > aisdb_rust/src/decode.rs \
-  && echo 'fn main(){}' > aisdb_rust/src/util.rs \
-  && echo 'fn main(){}' > aisdb_rust/src/bin.rs \
-  && echo '__version__ = "0.0.0"' > aisdb/version.py
-RUN python -m ensurepip \
-  && python -m pip install --no-warn-script-location --upgrade \
-    numpy \
-    pip \
-    pytest \
-    setuptools-rust \
-    wheel
-COPY --chown="ais_env" aisdb_rust/Cargo.toml aisdb_rust/Cargo.toml
-COPY --chown="ais_env" ./setup.py "/home/ais_env/setup.py"
-COPY --chown="ais_env" ./pyproject.toml pyproject.toml
-COPY --chown="ais_env" ./aisdb_extra aisdb_extra
-COPY --chown="ais_env" ./MANIFEST.in /home/ais_env/MANIFEST.in
-RUN cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml \
-  && cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release
-RUN mkdir -p aisdb aisdb/webdata aisdb/database aisdb_rust aisdb_sql \
-  && python -m pip install --no-warn-script-location --verbose .  
-COPY --chown=ais_env aisdb_web/package.json aisdb_web/package.json
-RUN cd aisdb_web && npm install
-
-
-# build rust target
-FROM aisdb as build_rust
-COPY --chown="ais_env" aisdb_sql/ aisdb_sql/
-COPY --chown="ais_env" aisdb_rust/ aisdb_rust/
-RUN cargo build --manifest-path=/home/"ais_env"/aisdb_rust/Cargo.toml 
-
-
-# build python target
-FROM build_rust as build_python
-COPY --chown="ais_env" tests/ tests/
-COPY --chown="ais_env" aisdb/ aisdb/ 
-RUN python -m pip install --no-warn-script-location --verbose .
-
+RUN python -m ensurepip && python -m pip install --upgrade pip numpy wheel
+COPY --chown="ais_env" docs/requirements.txt docs/requirements.txt
+RUN python -m pip install -r ./docs/requirements.txt
+RUN python -m pip install pytest 
+COPY --chown="ais_env" ./target/wheels/aisdb-1.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl .
+RUN python -m pip install aisdb-1.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
 # build sphinx docs and nodejs webapp
-FROM build_python AS webserv
+FROM aisdb AS webserv
+COPY --chown=ais_env aisdb_web/package.json aisdb_web/package.json
+RUN cd aisdb_web && npm install
 ARG BINGMAPSKEY
 ARG AISDBHOST
 ARG AISDBPORT
-COPY --chown=ais_env readme.rst ./readme.rst
+COPY --chown=ais_env Cargo.toml pyproject.toml build.rs readme.rst .
+COPY --chown=ais_env aisdb/ aisdb/
+COPY --chown=ais_env src/ src/
 COPY --chown=ais_env docs/ docs/
-COPY --chown=ais_env changelog.rst ./changelog.rst
 COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 COPY --chown=ais_env aisdb_web/ aisdb_web/
 RUN /bin/bash ./aisdb_web/build_website.sh
