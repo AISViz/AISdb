@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from aisdb.gis import epoch_2_dt
 from aisdb.database.sql_query_strings import *
 
 dt2monthstr = lambda start, end, **_: np.unique([
@@ -14,8 +13,6 @@ dt2monthstr = lambda start, end, **_: np.unique([
     for t in np.arange(start, end, timedelta(days=1)).astype(datetime)
 ]).astype(object)
 
-epoch2monthstr = lambda start, end, **_: dt2monthstr(epoch_2_dt(start),
-                                                     epoch_2_dt(end))
 zipcoords = lambda x, y, **_: ', '.join(map(lambda xi, yi: f'{xi} {yi}', x, y))
 
 arr2polytxt = lambda x, y, **_: f'POLYGON(({zipcoords(x,y)}))'

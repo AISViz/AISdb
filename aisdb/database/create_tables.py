@@ -3,7 +3,7 @@ from collections import Counter
 
 import numpy as np
 
-from database.dbconn import DBConn
+from aisdb.database.dbconn import DBConn
 
 from aisdb import sqlpath
 

@@ -63,22 +63,18 @@ pub fn process_response(txt: JsValue) -> JsValue {
     //#[cfg(debug_assertions)]
     //panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-    //console_log!("message event, received Text: {:?}", txt);
     let raw: Geojs = JsValue::into_serde(&txt).expect("this");
-    //console_log!("raw.rawdata : {:?}", raw.rawdata);
     let response_chars = std::str::from_utf8(&raw.rawdata).unwrap();
     let geom: GeometryVector = serde_json::from_str(response_chars).unwrap();
     let coords = zip!(&geom.x, &geom.y)
         .map(|(xx, yy)| Coordinate { x: *xx, y: *yy })
         .collect();
-    let line = LineString(coords).simplifyvw(&0.001);
-    //console_log!("simplified line: {:?}", line);
-    //
+    //let line = LineString(coords).simplifyvw(&0.001);
+    let line = LineString(coords);
     let simplified_coords = line
         .into_iter()
         .map(|p| vec![p.x as f64, p.y as f64])
         .collect::<Vec<Vec<f64>>>();
-    //console_log!("simplified line arr: {:?}", simplified_coords);
     let linegeojs = Geometry::new(Value::LineString(simplified_coords));
     let rawresponse: Vec<u8> = linegeojs.to_string().chars().map(|x| x as u8).collect();
     let payload = Geojs {

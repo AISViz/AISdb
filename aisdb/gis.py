@@ -7,11 +7,11 @@ from functools import partial
 import numpy as np
 import shapely.wkb
 import shapely.ops
+import shapely.geometry
 from shapely.geometry import Polygon, LineString, Point
 
 from aisdb.proc_util import glob_files
-
-# shiftcoord = lambda x, rng=360: ((np.array(x) + (rng / 2)) % 360) - (rng / 2)
+import aisdb
 
 
 def shiftcoord(x, rng=180):
@@ -57,6 +57,7 @@ def epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
         raise ValueError('input must be integer or array of integers')
 
 
+"""
 def haversine(x1, y1, x2, y2):
     ''' https://en.wikipedia.org/wiki/Haversine_formula '''
     x1r, y1r, x2r, y2r = map(np.radians, [x1, y1, x2, y2])
@@ -65,14 +66,16 @@ def haversine(x1, y1, x2, y2):
         np.sqrt(
             np.sin(dlat / 2.)**2 +
             np.cos(y1r) * np.cos(y2r) * np.sin(dlon / 2.)**2)) * 1000
+"""
 
 
 def delta_meters(track, rng=None):
     rng = range(len(track['time'])) if rng is None else rng
     return np.array(
         list(
-            map(haversine, track['lon'][rng][:-1], track['lat'][rng][:-1],
-                track['lon'][rng][1:], track['lat'][rng][1:])))
+            map(aisdb.haversine, track['lon'][rng][:-1],
+                track['lat'][rng][:-1], track['lon'][rng][1:],
+                track['lat'][rng][1:])))
 
 
 def delta_seconds(track, rng=None):
@@ -94,13 +97,13 @@ def radial_coordinate_boundary(x, y, radius=100000):
     ymin, ymax = y, y
 
     # TODO: compute precise value instead of approximating
-    while haversine(x, y, xmin, y) < radius:
+    while aisdb.haversine(x, y, xmin, y) < radius:
         xmin -= 0.001
-    while haversine(x, y, xmax, y) < radius:
+    while aisdb.haversine(x, y, xmax, y) < radius:
         xmax += 0.001
-    while haversine(x, y, x, ymin) < radius:
+    while aisdb.haversine(x, y, x, ymin) < radius:
         ymin -= 0.001
-    while haversine(x, y, x, ymax) < radius:
+    while aisdb.haversine(x, y, x, ymax) < radius:
         ymax += 0.001
 
     return {
@@ -115,7 +118,7 @@ def distance3D(x1, y1, x2, y2, depth_metres):
     ''' haversine/pythagoras approximation of vessel distance to
         point at given depth
     '''
-    a2 = haversine(x1=x1, y1=y1, x2=x2, y2=y2)**2
+    a2 = aisdb.haversine(x1=x1, y1=y1, x2=x2, y2=y2)**2
     b2 = depth_metres**2
     c2 = a2 + b2
     return np.sqrt(c2)
@@ -154,10 +157,15 @@ class Domain():
             Must have keys 'name' (string) and 'geometry'
             (shapely.geometry.Polygon)
 
+    >>> domain = Domain(name='example', zones=[{
+    ...     'name': 'zone1',
+    ...     'geometry': shapely.geometry.Polygon([(-40,60), (-40, 61), (-41, 61), (-41, 60), (-40, 60)])
+    ...     }, ])
+
     attr:
         self.name
         self.zones
-        self.bounds
+        self.boundary
         self.minX
         self.minY
         self.maxX
@@ -165,29 +173,26 @@ class Domain():
 
     '''
 
-    def __init__(self, name, zones=[]):
+    def __init__(self, name, zones=[], **kw):
         if len(zones) == 0:
             raise ValueError(
                 'domain needs to have atleast one polygon geometry')
         self.name = name
         self.zones = zones
-        self.minX = 180
-        self.maxX = -180
-        self.minY = 90
-        self.maxY = -90
         for zone in zones:
             x, y = zone['geometry'].boundary.coords.xy
-            if np.min(x) < self.minX:
-                self.minX = np.min(x)
-            if np.max(x) > self.maxX:
-                self.maxX = np.max(x)
-            if np.min(y) < self.minY:
-                self.minY = np.min(y)
-            if np.max(y) > self.maxY:
-                self.maxY = np.max(y)
+            if 'setattrs' not in kw.keys() or kw['setattrs'] is True:
+                if not hasattr(self, 'minX') or np.min(x) < self.minX:
+                    self.minX = np.min(x)
+                if not hasattr(self, 'maxX') or np.max(x) > self.maxX:
+                    self.maxX = np.max(x)
+                if not hasattr(self, 'minY') or np.min(y) < self.minY:
+                    self.minY = np.min(y)
+                if not hasattr(self, 'maxY') or np.max(y) > self.maxY:
+                    self.maxY = np.max(y)
             zone['maxradius'] = np.max([
-                haversine(zone['geometry'].centroid.x,
-                          zone['geometry'].centroid.y, x2, y2)
+                aisdb.haversine(zone['geometry'].centroid.x,
+                                zone['geometry'].centroid.y, x2, y2)
                 for x2, y2 in zip(x, y)
             ])
         self.boundary = {
@@ -207,7 +212,12 @@ class Domain():
         for z in self.zones:
             dist_to_centroids.update({
                 z['name']:
-                haversine(x, y, *z['geometry'].centroid.xy) - z['maxradius']
+                aisdb.haversine(
+                    x,
+                    y,
+                    z['geometry'].centroid.x,
+                    z['geometry'].centroid.y,
+                ) - z['maxradius']
             })
         return dist_to_centroids
 
@@ -242,7 +252,11 @@ class DomainFromTxts(Domain):
         decomp = shapely.ops.polygonize(border)
         return decomp
 
-    def __init__(self, domainName, folder, ext='txt'):
+    def __init__(self,
+                 domainName,
+                 folder,
+                 ext='txt',
+                 correct_coordinate_range=True):
         self.minX = None
         self.maxX = None
         self.minY = None
@@ -268,7 +282,7 @@ class DomainFromTxts(Domain):
                 self.maxY = np.max(y)
             geom = Polygon(zip(x, y))
             minX, maxX = np.min(x), np.max(x)
-            if not (minX >= -180 and maxX <= 180):
+            if not (minX >= -180 and maxX <= 180) and correct_coordinate_range:
                 for g in self.split_geom(geom):
                     if g.centroid.x < -180:
                         x, y = np.array(g.boundary.coords.xy)
@@ -287,11 +301,16 @@ class DomainFromTxts(Domain):
                         zones.append({'name': filename, 'geometry': g})
             else:
                 zones.append({'name': filename, 'geometry': geom})
-
+        '''
         for zone in zones:
             zone['maxradius'] = np.max([
-                haversine(*zone['geometry'].centroid.xy, x2=x, y2=y)
+                aisdb.haversine(zone['geometry'].centroid.x,
+                                zone['geometry'].centroid.y,
+                                x2=x,
+                                y2=y)
                 for x, y in zip(*zone['geometry'].boundary.coords.xy)
             ])
+            assert isinstance(zone['maxradius'], float)
+        '''
 
-        super().__init__(domainName, zones)
+        super().__init__(domainName, zones, setattrs=False)

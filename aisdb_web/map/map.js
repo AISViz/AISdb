@@ -9,8 +9,10 @@ import GeoJSON from 'ol/format/GeoJSON';
 import { Vector as VectorSource } from 'ol/source';
 import { Vector as VectorLayer } from 'ol/layer';
 import Draw from 'ol/interaction/Draw';
-import { DragBox } from 'ol/interaction';
+import { DragBox, defaults } from 'ol/interaction';
 import Feature from 'ol/Feature';
+import Select from 'ol/interaction/Select';
+import { click } from 'ol/events/condition';
 
 import {
   dragBoxStyle,
@@ -91,6 +93,7 @@ let map = new _Map({
   target: 'mapDiv', // div item in index.html
   layers: [ mapLayer, polyLayer, lineLayer, drawLayer ],
   view: mapview,
+  interactions: defaults({ doubleClickZoom:false }),
 });
 
 
@@ -204,8 +207,19 @@ function newPolygonFeature(geojs, meta) {
  * @param {VectorLayer} l ol VectorLayer
  * @returns {boolean}
  */
-function layerFilterCallback(l) {
+function pointermoveLayerFilterCallback(l) {
   if (l === lineLayer || l === polyLayer) {
+    return true;
+  }
+  return false;
+}
+
+/** callback for map click event
+ * @param {VectorLayer} l ol VectorLayer
+ * @returns {boolean}
+ */
+function clickLayerFilterCallback(l) {
+  if (l === polyLayer) {
     return true;
   }
   return false;
@@ -214,8 +228,11 @@ function layerFilterCallback(l) {
 let selected = null;
 let previous = null;
 map.on('pointermove', (e) => {
-  if (selected !== null) {
+  if (selected !== null && selected.get('selected') !== true) {
     selected.setStyle(undefined);
+    selected = null;
+  } else
+  if (selected !== null) {
     selected = null;
   }
 
@@ -223,24 +240,22 @@ map.on('pointermove', (e) => {
   if (previous !== null &&
     previous !== selected &&
     previous.get('meta') !== undefined) {
-    // previous.setStyle(vesselStyles[previous.get('meta').vesseltype_generic]);
     set_track_style(previous);
   }
 
   // highlight feature at cursor
   map.forEachFeatureAtPixel(e.pixel, (f) => {
     selected = f;
-    selectStyle
-      .getFill()
-      .setColor(f.get('COLOR') || 'rgba(255, 255, 255, 0.45)');
-    f.setStyle(selectStyle);
+    if (f.get('selected') !== true) {
+      f.setStyle(selectStyle);
+    }
 
     // keep track of last feature so that styles can be reset after moving mouse
     if (previous === null || previous.get('meta_str') !== f.get('meta_str')) {
       previous = f;
     }
     return true;
-  }, { layerFilter: layerFilterCallback }
+  }, { layerFilter: pointermoveLayerFilterCallback }
   );
 
   // show metadata for selected feature
@@ -251,16 +266,62 @@ map.on('pointermove', (e) => {
   }
 });
 
+/** set a search area bounding box as determined by the extent
+ * of currently selected polygons
+ */
+async function setSearchAreaFromSelected() {
+  for (let ft of polySource.getFeatures()) {
+    if (ft.get('selected') === true) {
+      if (window.searcharea === null) {
+        window.searcharea = { minX: 180, maxX:-180, minY:90, maxY:-90 };
+      }
+      let coords = ft.getGeometry().clone()
+        .transform('EPSG:3857', 'EPSG:4326').getCoordinates()[0];
+      for (let point of coords) {
+        if (point[0] < window.searcharea.minX) {
+          window.searcharea.minX = point[0];
+        }
+        if (point[0] > window.searcharea.maxX) {
+          window.searcharea.maxX = point[0];
+        }
+        if (point[1] < window.searcharea.minY) {
+          window.searcharea.minY = point[1];
+        }
+        if (point[1] > window.searcharea.maxY) {
+          window.searcharea.maxY = point[1];
+        }
+      }
+    }
+  }
+}
+map.on('click', async (e) => {
+  map.forEachFeatureAtPixel(e.pixel, async (f) => {
+    if (f.get('selected') !== true) {
+      f.setStyle(selectStyle);
+      f.set('selected', true);
+    } else {
+      f.setStyle(polyStyle);
+      f.set('selected', false);
+    }
+    window.searcharea = null;
+    await setSearchAreaFromSelected();
+    return true;
+  }, { layerFilter: clickLayerFilterCallback }
+  );
+});
+
 
 export {
   addInteraction,
   clearFeatures,
-  draw,
   dragBox,
+  draw,
   drawSource,
   lineSource,
   map,
   mapview,
   newPolygonFeature,
-  newTrackFeature
+  newTrackFeature,
+  polySource,
+  setSearchAreaFromSelected,
 };

@@ -1,45 +1,40 @@
 image: meridiancfi/aisdb:latest
 
 stages:
-  - rust-build
-  - python-build
+  - pkgbuild
   - rust-test
   - python-test
-  - docs
+  - build-website
 
-rust-build:
-  stage: rust-build
+pkgbuild:
+  image: ghcr.io/pyo3/maturin:main
+  stage: pkgbuild
   script:
-    - cargo build --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release
-
-python-build:
-  stage: python-build
-  script:
-    - python -m pip install .
+    - build --release --manylinux 2014
 
 rust-test:
   stage: rust-test
   script:
-    - cargo test --manifest-path=/home/ais_env/aisdb_rust/Cargo.toml --release --color=always -- --nocapture
+    - cargo test --release --color=always -- --nocapture
 
-# skip tests requiring a desktop environment or web data sources
+# skip tests requiring web data sources
 python-test:
   stage: python-test
   script:
     - python -m pip install .
     - python -m pytest --color=yes --tb=native --doctest-modules tests/ -k "not merge"
 
-docs:
-  stage: docs
+build-website:
+  stage: build-website
   only: 
     - master
   script:
-    - /bin/bash docs/sphinxbuild.sh
-    - rm -rf public && cp -r docs/html public
-  artifacts:
-    paths:
-      - public
-  cache:
-    key: "$CI_COMMIT_REF_SLUG"
-    paths:
-      - public
+    - /bin/bash aisdb_web/build_website.sh
+  #  - rm -rf public && cp -r docs/html public
+  #artifacts:
+  #  paths:
+  #    - public
+  #cache:
+  #  key: "$CI_COMMIT_REF_SLUG"
+  #  paths:
+  #    - public
