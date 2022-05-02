@@ -18,6 +18,7 @@ export default defineConfig({
   },
   plugins: [
     VitePWA({
+      registerType: 'autoUpdate',
       includeAssets: [ 'favicon.svg', 'robots.txt' ],
       manifest: {
         short_name: 'AISDB',

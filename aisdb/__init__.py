@@ -1,5 +1,4 @@
 import os
-import sys
 import configparser
 import logging
 
@@ -8,7 +7,6 @@ logging.basicConfig(format='%(message)s',
                     level=LOGLEVEL,
                     datefmt='%Y-%m-%d %I:%M:%S')
 
-sys.path.append(os.path.dirname(__file__))
 pkgname = 'ais'
 cfgfile = os.path.join(os.path.expanduser('~'), '.config', f'{pkgname}.cfg')
 
@@ -37,8 +35,7 @@ cfgnames = [
     # 'marinetraffic_VD02_key',
 ]
 
-sqlpath = os.path.abspath(
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_sql'))
+sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
 
 def printdefault(cfgnames, quote=''):
@@ -148,7 +145,7 @@ with import_handler() as importconfigs:
         distance3D,
         dt_2_epoch,
         epoch_2_dt,
-        haversine,
+        #haversine,
         radial_coordinate_boundary,
         vesseltrack_3D_dist,
     )
@@ -176,7 +173,8 @@ with import_handler() as importconfigs:
         encode_greatcircledistance,
     )
 
-    from .wsa import wsa
+    if not os.environ.get('SPHINXDOC'):
+        from .aisdb import decode_native, haversine, simplify_linestring_idx
 
 import sqlite3
 if (sqlite3.sqlite_version_info[0] < 3

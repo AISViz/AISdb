@@ -14,7 +14,7 @@ import os
 import sys
 from datetime import datetime
 
-sys.path.insert(0, os.path.abspath('../..'))
+#sys.path.insert(0, os.path.abspath('../..'))
 import aisdb
 
 # -- Project information -----------------------------------------------------

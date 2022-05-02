@@ -1,3 +1,4 @@
+#!/bin/bash
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 ROOTDIR="${SCRIPTPATH}/.."
 PKGDIR="${ROOTDIR}/aisdb"
@@ -8,15 +9,11 @@ CARGODIR="${ROOTDIR}/aisdb_web/dist_cargodoc"
 JSDOCDIR="${ROOTDIR}/aisdb_web/dist_jsdoc"
 WASMDIR="${ROOTDIR}/aisdb_wasm"
 
+set -e
 
 # cargo docs site build
-rm -rf "$SPHINXDIR"
-mkdir -p "${RSTSOURCEDIR}/api"
-mkdir -p "${SPHINXDIR}/_images"
-[[ ! -z `ls -A "${RSTSOURCEDIR}/api"` ]] && rm ${RSTSOURCEDIR}/api/*
 cargo doc \
   --document-private-items \
-  --manifest-path="$ROOTDIR/aisdb_rust/Cargo.toml" \
   --no-deps \
   --package=aisdb \
   --release \
@@ -24,9 +21,13 @@ cargo doc \
 
 
 # sphinx docs site build
+rm -rf "$SPHINXDIR"
+[[ ! -z `ls -A "${RSTSOURCEDIR}/api"` ]] && rm ${RSTSOURCEDIR}/api/*
+mkdir -p "${RSTSOURCEDIR}/api"
+mkdir -p "${SPHINXDIR}/_images"
 cp "$ROOTDIR/readme.rst" "${RSTSOURCEDIR}/readme.rst"
-cp "$ROOTDIR/changelog.rst" "${RSTSOURCEDIR}/changelog.rst"
-sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o "${RSTSOURCEDIR}/api" "${PKGDIR}"
+cp "$ROOTDIR/docs/changelog.rst" "${RSTSOURCEDIR}/changelog.rst"
+export SPHINXDOC=1 && sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o "${RSTSOURCEDIR}/api" "${PKGDIR}"
 python -m sphinx -a -j auto -q -b=html "${RSTSOURCEDIR}" "${SPHINXDIR}"
 cp "${RSTSOURCEDIR}/scriptoutput.png" "$SPHINXDIR/_images/"
 

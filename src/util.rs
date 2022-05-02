@@ -99,7 +99,7 @@ pub fn epoch_2_dt(e: i64) -> DateTime<Utc> {
 
 mod tests {
     use super::glob_dir;
-    use crate::HELP;
+    use super::HELP;
 
     #[test]
     fn test_glob_dir() {
@@ -113,6 +113,6 @@ mod tests {
             "benchmarking rust for SQLite DB inserts\n\ncompiles to ./target/release/aisdb\n\n",
             HELP
         );
-        let _ = std::fs::write("./readme.txt", txtfile);
+        let _ = std::fs::write("./src/readme.txt", txtfile);
     }
 }

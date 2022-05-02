@@ -57,19 +57,8 @@ pub async fn main() -> Result<(), Error> {
     };
 
     // array tuples containing (dbpath, filepath)
-    //let mut n = 0;
     let mut path_arr = vec![];
     for file in args.files {
-        //n += 1;
-        /*
-        if n <= args.start {
-        continue;
-        } else if n > args.end {
-        break;
-        } else {
-        path_arr.push((std::path::PathBuf::from(&args.dbpath), file));
-        }
-        */
         path_arr.push((std::path::PathBuf::from(&args.dbpath), file));
     }
 
@@ -82,11 +71,9 @@ pub async fn main() -> Result<(), Error> {
             || f.to_str().unwrap().contains(&".TXT")
             || f.to_str().unwrap().contains(&".txt")
         {
-            parser = decode_insert_msgs(&d, &f, parser)
-                .await
-                .expect("decoding NM4");
+            parser = decode_insert_msgs(&d, &f, parser).expect("decoding NM4");
         } else if f.to_str().unwrap().contains(&".csv") || f.to_str().unwrap().contains(&".CSV") {
-            decodemsgs_ee_csv(&d, &f).await.expect("decoding CSV");
+            decodemsgs_ee_csv(&d, &f).expect("decoding CSV");
         } else {
             panic!("unknown file extension {:?}", &d);
         }
