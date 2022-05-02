@@ -1,5 +1,4 @@
-from aisdb.gis import Domain
-from tests.create_testing_data import zonegeoms_or_randompoly
+from aisdb.tests.create_testing_data import zonegeoms_or_randompoly
 
 
 def test_domain_fakedata():

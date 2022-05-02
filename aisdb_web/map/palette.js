@@ -14,11 +14,11 @@ const polyStyle = new Style({
   }),
 });
 
-/** on mousever status info */
+/** on mousever feature style */
 const selectStyle = new Style({
   fill: new Fill({
-    color: '#eeeeee',
-    // color: 'rgba(255, 255, 255, 0.4)',
+    // color: '#eeeeee',
+    color: 'rgba(255, 255, 255, 0.4)',
   }),
   stroke: new Stroke({
     color: 'rgba(255, 255, 255, 0.7)',

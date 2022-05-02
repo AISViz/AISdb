@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="en">
-
   <head>
     <meta charset="utf-8">
     <title>AISDB</title>
@@ -13,76 +12,45 @@
       File:Antu tag-places.svg, CC BY 3.0, https://commons.wikimedia.org/w/index.php?curid=53807735 
     -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="mask-icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="alternate icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/favicon.png" type="image/png">
     <link rel="stylesheet" href="./styles.css" type="text/css">
-    <!--
-    <link rel="manifest" href="/manifest.webmanifest">
-    -->
   </head>
 
   <body>
     <div id="application">
       <div id="mapDiv" class="map"></div>
-      <div class="flexfill"></div>
-      <div id="formDiv" class="formdiv optionSelectContainer">
-        <!--
-        <form action="/mapselect" method="POST" class="optionSelectContainer">
-        -->
-
-        <div class="smallfill"></div>
-
-        <button id="selectbtn" type="button">Select Area</button>
-
-        <div class="smallfill"></div>
+      <div id="formDiv" class="liquidlayout optionSelectContainer">
 
         <div class="hiddenmenu">
-          <button id="vesseltype-select" class="hiddenmenu-btn">Vessel Type ⋀</button>
-          <div id="vesseltype-menu" class="hiddenmenu-content">
-
+          <button id="selectbtn" type="button" class="hiddenmenu-btn col">Select Area</button>
+          <div id="select-menu" class="hiddenmenu-content">
+            <a class="hiddenmenu-item" data-value="ecoregions">Select by Zone</a>
+            <a class="hiddenmenu-item" data-value="selectbox">Draw Selection Box</a>
           </div>
         </div>
 
-        <div class="smallfill"></div>
+        <div class="hiddenmenu">
+          <button id="vesseltype-select" class="hiddenmenu-btn col">Vessel Type ⋀</button>
+          <div id="vesseltype-menu" class="hiddenmenu-content">
+          </div>
+        </div>
 
-        <label for="time-select-start">Start</label>
-        <input id="time-select-start" type="date" name="timeSelect" required>
+        <label for="time-select-start" class="shortcol">Start</label>
+        <input id="time-select-start" type="text" placeholder="Start Date" data-input class="col" required>
 
-        <div class="smallfill"></div>
+        <label for="time-select-end" class="shortcol">End</label>
+        <input id="time-select-end" type="text" placeholder="End Date" data-input class="col" required>
 
-        <label for="time-select-end">End</label>
-        <input id="time-select-end" type="date" name="timeSelect" required>
-
-        <!--
-        <label id="vesseltype-select-label" for="vesseltype-select">Vessel Type</label>
-        <select id="vesseltype-select">
-	  <option value="All" selected>All</option>
-        </select>
-        -->
         <div id="status-div" class="flexfill statusmsg" ></div>
 
-        <div class="smallfill"></div>
+        <button id="searchbtn" type="button" class="col">Search</button>
+        <button id="clearbtn" type="button" class="col">Reset</button>
 
-        <button id="searchbtn" type="button">Search</button>
-
-        <div class="smallfill"></div>
-
-        <button id="clearbtn" type="button">Reset</button>
-
-        <div class="smallfill"></div>
-
-        <!--
-        <button id="downloadbtn" class="download" type="button">Download</button>
-        <div class="smallfill download"></div>
-        -->
-
-        <!--
-        </form>
-        -->
       </div>
       <div id="capture"></div>
     </div>
     <script type="module" src="./app.js" ></script>
-    <!--
-    -->
   </body>
 </html>

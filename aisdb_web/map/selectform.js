@@ -1,16 +1,27 @@
 /** @module selectform */
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.css';
+
 import { socket, waitForTimerange } from './clientsocket';
 import {
   addInteraction,
   clearFeatures,
-  draw,
   dragBox,
+  draw,
   drawSource,
   lineSource,
   map,
+  polySource,
+  setSearchAreaFromSelected,
 } from './map';
 
-import { vessellabels, vesseltypes, vesselStyles, hiddenStyle } from './palette';
+import {
+  hiddenStyle,
+  polyStyle,
+  vesselStyles,
+  vessellabels,
+  vesseltypes,
+} from './palette';
 
 
 /** @constant {element} statusdiv status message div element */
@@ -27,18 +38,29 @@ const vesseltypeselect = document.getElementById('vesseltype-select');
 const searchbtn = document.getElementById('searchbtn');
 /** @constant {element} clearbtn map window reset button */
 const clearbtn = document.getElementById('clearbtn');
-/** @constant {element} vessel type selection popup menu element */
+/** @constant {element} selectmenu area selection popup menu element */
+const selectmenu = document.getElementById('select-menu');
+/** @constant {element} vesselmenu vessel type selection popup menu element */
 const vesselmenu = document.getElementById('vesseltype-menu');
 
+
+window.timeselectstart = timeselectstart;
+const timeselectstart_fp = flatpickr(timeselectstart, {
+  onChange: function(selectedDates, dateStr, instance) {
+    timeselectstart.value = dateStr;
+  }
+});
+const timeselectend_fp = flatpickr(timeselectend, {
+  onChange: function(selectedDates, dateStr, instance) {
+    timeselectend.value = dateStr;
+  }
+});
 
 /** searchstate true if not currently performing a search
  * @see resetSearchState
  * @type {boolean}
  */
 let searchstate = true;
-// window.searchstate = function() {
-//  console.log(searchstate);
-// };
 
 
 /** reset the search state
@@ -97,12 +119,33 @@ async function newSearch(start, end) {
  * @callback selectbtn_onclick
  * @function
  */
-selectbtn.onclick = function () {
-  map.removeInteraction(draw);
-  map.removeInteraction(dragBox);
-  drawSource.clear();
-  addInteraction();
+selectbtn.onclick = function() {
+  selectmenu.classList.toggle('show');
 };
+
+
+/** select menu options click actions
+ * @callback selectmenu_childNodes_onclick
+ * @function
+ */
+selectmenu.childNodes.forEach((opt) => {
+  opt.onclick = async function() {
+    selectmenu.classList.toggle('show');
+    if (opt.dataset.value === 'ecoregions' &&
+      polySource.getFeatures().length === 0) {
+      map.removeInteraction(draw);
+      map.removeInteraction(dragBox);
+      drawSource.clear();
+      await socket.send(JSON.stringify({ type: 'zones' }));
+    } else if (opt.dataset.value === 'selectbox') {
+      polySource.clear();
+      map.removeInteraction(draw);
+      map.removeInteraction(dragBox);
+      drawSource.clear();
+      addInteraction();
+    }
+  };
+});
 
 
 /** search button click action
@@ -131,13 +174,17 @@ searchbtn.onclick = async function() {
     // validate time input
     statusdiv.textContent = 'Error: Start must occur before end';
     window.statusmsg = statusdiv.textContent;
-  } else if (start < timeselectstart.min) {
+  } else if (start < timeselectstart_fp.config.minDate) {
     // validate time input
     statusdiv.textContent = `Error: No data before ${timeselectstart.min}`;
     window.statusmsg = statusdiv.textContent;
-  } else if (end > timeselectend.max) {
+  } else if (end > timeselectend_fp.config.maxDate) {
     // validate time input
     statusdiv.textContent = `Error: No data after ${timeselectend.max}`;
+    window.statusmsg = statusdiv.textContent;
+  } else if (Math.floor((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)) > 31) {
+    // validate time input
+    statusdiv.textContent = 'Error: select a time range of one month or less';
     window.statusmsg = statusdiv.textContent;
   } else if (searchstate === true) {
     // create database request if everything is OK
@@ -153,7 +200,9 @@ searchbtn.onclick = async function() {
  * @function
  */
 clearbtn.onclick = async function() {
+  selectbtn.textContent = 'Select Area';
   window.searcharea = null;
+  await setSearchAreaFromSelected();
   window.statusmsg = '';
   statusdiv.textContent = '';
   if (searchstate === false) {
@@ -162,6 +211,10 @@ clearbtn.onclick = async function() {
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
   clearFeatures();
+  for (let ft of polySource.getFeatures()) {
+    ft.set('selected', false);
+    ft.setStyle(polyStyle);
+  }
 };
 
 
@@ -173,10 +226,23 @@ clearbtn.onclick = async function() {
  * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
  */
 async function setSearchRange(start, end) {
-  timeselectstart.min = start;
-  timeselectend.min = start;
-  timeselectstart.max = end;
-  timeselectend.max = end;
+  timeselectstart_fp.set('minDate', start);
+  timeselectend_fp.set('minDate', start);
+  timeselectstart_fp.set('maxDate', end);
+  timeselectend_fp.set('maxDate', end);
+  let defaultStart = '2021-07-01';
+  let defaultEnd = '2021-07-14';
+  if (timeselectstart.value === '' &&
+    timeselectend.value === '' &&
+    start < defaultStart &&
+    end > defaultEnd) {
+    timeselectstart_fp.set('defaultDate', defaultStart);
+    timeselectstart_fp.jumpToDate(defaultStart, true);
+    timeselectstart.value = defaultStart;
+    timeselectend_fp.set('defaultDate', defaultEnd);
+    timeselectend_fp.jumpToDate(defaultEnd, true);
+    timeselectend.value = defaultEnd;
+  }
 }
 
 
@@ -187,8 +253,14 @@ async function setSearchRange(start, end) {
  * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
  */
 async function setSearchValue(start, end) {
+  /*
   timeselectstart.value = start;
   timeselectend.value = end;
+  */
+  timeselectstart_fp.set('defaultDate', start);
+  timeselectstart_fp.jumpToDate(start, true);
+  timeselectend_fp.set('defaultDate', end);
+  timeselectend_fp.jumpToDate(end, true);
 }
 
 

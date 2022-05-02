@@ -4,7 +4,7 @@ from datetime import datetime
 from aisdb import data_dir
 from aisdb.database.decoder import decode_msgs
 
-from tests.create_testing_data import create_testing_aisdata
+from aisdb.tests.create_testing_data import create_testing_aisdata
 
 testdb = os.path.join(os.path.dirname(data_dir), 'testdb')
 

@@ -6,7 +6,7 @@ import time
 import pytest
 
 from aisdb.database.decoder import decode_msgs
-from common import dbpath, rawdata_dir, host_addr, host_port
+from aisdb import dbpath, rawdata_dir, host_addr, host_port
 
 unix_origin = datetime(1970, 1, 1)
 
