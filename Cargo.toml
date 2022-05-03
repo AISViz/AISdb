@@ -6,7 +6,7 @@ test = true
 doctest = false
 
 [package]
-version = "1.2.0"
+version = "1.2.1"
 name = "aisdb"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"

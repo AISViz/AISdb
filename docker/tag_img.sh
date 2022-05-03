@@ -1,14 +1,16 @@
 #!/bin/bash
+SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+cd "${SCRIPTPATH}/.."
 echo "GIT CONTEXT:"
 echo
-find .. | grep -vi "`cat ../.gitignore`" | grep -vi '\/.git\/'
+git ls-files --exclude-from=.gitignore
 echo
 echo
 echo "CAUTION: TAGGING PUBLIC IMAGE WITH BUILD CONTEXT:"
 echo
-find .. | grep -vi "`cat ../.dockerignore`"
-
+git ls-files --exclude-from=.dockerignore
 echo
+cd $SCRIPTPATH
 read -p "Are you sure? [y/n]" -r
 if [[ $REPLY =~ ^[Yy]$ ]]
 then

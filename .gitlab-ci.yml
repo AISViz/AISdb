@@ -12,7 +12,7 @@ pkgbuild:
     entrypoint: [""]
   stage: pkgbuild
   script:
-    - maturin build --release --manylinux 2014
+    - maturin build --release --manylinux 2014 --strip
   artifacts:
     paths:
       - target/wheels/
@@ -20,7 +20,7 @@ pkgbuild:
 rust-test:
   stage: rust-test
   script:
-    - cargo test --release --color=always -- --nocapture
+    - cargo test --color=always -- --nocapture
 
 python-test:
   stage: python-test

@@ -1,6 +1,6 @@
 [package]
 name = "client"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2021"
 
 [lib]
@@ -12,9 +12,6 @@ geo-types = "*"
 geojson = "*"
 js-sys = "0.3"
 serde_json = "1"
-
-[profile.release]
-lto = true
 
 [dependencies.geo]
 version = "*"
@@ -30,3 +27,6 @@ features = [ "serde-serialize",]
 [dependencies.web-sys]
 version = "0.3.22"
 features = [ "console",]
+
+[profile.release]
+lto = true

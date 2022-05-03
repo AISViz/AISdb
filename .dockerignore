@@ -10,6 +10,7 @@
 **/debug
 **/debug/*
 **/testdata
+**.d
 **__pycache__**
 **webdriver
 *.d
@@ -43,5 +44,6 @@ docker/tag_img.sh
 docs/html
 docs/source/api
 release
+target/release
 testdata
 !docs/requirements.txt

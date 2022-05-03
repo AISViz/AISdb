@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.2.1
+------
+
+minor fixes in dockerfile to install latest package wheel
+
+
 v1.2.0
 ------
 
