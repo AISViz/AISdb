@@ -8,7 +8,7 @@ services:
     image: ghcr.io/pyo3/maturin:main
     volumes:
       - ./:/io
-    command: build --release --manylinux 2014
+    command: build --release --manylinux 2014 --strip
 
   # run rust tests
   rust-test:
