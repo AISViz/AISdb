@@ -13,13 +13,15 @@ pkgbuild:
   stage: pkgbuild
   script:
     - maturin build --release --manylinux 2014
+  artifacts:
+    paths:
+      - target
 
 rust-test:
   stage: rust-test
   script:
     - cargo test --release --color=always -- --nocapture
 
-# skip tests requiring web data sources
 python-test:
   stage: python-test
   script:
