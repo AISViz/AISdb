@@ -59,7 +59,7 @@ What is AIS?
 Installing from PyPI
 ----------------------
 
-TODO: upload prepacked wheels to PyPI
+TODO: upload prepackaged wheels to PyPI
 
 
 Installing from Source
