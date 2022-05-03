@@ -8,8 +8,9 @@ stages:
 
 pkgbuild:
   image: ghcr.io/pyo3/maturin:main
+    name: maturin
+    entrypoint: [""]
   stage: pkgbuild
-  entrypoint: [""]
   script:
     - build --release --manylinux 2014
 
