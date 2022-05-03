@@ -25,7 +25,7 @@ rust-test:
 python-test:
   stage: python-test
   script:
-    - python -m pip install .
+    - python -m pip install ./target/wheels/aisdb-*cp310*.whl
     - python -m pytest --color=yes --tb=native --doctest-modules tests/ -k "not merge"
 
 build-website:
