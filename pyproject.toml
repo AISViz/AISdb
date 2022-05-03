@@ -8,7 +8,7 @@ license-files = [ "license.txt",]
 requires-python = ">=3.7"
 dependencies = [ "aiosqlite", "orjson", "packaging", "pillow", "pysqlite3", "requests", "selenium", "shapely", "tqdm", "websockets",]
 zip-safe = false
-version = "1.2.502"
+version = "1.2.2"
 [[project.authors]]
 name = "Matthew Smith"
 email = "matthew.smith@dal.ca"

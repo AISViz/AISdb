@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.2.2
+------
+
+fix commit script and remove version.py
+
+
 v1.2.1
 ------
 
