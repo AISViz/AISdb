@@ -34,6 +34,7 @@ build-website:
   only: 
     - master
   script:
+    - cd aisdb_web && npm install --save-dev vite
     - /bin/bash aisdb_web/build_website.sh
   #  - rm -rf public && cp -r docs/html public
   #artifacts:
