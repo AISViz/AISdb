@@ -8,11 +8,6 @@ services:
     image: ghcr.io/pyo3/maturin:main
     volumes:
       - ./:/io
-      #- ./aisdb:/io/aisdb
-      #- ./src:/io/src
-      #- ./target:/io/target
-      #- ./build.rs:/io/build.rs
-      #- ./Cargo.toml/io/Cargo.toml
     command: build --release --manylinux 2014
 
   # run rust tests
@@ -59,14 +54,6 @@ services:
         BINGMAPSKEY: ${BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
         AISDBHOST: ${AISDBHOST:-127.0.0.1}
         AISDBPORT: ${AISDBPORT:-9924}
-    #volumes:
-      #- ./Cargo.toml:/home/ais_env/Cargo.toml:ro
-      #- ./src:/home/ais_env/src:ro
-      #- ./build.rs:/home/ais_env/build.rs:ro
-      #- ./aisdb:/home/ais_env/aisdb:ro
-      #- ./aisdb_web/build_website.sh:/home/ais_env/aisdb_web/build_website.sh:ro
-      #- ./aisdb_web/map:/home/ais_env/aisdb_web/map:ro
-      #- ./:/home/ais_env/
     command:
       ['npm', '--prefix', 'aisdb_web/', 'start']
     networks:

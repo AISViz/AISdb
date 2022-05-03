@@ -9,11 +9,9 @@ Package tests, documentation, and webapp are included as services in ``docker-co
 Environment
 -----------
 
-To mount a local directory inside the webapp, specify the directory inside 
-``.env``, and create a corresponding service entry in 
-``docker-compose.override.yml``.
 To enable Bing Maps aerial overlay when hosting the application, obtain a WMTS
-token from `Bing Maps <https://www.bingmapsportal.com/>`_ and place this in ``.env`` also
+token from `Bing Maps <https://www.bingmapsportal.com/>`_ and place this in 
+``.env`` within the project root.
 
 
 ``.env``
@@ -24,12 +22,17 @@ token from `Bing Maps <https://www.bingmapsportal.com/>`_ and place this in ``.e
   BINGMAPSKEY="<your token here>"
 
 
+To mount a local directory inside the webapp, specify the ``DATA_DIR`` directory 
+in ``.env``, and create a corresponding service entry in ``docker-compose.override.yml``.
+This may be desireable when using a pre-built database file for the web interface.
+
+
 ``docker-compose.override.yml``
 
 .. code-block:: yaml
 
    services:
-    aisdb_web:
+    websocket:
       volumes:
         - ${DATA_DIR}:/home/ais_env/ais
 
@@ -40,12 +43,14 @@ The default paths will be used inside this directory
 Compose Services
 ----------------
 
-Run tests, build documentation, and start the webapp with ``docker-compose up``. 
-Services can also be run individually: ``python-test``, ``rust-test``, ``webserver``, ``websocket``, and ``nginx``.
-for python tests, rust tests, web services, database API, and web routing, respectively.
+Run tests, build documentation, and start the webapp with ``docker-compose up --build pkgbuild && docker-compose up --build nginx websocket webserver``. 
+Services can also be run individually: ``pkgbuild``, ``python-test``, ``rust-test``, ``webserver``, ``websocket``, ``nginx``, and ``certbot``.
+Note that the ``pkgbuild`` service must be run before running any dependant services. 
+For SSL configuration with nginx and certbot, mount certificates to ``/etc/letsencrypt/live/$HOSTNAME/fullchain.pem`` and ``/etc/letsencrypt/live/$HOSTNAME/privkey.pem``
 
 .. code-block:: sh
 
+  $ docker-compose up --build pkgbuild  # must be run first
   $ docker-compose up --build python-test rust-test
-  $ docker-compose up --build webserver websocket
+  $ docker-compose up --build webserver websocket nginx
 

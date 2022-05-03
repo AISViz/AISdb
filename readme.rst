@@ -65,7 +65,7 @@ TODO: upload package wheels to PyPI
 Installing from Source
 ----------------------
 
-Build package wheels using the included docker environment:
+Build wheel files using the included docker environment. By default, wheels will be built for python versions 3.7, 3.8, 3.9, and 3.10 using the manylinux2014_x86_64 target. Resulting wheel files will be output to ./target/wheels/
 
 .. code-block:: sh
 
@@ -79,7 +79,8 @@ Package wheels can be installed using pip:
   python -m pip install aisdb-1.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
 
-Alternatively, the package can be :ref:`installed with docker <docker>`
+Read more about the docker services for this package in :ref:`docker-compose.yml <https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/blob/master/docker-compose.yml>` and :ref:`AISDB docker services <docker>`
+
 
 .. _Configuring: 
 
