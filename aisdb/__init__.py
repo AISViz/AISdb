@@ -105,8 +105,6 @@ class import_handler():
 
 with import_handler() as importconfigs:
 
-    from .version import __version__
-
     from .database.create_tables import (
         sqlite_create_table_polygons,
         aggregate_static_msgs,

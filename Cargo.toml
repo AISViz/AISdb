@@ -6,16 +6,12 @@ test = true
 doctest = false
 
 [package]
-version = "1.2.1"
+version = "1.2.502"
 name = "aisdb"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"
 include = [ "/aisdb/*.py", "/aisdb/aisdb_sql", "/aisdb/database/*.py", "/aisdb/tests", "/aisdb/webdata/*.py", "/src", "pyproject.toml",]
 build = "build.rs"
-
-[profile.release]
-lto = true
-opt-level = 3
 
 [lib]
 crate-type = [ "cdylib", "rlib",]
@@ -49,6 +45,10 @@ features = [ "extension-module",]
 
 [dependencies.rusqlite]
 version = "0.26"
+
+[profile.release]
+lto = true
+opt-level = 3
 
 [package.metadata.maturin]
 requires-dist = [ "maturin>=0.12", "numpy", "wheel",]

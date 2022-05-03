@@ -1,54 +1,28 @@
 [build-system]
-requires = [
-  'maturin>=0.12', 
-  'numpy', 
-  'wheel', 
-]
-build-backend = 'maturin'
+requires = [ "maturin>=0.12", "numpy", "wheel",]
+build-backend = "maturin"
+
+[project]
+name = "aisdb"
+license-files = [ "license.txt",]
+requires-python = ">=3.7"
+dependencies = [ "aiosqlite", "orjson", "packaging", "pillow", "pysqlite3", "requests", "selenium", "shapely", "tqdm", "websockets",]
+zip-safe = false
+version = "1.2.502"
+[[project.authors]]
+name = "Matthew Smith"
+email = "matthew.smith@dal.ca"
+
+[project.optional-dependencies]
+test = [ "pytest", "pytest-asyncio",]
+docs = [ "sphinx", "sphinx-rtd-theme",]
 
 [tool.maturin]
-sdist-include = [
-  "aisdb/*", 
-  "aisdb/aisdb_sql/*", 
-  "aisdb/database/*",
-  "aisdb/tests/*",
-  "aisdb/webdata/*",
-  "src/*",
-]
+sdist-include = [ "aisdb/*", "aisdb/aisdb_sql/*", "aisdb/database/*", "aisdb/tests/*", "aisdb/webdata/*", "src/*",]
 bindings = "pyo3"
 compatability = "manylinux2014"
 
-[project]
-name = 'aisdb'
-authors = [{name = "Matthew Smith", email = "matthew.smith@dal.ca"}]
-license-files = ["license.txt"]
-requires-python = ">=3.7"
-dependencies = [
-  'aiosqlite',
-  'orjson',
-  'packaging',
-  'pillow',
-  'pysqlite3',
-  'requests',
-  'selenium',
-  'shapely',
-  'tqdm',
-  'websockets',
-]
-zip-safe = false
-version = '1.2.1'
-
-[project.optional-dependencies]
-test = [
-  'pytest',
-  'pytest-asyncio',
-]
-docs = [
- 'sphinx',
- 'sphinx-rtd-theme',
-]
-
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
-testpaths = ["aisdb/tests"]
+testpaths = [ "aisdb/tests",]
 addopts = "--doctest-modules"
