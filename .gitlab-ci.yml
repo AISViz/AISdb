@@ -15,7 +15,7 @@ pkgbuild:
     - maturin build --release --manylinux 2014
   artifacts:
     paths:
-      - target
+      - target/wheels/
 
 rust-test:
   stage: rust-test
