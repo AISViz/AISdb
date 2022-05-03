@@ -56,29 +56,28 @@ What is AIS?
 
 .. install:
 
-Installing
-----------
+Installing from PyPI
+----------------------
 
-Database creation with Rust can be enabled by installing the Rust compiler
-(Optional). 
-If installed, a rust executable will be compiled during pip install
+TODO: upload prepacked wheels to PyPI
 
-.. code-block:: sh
 
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+Installing from Source
+----------------------
 
-The package can be installed using pip:
+Build package wheels using the included docker environment:
 
 .. code-block:: sh
 
-  python3 -m venv env_aisdb
-  source env_aisdb/bin/activate
-  python3 -m pip install --verbose 'git+https://gitlab.meridian.cs.dal.ca/public_projects/aisdb#egg=aisdb'
+  docker-compose up --build pkgbuild --out .
 
-Although the graphical interface is still a work in progress, it can be
-enabled by `installing QGIS <https://qgis.org/en/site/forusers/download.html>`__. Note that
-when creating an environment using venv, the ``--system-site-packages``
-option must be used to share QGIS application data with the environment.
+
+Package wheels can be installed using pip:
+
+.. code-block:: sh
+
+  python -m pip install aisdb-1.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+
 
 Alternatively, the package can be :ref:`installed with docker <docker>`
 
