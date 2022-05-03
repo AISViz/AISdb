@@ -26,7 +26,8 @@ python-test:
   stage: python-test
   script:
     #- python -m pip install ./target/wheels/aisdb-*cp310*.whl
-    - cd aisdb/tests && python -m pytest --color=yes --tb=native --doctest-modules -k "not merge" .
+    - maturin develop
+    - python -m pytest --color=yes --tb=native --doctest-modules -k "not merge" .
 
 build-website:
   stage: build-website
