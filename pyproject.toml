@@ -36,7 +36,7 @@ dependencies = [
   'websockets',
 ]
 zip-safe = false
-dynamic = ["version"]
+version = '1.2.1'
 
 [project.optional-dependencies]
 test = [

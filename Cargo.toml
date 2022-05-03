@@ -10,8 +10,12 @@ version = "1.2.1"
 name = "aisdb"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"
-include = [ "/aisdb/*.py", "/aisdb/aisdb_sql", "/aisdb/database/*.py", "/aisdb/tests", "/aisdb/webdata/*.py", "/src", "MANIFEST.in", "pyproject.toml",]
+include = [ "/aisdb/*.py", "/aisdb/aisdb_sql", "/aisdb/database/*.py", "/aisdb/tests", "/aisdb/webdata/*.py", "/src", "pyproject.toml",]
 build = "build.rs"
+
+[profile.release]
+lto = true
+opt-level = 3
 
 [lib]
 crate-type = [ "cdylib", "rlib",]
@@ -47,4 +51,4 @@ features = [ "extension-module",]
 version = "0.26"
 
 [package.metadata.maturin]
-requires-dist = [ "aiosqlite", "maturin>=0.12", "numpy", "orjson", "packaging", "pillow", "pysqlite3", "pytest", "pytest-asyncio", "requests", "selenium", "shapely", "tqdm", "websockets", "wheel",]
+requires-dist = [ "maturin>=0.12", "numpy", "wheel",]
