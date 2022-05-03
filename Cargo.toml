@@ -1,62 +1,50 @@
-[package]
-version = '1.2.0'
-name = 'aisdb'
-authors = ['MERIDIAN // Matt Smith matthew.smith@dal.ca']
-edition = '2021'
-include = [
-  '/aisdb/*.py', 
-  '/aisdb/aisdb_sql', 
-  '/aisdb/database/*.py',
-  '/aisdb/tests', 
-  '/aisdb/webdata/*.py', 
-  '/src', 
-  'MANIFEST.in',
-  'pyproject.toml', 
-]
-build = "build.rs"
-
-[package.metadata.maturin]
-requires-dist = [
-  'aiosqlite',
-  'maturin>=0.12', 
-  'numpy', 
-  'orjson',
-  'packaging',
-  'pillow',
-  'pysqlite3',
-  'pytest',
-  'pytest-asyncio',
-  'requests',
-  'selenium',
-  'shapely',
-  'tqdm',
-  'websockets',
-  'wheel', 
-]
-
-[lib]
-crate-type=['cdylib', 'rlib']
-path = 'src/lib.rs'
-
 [[bin]]
-name = 'aisdb'
-path = 'src/bin.rs'
+name = "aisdb"
+path = "src/bin.rs"
 doc = true
 test = true
 doctest = false
 
-[dependencies]
-#futures     = {version = '0.3'}
-async-std   = {version = '1.11.0', features = ['attributes']}
-chrono      = {version = '0.4'}
-csv         = {version = '1.1'}
-geo         = '0.20.1'
-geo-types   = "*"
-include_dir = "0.7.2"
-#log         = {version = '0.4.16'}
-nmea-parser = {version = '0.9'}
-#numpy       = {version = '0.16.2'}
-pico-args   = {version = '0.4.2', features = ['eq-separator']}
-pyo3        = {version = '0.16.4', features = ['extension-module']}
-rusqlite    = {version = '0.26'}
+[package]
+version = "1.2.0"
+name = "aisdb"
+authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
+edition = "2021"
+include = [ "/aisdb/*.py", "/aisdb/aisdb_sql", "/aisdb/database/*.py", "/aisdb/tests", "/aisdb/webdata/*.py", "/src", "MANIFEST.in", "pyproject.toml",]
+build = "build.rs"
 
+[lib]
+crate-type = [ "cdylib", "rlib",]
+path = "src/lib.rs"
+
+[dependencies]
+geo = "0.20.1"
+geo-types = "*"
+include_dir = "0.7.2"
+
+[dependencies.async-std]
+version = "1.11.0"
+features = [ "attributes",]
+
+[dependencies.chrono]
+version = "0.4"
+
+[dependencies.csv]
+version = "1.1"
+
+[dependencies.nmea-parser]
+version = "0.9"
+
+[dependencies.pico-args]
+version = "0.4.2"
+features = [ "eq-separator",]
+
+[dependencies.pyo3]
+version = "0.16.4"
+features = [ "extension-module",]
+
+[dependencies.rusqlite]
+version = "0.26"
+
+[package.metadata.maturin]
+requires-dist = [ "aiosqlite", "maturin>=0.12", "numpy", "orjson", "packaging", "pillow", "pysqlite3", "pytest", "pytest-asyncio", "requests", "selenium", "shapely", "tqdm", "websockets", "wheel",]

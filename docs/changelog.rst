@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.2.0
+------
+
+Package build overhaul using native rust modules #version:minor
+
+
 v1.1.10
 -------
 

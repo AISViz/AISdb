@@ -1,37 +1,32 @@
 [package]
 name = "client"
-version = "0.1.0"
+version = "1.2.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [lib]
-crate-type = ["cdylib"]
-
-[profile.release]
-lto = true
-#opt-level = 's'
-#opt-level = 'z'
+crate-type = [ "cdylib",]
 
 [dependencies]
 console_error_panic_hook = "0.1.7"
-geo = { version = "*" }
 geo-types = "*"
 geojson = "*"
 js-sys = "0.3"
-serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
-wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+
+[profile.release]
+lto = true
+
+[dependencies.geo]
+version = "*"
+
+[dependencies.serde]
+version = "1.0"
+features = [ "derive",]
+
+[dependencies.wasm-bindgen]
+version = "0.2"
+features = [ "serde-serialize",]
 
 [dependencies.web-sys]
 version = "0.3.22"
-features = [
-  "console",
-  #"BinaryType",
-  #"Blob",
-  #"ErrorEvent",
-  #"FileReader",
-  #"MessageEvent",
-  #"ProgressEvent",
-  #"WebSocket",
-]
+features = [ "console",]
