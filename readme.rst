@@ -69,7 +69,7 @@ Build package wheels using the included docker environment:
 
 .. code-block:: sh
 
-  docker-compose up --build pkgbuild --out .
+  docker-compose up --build pkgbuild
 
 
 Package wheels can be installed using pip:
