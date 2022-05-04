@@ -10,7 +10,6 @@ from datetime import datetime
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb import dbpath
 from aisdb.database import sqlfcn_callbacks
 from aisdb.database.dbconn import DBConn
 from aisdb.database.sqlfcn import crawl
@@ -109,7 +108,42 @@ class DBQuery(UserDict):
             else:
                 assert 'radius' in self.keys(), 'undefined radius'
 
-    def check_idx(self, dbpath=dbpath, vesselinfo=False, domain=None):
+    def check_marinetraffic(self, dbpath, trafficDBpath, domain):
+        ''' scrape metadata for observed vessels from marinetraffic
+
+            args:
+                dbpath (string)
+                    database file path
+                trafficDBpath (string)
+                    marinetraffic database path
+                domain (aisdb.gis.Domain)
+                    domain area to search
+        '''
+        aisdatabase = DBConn(dbpath)
+        cur = aisdatabase.cur
+        vinfo = VesselInfo(trafficDBpath)
+        for month in self.data['months'][::-1]:
+            print(f'retrieving vessel info for {month}', end='', flush=True)
+
+            sql = f'''
+            SELECT DISTINCT(mmsi) FROM ais_{month}_dynamic AS d WHERE
+            {sqlfcn_callbacks.in_validmmsi_bbox(alias='d',
+                xmin=domain.minX,
+                xmax=domain.maxX,
+                ymin=domain.minY,
+                ymax=domain.maxY)}
+            '''
+            cur.execute(sql)
+            print('.', end='', flush=True)  # first dot
+            mmsis = cur.fetchall()
+            imos = [0 for _ in mmsis]
+
+            if len(mmsis) > 0:
+                vinfo.vessel_info_callback(np.array(mmsis), np.array(imos))
+
+        aisdatabase.conn.close()
+
+    def check_idx(self, dbpath):
         ''' Ensure that all tables exist, and indexes are built, for the
             timespan covered by the DBQuery.
             Scrapes metadata for vessels in domain and stores to
@@ -121,7 +155,6 @@ class DBQuery(UserDict):
         '''
         aisdatabase = DBConn(dbpath)
         cur = aisdatabase.cur
-        vinfo = VesselInfo()
         for month in self.data['months'][::-1]:
             cur.execute(
                 'SELECT * FROM sqlite_master WHERE type="table" and name=?',
@@ -160,39 +193,12 @@ class DBQuery(UserDict):
                     or 'ymin' not in self.keys() or 'ymax' not in self.keys()):
                 continue
 
-            if not vesselinfo:
-                continue
-
-            if not domain:
-                print('Domain argument required to check vessel info!')
-                continue
-
-            # scrape metadata for observed vessels from marinetraffic
-            # if no domain is provided, defaults to area surrounding canada
-            print(f'retrieving vessel info for {month}', end='', flush=True)
-
-            sql = f'''
-            SELECT DISTINCT(mmsi) FROM ais_{month}_dynamic AS d WHERE
-            {sqlfcn_callbacks.in_validmmsi_bbox(alias='d',
-                xmin=domain.minX,
-                xmax=domain.maxX,
-                ymin=domain.minY,
-                ymax=domain.maxY)}
-            '''
-            cur.execute(sql)
-            print('.', end='', flush=True)  # first dot
-            mmsis = cur.fetchall()
-            imos = [0 for _ in mmsis]
-
-            if len(mmsis) > 0:
-                vinfo.vessel_info_callback(np.array(mmsis), np.array(imos))
-
         aisdatabase.conn.commit()
         aisdatabase.conn.close()
 
     def gen_qry(self,
+                dbpath,
                 fcn=crawl,
-                dbpath=dbpath,
                 printqry=False,
                 check_idx=False,
                 maxlength=0):
@@ -202,12 +208,12 @@ class DBQuery(UserDict):
             args:
                 self (UserDict)
                     dictionary containing kwargs
-                fcn (function)
-                    callback function that will generate SQL code using
-                    the args stored in self
                 dbpath (string)
                     database location. defaults to the path configured
                     in ~/.config/ais.cfg
+                fcn (function)
+                    callback function that will generate SQL code using
+                    the args stored in self
 
             yields:
                 numpy array of rows for each unique MMSI
@@ -252,7 +258,7 @@ class DBQuery(UserDict):
         yield np.array(mmsi_rows, dtype=object)
         aisdatabase.conn.close()
 
-    async def async_qry(self, fcn=crawl, dbpath=dbpath):
+    async def async_qry(self, dbpath, fcn=crawl):
         loop = asyncio.get_running_loop()
         aisdatabase = await aiosqlite.connect(dbpath)
         cursor = await aisdatabase.execute(fcn(**self))

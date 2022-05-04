@@ -1,18 +1,12 @@
 import os
-import sys
 import configparser
-
-from aisdb.common import data_dir
-
-if data_dir not in sys.path:
-    sys.path.append(data_dir)
 
 cfgfile = os.path.join(os.path.expanduser('~'), '.config', 'ais.cfg')
 #baseurl = 'https://github.com/mozilla/geckodriver/releases/download/v0.30.0/'
 srcurl = 'https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/KVijQsMQQiKl1_Ada0CNog/runs/0/artifacts/public/build/geckodriver.tar.gz'
 
 
-def _init_configs(data_dir=data_dir):
+def _init_configs(data_dir):
     if os.path.isfile(cfgfile):
         cfg = configparser.ConfigParser()
         with open(cfgfile, 'r') as f:

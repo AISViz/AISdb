@@ -9,17 +9,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
-from aisdb import data_dir, sqlpath
+from aisdb import sqlpath
 from aisdb.webdata.scraper import Scraper
 import sqlite3
 
-trafficDBpath = os.path.join(data_dir, 'marinetraffic.db')
-trafficDB = sqlite3.Connection(trafficDBpath)
-trafficDB.row_factory = sqlite3.Row
+#trafficDBpath = os.path.join(data_dir, 'marinetraffic.db')
+#trafficDB = sqlite3.Connection(trafficDBpath)
+#trafficDB.row_factory = sqlite3.Row
 
 
-err404 = 'INSERT OR IGNORE INTO webdata_marinetraffic(mmsi, imo, error404) '
-err404 += 'VALUES (CAST(? as INT), CAST(? as INT), 1)'
+err404 = 'INSERT OR IGNORE INTO webdata_marinetraffic(mmsi, error404) '
+err404 += 'VALUES (CAST(? as INT), 1)'
 
 
 def _loaded(drv: WebDriver) -> bool:
@@ -71,7 +71,7 @@ def _getrow(vessel: dict) -> tuple:
             )
 
 
-def _insertelem(elem, mmsi, imo):
+def _insertelem(elem, mmsi, trafficDB):
     # prepare sql code for inserting vessel info
     insert_sqlfile = os.path.join(sqlpath, 'insert_webdata_marinetraffic.sql')
     with open(insert_sqlfile, 'r') as f:
@@ -89,11 +89,7 @@ def _insertelem(elem, mmsi, imo):
     with trafficDB as conn:
         conn.execute(insert_sql, insertrow)
         if vessel['MMSI'] != mmsi:
-            conn.execute(err404, (str(mmsi), str(imo)))
-        if vessel['IMO'] != imo:
-            vessel['IMO'] = int(imo)
-            insertrow = _getrow(vessel)
-            conn.execute(insert_sql, insertrow)
+            conn.execute(err404, (str(mmsi)))
 
 
 def _vinfo(track, conn):
@@ -130,19 +126,27 @@ def _vinfo(track, conn):
     return track
 
 
-def vessel_info(tracks):
+def vessel_info(tracks, trafficDB):
     with trafficDB as conn:
         for track in tracks:
             yield _vinfo(track, conn)
 
 
 class VesselInfo():
+    ''' scrape vessel metadata from marinetraffic.com
 
-    def __init__(self, proxy=None):
+        args:
+            trafficDBpath (string)
+                path where vessel traffic metadata should be stored
+    '''
+
+    def __init__(self, trafficDBpath, proxy=None):
         self.filename = 'marinetraffic.db'
         self.driver = None
         self.baseurl = 'https://www.marinetraffic.com/'
         self.proxy = proxy
+        self.trafficDB = sqlite3.Connection(trafficDBpath)
+        self.trafficDB.row_factory = sqlite3.Row
 
     def __enter__(self):
         return self
@@ -152,7 +156,7 @@ class VesselInfo():
             self.driver.close()
             self.driver.quit()
 
-    def _getinfo(self, url, searchmmsi, searchimo):
+    def _getinfo(self, url, searchmmsi):
         if self.driver is None:
             self.driver = Scraper(proxy=self.proxy).driver
 
@@ -161,7 +165,7 @@ class VesselInfo():
             self.driver.get(url)
             WebDriverWait(self.driver, 15).until(_loaded)
         except TimeoutException:
-            print(f'timed out, skipping {searchmmsi=} {searchimo=}')
+            print(f'timed out, skipping {searchmmsi=}')
 
             '''
             # validate IMO
@@ -175,8 +179,8 @@ class VesselInfo():
             '''
 
             # if timeout occurs, mark as error 404
-            with trafficDB as conn:
-                conn.execute(err404, (str(searchmmsi), str(searchimo)))
+            with self.trafficDB as conn:
+                conn.execute(err404, (str(searchmmsi)))
             return
         except Exception as err:
             self.driver.close()
@@ -194,33 +198,36 @@ class VesselInfo():
                 urls.append(elem.get_attribute('href'))
 
             for url in urls:
-                self._getinfo(url, searchmmsi, searchimo)
+                self._getinfo(url, searchmmsi)
 
             # recursion break condition
-            with trafficDB as conn:
+            with self.trafficDB as conn:
                 #conn.execute(err404, (searchmmsi, searchimo))
-                conn.execute(err404, (str(searchmmsi), str(searchimo)))
+                conn.execute(err404, (str(searchmmsi)))
 
         elif 'hc-en' in self.driver.current_url:
             raise RuntimeError('bad url??')
 
         elif self.driver.title[0:3] == '404':
-            print(f'404 error! {searchmmsi=} {searchimo=}')
-            with trafficDB as conn:
+            print(f'404 error! {searchmmsi=}')
+            with self.trafficDB as conn:
                 #conn.execute(err404, (searchmmsi, searchimo))
-                conn.execute(err404, (str(searchmmsi), str(searchimo)))
+                conn.execute(err404, (str(searchmmsi)))
 
         value = 'vesselDetails_vesselInfoSection'
         for elem in self.driver.find_elements(value=value):
-            _ = _insertelem(elem, searchmmsi, searchimo)
+            _ = _insertelem(elem, searchmmsi, self.trafficDB)
 
-    def vessel_info_callback(self, mmsis, imos, retry_404=False):
+    def vessel_info_callback(self, mmsis, retry_404=False):
+        ''' search for metadata for given mmsis
+
+            args:
+                mmsis (list)
+                    list of MMSI identifiers (integers)
+        '''
         # only check unique mmsis and matching imo
         mmsis, midx = np.unique(mmsis, return_index=True)
-        imos = [i if i is not None else 0 for i in imos[midx]]
         mmsis = np.array(mmsis, dtype=int)
-        imos = np.array(imos, dtype=int)
-        assert mmsis.size == imos.size
         print('.', end='')  # second dot
 
         # create a new info table if it doesnt exist yet
@@ -228,7 +235,7 @@ class VesselInfo():
                 sqlpath,
                 'createtable_webdata_marinetraffic.sql',
                 )
-        with (trafficDB as conn, open(createtable_sqlfile, 'r') as f):
+        with (self.trafficDB as conn, open(createtable_sqlfile, 'r') as f):
             createtable_sql = f.read()
             conn.execute(createtable_sql)
 
@@ -239,7 +246,7 @@ class VesselInfo():
         if retry_404:
             sqlcount += 'AND error404 != 1\n'
         sqlcount += 'ORDER BY mmsi'
-        with trafficDB as conn:
+        with self.trafficDB as conn:
             existing = conn.execute(sqlcount).fetchall()
         print('.', end='')  # third dot
 

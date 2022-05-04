@@ -10,7 +10,6 @@ from hashlib import sha256
 
 import numpy as np
 
-from aisdb import tmp_dir, output_dir
 from aisdb.gis import (
     delta_knots,
     delta_meters,
@@ -175,10 +174,7 @@ def transitinfo(track, zoneset):
     )
 
 
-def serialize_network_edge(tracks,
-                           domain,
-                           staticinfo=staticinfo,
-                           transitinfo=transitinfo):
+def serialize_network_edge(tracks, domain, tmp_dir):
     ''' at each track position where the zone changes, a transit
         index is recorded, and trajectory statistics are aggregated for this
         index range using staticinfo() and transitinfo()
@@ -225,19 +221,26 @@ def serialize_network_edge(tracks,
         yield
 
 
-def aggregate_output(filename='output.csv',
+def aggregate_output(outputfile,
+                     tmp_dir,
                      filters=[lambda row: False],
                      delete=True):
     ''' concatenate serialized output from geofence()
 
-        filters: list of callables
-            each callable function should accept a dictionary describing a
-            network edge as input. if any of the callables return True,
-            the edge will be filtered from the output rows. see staticinfo()
-            and transitinfo() above for more info on network edge dict keys
+        args:
+            outputfile (string)
+                filepath location to output CSV data
+            tmp_dir (string)
+                files will temporarily be placed here while processing
+            filters (list)
+                list of callback functions. each callable function should
+                accept a dictionary describing a network edge as input. if any
+                return True, the edge will be filtered from the output rows.
+                see staticinfo() and transitinfo() above for more info on
+                network edge dict keys
 
-            for example, to filter all rows where the max speed exceeds 50
-            knots, and filter non-transiting vessels from zone Z0:
+                for example, to filter all rows where the max speed exceeds 50
+                knots, and filter non-transiting vessels from zone Z0:
 
         >>> filters = [
         ...     lambda r: float(r['velocity_knots_max']) > 50,
@@ -245,7 +248,6 @@ def aggregate_output(filename='output.csv',
         ...     ]
     '''
 
-    outputfile = os.path.join(output_dir, filename)
     picklefiles = [
         os.path.join(tmp_dir, fname) for fname in sorted(os.listdir(tmp_dir))
         if '_' not in fname
@@ -304,7 +306,12 @@ def pipeline(rowset, domain):
         assert x is None
 
 
-def graph(rowgen, domain, processes=0, filename='output.csv', delete=True):
+def graph(rowgen,
+          domain,
+          tmp_dir,
+          processes=0,
+          filename='output.csv',
+          delete=True):
     ''' perform geofencing on vessel trajectories, then concatenate aggregated
         transit statistics between nodes (zones) to create network edges from
         vessel trajectories

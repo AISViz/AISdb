@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.1
+------
+
+remove configuration requirement
+
+
 v1.3.0
 ------
 

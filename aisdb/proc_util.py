@@ -9,8 +9,6 @@ import csv
 
 import numpy as np
 
-from aisdb.common import output_dir
-
 
 def _fast_unzip(zipf, dirname='.'):
     ''' parallel process worker for fast_unzip() '''
@@ -151,13 +149,13 @@ def write_csv(
     return
 
 
-def write_binary(tracks, fpath=os.path.join(output_dir, 'tracks.vec')):
+def write_binary(tracks, fpath):
     with open(fpath, 'wb') as f:
         for track in tracks:
             pickle.dump(track, f)
 
 
-def read_binary(fpath=os.path.join(output_dir, 'tracks.vec'), count=None):
+def read_binary(fpath, count=None):
     results = []
     n = 0
     with open(fpath, 'rb') as f:

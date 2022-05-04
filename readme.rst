@@ -82,27 +82,6 @@ Package wheels can be installed using pip:
 Read more about the docker services for this package in :ref:`docker-compose.yml <https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/blob/master/docker-compose.yml>` and :ref:`AISDB docker services <docker>`
 
 
-.. _Configuring: 
-
-Configuring
------------
-
-| A config file can be used to specify storage location for the database
-  as well as directory paths for where to look for additional data. The
-  package will look for configs in ``$HOME/.config/ais.cfg``,
-  where $HOME is the user’s home directory. The following defaults will be 
-  used for missing values
-
-.. code-block:: sh
-
-  dbpath = $HOME/ais/ais.db
-  data_dir = $HOME/ais/
-  zones_dir = $HOME/ais/zones/
-  tmp_dir = $HOME/ais/tmp_parsing/
-  rawdata_dir = $HOME/ais/rawdata/
-  output_dir = $HOME/ais/scriptoutput/
-
-
 Code examples
 -------------
 

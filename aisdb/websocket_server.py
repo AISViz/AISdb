@@ -3,6 +3,7 @@ import os
 import ssl
 import websockets
 import calendar
+import sqlite3
 from datetime import datetime
 
 import orjson as json
@@ -13,11 +14,9 @@ from aisdb import (
     DBConn,
     DBQuery,
     DomainFromTxts,
-    dbpath,
     sqlfcn_callbacks,
-    zones_dir,
 )
-from aisdb.webdata.marinetraffic import trafficDB, _vinfo
+from aisdb.webdata.marinetraffic import _vinfo
 from aisdb.track_gen import (
     TrackGen_async,
     encode_greatcircledistance_async,
@@ -40,7 +39,10 @@ class SocketServ():
         to client data requests
     '''
 
-    def __init__(self, enable_ssl=True):
+    def __init__(self, dbpath, zones_dir, trafficDBpath, enable_ssl=True):
+        self.dbpath = dbpath
+        self.trafficDB = sqlite3.Connection(trafficDBpath)
+        self.trafficDB.row_factory = sqlite3.Row
         self.host = os.environ.get('AISDBHOSTALLOW', '*')
         port = os.environ.get('AISDBPORT', 9924)
         self.port = int(port)
@@ -103,7 +105,7 @@ class SocketServ():
         return 0
 
     async def req_valid_range(self, req, websocket):
-        with DBConn(dbpath).conn as conn:
+        with DBConn(self.dbpath).conn as conn:
             res = sorted([
                 s.split('_')[1] for line in conn.execute(
                     "SELECT name FROM sqlite_master "
@@ -161,7 +163,7 @@ class SocketServ():
             minscore=0,
             speed_threshold=50,
         )
-        with trafficDB as conn:
+        with self.trafficDB as conn:
             count = 0
             async for track in qrygen:
                 #track = await track_coroutine

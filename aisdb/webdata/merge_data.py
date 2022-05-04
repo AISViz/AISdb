@@ -8,8 +8,8 @@ from aisdb.webdata.shore_dist import shore_dist_gfw
 #from webdata import marinetraffic
 
 
-def merge_tracks_shoredist(tracks):
-    with shore_dist_gfw() as sdist:
+def merge_tracks_shoredist(tracks, data_dir):
+    with shore_dist_gfw(data_dir) as sdist:
         for track in tracks:
             track['km_from_shore'] = np.array([
                 sdist.getdist(x, y) for x, y in zip(track['lon'], track['lat'])
@@ -19,8 +19,8 @@ def merge_tracks_shoredist(tracks):
             yield track
 
 
-def merge_tracks_portdist(tracks):
-    with shore_dist_gfw() as sdist:
+def merge_tracks_portdist(tracks, data_dir):
+    with shore_dist_gfw(data_dir) as sdist:
         for track in tracks:
             track['km_from_port'] = np.array([
                 sdist.getportdist(x, y)
@@ -31,9 +31,9 @@ def merge_tracks_portdist(tracks):
             yield track
 
 
-def merge_tracks_bathymetry(tracks, context=None):
+def merge_tracks_bathymetry(tracks, data_dir, context=None):
     if context is None:
-        with Gebco() as bathymetry:
+        with Gebco(data_dir) as bathymetry:
             for track in tracks:
                 track['depth_metres'] = np.array([
                     bathymetry.getdepth(x, y)

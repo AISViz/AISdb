@@ -2,7 +2,6 @@
 
 import os
 
-from aisdb.common import data_dir
 from aisdb.webdata import _init_configs
 
 import shutil
@@ -12,12 +11,12 @@ from selenium.webdriver.firefox.options import Options
 
 cfgfile = os.path.join(os.path.expanduser('~'), '.config', 'ais.cfg')
 
-os.environ['PATH'] = f'{data_dir}:{os.environ.get("PATH")}'
-
 
 class Scraper():
 
-    def __init__(self, proxy=None):
+    def __init__(self, data_dir, proxy=None):
+
+        os.environ['PATH'] = f'{data_dir}:{os.environ.get("PATH")}'
         '''
             args:
                 proxy (string):
