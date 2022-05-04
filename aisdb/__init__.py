@@ -1,6 +1,8 @@
 import os
 import logging
 
+sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
+
 from .database.create_tables import (
     sqlite_create_table_polygons,
     aggregate_static_msgs,
@@ -79,8 +81,6 @@ LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',
                     level=LOGLEVEL,
                     datefmt='%Y-%m-%d %I:%M:%S')
-
-sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
 assert sqlite3.sqlite_version_info[
     0] >= 3, 'SQLite version too low! version 3.35 or newer required'
