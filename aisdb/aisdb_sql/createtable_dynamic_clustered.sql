@@ -1,13 +1,14 @@
 CREATE TABLE IF NOT EXISTS ais_{}_dynamic (
-            mmsi INTEGER NOT NULL,
-            time INTEGER NOT NULL,
-            longitude FLOAT NOT NULL,
-            latitude FLOAT NOT NULL,
-            rot FLOAT,
-            sog FLOAT,
-            cog FLOAT,
-            heading FLOAT,
-            maneuver TEXT,
-            utc_second INTEGER,
-            PRIMARY KEY (mmsi, time, longitude, latitude)
-        ) WITHOUT ROWID;
+    mmsi INTEGER NOT NULL,
+    time INTEGER NOT NULL,
+    longitude REAL NOT NULL,
+    latitude REAL NOT NULL,
+    rot REAL,
+    sog REAL,
+    cog REAL,
+    heading REAL,
+    maneuver TEXT,
+    utc_second INTEGER,
+    source TEXT NOT NULL,
+    PRIMARY KEY (mmsi, time, longitude, latitude, source)
+) WITHOUT ROWID, STRICT ;

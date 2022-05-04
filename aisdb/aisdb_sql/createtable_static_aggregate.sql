@@ -6,5 +6,6 @@ CREATE TABLE IF NOT EXISTS static_{}_aggregate (
     dim_stern INTEGER,
     dim_port INTEGER,
     dim_star INTEGER,
-    imo INTEGER
-);
+    imo INTEGER,
+    source TEXT NOT NULL
+) STRICT;

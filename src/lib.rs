@@ -36,7 +36,7 @@ pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 }
 
 #[pyfunction]
-pub fn decode_native(dbpath: &str, files: Vec<&str>) {
+pub fn decode_native(dbpath: &str, files: Vec<&str>, source: &str) {
     // array tuples containing (dbpath, filepath)
     let mut path_arr = vec![];
     for file in files {
@@ -56,9 +56,9 @@ pub fn decode_native(dbpath: &str, files: Vec<&str>) {
             || f.to_str().unwrap().contains(&".TXT")
             || f.to_str().unwrap().contains(&".txt")
         {
-            parser = decode_insert_msgs(&d, &f, parser).expect("decoding NM4");
+            parser = decode_insert_msgs(&d, &f, &source, parser).expect("decoding NM4");
         } else if f.to_str().unwrap().contains(&".csv") || f.to_str().unwrap().contains(&".CSV") {
-            decodemsgs_ee_csv(&d, &f).expect("decoding CSV");
+            decodemsgs_ee_csv(&d, &f, &source).expect("decoding CSV");
         } else {
             panic!("unknown file extension {:?}", &d);
         }

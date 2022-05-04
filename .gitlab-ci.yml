@@ -36,6 +36,8 @@ build-website:
   script:
     - cd aisdb_web && npm install
     - /bin/bash build_website.sh
+
+
   #  - rm -rf public && cp -r docs/html public
   #artifacts:
   #  paths:

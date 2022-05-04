@@ -70,6 +70,7 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
                         {
                             return Some((payload.to_string(), i.try_into().unwrap()));
                         } else {
+                            #[cfg(debug_assertions)]
                             println!(
                                 "skipped- tag:{:?}\tmeta:{:?}\tpayload:{:?}",
                                 tag, meta, payload
@@ -154,6 +155,7 @@ pub fn filter_vesseldata(
 pub fn decode_insert_msgs(
     dbpath: &std::path::Path,
     filename: &std::path::Path,
+    source: &str,
     mut parser: NmeaParser,
 ) -> Result<NmeaParser, Error> {
     //) -> Result<(), Error> {
@@ -202,21 +204,21 @@ pub fn decode_insert_msgs(
         }
 
         if positions.len() >= 500000 {
-            let _d = prepare_tx_dynamic(&mut c, positions);
+            let _d = prepare_tx_dynamic(&mut c, &source, positions);
             positions = vec![];
         };
         if stat_msgs.len() >= 500000 {
-            let _s = prepare_tx_static(&mut c, stat_msgs);
+            let _s = prepare_tx_static(&mut c, &source, stat_msgs);
             stat_msgs = vec![];
         }
     }
 
     // insert remaining
     if positions.len() > 0 {
-        let _d = prepare_tx_dynamic(&mut c, positions);
+        let _d = prepare_tx_dynamic(&mut c, &source, positions);
     }
     if stat_msgs.len() > 0 {
-        let _s = prepare_tx_static(&mut c, stat_msgs);
+        let _s = prepare_tx_static(&mut c, &source, stat_msgs);
     }
 
     let elapsed = start.elapsed();
@@ -323,6 +325,7 @@ pub mod tests {
             parser = decode_insert_msgs(
                 &std::path::Path::new("testdata/test.db").to_path_buf(),
                 &std::path::Path::new(&filepath).to_path_buf(),
+                "TESTING",
                 parser,
             )
             .expect("test decode and insert");

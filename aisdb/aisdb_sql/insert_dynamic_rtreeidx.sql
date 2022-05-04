@@ -7,7 +7,8 @@ INSERT INTO rtree_{}_dynamic (
         sog, 
         cog,
         heading, 
-        utc_second
+        utc_second,
+        source
 ) SELECT 
         mmsi, mmsi, 
         time, time,
@@ -17,6 +18,7 @@ INSERT INTO rtree_{}_dynamic (
         sog,
         cog,
         heading,
-        utc_second
+        utc_second,
+        source
   FROM ais_{}_dynamic
   ORDER BY 1, 3;

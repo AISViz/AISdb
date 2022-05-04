@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.0
+------
+
+updated database model (version:minor)
+
+
 v1.2.2
 ------
 

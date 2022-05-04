@@ -43,6 +43,7 @@ pub fn filter_vesseldata_csv(row: StringRecord) -> Option<(StringRecord, i32, bo
 pub fn decodemsgs_ee_csv(
     dbpath: &std::path::Path,
     filename: &std::path::PathBuf,
+    source: &str,
 ) -> Result<(), Error> {
     assert_eq!(
         &filename.to_str().unwrap()[&filename.to_str().unwrap().len() - 4..],
@@ -131,20 +132,20 @@ pub fn decodemsgs_ee_csv(
         }
 
         if positions.len() >= 500000 {
-            let _d = prepare_tx_dynamic(&mut c, positions);
+            let _d = prepare_tx_dynamic(&mut c, &source, positions);
             positions = vec![];
         };
         if stat_msgs.len() >= 500000 {
-            let _s = prepare_tx_static(&mut c, stat_msgs);
+            let _s = prepare_tx_static(&mut c, &source, stat_msgs);
             stat_msgs = vec![];
         }
     }
 
     if positions.len() > 0 {
-        let _d = prepare_tx_dynamic(&mut c, positions);
+        let _d = prepare_tx_dynamic(&mut c, &source, positions);
     }
     if stat_msgs.len() > 0 {
-        let _s = prepare_tx_static(&mut c, stat_msgs);
+        let _s = prepare_tx_static(&mut c, &source, stat_msgs);
     }
 
     let elapsed = start.elapsed();
@@ -252,6 +253,7 @@ MMSI,Message_ID,Repeat_indicator,Time,Millisecond,Region,Country,Base_station,On
         let _ = decodemsgs_ee_csv(
             &std::path::Path::new("testdata/test.db").to_path_buf(),
             &fpath,
+            "TESTDATA",
         );
 
         Ok(())

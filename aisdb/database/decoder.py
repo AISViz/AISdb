@@ -10,7 +10,7 @@ from aisdb.database.dbconn import DBConn
 import aisdb
 
 
-def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
+def decode_msgs(filepaths, dbpath, source, vacuum=False, skip_checksum=False):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
@@ -25,6 +25,10 @@ def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
                 ingested into the database
             dbpath (string)
                 database filepath
+            source (string)
+                data source name or description. will be used as a primary key
+                column, so duplicate messages from different sources will not be
+                ignored as duplicates upon insert
             vacuum (boolean)
                 if True, the database will be vacuumed after completion.
                 This will result in a smaller database but takes a long
@@ -40,7 +44,7 @@ def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
         ...              '~/ais/rawdata_dir/20220102.nm4']
         >>> decode_msgs(filepaths, dbpath)
     '''
-    batchsize = 5
+    batchsize = 1
 
     if len(filepaths) == 0:
         raise ValueError('must supply atleast one filepath.')
@@ -62,7 +66,7 @@ def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
                     )
 
         for j in range(0, len(filepaths), batchsize):
-            aisdb.decode_native(dbpath, filepaths[j:j + batchsize])
+            aisdb.decode_native(dbpath, filepaths[j:j + batchsize], source)
 
             if not skip_checksum:
                 for file in filepaths[j:j + batchsize]:

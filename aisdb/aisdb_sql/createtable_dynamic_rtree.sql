@@ -9,5 +9,6 @@ CREATE VIRTUAL TABLE IF NOT EXISTS rtree_{}_dynamic USING rtree(
     +cog FLOAT,
     +heading FLOAT,
     +maneuver TEXT,
-    +utc_second INT
+    +utc_second INT,
+    +source TEXT
 ); 
