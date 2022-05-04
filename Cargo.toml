@@ -6,12 +6,18 @@ test = true
 doctest = false
 
 [package]
-version = "1.3.2"
+version = "1.3.3"
 name = "aisdb"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"
 include = [ "/aisdb/*.py", "/aisdb/aisdb_sql", "/aisdb/database/*.py", "/aisdb/tests", "/aisdb/webdata/*.py", "/src", "pyproject.toml",]
 build = "build.rs"
+readme = "readme.rst"
+description = "AIS Database and Processing Utils"
+homepage = "https://aisdb.meridian.cs.dal.ca/"
+documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
+repository = "https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/"
+license-file = "license.txt"
 
 [lib]
 crate-type = [ "cdylib", "rlib",]

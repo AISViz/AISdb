@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.3
+------
+
+replace GPL license with MIT license
+
+
 v1.3.2
 ------
 
