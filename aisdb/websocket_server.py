@@ -158,7 +158,8 @@ class SocketServ():
             ymax=req['area']['maxY'],
         )
         qrygen = encode_greatcircledistance_async(
-            compress_tracks_async(TrackGen_async(qry.async_qry()), 0.001),
+            compress_tracks_async(TrackGen_async(qry.async_qry(self.dbpath)),
+                                  0.001),
             distance_threshold=250000,
             minscore=0,
             speed_threshold=50,
@@ -166,7 +167,6 @@ class SocketServ():
         with self.trafficDB as conn:
             count = 0
             async for track in qrygen:
-                #track = await track_coroutine
                 _vinfo(track, conn)
                 event = {
                     'msgtype': 'track_vector',

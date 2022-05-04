@@ -72,7 +72,15 @@ services:
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
       AISDBPORT: ${AISDBPORT:-9924}
     command:
-      ['python', '-Ouc', 'import asyncio; from aisdb.websocket_server import SocketServ; serv=SocketServ(False); asyncio.run(serv.main())']
+      ['python', '-Ouc', 'import asyncio; 
+      from aisdb.websocket_server import SocketServ;
+      serv=SocketServ(
+        dbpath="${AISDBPATH:-/home/ais_env/ais/ais.db}", 
+        zones_dir="${AISDBZONES:-/home/ais_env/ais/zones/}", 
+        trafficDBpath="${AISDBMARINETRAFFIC:-/home/ais_env/ais/marinetraffic.db}", 
+        enable_ssl=False,
+      );
+      asyncio.run(serv.main())']
     networks: 
       ipv6_private:
         ipv6_address: "fc00::6"

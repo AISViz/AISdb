@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.2
+------
+
+update websocket server and docker-compose for zero-config
+
+
 v1.3.1
 ------
 
