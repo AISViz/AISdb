@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.5
+------
+
+refactor encoder
+
+
 v1.3.4
 ------
 

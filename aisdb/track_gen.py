@@ -2,65 +2,25 @@
 
 from functools import reduce
 from datetime import timedelta
+import sqlite3
 
 import numpy as np
-
-from shapely.geometry import LineString
 
 import aisdb
 from .gis import delta_knots, delta_meters
 from .proc_util import _segment_rng
 
-meridian = LineString(np.array(((-180, -180, 180, 180), (-90, 90, 90, -90))).T)
-
-
-def compress_tracks(tracks, precision=0.001):
-    ''' remove unnecessary points from track using the visvalingham-whyatt
-        algorithm
-    '''
-    for track in tracks:
-        idx = np.array(
-            aisdb.simplify_linestring_idx(
-                track['lon'],
-                track['lat'],
-                precision,
-            ))
-        yield dict(
-            **{k: track[k]
-               for k in track['static']},
-            **{k: track[k][idx]
-               for k in track['dynamic']},
-            static=track['static'],
-            dynamic=track['dynamic'],
-        )
-
-
-async def compress_tracks_async(tracks, precision=0.001):
-    ''' remove unnecessary points from track using the visvalingham-whyatt
-        algorithm
-    '''
-    async for track in tracks:
-        idx = np.array(
-            aisdb.simplify_linestring_idx(
-                track['lon'],
-                track['lat'],
-                precision,
-            ))
-        yield dict(
-            **{k: track[k]
-               for k in track['static']},
-            **{k: track[k][idx]
-               for k in track['dynamic']},
-            static=track['static'],
-            dynamic=track['dynamic'],
-        )
+staticcols = set([
+    'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow',
+    'dim_stern', 'dim_port', 'dim_star', 'imo'
+])
 
 
 def _segment_longitude(track, tolerance=300):
     ''' segment track vectors where difference in longitude exceeds 300 degrees
     '''
 
-    if track['time'].size == 1:
+    if len(track['time']) == 1:
         yield track
         return
 
@@ -68,12 +28,13 @@ def _segment_longitude(track, tolerance=300):
         np.abs(track['lon'][1:] - track['lon'][:-1]) > tolerance)[0] + 1
 
     if diff.size == 0:
+        assert 'time' in track.keys()
         yield track
         return
 
     segments_idx = reduce(np.append, ([0], diff, [track['time'].size]))
     for i in range(segments_idx.size - 1):
-        yield dict(
+        tracksplit = dict(
             **{k: track[k]
                for k in track['static']},
             **{
@@ -83,15 +44,17 @@ def _segment_longitude(track, tolerance=300):
             static=track['static'],
             dynamic=track['dynamic'],
         )
+        assert 'time' in tracksplit.keys()
+        yield tracksplit
 
 
-def TrackGen(
-    rowgen: iter,
-    colnames: list = [
-        'mmsi', 'time', 'lon', 'lat', 'imo', 'vessel_name', 'dim_bow',
-        'dim_stern', 'dim_port', 'dim_star', 'ship_type', 'ship_type_txt'
-    ],
-) -> dict:
+_statcols = set([
+    'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow',
+    'dim_stern', 'dim_port', 'dim_star', 'imo', 'coarse_type_txt'
+])
+
+
+def TrackGen(rowgen: iter) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
         each row contains columns from database: mmsi time lon lat name ...
@@ -101,11 +64,6 @@ def TrackGen(
             rowgen (aisdb.database.dbqry.DBQuery.gen_qry())
                 DBQuery rows generator. Yields rows returned
                 by a database query
-            colnames (list of strings)
-                description of each column in rows.
-                first two columns must be ['mmsi', 'time']
-            deduplicate_timestamps: bool
-                deprecated, this feature may be removed in a future version
 
         yields:
             dictionary containing track column vectors.
@@ -113,14 +71,14 @@ def TrackGen(
             scalar values
 
         >>> from datetime import datetime
-        >>> from aisdb import dbpath, DBQuery, sqlfcn_callbacks, TrackGen
+        >>> from aisdb import DBQuery, sqlfcn_callbacks, TrackGen
 
+        >>> dbpath = '~/ais/ais.db'
         >>> q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
         ...             start=datetime(2022, 1, 1),
-        ...             end=datetime(2022, 1, 7),
-        ...             )
+        ...             end=datetime(2022, 1, 7))
         >>> rowgen = q.gen_qry()
-        >>> q.check_idx()  # build index if necessary
+        >>> q.check_idx(dbpath)  # build index if necessary
 
         >>> print(f'iterating over rows returned from {dbpath}')
         >>> for track in TrackGen(rowgen):
@@ -128,96 +86,81 @@ def TrackGen(
         ...     print(f'messages in track segment: {track["time"].size}')
         ...     print(f'keys: {track.keys()}')
     '''
-    staticcols = set(colnames) & set([
-        'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow',
-        'dim_stern', 'dim_port', 'dim_star', 'imo'
-    ])
-    dynamiccols = set(colnames) - staticcols
-
-    colidx = list(zip(range(len(colnames)), colnames))
-    statcolidx = [(c, n) for c, n in colidx if n in staticcols]
-    poscolidx = [(c, n) for c, n in colidx if n in dynamiccols]
-
+    firstrow = True
     for rows in rowgen:
+        assert not (rows is None or len(rows) == 0), 'rows cannot be empty'
+        assert isinstance(rows[0], sqlite3.Row)
+        if firstrow:
+            staticcols = set(rows[0].keys()) & _statcols
+            dynamiccols = set(rows[0].keys()) ^ staticcols
+            dynamiccols = dynamiccols.difference(set(['longitude',
+                                                      'latitude']))
+            dynamiccols = dynamiccols.union(set(['lon', 'lat', 'time']))
+            firstrow = False
 
-        if rows is None or (rows.size <= 1):
-            raise ValueError(
-                'cannot create vector from zero-size track segment')
+        lon = np.array([r['longitude'] for r in rows], dtype=float)
+        lat = np.array([r['latitude'] for r in rows], dtype=float)
+        time = np.array([r['time'] for r in rows], dtype=np.uint32)
+        idx = aisdb.simplify_linestring_idx(lon, lat, precision=0.001)
 
-        idx = np.array(
-            aisdb.simplify_linestring_idx(rows.T[2], rows.T[3], 0.001))
         trackdict = dict(
-            **{n: (rows[0][c] or '')
-               for c, n in statcolidx},
-            **{n: rows.T[c][idx]
-               for c, n in poscolidx},
+            **{col: rows[0][col]
+               for col in staticcols},
+            lon=lon[idx].astype(np.float32),
+            lat=lat[idx].astype(np.float32),
+            time=time[idx],
+            **{
+                #col: np.array([r[col] for r in rows[idx]], dtype=object)
+                col: np.array([r[col] for r in np.array(rows)[idx]],
+                              dtype=object)
+                for col in dynamiccols.difference(set(['lon', 'lat', 'time']))
+            },
             static=staticcols,
             dynamic=dynamiccols,
         )
+        assert 'time' in trackdict.keys()
+
         for segment in _segment_longitude(trackdict):
             yield segment
 
 
-async def TrackGen_async(
-    rowgen: iter,
-    colnames: list = [
-        'mmsi', 'time', 'lon', 'lat', 'imo', 'vessel_name', 'dim_bow',
-        'dim_stern', 'dim_port', 'dim_star', 'ship_type', 'ship_type_txt'
-    ],
-) -> dict:
-    mmsi_col = [
-        i for i, c in zip(range(len(colnames)), colnames)
-        if c.lower() == 'mmsi'
-    ][0]
-
-    staticcols = set(colnames) & set([
-        'mmsi',
-        'vessel_name',
-        'ship_type',
-        'ship_type_txt',
-        'dim_bow',
-        'dim_stern',
-        'dim_port',
-        'dim_star',
-        'imo',
-    ])
-
-    dynamiccols = set(colnames) - staticcols
-
+async def TrackGen_async(rowgen: iter) -> dict:
+    firstrow = True
     async for rows in rowgen:
+        assert not (rows is None or len(rows) == 0), 'rows cannot be empty'
+        if firstrow:
+            staticcols = set(rows[0].keys()) & _statcols
+            dynamiccols = set(rows[0].keys()) ^ staticcols
+            dynamiccols = dynamiccols.difference(set(['longitude',
+                                                      'latitude']))
+            dynamiccols = dynamiccols.union(set(['lon', 'lat', 'time']))
+            firstrow = False
+        assert isinstance(rows[0], sqlite3.Row)
 
-        if rows is None:
-            break
+        lon = np.array([r['longitude'] for r in rows], dtype=float)
+        lat = np.array([r['latitude'] for r in rows], dtype=float)
+        time = np.array([r['time'] for r in rows], dtype=np.uint32)
+        idx = aisdb.simplify_linestring_idx(lon, lat, precision=0.001)
 
-        elif rows.shape == ():
-            break
+        trackdict = dict(
+            **{col: rows[0][col]
+               for col in staticcols},
+            lon=lon[idx].astype(np.float32),
+            lat=lat[idx].astype(np.float32),
+            time=time[idx],
+            **{
+                col: np.array([r[col] for r in np.array(rows)[idx]],
+                              dtype=object)
+                for col in dynamiccols.difference(set(['lon', 'lat', 'time']))
+            },
+            static=staticcols,
+            dynamic=dynamiccols,
+        )
+        assert 'lon' in trackdict.keys()
+        assert 'lon' in trackdict['dynamic']
 
-        elif len(rows) == 0:
-            break
-
-        tracks_idx = np.append(
-            np.append([0],
-                      np.nonzero(rows[:, mmsi_col].astype(int)[1:] !=
-                                 rows[:, mmsi_col].astype(int)[:-1])[0] + 1),
-            rows.size)
-
-        for i in range(len(tracks_idx) - 1):
-            trackdict = dict(
-                **{
-                    n: (rows[tracks_idx[i]][c] or 0)
-                    for c, n in zip(range(len(colnames)), colnames)
-                    if n in staticcols
-                },
-                **{
-                    n: rows[tracks_idx[i]:tracks_idx[i + 1]].T[c]
-                    for c, n in zip(range(len(colnames)), colnames)
-                    if n in dynamiccols
-                },
-                static=staticcols,
-                dynamic=dynamiccols,
-            )
-            for segment in _segment_longitude(trackdict):
-                yield segment
+        for segment in _segment_longitude(trackdict):
+            yield segment
 
 
 TrackGen_async.__doc__ = TrackGen.__doc__
@@ -276,7 +219,9 @@ def _score_fcn(xy1, xy2, t1, t2, *, speed_threshold, distance_threshold):
     dm = max(aisdb.haversine(*xy1, *xy2), 1.)
 
     # elapsed time between coordinate pair timestamps (seconds)
+    assert t2 >= t1
     dt = max(abs(t2 - t1), 10.)
+    assert dt < 60 * 60 * 24 * 7 * 52 * 1, f'{dt=}'
 
     # computed speed between coordinate pairs (knots)
     ds = (dm / dt) * 1.9438444924406
@@ -319,7 +264,122 @@ def _score_idx(scores):
     ''' Returns indices of score array where value at index is equal to the
         highest score. In tie cases, the last index will be selected
     '''
+    assert len(scores) > 0
     return np.where(scores == np.max(scores))[0][-1]
+
+
+def _segments_idx(track, distance_threshold, speed_threshold, **_):
+    segments_idx1 = reduce(
+        np.append, ([0], np.where(delta_knots(track) > speed_threshold)[0] + 1,
+                    [track['time'].size]))
+    segments_idx2 = reduce(
+        np.append,
+        ([0], np.where(delta_meters(track) > distance_threshold)[0] + 1,
+         [track['time'].size]))
+
+    return reduce(np.union1d, (segments_idx1, segments_idx2))
+
+
+def _scoresarray(track, *, pathways, i, segments_idx, distance_threshold,
+                 speed_threshold, minscore):
+    scores = np.array([
+        _score_fcn(
+            xy1=(pathway['lon'][-1], pathway['lat'][-1]),
+            xy2=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]),
+            t1=pathway['time'][-1],
+            t2=track['time'][segments_idx[i]],
+            distance_threshold=distance_threshold,
+            speed_threshold=speed_threshold,
+        ) for pathway in pathways
+    ],
+                      dtype=np.float16)
+    highscore = (scores[np.where(
+        scores == np.max(scores))[0][0]] if scores.size > 0 else minscore)
+    return scores, highscore
+
+
+def _append_highscore(track, *, highscoreidx, pathways, i, segments_idx):
+    return dict(
+        **{k: track[k]
+           for k in track['static']},
+        **{
+            k: np.append(pathways[highscoreidx][k],
+                         track[k][segments_idx[i]:segments_idx[i + 1]])
+            for k in track['dynamic']
+        },
+        static=track['static'],
+        dynamic=track['dynamic'],
+    )
+
+
+'''
+def _pop_pathways(highscoreidx, pathways, n):
+    pathways[highscoreidx]['label'] = n
+    pathways[highscoreidx]['static'] = set(
+        pathways[highscoreidx]['static']).union({'label'})
+    path = pathways.pop(highscoreidx)
+    assert 'time' in path.keys()
+'''
+
+
+def _split_pathway(track, *, i, segments_idx):
+    path = dict(
+        **{k: track[k]
+           for k in track['static']},
+        **{
+            k: track[k][segments_idx[i]:segments_idx[i + 1]]
+            for k in track['dynamic']
+        },
+        static=track['static'],
+        dynamic=track['dynamic'],
+    )
+    return path
+
+
+def _score_encode(track, distance_threshold, speed_threshold, minscore):
+    assert 'time' in track.keys()
+    assert len(track['time']) > 0
+    params = dict(distance_threshold=distance_threshold,
+                  speed_threshold=speed_threshold,
+                  minscore=minscore)
+    segments_idx = _segments_idx(track, **params)
+    pathways = []
+    for i in range(segments_idx.size - 1):
+        if len(pathways) == 0:
+            path = _split_pathway(track, i=i, segments_idx=segments_idx)
+            assert path is not None
+            pathways.append(path)
+            continue
+        elif len(pathways) > 100:
+            print(f'excessive number of pathways! mmsi={track["mmsi"]}')
+            # yield pathways.pop(0)
+        assert len(track['time']) > 0, f'{track=}'
+
+        scores, highscore = _scoresarray(track,
+                                         pathways=pathways,
+                                         i=i,
+                                         segments_idx=segments_idx,
+                                         **params)
+        assert len(scores) > 0, f'{track}'
+        if (highscore >= minscore):
+            highscoreidx = _score_idx(scores)
+            pathways[highscoreidx] = _append_highscore(
+                track,
+                highscoreidx=highscoreidx,
+                pathways=pathways,
+                i=i,
+                segments_idx=segments_idx)
+        else:
+            path = _split_pathway(track, i=i, segments_idx=segments_idx)
+            assert path is not None
+            pathways.append(path.copy())
+
+    for pathway, label in zip(pathways, range(len(pathways))):
+        pathway['label'] = label
+        pathway['static'] = set(pathway['static']).union({'label'})
+        assert 'label' in pathway.keys()
+        assert 'time' in pathway.keys(), f'{pathway=}'
+        yield pathway
 
 
 def encode_greatcircledistance(
@@ -363,84 +423,10 @@ def encode_greatcircledistance(
         ...     print(f'messages in track segment: {track["time"].size}')
         ...     print(f'keys: {track.keys()}')
     '''
-    n = 0
     for track in tracks:
-
-        if track is None or track == {} or len(track['time']) <= 1:
-            continue
-
-        segments_idx1 = reduce(
-            np.append,
-            ([0], np.where(delta_knots(track) > speed_threshold)[0] + 1,
-             [track['time'].size]))
-        segments_idx2 = reduce(
-            np.append,
-            ([0], np.where(delta_meters(track) > distance_threshold)[0] + 1,
-             [track['time'].size]))
-
-        segments_idx = reduce(np.union1d, (segments_idx1, segments_idx2))
-
-        pathways = []
-        for i in range(segments_idx.size - 1):
-            if len(pathways) > 100:
-                print(f'excessive number of pathways! mmsi={track["mmsi"]}')
-                yield pathways.pop(0)
-            scores = np.array([
-                _score_fcn(
-                    xy1=(track['lon'][segments_idx[i]],
-                         track['lat'][segments_idx[i]]),
-                    xy2=(pathway['lon'][-1], pathway['lat'][-1]),
-                    t1=track['time'][segments_idx[i]],
-                    t2=pathway['time'][-1],
-                    distance_threshold=distance_threshold,
-                    speed_threshold=speed_threshold,
-                ) for pathway in pathways
-            ],
-                              dtype=np.float16)
-
-            highscore = scores[np.where(scores == np.max(scores))[0]
-                               [0]] if scores.size > 0 else minscore
-
-            if (highscore > minscore):
-                pathways[_score_idx(scores)] = dict(
-                    **{k: track[k]
-                       for k in track['static']},
-                    **{
-                        k: np.append(
-                            pathways[_score_idx(scores)][k],
-                            track[k][segments_idx[i]:segments_idx[i + 1]])
-                        for k in track['dynamic']
-                    },
-                    static=track['static'],
-                    dynamic=track['dynamic'],
-                )
-
-                if pathways[_score_idx(scores)]['time'].size > 10000:
-                    pathways[_score_idx(scores)]['label'] = n
-                    pathways[_score_idx(scores)]['static'] = set(
-                        pathways[_score_idx(scores)]['static']).union(
-                            {'label'})
-                    yield pathways.pop(_score_idx(scores))
-                    n += 1
-
-            else:
-                pathways.append(
-                    dict(
-                        **{k: track[k]
-                           for k in track['static']},
-                        **{
-                            k: track[k][segments_idx[i]:segments_idx[i + 1]]
-                            for k in track['dynamic']
-                        },
-                        static=track['static'],
-                        dynamic=track['dynamic'],
-                    ))
-
-        for pathway, label in zip(pathways, range(n, len(pathways) + n)):
-            pathway['label'] = label
-            pathway['static'] = set(pathway['static']).union({'label'})
-            assert 'label' in pathway.keys()
-            yield pathway
+        for path in _score_encode(track, distance_threshold, speed_threshold,
+                                  minscore):
+            yield path
 
 
 async def encode_greatcircledistance_async(
@@ -450,84 +436,10 @@ async def encode_greatcircledistance_async(
     speed_threshold=50,
     minscore=1e-6,
 ):
-    n = 0
     async for track in tracks:
-
-        if track is None or track == {} or len(track['time']) <= 1:
-            continue
-
-        segments_idx1 = reduce(
-            np.append,
-            ([0], np.where(delta_knots(track) > speed_threshold)[0] + 1,
-             [track['time'].size]))
-        segments_idx2 = reduce(
-            np.append,
-            ([0], np.where(delta_meters(track) > distance_threshold)[0] + 1,
-             [track['time'].size]))
-
-        segments_idx = reduce(np.union1d, (segments_idx1, segments_idx2))
-
-        pathways = []
-        for i in range(segments_idx.size - 1):
-            if len(pathways) > 100:
-                print(f'excessive number of pathways! mmsi={track["mmsi"]}')
-                yield pathways.pop(0)
-            scores = np.array([
-                _score_fcn(
-                    xy1=(track['lon'][segments_idx[i]],
-                         track['lat'][segments_idx[i]]),
-                    xy2=(pathway['lon'][-1], pathway['lat'][-1]),
-                    t1=track['time'][segments_idx[i]],
-                    t2=pathway['time'][-1],
-                    distance_threshold=distance_threshold,
-                    speed_threshold=speed_threshold,
-                ) for pathway in pathways
-            ],
-                              dtype=np.float16)
-
-            highscore = scores[np.where(scores == np.max(scores))[0]
-                               [0]] if scores.size > 0 else minscore
-
-            if (highscore > minscore):
-                pathways[_score_idx(scores)] = dict(
-                    **{k: track[k]
-                       for k in track['static']},
-                    **{
-                        k: np.append(
-                            pathways[_score_idx(scores)][k],
-                            track[k][segments_idx[i]:segments_idx[i + 1]])
-                        for k in track['dynamic']
-                    },
-                    static=track['static'],
-                    dynamic=track['dynamic'],
-                )
-
-                if pathways[_score_idx(scores)]['time'].size > 10000:
-                    pathways[_score_idx(scores)]['label'] = n
-                    pathways[_score_idx(scores)]['static'] = set(
-                        pathways[_score_idx(scores)]['static']).union(
-                            {'label'})
-                    yield pathways.pop(_score_idx(scores))
-                    n += 1
-
-            else:
-                pathways.append(
-                    dict(
-                        **{k: track[k]
-                           for k in track['static']},
-                        **{
-                            k: track[k][segments_idx[i]:segments_idx[i + 1]]
-                            for k in track['dynamic']
-                        },
-                        static=track['static'],
-                        dynamic=track['dynamic'],
-                    ))
-
-        for pathway, label in zip(pathways, range(n, len(pathways) + n)):
-            pathway['label'] = label
-            pathway['static'] = set(pathway['static']).union({'label'})
-            assert 'label' in pathway.keys()
-            yield pathway
+        for path in _score_encode(track, distance_threshold, speed_threshold,
+                                  minscore):
+            yield path
 
 
 encode_greatcircledistance_async.__doc__ = encode_greatcircledistance.__doc__
