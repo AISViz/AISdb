@@ -36,7 +36,7 @@ pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 }
 
 #[pyfunction]
-pub fn decode_native(dbpath: &str, files: Vec<&str>, source: &str) {
+pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str) {
     // array tuples containing (dbpath, filepath)
     let mut path_arr = vec![];
     for file in files {
@@ -78,7 +78,7 @@ pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<
 #[allow(unused_variables)]
 pub fn aisdb(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(haversine))?;
-    module.add_wrapped(wrap_pyfunction!(decode_native))?;
+    module.add_wrapped(wrap_pyfunction!(decoder))?;
     module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
     Ok(())
 }

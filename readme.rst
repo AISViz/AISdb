@@ -79,7 +79,7 @@ Package wheels can be installed using pip:
   python -m pip install aisdb-1.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
 
-Read more about the docker services for this package in :ref:`docker-compose.yml <https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/blob/master/docker-compose.yml>` and :ref:`AISDB docker services <docker>`
+Read more about the docker services for this package in ``docker-compose.yml`` and :ref:`AISDB docker services <docker>`
 
 
 Code examples

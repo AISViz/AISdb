@@ -22,22 +22,11 @@ token from `Bing Maps <https://www.bingmapsportal.com/>`_ and place this in
   BINGMAPSKEY="<your token here>"
 
 
-To mount a local directory inside the webapp, specify the ``DATA_DIR`` directory 
-in ``.env``, and create a corresponding service entry in ``docker-compose.override.yml``.
-This may be desireable when using a pre-built database file for the web interface.
-
-
-``docker-compose.override.yml``
-
-.. code-block:: yaml
-
-   services:
-    websocket:
-      volumes:
-        - ${DATA_DIR}:/home/ais_env/ais
-
-The default paths will be used inside this directory 
-(see :ref:`Configuring <Configuring>`)
+To mount a local database inside the webapp, mount it as a volume in the docker
+container, and create a corresponding entry for the ``AISDBPATH`` env variable 
+in your ``.env`` file. A similar approach can be used for configuring zone
+polygon filepaths with ``AISDBZONES``, and MarineTraffic metadata database using
+``AISDBMARINETRAFFIC``. See ``docker-compose.yml`` for more info.
 
 
 Compose Services

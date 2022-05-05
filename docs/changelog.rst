@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.8
+------
+
+minor changes to docs and docker build
+
+
 v1.3.7
 ------
 
