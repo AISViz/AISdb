@@ -114,7 +114,6 @@ class index():
         assert kwargs != {} or not bins, 'no boundaries provided'
         self.store = store
         self.pool = pool
-        self.storagedir = storagedir
         self.inmemory = inmemory
         self.storage = (os.path.join(storagedir, filename)
                         if not inmemory else ':memory:')
@@ -128,8 +127,6 @@ class index():
 
     def __enter__(self):
         assert self.kwargslist != [], 'empty kwargs!'
-        assert os.path.isdir(str(
-            self.storagedir)), f'invalid dir {self.storagedir}'
 
         with sqlite3.connect(self.storage) as con:
             db = con.cursor()

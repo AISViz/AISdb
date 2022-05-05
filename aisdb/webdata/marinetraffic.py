@@ -13,10 +13,6 @@ from aisdb import sqlpath
 from aisdb.webdata.scraper import Scraper
 import sqlite3
 
-#trafficDBpath = os.path.join(data_dir, 'marinetraffic.db')
-#trafficDB = sqlite3.Connection(trafficDBpath)
-#trafficDB.row_factory = sqlite3.Row
-
 
 err404 = 'INSERT OR IGNORE INTO webdata_marinetraffic(mmsi, error404) '
 err404 += 'VALUES (CAST(? as INT), 1)'
@@ -48,11 +44,13 @@ def _getrow(vessel: dict) -> tuple:
         vessel['Name'] = ''
     if 'Gross Tonnage' not in vessel.keys() or vessel['Gross Tonnage'] == '-':
         vessel['Gross Tonnage'] = 0
-    elif 'Gross Tonnage' in vessel.keys() and isinstance(vessel['Gross Tonnage'], str):
+    elif ('Gross Tonnage' in vessel.keys()
+            and isinstance(vessel['Gross Tonnage'], str)):
         vessel['Gross Tonnage'] = int(vessel['Gross Tonnage'].split()[0])
     if 'Summer DWT' not in vessel.keys() or vessel['Summer DWT'] == '-':
         vessel['Summer DWT'] = 0
-    elif 'Summer DWT' in vessel.keys() and isinstance(vessel['Summer DWT'], str):
+    elif ('Summer DWT' in vessel.keys()
+            and isinstance(vessel['Summer DWT'], str)):
         vessel['Summer DWT'] = int(vessel['Summer DWT'].split()[0])
     if 'Year Built' not in vessel.keys() or vessel['Year Built'] == '-':
         vessel['Year Built'] = 0
@@ -95,7 +93,7 @@ def _insertelem(elem, mmsi, trafficDB):
 def _vinfo(track, conn):
     track['static'] = set(track['static']).union({'marinetraffic_info'})
     res = conn.execute(
-            'select * from webdata_marinetraffic where mmsi = ?',
+            'select * from webdata_marinetraffic where CAST(mmsi AS INT) = ?',
             [track['mmsi']],
             ).fetchall()
     if len(res) >= 1:
@@ -109,7 +107,8 @@ def _vinfo(track, conn):
         track['marinetraffic_info'] = {
                 'mmsi': track['mmsi'],
                 'imo': track['imo'],
-                'name': track['vessel_name'] if 'vessel_name' in track.keys() and track['vessel_name'] is not None else '',
+                'name': (track['vessel_name'] if 'vessel_name' in track.keys()
+                    and track['vessel_name'] is not None else ''),
                 'vesseltype_generic': None,
                 'vesseltype_detailed': None,
                 'callsign': None,
@@ -121,7 +120,8 @@ def _vinfo(track, conn):
                 'home_port': None,
                 'error404': 1,
                 }
-    if track['marinetraffic_info']['name'] in (None, 0, '0', 'None', '') or 'name' not in track['marinetraffic_info'].keys():
+    if ('vessel_name' in track.keys() and (track['marinetraffic_info']['name']
+        in (None, 0, '0', 'None', '') or 'name' not in track['marinetraffic_info'].keys())):
         track['marinetraffic_info']['name'] = track['vessel_name']
     return track
 
@@ -242,7 +242,7 @@ class VesselInfo():
         # check existing
         qrymmsis = ','.join(map(str, mmsis))
         sqlcount = 'SELECT CAST(mmsi AS INT), CAST(imo as INT)\n'
-        sqlcount += f'FROM webdata_marinetraffic WHERE mmsi IN ({qrymmsis})\n'
+        sqlcount += f'FROM webdata_marinetraffic WHERE CAST(mmsi as INT) IN ({qrymmsis})\n'
         if retry_404:
             sqlcount += 'AND error404 != 1\n'
         sqlcount += 'ORDER BY mmsi'

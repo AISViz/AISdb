@@ -50,23 +50,13 @@ def epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
     if isinstance(ep_arr, (list, np.ndarray)):
         return np.array(list(map(partial(delta, unit=unit), map(int, ep_arr))))
 
-    elif isinstance(ep_arr, (float, int)):
-        return delta(ep_arr, unit=unit)
+    elif isinstance(ep_arr, (float, int, np.uint32)):
+        return delta(int(ep_arr), unit=unit)
 
     else:
-        raise ValueError('input must be integer or array of integers')
-
-
-"""
-def haversine(x1, y1, x2, y2):
-    ''' https://en.wikipedia.org/wiki/Haversine_formula '''
-    x1r, y1r, x2r, y2r = map(np.radians, [x1, y1, x2, y2])
-    dlon, dlat = x2r - x1r, y2r - y1r
-    return 6371.088 * 2 * np.arcsin(
-        np.sqrt(
-            np.sin(dlat / 2.)**2 +
-            np.cos(y1r) * np.cos(y2r) * np.sin(dlon / 2.)**2)) * 1000
-"""
+        raise ValueError(
+            f'input must be integer or array of integers. got {ep_arr=}{type(ep_arr)}'
+        )
 
 
 def delta_meters(track, rng=None):
@@ -91,7 +81,9 @@ def delta_knots(track, rng=None):
 
 
 def radial_coordinate_boundary(x, y, radius=100000):
-    ''' checks maximum coordinate range for a given point and radial distance in meters '''
+    ''' checks maximum coordinate range for a given point and radial distance
+        in meters
+    '''
 
     xmin, xmax = x, x
     ymin, ymax = y, y
@@ -203,8 +195,8 @@ class Domain():
         }
 
     def nearest_polygons_to_point(self, x, y):
-        ''' compute great circle distance for this point to each polygon centroid,
-            subtracting the maximum polygon radius.
+        ''' compute great circle distance for this point to each polygon
+            centroid, subtracting the maximum polygon radius.
             returns all zones with distances less than zero meters, sorted by
             nearest first
         '''

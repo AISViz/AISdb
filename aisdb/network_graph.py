@@ -1,12 +1,13 @@
 ''' collect vessel transits between zones (nodes), and aggregate various trajectory statistics '''
 
 import os
-import re
-from multiprocessing import Pool
 import pickle
-from functools import partial, reduce
+import re
+import sqlite3
 from datetime import timedelta
+from functools import partial, reduce
 from hashlib import sha256
+from multiprocessing import Pool
 
 import numpy as np
 
@@ -20,7 +21,6 @@ from aisdb.track_gen import (
     encode_greatcircledistance,
     fence_tracks,
     split_timedelta,
-    max_tracklength,
 )
 from aisdb.webdata.marinetraffic import vessel_info
 from aisdb.webdata.merge_data import (
@@ -99,7 +99,6 @@ fstr = lambda s: f'{float(s):.2f}'
 
 
 # collect aggregated statistics on vessel positional data
-# transitinfo = lambda track, zoneset: dict(
 def transitinfo(track, zoneset):
     ''' aggregate statistics on vessel network graph connectivity '''
     return dict(
@@ -221,10 +220,7 @@ def serialize_network_edge(tracks, domain, tmp_dir):
         yield
 
 
-def aggregate_output(outputfile,
-                     tmp_dir,
-                     filters=[lambda row: False],
-                     delete=True):
+def aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
     ''' concatenate serialized output from geofence()
 
         args:
@@ -279,18 +275,19 @@ def aggregate_output(outputfile,
             else:
                 output.write('\n'.join(results) + '\n')
 
-            if delete:
-                os.remove(picklefile)
+            os.remove(picklefile)
 
 
-def pipeline(rowset, domain):
+def pipeline(track, domain, trafficDBpath, data_dir, tmp_dir):
+    trafficDB = sqlite3.Connection(trafficDBpath)
+    trafficDB.row_factory = sqlite3.Row
+
     for x in serialize_network_edge(
-            # merge_tracks_shoredist(
-            # merge_tracks_bathymetry(
+            #merge_tracks_shoredist(merge_tracks_bathymetry(
             fence_tracks(
                 encode_greatcircledistance(
                     split_timedelta(
-                        max_tracklength(vessel_info(TrackGen([rowset])), ),
+                        vessel_info([track], trafficDB=trafficDB),
                         maxdelta=timedelta(weeks=1),
                     ),
                     distance_threshold=250000,
@@ -298,20 +295,21 @@ def pipeline(rowset, domain):
                     speed_threshold=50,
                 ),
                 domain=domain,
-            )
-            # ))
-            ,
+            ),
+            #data_dir=data_dir), data_dir=data_dir),
             domain=domain,
+            tmp_dir=tmp_dir,
     ):
         assert x is None
 
 
 def graph(rowgen,
           domain,
+          data_dir,
           tmp_dir,
+          trafficDBpath,
           processes=0,
-          filename='output.csv',
-          delete=True):
+          outputfile='output.csv'):
     ''' perform geofencing on vessel trajectories, then concatenate aggregated
         transit statistics between nodes (zones) to create network edges from
         vessel trajectories
@@ -382,29 +380,26 @@ def graph(rowgen,
 
         >>> network_graph.aggregate_output(filename='output.csv')
     '''
+    fcn = partial(pipeline,
+                  domain=domain,
+                  trafficDBpath=trafficDBpath,
+                  data_dir=data_dir,
+                  tmp_dir=tmp_dir)
 
     if not processes:
-        for rowset in rowgen:
-            _ = pipeline(rowset, domain)
+        for track in TrackGen(rowgen):
+            _ = fcn(track)
 
     else:
         with Pool(processes=processes) as p:
-            fcn = partial(pipeline, domain=domain)
-            p.imap_unordered(fcn, rowgen)
+            p.imap_unordered(fcn, TrackGen(rowgen))
+            #x = p.apply_async(fcn, rowgen)
+            #x.get()
             p.close()
             p.join()
 
     if os.listdir(tmp_dir) == []:
-        print(f'no data for {filename}, skipping...\n')
+        print(f'no data for {outputfile}, skipping...\n')
         return
 
-    #filters = [
-    #    lambda rowdict: int(float(rowdict['src_zone'])) == 0 and rowdict[
-    #        'rcv_zone'] == 'NULL',
-    #]
-
-    aggregate_output(
-        filename=filename,
-        #filters=filters,
-        delete=delete,
-    )
+    aggregate_output(outputfile=outputfile, tmp_dir=tmp_dir)

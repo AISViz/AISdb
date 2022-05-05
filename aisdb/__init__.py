@@ -69,7 +69,7 @@ from .track_gen import (
 )
 
 if not os.environ.get('SPHINXDOC'):
-    from .aisdb import decode_native, haversine, simplify_linestring_idx
+    from .aisdb import decoder as rustdecoder, haversine, simplify_linestring_idx
 
 import sqlite3
 if (sqlite3.sqlite_version_info[0] < 3

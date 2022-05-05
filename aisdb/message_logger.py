@@ -6,7 +6,6 @@ import time
 import pytest
 
 from aisdb.database.decoder import decode_msgs
-from aisdb import dbpath, rawdata_dir, host_addr, host_port
 
 unix_origin = datetime(1970, 1, 1)
 
@@ -14,15 +13,19 @@ unix_origin = datetime(1970, 1, 1)
 class _AISMessageStreamReader():
     ''' read binary AIS message stream from TCP socket and log messages to rawdata_dir '''
 
-    def __init__(self):
+    def __init__(self, host_addr, host_port, output_dir):
+        self.host_addr = host_addr
+        self.host_port = host_port
+        self.output_dir = output_dir
         self.enabled = True
         self.s = None
 
     def __enter__(self):
         # TODO: read host address and port number from config file
-        assert int(host_port), f'host_port {host_port} is not an integer'
+        assert int(
+            self.host_port), f'host_port {self.host_port} is not an integer'
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect((host_addr, int(host_port)))
+        self.s.connect((self.host_addr, int(self.host_port)))
 
     def __call__(self):
 
@@ -30,10 +33,10 @@ class _AISMessageStreamReader():
             self.__enter__()
 
         tmpfilepath = lambda: os.path.join(
-            rawdata_dir,
+            self.output_dir,
             datetime.strftime(datetime.utcnow(), '%Y-%m-%d') + '.nm4.tmp')
         msgfile = tmpfilepath()
-        print(f'logging messages to {rawdata_dir}')
+        print(f'logging messages to {self.output_dir}')
 
         while self.enabled:
 
@@ -66,14 +69,16 @@ class _AISDatabaseBuilder():
         new files will be added to the database
     '''
 
-    def __init__(self, dbpath=dbpath):
+    def __init__(self, dbpath, output_dir):
         self.dbpath = dbpath
+        self.output_dir = output_dir
         self.enabled = True
 
     def __call__(self):
         while self.enabled:
             filepaths = [
-                os.path.join(rawdata_dir, f) for f in os.listdir(rawdata_dir)
+                os.path.join(self.output_dir, f)
+                for f in os.listdir(self.output_dir)
                 if f[-4:] == '.nm4' or f[-4:] == '.csv'
             ]
 
@@ -99,7 +104,7 @@ class MessageLogger():
         >>> msglog.run()
     '''
 
-    def run(self, dbpath=dbpath):
+    def run(self, dbpath):
         try:
             self.msgtarget = _AISMessageStreamReader()
             self.msgthread = threading.Thread(

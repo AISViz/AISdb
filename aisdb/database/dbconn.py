@@ -127,7 +127,7 @@ class DBConn():
     '''
 
     def __init__(self, dbpath):
-        if dbpath is not None and dbpath != ':memory:':
+        if dbpath is not None and ':memory:' not in dbpath:
             if not os.path.isdir(os.path.dirname(dbpath)):
                 print(f'creating directory path: {dbpath}')
                 os.mkdir(os.path.dirname(dbpath))
@@ -138,10 +138,10 @@ class DBConn():
                                     timeout=5,
                                     detect_types=sqlite3.PARSE_DECLTYPES
                                     | sqlite3.PARSE_COLNAMES)
+        self.conn.row_factory = sqlite3.Row
 
-        #self.conn.execute('PRAGMA synchronous=0')
         self.conn.execute('PRAGMA temp_store=MEMORY')
-        self.conn.execute('PRAGMA threads=6')
+        self.conn.execute('PRAGMA threads=3')
         self.conn.commit()
 
         self.cur = self.conn.cursor()

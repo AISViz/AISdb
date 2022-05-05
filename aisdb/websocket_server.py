@@ -14,13 +14,13 @@ from aisdb import (
     DBConn,
     DBQuery,
     DomainFromTxts,
+    sqlfcn,
     sqlfcn_callbacks,
 )
 from aisdb.webdata.marinetraffic import _vinfo
 from aisdb.track_gen import (
     TrackGen_async,
     encode_greatcircledistance_async,
-    compress_tracks_async,
 )
 
 
@@ -39,16 +39,14 @@ class SocketServ():
         to client data requests
     '''
 
-    def __init__(self, dbpath, zones_dir, trafficDBpath, enable_ssl=True):
+    def __init__(self, dbpath, domain, trafficDBpath, enable_ssl=True):
         self.dbpath = dbpath
         self.trafficDB = sqlite3.Connection(trafficDBpath)
         self.trafficDB.row_factory = sqlite3.Row
         self.host = os.environ.get('AISDBHOSTALLOW', '*')
         port = os.environ.get('AISDBPORT', 9924)
         self.port = int(port)
-        self.domain = DomainFromTxts(zones_dir.rsplit(os.path.sep, 1)[1],
-                                     zones_dir,
-                                     correct_coordinate_range=False)
+        self.domain = domain
 
         if enable_ssl:
             sslpath = os.path.join('/etc/letsencrypt/live/',
@@ -126,7 +124,6 @@ class SocketServ():
             }))
 
     async def req_zones(self, req, websocket):
-        zones = {'type': 'zones', 'geometries': []}
         for zone in self.domain.zones:
             x, y = zone['geometry'].boundary.coords.xy
             event = {
@@ -158,8 +155,8 @@ class SocketServ():
             ymax=req['area']['maxY'],
         )
         qrygen = encode_greatcircledistance_async(
-            compress_tracks_async(TrackGen_async(qry.async_qry(self.dbpath)),
-                                  0.001),
+            TrackGen_async(
+                qry.async_qry(self.dbpath, fcn=sqlfcn.crawl_dynamic_static)),
             distance_threshold=250000,
             minscore=0,
             speed_threshold=50,
@@ -170,9 +167,9 @@ class SocketServ():
                 _vinfo(track, conn)
                 event = {
                     'msgtype': 'track_vector',
-                    'x': track['lon'].astype(np.float32),
-                    'y': track['lat'].astype(np.float32),
-                    't': track['time'].astype(np.uint32),
+                    'x': track['lon'],
+                    'y': track['lat'],
+                    't': track['time'],
                     'meta': {
                         str(k): str(v)
                         for k, v in dict(

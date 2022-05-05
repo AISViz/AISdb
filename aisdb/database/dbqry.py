@@ -2,17 +2,18 @@
     generate queries
 '''
 
-import asyncio
+import sqlite3
 import aiosqlite
 from collections import UserDict
 from datetime import datetime
+from functools import reduce
 
 import numpy as np
 from shapely.geometry import Polygon
 
 from aisdb.database import sqlfcn_callbacks
 from aisdb.database.dbconn import DBConn
-from aisdb.database.sqlfcn import crawl
+from aisdb.database import sqlfcn
 from aisdb.database.sqlfcn_callbacks import dt2monthstr, arr2polytxt
 from aisdb.database.create_tables import (
     aggregate_static_msgs,
@@ -60,13 +61,15 @@ class DBQuery(UserDict):
         complete example:
 
         >>> from datetime import datetime
-        >>> from aisdb import dbpath, DBQuery
+        >>> from aisdb import DBQuery
         >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 
+
+        >>> dbpath = '~/ais/ais.db'
         >>> start, end = datetime(2022, 1, 1), datetime(2022, 1, 7)
         >>> q = DBQuery(callback=in_timerange_validmmsi, start=start, end=end)
 
-        >>> q.check_idx()  # build index if necessary
+        >>> q.check_idx(dbpath)  # build index if necessary
         >>> print(f'iterating over rows returned from {dbpath}')
         >>> for rows in q.gen_qry():
         ...     print(rows)
@@ -108,16 +111,19 @@ class DBQuery(UserDict):
             else:
                 assert 'radius' in self.keys(), 'undefined radius'
 
-    def check_marinetraffic(self, dbpath, trafficDBpath, domain):
-        ''' scrape metadata for observed vessels from marinetraffic
+    def check_marinetraffic(self, dbpath, trafficDBpath, boundary):
+        ''' scrape metadata for vessels in domain from marinetraffic
 
             args:
                 dbpath (string)
                     database file path
                 trafficDBpath (string)
                     marinetraffic database path
-                domain (aisdb.gis.Domain)
-                    domain area to search
+                boundary (dict)
+                    uses keys xmin, xmax, ymin, and ymax to denote the region
+                    of vessels that should be checked.
+                    if using aisdb.gis.Domain, the Domain.boundary attribute
+                    can be supplied here
         '''
         aisdatabase = DBConn(dbpath)
         cur = aisdatabase.cur
@@ -127,11 +133,7 @@ class DBQuery(UserDict):
 
             sql = f'''
             SELECT DISTINCT(mmsi) FROM ais_{month}_dynamic AS d WHERE
-            {sqlfcn_callbacks.in_validmmsi_bbox(alias='d',
-                xmin=domain.minX,
-                xmax=domain.maxX,
-                ymin=domain.minY,
-                ymax=domain.maxY)}
+            {sqlfcn_callbacks.in_validmmsi_bbox(alias='d', **boundary)}
             '''
             cur.execute(sql)
             print('.', end='', flush=True)  # first dot
@@ -189,19 +191,10 @@ class DBQuery(UserDict):
                     f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude)'
                 )
 
-            if ('xmin' not in self.keys() or 'xmax' not in self.keys()
-                    or 'ymin' not in self.keys() or 'ymax' not in self.keys()):
-                continue
-
         aisdatabase.conn.commit()
         aisdatabase.conn.close()
 
-    def gen_qry(self,
-                dbpath,
-                fcn=crawl,
-                printqry=False,
-                check_idx=False,
-                maxlength=0):
+    def gen_qry(self, dbpath, fcn=sqlfcn.crawl_dynamic, printqry=False):
         ''' queries the database using the supplied SQL function and dbpath.
             generator only stores one item at at time before yielding
 
@@ -220,8 +213,6 @@ class DBQuery(UserDict):
                 arrays are sorted by MMSI
                 rows are sorted by time
         '''
-        if check_idx:
-            self.check_idx()
         qry = fcn(**self)
 
         # initialize db, run query
@@ -235,46 +226,41 @@ class DBQuery(UserDict):
             print(
                 f'query time: {delta.total_seconds():.2f}s\nfetching rows...')
 
-        # get 100k rows at a time, yield sets of rows for each unique MMSI
-        mmsi_rows = None
+        # get 500k rows at a time, yield sets of rows for each unique MMSI
+        mmsi_rows = []
         res = aisdatabase.cur.fetchmany(10**5)
+        assert res != [], f'no rows for query: {qry}'
         while len(res) > 0:
-            if mmsi_rows is None:
-                mmsi_rows = np.array(res, dtype=object)
-            else:
-                mmsi_rows = np.vstack((mmsi_rows, np.array(res, dtype=object)))
-
-            while len(mmsi_rows) > 1 and (
-                    int(mmsi_rows[0][0]) != int(mmsi_rows[-1][0]) or
-                (maxlength > 0 and len(mmsi_rows) > maxlength)):
-                ummsi_idx = np.where(mmsi_rows[:, 0] != mmsi_rows[0, 0])[0][0]
-                if maxlength:
-                    ummsi_idx = min(ummsi_idx, maxlength)
-                yield np.array(mmsi_rows[0:ummsi_idx], dtype=object)
-                mmsi_rows = mmsi_rows[ummsi_idx:]
-
+            mmsi_rows += res
+            ummsi_idx = np.where(
+                np.array(mmsi_rows)[:-1, 0] != np.array(mmsi_rows)[1:,
+                                                                   0])[0] + 1
+            ummsi_idx = reduce(np.append, ([0], ummsi_idx, [len(mmsi_rows)]))
+            for i in range(len(ummsi_idx) - 2):
+                yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
+            if len(ummsi_idx) > 2:
+                mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
             res = aisdatabase.cur.fetchmany(10**5)
-
-        yield np.array(mmsi_rows, dtype=object)
+        yield mmsi_rows
         aisdatabase.conn.close()
 
-    async def async_qry(self, dbpath, fcn=crawl):
-        loop = asyncio.get_running_loop()
+    async def async_qry(self, dbpath, fcn=sqlfcn.crawl_dynamic):
         aisdatabase = await aiosqlite.connect(dbpath)
+        aisdatabase.row_factory = sqlite3.Row
         cursor = await aisdatabase.execute(fcn(**self))
-        mmsi_rows = None
+        mmsi_rows = []
         res = await cursor.fetchmany(10**5)
         while len(res) > 0:
-            if mmsi_rows is None:
-                mmsi_rows = np.array(res, dtype=object)
-            else:
-                mmsi_rows = np.vstack((mmsi_rows, np.array(res, dtype=object)))
-            while len(mmsi_rows) > 1 and (int(mmsi_rows[0][0]) != int(
-                    mmsi_rows[-1][0])):
-                ummsi_idx = np.where(mmsi_rows[:, 0] != mmsi_rows[0, 0])[0][0]
-                yield np.array(mmsi_rows[0:ummsi_idx], dtype=object)
-                mmsi_rows = mmsi_rows[ummsi_idx:]
+            mmsi_rows += res
+            ummsi_idx = np.where(
+                np.array(mmsi_rows)[:-1, 0] != np.array(mmsi_rows)[1:,
+                                                                   0])[0] + 1
+            ummsi_idx = reduce(np.append, ([0], ummsi_idx, [len(mmsi_rows)]))
+            for i in range(len(ummsi_idx) - 2):
+                yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
+            if len(ummsi_idx) > 2:
+                mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
             res = await cursor.fetchmany(10**5)
-        yield np.array(mmsi_rows, dtype=object)
+        yield mmsi_rows
         await cursor.close()
         await aisdatabase.close()

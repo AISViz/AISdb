@@ -49,7 +49,10 @@ def decode_msgs(filepaths, dbpath, source, vacuum=False, skip_checksum=False):
     if len(filepaths) == 0:
         raise ValueError('must supply atleast one filepath.')
 
-    dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
+    if ':memory:' not in dbpath:
+        dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
+    else:
+        dbdir, dbname = '', ':memory:'
 
     with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
         if not skip_checksum:
@@ -66,7 +69,7 @@ def decode_msgs(filepaths, dbpath, source, vacuum=False, skip_checksum=False):
                     )
 
         for j in range(0, len(filepaths), batchsize):
-            aisdb.decode_native(dbpath, filepaths[j:j + batchsize], source)
+            aisdb.rustdecoder(dbpath, filepaths[j:j + batchsize], source)
 
             if not skip_checksum:
                 for file in filepaths[j:j + batchsize]:
