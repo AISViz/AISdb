@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.4
+------
+
+add more integration testing
+
+
 v1.3.3
 ------
 

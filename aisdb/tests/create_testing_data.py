@@ -1,19 +1,13 @@
 import os
-from hashlib import sha256
-from functools import reduce
 from datetime import datetime
 
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb.proc_util import glob_files
 from aisdb.database.sqlfcn_callbacks import in_timerange
 from aisdb.database.dbqry import DBQuery
 from aisdb.database.dbconn import DBConn
-from aisdb.gis import Domain, DomainFromTxts
-
-#arrayhash = lambda matrix, nbytes=2: sha256(
-#    reduce(np.append, matrix).tobytes()).hexdigest()[nbytes * -8:]
+from aisdb.gis import Domain
 
 
 def sample_dynamictable_insertdata(testdbpath):
@@ -61,7 +55,7 @@ def sample_gulfstlawrence_bbox():
     return gulfstlawrence_bbox_xy.T
 
 
-def random_polygons_domain(randomize=False, count=10):
+def random_polygons_domain(count=10):
     return Domain('testdomain',
                   [{
                       'name': 'random',

@@ -2,7 +2,7 @@ from aisdb.tests.create_testing_data import random_polygons_domain
 
 
 def test_domain():
-    domain = random_polygons_domain(randomize=True, count=10)
+    domain = random_polygons_domain(count=10)
     dist_to_centroids = domain.nearest_polygons_to_point(-64, 45)
 
     print(dist_to_centroids)

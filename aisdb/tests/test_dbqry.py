@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-import tempfile
 
 import pytest
 from shapely.geometry import Polygon
@@ -12,20 +11,12 @@ from aisdb.tests.create_testing_data import (
     sample_gulfstlawrence_bbox,
 )
 
-#db = os.path.join(data_dir, 'testdb', 'test1.db')
 start = datetime(2020, 9, 1)
 end = datetime(2020, 10, 1)
 
-tmp_dir = tempfile.TemporaryDirectory()
-db = os.path.join(tmp_dir.name, 'test_dbqry.db')
 
-
-def cleanup():
-    if os.path.isfile(db):
-        os.remove(db)
-
-
-def test_query_emptytable():
+def test_query_emptytable(tmpdir):
+    db = os.path.join(tmpdir, 'test_dbqry.db')
     q = DBQuery(
         start=start,
         end=end,
@@ -33,7 +24,6 @@ def test_query_emptytable():
     )
     q.check_idx(dbpath=db)
     _rows = q.gen_qry(dbpath=db)
-    cleanup()
 
 
 def test_prepare_qry_domain(tmpdir):
@@ -60,7 +50,8 @@ def test_prepare_qry_domain(tmpdir):
 
 
 @pytest.mark.asyncio
-async def test_query_async():
+async def test_query_async(tmpdir):
+    db = os.path.join(tmpdir, 'test_dbqry.db')
     q = DBQuery(
         start=start,
         end=end,

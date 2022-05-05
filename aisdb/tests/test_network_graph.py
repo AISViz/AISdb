@@ -67,8 +67,7 @@ def test_network_graph_geofencing(tmpdir):
         _test = next(TrackGen(args.gen_qry(dbpath=testdbpath)))
         _test2 = next(
             geofenced(distsplit(TrackGen(args.gen_qry(dbpath=testdbpath)))))
-    except ValueError as err:
-        print('suppressed error due to DBQuery returning empty rows:'
-              f'\t{err.with_traceback(None)}')
+    except AssertionError as err:
+        print(f'suppressed error :\t{err.with_traceback(None)}')
     except Exception as err:
         raise err
