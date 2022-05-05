@@ -85,9 +85,9 @@ def _insertelem(elem, mmsi, trafficDB):
     print(vessel)
 
     with trafficDB as conn:
-        conn.execute(insert_sql, insertrow)
-        if vessel['MMSI'] != mmsi:
-            conn.execute(err404, (str(mmsi)))
+        conn.execute(insert_sql, insertrow).fetchall()
+        if insertrow[0] != mmsi:
+            conn.execute(err404, (str(mmsi))).fetchall()
 
 
 def _vinfo(track, conn):
@@ -98,8 +98,7 @@ def _vinfo(track, conn):
             ).fetchall()
     if len(res) >= 1:
         for r in res:
-            if (r['error404'] == 0 and r['imo'] > 0
-                    and r['vesseltype_generic'] is not None):
+            if (r['error404'] == 0 and r['imo'] > 0):
                 track['marinetraffic_info'] = dict(r)
                 break
             track['marinetraffic_info'] = dict(r)
@@ -156,9 +155,9 @@ class VesselInfo():
             self.driver.close()
             self.driver.quit()
 
-    def _getinfo(self, url, searchmmsi):
+    def _getinfo(self, *, url, searchmmsi, data_dir):
         if self.driver is None:
-            self.driver = Scraper(proxy=self.proxy).driver
+            self.driver = Scraper(data_dir=data_dir, proxy=self.proxy).driver
 
         print(url, end='\t')
         try:
@@ -180,7 +179,7 @@ class VesselInfo():
 
             # if timeout occurs, mark as error 404
             with self.trafficDB as conn:
-                conn.execute(err404, (str(searchmmsi)))
+                conn.execute(err404, (str(searchmmsi), ))
             return
         except Exception as err:
             self.driver.close()
@@ -198,12 +197,12 @@ class VesselInfo():
                 urls.append(elem.get_attribute('href'))
 
             for url in urls:
-                self._getinfo(url, searchmmsi)
+                self._getinfo(url=url, searchmmsi=searchmmsi, data_dir=data_dir)
 
             # recursion break condition
             with self.trafficDB as conn:
                 #conn.execute(err404, (searchmmsi, searchimo))
-                conn.execute(err404, (str(searchmmsi)))
+                conn.execute(err404, (str(searchmmsi), ))
 
         elif 'hc-en' in self.driver.current_url:
             raise RuntimeError('bad url??')
@@ -212,13 +211,13 @@ class VesselInfo():
             print(f'404 error! {searchmmsi=}')
             with self.trafficDB as conn:
                 #conn.execute(err404, (searchmmsi, searchimo))
-                conn.execute(err404, (str(searchmmsi)))
+                conn.execute(err404, (str(searchmmsi), ))
 
         value = 'vesselDetails_vesselInfoSection'
         for elem in self.driver.find_elements(value=value):
             _ = _insertelem(elem, searchmmsi, self.trafficDB)
 
-    def vessel_info_callback(self, mmsis, retry_404=False):
+    def vessel_info_callback(self, mmsis, data_dir, retry_404=False):
         ''' search for metadata for given mmsis
 
             args:
@@ -244,14 +243,14 @@ class VesselInfo():
         sqlcount = 'SELECT CAST(mmsi AS INT), CAST(imo as INT)\n'
         sqlcount += f'FROM webdata_marinetraffic WHERE CAST(mmsi as INT) IN ({qrymmsis})\n'
         if retry_404:
-            sqlcount += 'AND error404 != 1\n'
+            sqlcount += 'AND error404 != 1 AND name is not NULL \n'
         sqlcount += 'ORDER BY mmsi'
         with self.trafficDB as conn:
             existing = conn.execute(sqlcount).fetchall()
         print('.', end='')  # third dot
 
         # skip existing mmsis
-        ex_mmsis, ex_imos = np.array(existing).T
+        ex_mmsis = np.array(existing)
         xor_mmsis = np.setdiff1d(mmsis, ex_mmsis, assume_unique=True)
         if xor_mmsis.size == 0:
             return
@@ -262,6 +261,6 @@ class VesselInfo():
             if not 200000000 <= mmsi <= 780000000:
                 continue
             url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}'
-            self._getinfo(url, mmsi, 0)
+            self._getinfo(url=url, searchmmsi=mmsi, data_dir=data_dir)
 
         return

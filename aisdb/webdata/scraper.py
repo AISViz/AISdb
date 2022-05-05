@@ -32,7 +32,7 @@ class Scraper():
             raise RuntimeError(
                     'firefox must be installed to use this feature!')
 
-        _init_configs()
+        _init_configs(data_dir=data_dir)
 
         headless = True
         match os.environ.get('HEADLESS', True):

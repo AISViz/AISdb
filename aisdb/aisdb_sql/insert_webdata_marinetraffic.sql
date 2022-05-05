@@ -1,4 +1,4 @@
-INSERT OR IGNORE INTO webdata_marinetraffic (
+INSERT INTO webdata_marinetraffic (
     mmsi, 
     imo, 
     name,
@@ -12,4 +12,5 @@ INSERT OR IGNORE INTO webdata_marinetraffic (
     year_built,
     home_port
   )
-VALUES (CAST(? AS INT),CAST(? AS INT),?,?,?,?,?,?,?,?,?,?);
+VALUES (CAST(? AS INT),CAST(? AS INT),?,?,?,?,?,?,?,?,?,?)
+ON CONFLICT (mmsi, imo) DO UPDATE SET name = excluded.name;

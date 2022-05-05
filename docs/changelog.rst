@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.9
+------
+
+update webscraping for zero-config changes
+
+
 v1.3.8
 ------
 

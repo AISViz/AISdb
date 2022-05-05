@@ -111,7 +111,12 @@ class DBQuery(UserDict):
             else:
                 assert 'radius' in self.keys(), 'undefined radius'
 
-    def check_marinetraffic(self, dbpath, trafficDBpath, boundary):
+    def check_marinetraffic(self,
+                            dbpath,
+                            trafficDBpath,
+                            boundary,
+                            data_dir,
+                            retry_404=False):
         ''' scrape metadata for vessels in domain from marinetraffic
 
             args:
@@ -141,7 +146,9 @@ class DBQuery(UserDict):
             imos = [0 for _ in mmsis]
 
             if len(mmsis) > 0:
-                vinfo.vessel_info_callback(np.array(mmsis), np.array(imos))
+                vinfo.vessel_info_callback(mmsis=np.array(mmsis),
+                                           data_dir=data_dir,
+                                           retry_404=retry_404)
 
         aisdatabase.conn.close()
 
