@@ -1,7 +1,7 @@
 // https://rustwasm.github.io/book/reference/code-size.html
 // https://rustwasm.github.io/wasm-bindgen/examples/websockets.html
-use geo::algorithm::simplifyvw::SimplifyVW;
 use geo_types::{Coordinate, LineString};
+//use geo::algorithm::simplifyvw::SimplifyVW;
 use geojson::{Geometry, Value};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

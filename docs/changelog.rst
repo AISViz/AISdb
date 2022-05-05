@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.7
+------
+
+client side bug fixes
+
+
 v1.3.6
 ------
 

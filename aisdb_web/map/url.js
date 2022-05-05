@@ -2,10 +2,15 @@
 
 import * as olProj from 'ol/proj';
 
-import { waitForTimerange } from './clientsocket';
 import { mapview } from './map';
 import { searchbtn, setSearchValue } from './selectform';
 import { screenshot } from './render';
+import {
+  waitForTimerange,
+  resetLoadingZones,
+  socket,
+  waitForZones
+} from './clientsocket';
 
 /** @constant {URLSearchParams} urlParams parses GET request */
 const urlParams = new URLSearchParams(window.location.search);
@@ -59,14 +64,12 @@ async function parseUrl() {
     };
   }
 
-  /*
   if (urlParams.get('ecoregions') !== undefined &&
     urlParams.get('ecoregions') !== null) {
     await resetLoadingZones();
     await socket.send(JSON.stringify({ type: 'zones' }));
     await waitForZones();
   }
-  */
 
   if (urlParams.get('search') !== null) {
     await searchbtn.click();

@@ -153,10 +153,6 @@ socket.onmessage = async function(event) {
     searchbtn.disabled = false;
     searchbtn.textContent = 'Search';
     await resetSearchState();
-    window.searcharea = null;
-    // if (searchstate === false) {
-    //  searchbtn.click();
-    // }
   } else if (response.type === 'doneZones') {
     doneLoadingZones = true;
   } else if (response.type === 'validrange'){
@@ -183,4 +179,9 @@ window.onbefureunload = async function() {
 //  socket.send(JSON.stringify({ type: 'zones' }));
 // };
 
-export { socket, waitForTimerange, waitForZones, resetLoadingZones };
+export {
+  resetLoadingZones,
+  socket,
+  waitForTimerange,
+  waitForZones,
+};

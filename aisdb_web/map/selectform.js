@@ -201,7 +201,6 @@ searchbtn.onclick = async function() {
  */
 clearbtn.onclick = async function() {
   selectbtn.textContent = 'Select Area';
-  window.searcharea = null;
   await setSearchAreaFromSelected();
   window.statusmsg = '';
   statusdiv.textContent = '';
@@ -211,10 +210,6 @@ clearbtn.onclick = async function() {
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
   clearFeatures();
-  for (let ft of polySource.getFeatures()) {
-    ft.set('selected', false);
-    ft.setStyle(polyStyle);
-  }
 };
 
 
