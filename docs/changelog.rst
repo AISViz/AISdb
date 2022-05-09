@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.10
+-------
+
+prevent panic when decoding malformed NMEA messages
+
+
 v1.3.9
 ------
 
