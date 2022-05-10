@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.14
+-------
+
+fix function name in broken test
+
+
 v1.3.13
 -------
 

@@ -18,7 +18,7 @@ from aisdb.track_gen import (
     encode_greatcircledistance,
     TrackGen,
 )
-from aisdb.network_graph import serialize_network_edge
+from aisdb.network_graph import _serialize_network_edge
 from aisdb.webdata.merge_data import (
     merge_tracks_bathymetry,
     merge_tracks_portdist,
