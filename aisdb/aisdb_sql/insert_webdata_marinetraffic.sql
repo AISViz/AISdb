@@ -13,4 +13,14 @@ INSERT INTO webdata_marinetraffic (
     home_port
   )
 VALUES (CAST(? AS INT),CAST(? AS INT),?,?,?,?,?,?,?,?,?,?)
-ON CONFLICT (mmsi, imo) DO UPDATE SET name = excluded.name;
+ON CONFLICT (mmsi, imo) DO UPDATE SET 
+    name = excluded.name, 
+    vesseltype_generic = excluded.vesseltype_generic,
+    vesseltype_detailed = excluded.vesseltype_detailed,
+    callsign = excluded.callsign,
+    flag = excluded.flag,
+    gross_tonnage = excluded.gross_tonnage,
+    summer_dwt = excluded.gross_tonnage,
+    length_breadth = excluded.length_breadth,
+    year_built = excluded.year_built,
+    home_port = excluded.home_port;

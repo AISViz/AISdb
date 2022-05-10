@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.13
+-------
+
+bug fixes and improvements to web scraping database
+
+
 v1.3.12
 -------
 

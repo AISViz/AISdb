@@ -352,12 +352,13 @@ def graph(rowgen,
 
             - Create database query with
               :meth:`aisdb.database.dbqry.DBQuery.gen_qry`, and supply
-              resulting generator as rowgen arg. Define a domain in which to
-              compute movements as domain arg.
+              resulting generator as rowgen arg. Define a domain
+              (:class:`aisdb.gis.Domain`) in which to compute movements
             - Vectorize tracks using :py:func:`aisdb.track_gen.TrackGen`
-            - Append vessel metadata to track vessels
+            - Append vessel metadata to track vessels with
+              :func:`aisdb.webdata.marinetraffic.vessel_info`
             - Segment track vectors where time between messages exceeds
-              maxdelta
+              maxdelta using :func:`aisdb.track_gen.split_timedelta`
             - Segment track vectors as encoded by
               :py:func:`aisdb.track_gen.encode_greatcircledistance`
             - Perform geofencing on track segments using

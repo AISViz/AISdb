@@ -143,12 +143,12 @@ class DBQuery(UserDict):
             cur.execute(sql)
             print('.', end='', flush=True)  # first dot
             mmsis = cur.fetchall()
-            imos = [0 for _ in mmsis]
 
             if len(mmsis) > 0:
                 vinfo.vessel_info_callback(mmsis=np.array(mmsis),
                                            data_dir=data_dir,
-                                           retry_404=retry_404)
+                                           retry_404=retry_404,
+                                           infotxt=f'{month} ')
 
         aisdatabase.conn.close()
 
