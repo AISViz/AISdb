@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.11
+-------
+
+update parameter selection and docs in  network graph module
+
+
 v1.3.10
 -------
 

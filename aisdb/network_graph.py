@@ -4,6 +4,7 @@ import os
 import pickle
 import re
 import sqlite3
+import tempfile
 from datetime import timedelta
 from functools import partial, reduce
 from hashlib import sha256
@@ -29,10 +30,10 @@ from aisdb.webdata.merge_data import (
 )
 from aisdb.proc_util import _segment_rng
 
-colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
+_colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
 
 
-def depth_nonnegative(track, zoneset):
+def _depth_nonnegative(track, zoneset):
     ''' returns absolute value of bathymetric depths with topographic heights
         converted to 0
     '''
@@ -40,7 +41,7 @@ def depth_nonnegative(track, zoneset):
         [d if d >= 0 else 0 for d in track['depth_metres'][zoneset]])
 
 
-def time_in_shoredist_rng(track, subset, dist0=0.01, dist1=5):
+def _time_in_shoredist_rng(track, subset, dist0=0.01, dist1=5):
     ''' returns minutes spent within kilometers range from shore '''
     return sum(t for t in map(
         len,
@@ -68,7 +69,7 @@ def _sanitize(s):
             '#', '').replace('"', '').replace("'", '').replace('\n', '')
 
 
-def staticinfo(track, domain):
+def _staticinfo(track, domain):
     ''' collect categorical vessel data as a dictionary '''
     return dict(
         mmsi=_sanitize(track['mmsi']),
@@ -95,11 +96,11 @@ def staticinfo(track, domain):
     )
 
 
-fstr = lambda s: f'{float(s):.2f}'
+_fstr = lambda s: f'{float(s):.2f}'
 
 
 # collect aggregated statistics on vessel positional data
-def transitinfo(track, zoneset):
+def _transitinfo(track, zoneset):
     ''' aggregate statistics on vessel network graph connectivity '''
     return dict(
 
@@ -132,20 +133,20 @@ def transitinfo(track, zoneset):
         #if 'km_from_shore' in track.keys() else None,
 
         # port dist
-        #min_port_dist=fstr(np.min(track['km_from_port'][zoneset])),
-        #avg_port_dist=fstr(np.average(track['km_from_port'][zoneset]))
+        #min_port_dist=_fstr(np.min(track['km_from_port'][zoneset])),
+        #avg_port_dist=_fstr(np.average(track['km_from_port'][zoneset]))
         #if 'km_from_port' in track.keys() else None,
-        #max_port_dist=fstr(np.max(track['km_from_port'][zoneset]))
+        #max_port_dist=_fstr(np.max(track['km_from_port'][zoneset]))
         #if 'km_from_port' in track.keys() else None,
 
         # depth charts
-        #min_depth=fstr(np.min(depth_nonnegative(track, zoneset)))
+        #min_depth=_fstr(np.min(_depth_nonnegative(track, zoneset)))
         #if 'depth_metres' in track.keys() else None,
-        #avg_depth=fstr(np.average(depth_nonnegative(track, zoneset)))
+        #avg_depth=_fstr(np.average(_depth_nonnegative(track, zoneset)))
         #if 'depth_metres' in track.keys() else None,
-        #max_depth=fstr(np.max(depth_nonnegative(track, zoneset)))
+        #max_depth=_fstr(np.max(_depth_nonnegative(track, zoneset)))
         #if 'depth_metres' in track.keys() else None,
-        #avg_avg_depth_border_cells=fstr(
+        #avg_avg_depth_border_cells=_fstr(
         #    np.average(track['depth_border_cells_average'][zoneset]))
         #if 'depth_border_cells_average' in track.keys() else None,
 
@@ -158,25 +159,25 @@ def transitinfo(track, zoneset):
         if len(zoneset) > 1 else 'NULL',
 
         # elapsed time spent in zones
-        minutes_spent_in_zone=fstr(
+        minutes_spent_in_zone=_fstr(
             (epoch_2_dt(track['time'][zoneset][-1]) -
              epoch_2_dt(track['time'][zoneset][0])).total_seconds() /
             60) if len(zoneset) > 1 else 'NULL',
 
         # elapsed time in distance from shore
-        #minutes_within_10m_5km_shoredist=time_in_shoredist_rng(
+        #minutes_within_10m_5km_shoredist=_time_in_shoredist_rng(
         #    track, zoneset, 0.01, 5),
-        #minutes_within_30m_20km_shoredist=time_in_shoredist_rng(
+        #minutes_within_30m_20km_shoredist=_time_in_shoredist_rng(
         #    track, zoneset, 0.03, 20),
-        #minutes_within_100m_50km_shoredist=time_in_shoredist_rng(
+        #minutes_within_100m_50km_shoredist=_time_in_shoredist_rng(
         #    track, zoneset, 0.1, 50),
     )
 
 
-def serialize_network_edge(tracks, domain, tmp_dir):
+def _serialize_network_edge(tracks, domain, tmp_dir):
     ''' at each track position where the zone changes, a transit
         index is recorded, and trajectory statistics are aggregated for this
-        index range using staticinfo() and transitinfo()
+        index range using _staticinfo() and _transitinfo()
 
         results will be serialized as binary files labelled by mmsi into the
         'tmp_dir' directory, as defined in the config file. see graph() for
@@ -205,14 +206,14 @@ def serialize_network_edge(tracks, domain, tmp_dir):
 
             for i in range(len(transits) - 1):
                 rng = np.array(range(transits[i], transits[i + 1] + 1))
-                track_stats = staticinfo(track, domain)
-                track_stats.update(transitinfo(track, rng))
+                track_stats = _staticinfo(track, domain)
+                track_stats.update(_transitinfo(track, rng))
                 pickle.dump(track_stats, f)
 
             i0 = transits[-1] if len(transits) >= 1 else 0
             rng = np.array(range(i0, len(track['in_zone'])))
-            track_stats = staticinfo(track, domain)
-            track_stats.update(transitinfo(track, rng))
+            track_stats = _staticinfo(track, domain)
+            track_stats.update(_transitinfo(track, rng))
             track_stats['rcv_zone'] = 'NULL'
             track_stats['transit_nodes'] = track_stats['src_zone']
             pickle.dump(track_stats, f)
@@ -220,7 +221,7 @@ def serialize_network_edge(tracks, domain, tmp_dir):
         yield
 
 
-def aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
+def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
     ''' concatenate serialized output from geofence()
 
         args:
@@ -232,7 +233,7 @@ def aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
                 list of callback functions. each callable function should
                 accept a dictionary describing a network edge as input. if any
                 return True, the edge will be filtered from the output rows.
-                see staticinfo() and transitinfo() above for more info on
+                see _staticinfo() and _transitinfo() for more info on
                 network edge dict keys
 
                 for example, to filter all rows where the max speed exceeds 50
@@ -278,25 +279,26 @@ def aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
             os.remove(picklefile)
 
 
-def pipeline(track, domain, trafficDBpath, data_dir, tmp_dir):
+def _pipeline(track, *, domain, trafficDBpath, tmp_dir, maxdelta,
+              distance_threshold, speed_threshold, minscore):
     trafficDB = sqlite3.Connection(trafficDBpath)
     trafficDB.row_factory = sqlite3.Row
 
-    for x in serialize_network_edge(
-            #merge_tracks_shoredist(merge_tracks_bathymetry(
+    for x in _serialize_network_edge(
+            # merge_tracks_shoredist(merge_tracks_bathymetry(
             fence_tracks(
                 encode_greatcircledistance(
                     split_timedelta(
                         vessel_info([track], trafficDB=trafficDB),
-                        maxdelta=timedelta(weeks=1),
+                        maxdelta=maxdelta,
                     ),
-                    distance_threshold=250000,
-                    minscore=0,
-                    speed_threshold=50,
+                    distance_threshold=distance_threshold,
+                    minscore=minscore,
+                    speed_threshold=speed_threshold,
                 ),
                 domain=domain,
             ),
-            #data_dir=data_dir), data_dir=data_dir),
+            # data_dir=data_dir), data_dir=data_dir),
             domain=domain,
             tmp_dir=tmp_dir,
     ):
@@ -304,102 +306,121 @@ def pipeline(track, domain, trafficDBpath, data_dir, tmp_dir):
 
 
 def graph(rowgen,
+          *,
           domain,
-          data_dir,
-          tmp_dir,
           trafficDBpath,
           processes=0,
-          outputfile='output.csv'):
-    ''' perform geofencing on vessel trajectories, then concatenate aggregated
-        transit statistics between nodes (zones) to create network edges from
-        vessel trajectories
-
-        this function will call geofence() for each trajectory in parallel,
-        outputting serialized results to the tmp_dir directory. after
-        deserialization, the temporary files are removed, and output will be
-        written to 'output.csv' inside the data_dir directory
+          outputfile='output.csv',
+          maxdelta=timedelta(weeks=1),
+          speed_threshold=50,
+          distance_threshold=250000,
+          minscore=0):
+    ''' Compute network graph of vessel movements within domain zones.
+        Zone polygons will be used as network nodes, with graph edges
+        represented by movements between zones.
 
         args:
-            rowgen: generator from aisdb.database.dbqry.DBQuery().gen_qry()
-                see dbqry.py for more info
-            domain: aisdb.gis.Domain() class object
+            rowgen (iter)
+                :py:meth:`aisdb.database.dbqry.DBQuery.gen_qry` database
+                query generator
+            domain (:py:class:`aisdb.gis.Domain`)
                 collection of zones defined as polygons, these will
                 be used as nodes in the network graph
-            processes: integer
+            processes (integer)
                 number of processes to compute geofencing in parallel.
                 if set to 0 or False, no parallelization will be used
+            outpufile (string)
+                filepath for resulting CSV output
+            maxdelta (datetime.timedelta)
+                maximum time between vessel messages before considering
+                it to be part of a new trajectory. See
+                :func:`aisdb.track_gen.split_timedelta` for more info
+            speed_threshold (int, float)
+                maximum speed in knots for encoder segmentation. See
+                :func:`aisdb.track_gen.encode_greatcircledistance` for
+                more info
+            distance_threshold (int, float)
+                maximum distance in meters for encoder segmentation. See
+                :func:`aisdb.track_gen.encode_greatcircledistance` for
+                more info
+            minscore (float)
+                minimum score for segments to be considered sequential. See
+                :func:`aisdb.track_gen.encode_greatcircledistance` for
+                more info
 
-        returns: None
+        Network graph activity is computed following these steps:
 
-        example:
+            - Create database query with
+              :meth:`aisdb.database.dbqry.DBQuery.gen_qry`, and supply
+              resulting generator as rowgen arg. Define a domain in which to
+              compute movements as domain arg.
+            - Vectorize tracks using :py:func:`aisdb.track_gen.TrackGen`
+            - Append vessel metadata to track vessels
+            - Segment track vectors where time between messages exceeds
+              maxdelta
+            - Segment track vectors as encoded by
+              :py:func:`aisdb.track_gen.encode_greatcircledistance`
+            - Perform geofencing on track segments using
+              :py:func:`aisdb.track_gen.fence_tracks` to determine zone
+              containment
+            - Check where zone boundaries are transited and serialize results
+              to ``outputfile``. Additional metrics per zone activity is also
+              aggregated at this step.
+
+        Example usage:
 
         >>> from datetime import datetime
-        >>> from aisdb import (
-        ...     DBQuery,
-        ...     Domain,
-        ...     ZoneGeom,
-        ...     merge_layers,
-        ...     )
-        >>> from aisdb import network_graph
+        >>> from aisdb import DBQuery, Domain, graph
         >>> from aisdb.database.sqlfcn_callbacks import in_bbox_time
 
         configure query area using Domain to compute region boundary
 
-        >>> zonegeoms = {
-        ...     'Zone1': ZoneGeom(name='Zone1',
-        ...                       x=[-170.24, -170.24, -38.5, -38.5, -170.24],
-        ...                       y=[29.0, 75.2, 75.2, 29.0, 29.0])
-        ...     }
-        >>> domain = Domain(name='new_domain', geoms=zonegeoms, cache=False)
+        >>> zones = [{
+        ...     'name': 'Zone1',
+        ...     'geometry': shapely.geometry.Polygon(zip(
+        ...         [-170.24, -170.24, -38.5, -38.5, -170.24],
+        ...         [29.0, 75.2, 75.2, 29.0, 29.0]))
+        ...     }]
+        >>> domain = Domain(name='new_domain', zones=zones)
+        >>> trafficDBpath = './marinetraffic.db'
 
         query db for points in domain
 
         >>> qry = DBQuery(
+        ...     callback=in_bbox_time,
         ...     start=datetime(2020, 9, 1),
         ...     end=datetime(2020, 9, 3),
-        ...     xmin=domain.minX,
-        ...     xmax=domain.maxX,
-        ...     ymin=domain.minY,
-        ...     ymax=domain.maxY,
-        ...     callback=in_bbox_time,
+        ...     **domain.boundary,
         ...     )
         >>> rowgen = qry.gen_qry()
 
-        append raster data from web sources.
-        this can also be modified to clean and process trajectories
-        before adding raster data via the generator functions
-        in the track_gen module
+        process the vessel movement graph edges using 12 processes in parallel
 
-        >>> merged = merge_layers(TrackGen(rowgen), dbpath)
-
-        process the graph data using 12 processes in parallel
-
-        >>> network_graph.graph(merged, domain, parallel=12)
-
-        aggregate the results as csv
-
-        >>> network_graph.aggregate_output(filename='output.csv')
+        >>> network_graph.graph(rowgen, domain=domain,
+        ...                     trafficDBpath=trafficDBpath, parallel=12)
     '''
-    fcn = partial(pipeline,
-                  domain=domain,
-                  trafficDBpath=trafficDBpath,
-                  data_dir=data_dir,
-                  tmp_dir=tmp_dir)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        fcn = partial(_pipeline,
+                      domain=domain,
+                      trafficDBpath=trafficDBpath,
+                      tmp_dir=tmp_dir,
+                      speed_threshold=speed_threshold,
+                      distance_threshold=distance_threshold,
+                      minscore=minscore,
+                      maxdelta=maxdelta)
 
-    if not processes:
-        for track in TrackGen(rowgen):
-            _ = fcn(track)
+        if not processes or processes == 1:
+            for track in TrackGen(rowgen):
+                _ = fcn(track)
 
-    else:
-        with Pool(processes=processes) as p:
-            p.imap_unordered(fcn, TrackGen(rowgen))
-            #x = p.apply_async(fcn, rowgen)
-            #x.get()
-            p.close()
-            p.join()
+        else:
+            with Pool(processes=processes) as p:
+                p.imap_unordered(fcn, TrackGen(rowgen))
+                p.close()
+                p.join()
 
-    if os.listdir(tmp_dir) == []:
-        print(f'no data for {outputfile}, skipping...\n')
-        return
+        if os.listdir(tmp_dir) == []:
+            print(f'no data for {outputfile}, skipping...\n')
+            return
 
-    aggregate_output(outputfile=outputfile, tmp_dir=tmp_dir)
+        _aggregate_output(outputfile=outputfile, tmp_dir=tmp_dir)
