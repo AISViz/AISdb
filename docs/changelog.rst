@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.15
+-------
+
+fix webscraping schema insert conflict
+
+
 v1.3.14
 -------
 
