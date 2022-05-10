@@ -50,7 +50,7 @@ from .index import index
 from .interp import (
     interp_time, )
 
-from .network_graph import serialize_network_edge
+from .network_graph import graph
 
 from .proc_util import (
     fast_unzip,

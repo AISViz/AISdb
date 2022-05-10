@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.12
+-------
+
+minor docs cleanup
+
+
 v1.3.11
 -------
 

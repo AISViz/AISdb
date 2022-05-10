@@ -17,8 +17,6 @@ def decode_msgs(filepaths, dbpath, source, vacuum=False, skip_checksum=False):
         A checksum of the first kilobyte of every file will be stored to
         prevent loading the same file twice.
 
-        Rust must be installed for this function to work.
-
         args:
             filepaths (list)
                 absolute filepath locations for AIS message files to be

@@ -167,7 +167,10 @@ pub fn decodemsgs_ee_csv(
         8
     );
 
-    println!("{}count:{: >8}    {}    {}", fname1, count, elapsed1, rate1,);
+    println!(
+        "{} count:{: >8}    {}    {}",
+        fname1, count, elapsed1, rate1,
+    );
 
     Ok(())
 }

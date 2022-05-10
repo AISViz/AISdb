@@ -250,7 +250,10 @@ pub fn decode_insert_msgs(
         8
     );
 
-    println!("{}count:{: >8}    {}    {}", fname1, count, elapsed1, rate1,);
+    println!(
+        "{} count:{: >8}    {}    {}",
+        fname1, count, elapsed1, rate1,
+    );
 
     Ok(parser)
 }
