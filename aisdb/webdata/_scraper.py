@@ -12,7 +12,7 @@ from selenium.webdriver.firefox.options import Options
 cfgfile = os.path.join(os.path.expanduser('~'), '.config', 'ais.cfg')
 
 
-class Scraper():
+class _Scraper():
 
     def __init__(self, data_dir, proxy=None):
 

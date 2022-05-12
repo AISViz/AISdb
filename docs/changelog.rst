@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.16
+-------
+
+update documentation
+
+
 v1.3.15
 -------
 

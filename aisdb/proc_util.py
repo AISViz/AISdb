@@ -10,6 +10,25 @@ import csv
 import numpy as np
 
 
+def _epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
+    ''' convert epoch minutes to datetime.datetime.
+        redefinition of function in aisdb.gis to avoid circular import
+    '''
+
+    delta = lambda ep, unit: t0 + timedelta(**{unit: ep})
+
+    if isinstance(ep_arr, (list, np.ndarray)):
+        return np.array(list(map(partial(delta, unit=unit), map(int, ep_arr))))
+
+    elif isinstance(ep_arr, (float, int, np.uint32)):
+        return delta(int(ep_arr), unit=unit)
+
+    else:
+        raise ValueError(
+            f'input must be integer or array of integers. got {ep_arr=}{type(ep_arr)}'
+        )
+
+
 def _fast_unzip(zipf, dirname='.'):
     ''' parallel process worker for fast_unzip() '''
     exists = set(sorted(os.listdir(dirname)))
@@ -87,16 +106,14 @@ def write_csv_rows(rows,
                         map(str.rstrip, map(str, r)))), rows)) + '\n')
 
 
-'''
 def _datetime_column(tracks):
     for track in tracks:
         track['datetime'] = np.array(
-            epoch_2_dt(track['time'].astype(int)),
+            _epoch_2_dt(track['time'].astype(int)),
             dtype=object,
         )
         track['dynamic'] = track['dynamic'].union(set(['datetime']))
         yield track
-'''
 
 
 def write_csv(
@@ -104,6 +121,17 @@ def write_csv(
     fpath,
     skipcols=['mmsi', 'label', 'in_zone', 'ship_type'],
 ):
+    ''' write track vector dictionaries as CSV file
+
+        args:
+            tracks (iter)
+                track generator such as returned by
+                :func:`aisdb.track_gen.TrackGen`
+            fpath (string)
+                output CSV filepath
+            skipcols (list)
+                columns to be omitted from results
+    '''
 
     cols = [
         'mmsi', 'time', 'datetime', 'lon', 'lat', 'vessel_name',
@@ -150,12 +178,14 @@ def write_csv(
 
 
 def write_binary(tracks, fpath):
+    ''' serialize track dictionaries as binary to fpath '''
     with open(fpath, 'wb') as f:
         for track in tracks:
             pickle.dump(track, f)
 
 
 def read_binary(fpath, count=None):
+    ''' read serialized track dictionaries from fpath '''
     results = []
     n = 0
     with open(fpath, 'rb') as f:
@@ -208,21 +238,37 @@ def glob_files(dirpath, ext='.txt', keyorder=lambda key: key):
     return sorted(extpaths, key=keyorder)
 
 
-def datefcn(fpath):
-    return re.compile('[0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{8}').search(fpath)
+def getfiledate(filename):
+    ''' attempt to parse the first valid epoch timestamp from .nm4 data file.
+        timestamp will be returned as :class:`datetime.date` if successful,
+        otherwise will return False if no date could be found
 
-
-def regexdate_2_dt(reg, fmt='%Y%m%d'):
-    return datetime.strptime(reg.string[reg.start():reg.end()], fmt)
-
-
-def getfiledate(fpath, fmt='%Y%m%d'):
-    d = datefcn(fpath)
-    if d is None:
-        print(f'warning: could not parse YYYYmmdd format date from {fpath}!')
-        print('warning: defaulting to epoch zero!')
-        return datetime(1970, 1, 1)
-    fdate = regexdate_2_dt(d, fmt=fmt)
+        args:
+            filename (string)
+                raw AIS data file in .nm4 format
+    '''
+    filesize = os.path.getsize(filename)
+    if filesize == 0:
+        return False
+    with open(filename, 'r') as f:
+        line = f.readline()
+        head = line.rsplit('\\', 1)[0]
+        n = 0
+        while 'c:' not in head:
+            n += 1
+            line = f.readline()
+            head = line.rsplit('\\', 1)[0]
+            if n > 10000:
+                print(f'bad! {filename}')
+                return False
+        split0 = re.split('c:', head)[1]
+        try:
+            epoch = int(re.split('[^0-9]', split0)[0])
+        except ValueError:
+            return False
+        except Exception as err:
+            raise err
+    fdate = datetime.fromtimestamp(epoch).date()
     return fdate
 
 

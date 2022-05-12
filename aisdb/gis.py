@@ -60,6 +60,14 @@ def epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
 
 
 def delta_meters(track, rng=None):
+    ''' compute distance in meters between track positions for a given track
+
+        args:
+            track (dict)
+                track vector dictionary
+            rng (range)
+                optionally restrict computed values to given index range
+    '''
     rng = range(len(track['time'])) if rng is None else rng
     return np.array(
         list(
@@ -69,11 +77,28 @@ def delta_meters(track, rng=None):
 
 
 def delta_seconds(track, rng=None):
+    ''' compute elapsed time between track positions for a given track
+
+        args:
+            track (dict)
+                track vector dictionary
+            rng (range)
+                optionally restrict computed values to given index range
+    '''
     rng = range(len(track['time'])) if rng is None else rng
     return np.array(list((track['time'][rng][1:] - track['time'][rng][:-1])))
 
 
 def delta_knots(track, rng=None):
+    ''' compute speed over ground in knots between track positions for a given
+        track using (distance / time)
+
+        args:
+            track (dict)
+                track vector dictionary
+            rng (range)
+                optionally restrict computed values to given index range
+    '''
     rng = range(len(track['time'])) if rng is None else rng
     ds = np.array([np.max((1, s)) for s in delta_seconds(track, rng)],
                   dtype=object)
@@ -83,6 +108,14 @@ def delta_knots(track, rng=None):
 def radial_coordinate_boundary(x, y, radius=100000):
     ''' checks maximum coordinate range for a given point and radial distance
         in meters
+
+        args:
+            x (float)
+                longitude
+            y (float)
+                latitude
+            radius (int, float)
+                maximum radial distance
     '''
 
     xmin, xmax = x, x
@@ -141,28 +174,27 @@ class Domain():
     ''' collection of zone geometry dictionaries, with additional
         statistics such as hull bounding box
 
-    args:
-        name: string
-            Domain name
-        zones: list of dictionaries
-            Collection of zone geometry dictionaries.
-            Must have keys 'name' (string) and 'geometry'
-            (shapely.geometry.Polygon)
+        args:
+            name: string
+                Domain name
+            zones: list of dictionaries
+                Collection of zone geometry dictionaries.
+                Must have keys 'name' (string) and 'geometry'
+                (shapely.geometry.Polygon)
 
-    >>> domain = Domain(name='example', zones=[{
-    ...     'name': 'zone1',
-    ...     'geometry': shapely.geometry.Polygon([(-40,60), (-40, 61), (-41, 61), (-41, 60), (-40, 60)])
-    ...     }, ])
+        >>> domain = Domain(name='example', zones=[{
+        ...     'name': 'zone1',
+        ...     'geometry': shapely.geometry.Polygon([(-40,60), (-40, 61), (-41, 61), (-41, 60), (-40, 60)])
+        ...     }, ])
 
-    attr:
-        self.name
-        self.zones
-        self.boundary
-        self.minX
-        self.minY
-        self.maxX
-        self.maxY
-
+        attr:
+            self.name
+            self.zones
+            self.boundary
+            self.minX
+            self.minY
+            self.maxX
+            self.maxY
     '''
 
     def __init__(self, name, zones=[], **kw):
@@ -227,6 +259,9 @@ class Domain():
 
 
 class DomainFromTxts(Domain):
+    ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
+        zone geometry from .txt files directly
+    '''
     meridian = LineString(
         np.array((
             (-180, -180, 180, 180),

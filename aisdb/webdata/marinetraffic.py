@@ -9,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
 from aisdb import sqlpath
-from aisdb.webdata.scraper import Scraper
+from aisdb.webdata._scraper import _Scraper
 import sqlite3
 
 _err404 = 'INSERT INTO webdata_marinetraffic(mmsi, error404) '
@@ -140,6 +140,19 @@ def _vinfo(track, conn):
 
 
 def vessel_info(tracks, trafficDB):
+    ''' append metadata scraped from marinetraffic.com to track dictionaries.
+
+        See :meth:`aisdb.database.dbqry.DBQuery.check_marinetraffic` for a
+        high-level method to retrieve metadata for all vessels observed within
+        a specific query time and region, or alternatively see
+        :meth:`aisdb.webdata.marinetraffic.VesselInfo.vessel_info_callback`
+        for scraping metadata for a given list of MMSIs
+
+        args:
+            tracks (iter)
+                collection of track dictionaries
+
+    '''
     with trafficDB as conn:
         for track in tracks:
             yield _vinfo(track, conn)
@@ -151,6 +164,12 @@ class VesselInfo():
         args:
             trafficDBpath (string)
                 path where vessel traffic metadata should be stored
+
+        See :meth:`aisdb.database.dbqry.DBQuery.check_marinetraffic` for a
+        high-level method to retrieve metadata for all vessels observed within
+        a specific query time and region, or alternatively see
+        :meth:`aisdb.webdata.marinetraffic.VesselInfo.vessel_info_callback`
+        for scraping metadata for a given list of MMSIs
     '''
 
     def __init__(self, trafficDBpath, proxy=None):
@@ -171,7 +190,7 @@ class VesselInfo():
 
     def _getinfo(self, *, url, searchmmsi, data_dir, infotxt=''):
         if self.driver is None:
-            self.driver = Scraper(data_dir=data_dir, proxy=self.proxy).driver
+            self.driver = _Scraper(data_dir=data_dir, proxy=self.proxy).driver
 
         print(infotxt + url, end='\t')
         try:

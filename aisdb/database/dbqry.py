@@ -24,8 +24,8 @@ from aisdb.webdata.marinetraffic import VesselInfo
 
 from aisdb.gis import epoch_2_dt
 
-epoch2monthstr = lambda start, end, **_: dt2monthstr(epoch_2_dt(start),
-                                                     epoch_2_dt(end))
+_epoch2monthstr = lambda start, end, **_: dt2monthstr(epoch_2_dt(start),
+                                                      epoch_2_dt(end))
 
 
 class DBQuery(UserDict):
@@ -64,7 +64,6 @@ class DBQuery(UserDict):
         >>> from aisdb import DBQuery
         >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 
-
         >>> dbpath = '~/ais/ais.db'
         >>> start, end = datetime(2022, 1, 1), datetime(2022, 1, 7)
         >>> q = DBQuery(callback=in_timerange_validmmsi, start=start, end=end)
@@ -92,7 +91,7 @@ class DBQuery(UserDict):
             elif isinstance(kwargs['start'], datetime):
                 self.data.update({'months': dt2monthstr(**kwargs)})
             elif isinstance(kwargs['start'], (float, int)):
-                self.data.update({'months': epoch2monthstr(**kwargs)})
+                self.data.update({'months': _epoch2monthstr(**kwargs)})
             else:
                 assert False
 
@@ -165,11 +164,11 @@ class DBQuery(UserDict):
         aisdatabase = DBConn(dbpath)
         cur = aisdatabase.cur
         for month in self.data['months'][::-1]:
-            cur.execute(
-                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
-                [f'ais_{month}_static'])
-            if len(cur.fetchall()) == 0:
-                sqlite_createtable_staticreport(cur, month)
+            #cur.execute(
+            #    'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+            #    [f'ais_{month}_static'])
+            #if len(cur.fetchall()) == 0:
+            #    sqlite_createtable_staticreport(cur, month)
 
             cur.execute(
                 'SELECT * FROM sqlite_master WHERE type="table" and name=?',
@@ -180,23 +179,23 @@ class DBQuery(UserDict):
                       flush=True)
                 aggregate_static_msgs(dbpath, [month])
 
-            cur.execute(
-                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
-                [f'ais_{month}_dynamic'])
-            if len(cur.fetchall()) == 0:
-                sqlite_createtable_dynamicreport(cur, month)
+            #cur.execute(
+            #    'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+            #    [f'ais_{month}_dynamic'])
+            #if len(cur.fetchall()) == 0:
+            #    sqlite_createtable_dynamicreport(cur, month)
 
-            cur.execute(
-                'SELECT * FROM sqlite_master WHERE type="index" and name=?',
-                [f'idx_{month}_m_t_x_y'])
+            #cur.execute(
+            #    'SELECT * FROM sqlite_master WHERE type="index" and name=?',
+            #    [f'idx_{month}_m_t_x_y'])
 
-            if len(cur.fetchall()) == 0:
-                print(f'building dynamic index for month {month}...',
-                      flush=True)
-                cur.execute(
-                    f'CREATE INDEX IF NOT EXISTS idx_{month}_m_t_x_y '
-                    f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude)'
-                )
+            #if len(cur.fetchall()) == 0:
+            #    print(f'building dynamic index for month {month}...',
+            #          flush=True)
+            #    cur.execute(
+            #        f'CREATE INDEX IF NOT EXISTS idx_{month}_m_t_x_y '
+            #        f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude)'
+            #    )
 
         aisdatabase.conn.commit()
         aisdatabase.conn.close()

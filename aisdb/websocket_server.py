@@ -9,11 +9,9 @@ from datetime import datetime
 import orjson as json
 import numpy as np
 
-import aisdb
 from aisdb import (
     DBConn,
     DBQuery,
-    DomainFromTxts,
     sqlfcn,
     sqlfcn_callbacks,
 )
@@ -22,16 +20,6 @@ from aisdb.track_gen import (
     TrackGen_async,
     encode_greatcircledistance_async,
 )
-
-
-def request_size(*, xmin, xmax, ymin, ymax, start, end):
-    ''' restrict box size to 3000 kilometers diagonal distance per month'''
-    dist_diag = aisdb.haversine(x1=xmin, y1=ymin, x2=xmax, y2=ymax) / 1000
-    delta_t = (end - start).total_seconds() / 60 / 60 / 24 / 30
-    if dist_diag * delta_t > 3000:
-        return False
-    else:
-        return True
 
 
 class SocketServ():
@@ -61,6 +49,7 @@ class SocketServ():
             self.ssl_args = {}
 
     async def handler(self, websocket):
+        ''' handle messages received by the websocket '''
         async for clientmsg in websocket:
             print(f'{datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} '
                   f'{websocket.remote_address} {str(clientmsg)}')
@@ -80,6 +69,7 @@ class SocketServ():
                 pass
 
     async def await_response(self, websocket):
+        ''' await the client response and react accordingly '''
         clientresponse = await websocket.recv()
         response = json.loads(clientresponse)
         if 'type' not in response.keys():
@@ -103,6 +93,12 @@ class SocketServ():
         return 0
 
     async def req_valid_range(self, req, websocket):
+        ''' send the range of valid database query time ranges to the client.
+            sample request JSON::
+
+                {"type" : "validrange"}
+
+        '''
         with DBConn(self.dbpath).conn as conn:
             res = sorted([
                 s.split('_')[1] for line in conn.execute(
@@ -124,6 +120,11 @@ class SocketServ():
             }))
 
     async def req_zones(self, req, websocket):
+        ''' send zone polygons to client. sample request JSON::
+
+                {"type" : "zones"}
+
+        '''
         for zone in self.domain.zones:
             x, y = zone['geometry'].boundary.coords.xy
             event = {
@@ -143,6 +144,24 @@ class SocketServ():
         await websocket.send(json.dumps({'type': 'doneZones'}))
 
     async def req_tracks_raw(self, req, websocket):
+        ''' create database query, generate track vectors from rows,
+            and clean tracks using
+            :func:`aisdb.track_gen.encode_greatcircledistance_async`,
+            then send resulting vectors to client. sample request JSON::
+
+                {
+                    "type": "track_vectors",
+                    "start": "2021-07-01",
+                    "end": "2021-07-14",
+                    "area": {
+                          "minX": -66.23671874999998,
+                          "maxX": -60.15029296874998,
+                          "minY": 41.70498349725793,
+                          "maxY": 45.413175940838045
+                        }
+                }
+
+        '''
         start = datetime(*map(int, req['start'].split('-')))
         end = datetime(*map(int, req['end'].split('-')))
         qry = DBQuery(
@@ -197,6 +216,9 @@ class SocketServ():
                     }))
 
     async def main(self):
+        ''' run the server main loop asynchronously. should be called with
+            :func:`asyncio.run`
+        '''
         async with websockets.serve(
                 self.handler,
                 host=self.host,
