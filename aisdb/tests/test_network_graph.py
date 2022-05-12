@@ -9,7 +9,7 @@ from functools import partial
 
 from shapely.geometry import Polygon
 
-from aisdb.database.dbqry import DBQuery
+from aisdb.database.dbqry import DBQuery, DBConn
 from aisdb.database.sqlfcn_callbacks import (
     in_bbox_time, )
 from aisdb.gis import Domain
@@ -29,10 +29,18 @@ from aisdb.tests.create_testing_data import (
     sample_dynamictable_insertdata,
     sample_gulfstlawrence_bbox,
 )
+from aisdb.database.create_tables import (
+    sqlite_createtable_dynamicreport,
+    sqlite_createtable_staticreport,
+)
 
 
 def test_network_graph_geofencing(tmpdir):
     testdbpath = os.path.join(tmpdir, 'test_network_graph.db')
+    aisdatabase = DBConn(dbpath=testdbpath)
+    sqlite_createtable_staticreport(aisdatabase.cur, month="200001")
+    sqlite_createtable_dynamicreport(aisdatabase.cur, month="200001")
+
     # query configs
     start = datetime(2000, 1, 1)
     end = datetime(2000, 2, 1)

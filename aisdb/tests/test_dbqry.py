@@ -4,8 +4,12 @@ from datetime import datetime
 import pytest
 from shapely.geometry import Polygon
 
-from aisdb import DBQuery, sqlfcn_callbacks, Domain
+from aisdb import DBConn, DBQuery, sqlfcn_callbacks, Domain
 
+from aisdb.database.create_tables import (
+    sqlite_createtable_dynamicreport,
+    sqlite_createtable_staticreport,
+)
 from aisdb.tests.create_testing_data import (
     sample_dynamictable_insertdata,
     sample_gulfstlawrence_bbox,
@@ -28,6 +32,9 @@ def test_query_emptytable(tmpdir):
 
 def test_prepare_qry_domain(tmpdir):
     testdbpath = os.path.join(tmpdir, 'test_dbqry.db')
+    aisdatabase = DBConn(dbpath=testdbpath)
+    sqlite_createtable_staticreport(aisdatabase.cur, month="200001")
+    sqlite_createtable_dynamicreport(aisdatabase.cur, month="200001")
     sample_dynamictable_insertdata(testdbpath)
 
     z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
@@ -52,6 +59,9 @@ def test_prepare_qry_domain(tmpdir):
 @pytest.mark.asyncio
 async def test_query_async(tmpdir):
     db = os.path.join(tmpdir, 'test_dbqry.db')
+    aisdatabase = DBConn(dbpath=db)
+    sqlite_createtable_staticreport(aisdatabase.cur, month="202009")
+    sqlite_createtable_dynamicreport(aisdatabase.cur, month="202009")
     q = DBQuery(
         start=start,
         end=end,

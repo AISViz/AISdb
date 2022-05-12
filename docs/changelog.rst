@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.18
+-------
+
+update testing
+
+
 v1.3.17
 -------
 
