@@ -84,7 +84,10 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
             if meta.contains(' ') {
                 #[cfg(debug_assertions)]
                 println!("{:?}", meta);
-                let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap();
+                let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap_or(0);
+                if ii == 0 {
+                    return None;
+                }
 
                 let now = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)

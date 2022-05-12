@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.17
+-------
+
+improved error handling when decoding timestamps
+
+
 v1.3.16
 -------
 
