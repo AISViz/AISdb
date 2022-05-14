@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.20
+-------
+
+asynchronous linear interpolation
+
+
 v1.3.19
 -------
 
