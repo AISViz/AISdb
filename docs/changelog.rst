@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.19
+-------
+
+improved database query logic; update static messages aggregation and tests
+
+
 v1.3.18
 -------
 

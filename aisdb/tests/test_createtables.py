@@ -52,6 +52,5 @@ def test_query_emptytable():
         end=end,
         callback=in_timerange_validmmsi,
     )
-    q.check_idx(dbpath=dbpath)
     _rows = q.gen_qry(dbpath=dbpath)
     cleanup()

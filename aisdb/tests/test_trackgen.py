@@ -27,7 +27,6 @@ def test_TrackGen(tmpdir):
         end=end,
         callback=sqlfcn_callbacks.in_timerange_validmmsi,
     )
-    qry.check_idx(dbpath)
     rowgen = qry.gen_qry(dbpath, printqry=True)
     tracks = encode_greatcircledistance(
         track_gen.TrackGen(rowgen),
@@ -58,7 +57,6 @@ async def test_TrackGen_async(tmpdir):
         end=end,
         callback=sqlfcn_callbacks.in_timerange_validmmsi,
     )
-    qry.check_idx(dbpath)
     rowgen = qry.async_qry(dbpath, fcn=sqlfcn.crawl_dynamic_static)
     tracks = encode_greatcircledistance_async(
         track_gen.TrackGen_async(rowgen),

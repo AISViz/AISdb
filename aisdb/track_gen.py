@@ -78,7 +78,6 @@ def TrackGen(rowgen: iter) -> dict:
         ...             start=datetime(2022, 1, 1),
         ...             end=datetime(2022, 1, 7))
         >>> rowgen = q.gen_qry()
-        >>> q.check_idx(dbpath)  # build index if necessary
 
         >>> print(f'iterating over rows returned from {dbpath}')
         >>> for track in TrackGen(rowgen):

@@ -1,23 +1,13 @@
 import os
-from datetime import datetime
 
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb.database.sqlfcn_callbacks import in_timerange
-from aisdb.database.dbqry import DBQuery
 from aisdb.database.dbconn import DBConn
 from aisdb.gis import Domain
 
 
 def sample_dynamictable_insertdata(testdbpath):
-    args = DBQuery(
-        start=datetime(2000, 1, 1),
-        end=datetime(2000, 2, 1),
-        callback=in_timerange,
-    )
-    args.check_idx(dbpath=testdbpath)
-
     db = DBConn(dbpath=testdbpath)
     db.cur.execute(
         'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702800, -60.994833, 47.434647238127695, -1, -1)'

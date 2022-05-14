@@ -68,7 +68,6 @@ class DBQuery(UserDict):
         >>> start, end = datetime(2022, 1, 1), datetime(2022, 1, 7)
         >>> q = DBQuery(callback=in_timerange_validmmsi, start=start, end=end)
 
-        >>> q.check_idx(dbpath)  # build index if necessary
         >>> print(f'iterating over rows returned from {dbpath}')
         >>> for rows in q.gen_qry():
         ...     print(rows)
@@ -151,56 +150,11 @@ class DBQuery(UserDict):
 
         aisdatabase.conn.close()
 
-    def check_idx(self, dbpath):
-        ''' Ensure that all tables exist, and indexes are built, for the
-            timespan covered by the DBQuery.
-            Scrapes metadata for vessels in domain and stores to
-            marinetraffic.db inside data_dir
-
-            args:
-                dbpath (string)
-                    Path to database
-        '''
-        aisdatabase = DBConn(dbpath)
-        cur = aisdatabase.cur
-        for month in self.data['months'][::-1]:
-            #cur.execute(
-            #    'SELECT * FROM sqlite_master WHERE type="table" and name=?',
-            #    [f'ais_{month}_static'])
-            #if len(cur.fetchall()) == 0:
-            #    sqlite_createtable_staticreport(cur, month)
-
-            cur.execute(
-                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
-                [f'static_{month}_aggregate'])
-
-            if len(cur.fetchall()) == 0:
-                print(f'building static index for month {month}...',
-                      flush=True)
-                aggregate_static_msgs(dbpath, [month])
-
-            #cur.execute(
-            #    'SELECT * FROM sqlite_master WHERE type="table" and name=?',
-            #    [f'ais_{month}_dynamic'])
-            #if len(cur.fetchall()) == 0:
-            #    sqlite_createtable_dynamicreport(cur, month)
-
-            #cur.execute(
-            #    'SELECT * FROM sqlite_master WHERE type="index" and name=?',
-            #    [f'idx_{month}_m_t_x_y'])
-
-            #if len(cur.fetchall()) == 0:
-            #    print(f'building dynamic index for month {month}...',
-            #          flush=True)
-            #    cur.execute(
-            #        f'CREATE INDEX IF NOT EXISTS idx_{month}_m_t_x_y '
-            #        f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude)'
-            #    )
-
-        aisdatabase.conn.commit()
-        aisdatabase.conn.close()
-
-    def gen_qry(self, dbpath, fcn=sqlfcn.crawl_dynamic, printqry=False):
+    def gen_qry(self,
+                dbpath,
+                fcn=sqlfcn.crawl_dynamic,
+                printqry=False,
+                force_reaggregate_static=False):
         ''' queries the database using the supplied SQL function and dbpath.
             generator only stores one item at at time before yielding
 
@@ -225,6 +179,28 @@ class DBQuery(UserDict):
         if printqry:
             print(qry)
         aisdatabase = DBConn(dbpath)
+
+        for month in self.data['months']:
+            #cur.execute(
+            #    'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+            #    [f'ais_{month}_static'])
+            #if len(cur.fetchall()) == 0:
+            #    sqlite_createtable_staticreport(cur, month)
+            aisdatabase.cur.execute(
+                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+                [f'static_{month}_aggregate'])
+
+            if len(aisdatabase.cur.fetchall()
+                   ) == 0 or force_reaggregate_static:
+                print(f'building static index for month {month}...',
+                      flush=True)
+                aggregate_static_msgs(dbpath, [month])
+            #cur.execute(
+            #    'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+            #    [f'ais_{month}_dynamic'])
+            #if len(cur.fetchall()) == 0:
+            #    sqlite_createtable_dynamicreport(cur, month)
+
         dt = datetime.now()
         aisdatabase.cur.execute(qry)
         delta = datetime.now() - dt
@@ -250,9 +226,22 @@ class DBQuery(UserDict):
         yield mmsi_rows
         aisdatabase.conn.close()
 
-    async def async_qry(self, dbpath, fcn=sqlfcn.crawl_dynamic):
+    async def async_qry(self,
+                        dbpath,
+                        fcn=sqlfcn.crawl_dynamic,
+                        force_reaggregate_static=False):
         aisdatabase = await aiosqlite.connect(dbpath)
         aisdatabase.row_factory = sqlite3.Row
+        for month in self.data['months']:
+            precursor = await aisdatabase.execute(
+                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+                [f'static_{month}_aggregate'])
+
+            if len(await
+                   precursor.fetchall()) == 0 or force_reaggregate_static:
+                print(f'building static index for month {month}...',
+                      flush=True)
+                aggregate_static_msgs(dbpath, [month])
         cursor = await aisdatabase.execute(fcn(**self))
         mmsi_rows = []
         res = await cursor.fetchmany(10**5)

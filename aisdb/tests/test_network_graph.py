@@ -58,8 +58,6 @@ def test_network_graph_geofencing(tmpdir):
         callback=in_bbox_time,
     )
 
-    args.check_idx(dbpath=testdbpath)
-
     sample_dynamictable_insertdata(testdbpath)
     # processing configs
     distsplit = partial(

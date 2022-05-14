@@ -26,7 +26,6 @@ def test_query_emptytable(tmpdir):
         end=end,
         callback=sqlfcn_callbacks.in_timerange_validmmsi,
     )
-    q.check_idx(dbpath=db)
     _rows = q.gen_qry(dbpath=db)
 
 
@@ -67,6 +66,5 @@ async def test_query_async(tmpdir):
         end=end,
         callback=sqlfcn_callbacks.in_timerange_validmmsi,
     )
-    q.check_idx(dbpath=db)
     async for rows in q.async_qry(dbpath=db):
         print(rows)
