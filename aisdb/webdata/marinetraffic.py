@@ -49,6 +49,8 @@ def _getrow(vessel: dict) -> tuple:
         vessel['IMO'] = 0
     if 'Name' not in vessel.keys():
         vessel['Name'] = ''
+    if 'Call Sign' not in vessel.keys():
+        vessel['Call Sign'] = ''
     if 'Gross Tonnage' not in vessel.keys() or vessel['Gross Tonnage'] == '-':
         vessel['Gross Tonnage'] = 0
     elif ('Gross Tonnage' in vessel.keys()

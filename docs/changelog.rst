@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.21
+-------
+
+error handling in web scraping
+
+
 v1.3.20
 -------
 
