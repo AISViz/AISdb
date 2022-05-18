@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.24
+-------
+
+add asynchronous track generators, min speed filter, and update testing
+
+
 v1.3.23
 -------
 

@@ -188,6 +188,29 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
             )
 
 
+async def split_timedelta_async(tracks, maxdelta=timedelta(weeks=2)):
+    ''' partitions tracks where delta time exceeds maxdelta
+
+        args:
+            tracks (aisdb.track_gen.TrackGen)
+                track vectors generator
+            maxdelta (datetime.timedelta)
+                threshold at which tracks should be
+                partitioned
+    '''
+    async for track in tracks:
+        for rng in _segment_rng(track, maxdelta):
+            assert len(rng) > 0
+            yield dict(
+                **{k: track[k]
+                   for k in track['static']},
+                **{k: track[k][rng]
+                   for k in track['dynamic']},
+                static=track['static'],
+                dynamic=track['dynamic'],
+            )
+
+
 def _score_fcn(xy1, xy2, t1, t2, *, speed_threshold, distance_threshold):
     ''' Assigns a score for likelihood of two points being part of a sequential
         vessel trajectory. A hard cutoff will be applied at distance_threshold,
@@ -537,6 +560,42 @@ def zone_mask(tracks, domain):
     '''
     for track in fence_tracks(tracks, domain):
         mask = track['in_zone'] != 'Z0'
+        yield dict(
+            **{k: track[k]
+               for k in track['static']},
+            **{k: track[k][mask]
+               for k in track['dynamic']},
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )
+
+
+def min_speed_filter(tracks, minspeed):
+    for track in tracks:
+        if len(track['time']) == 1:
+            yield track
+            continue
+        deltas = delta_knots(track)
+        deltas = np.append(deltas, [deltas[-1]])
+        mask = deltas >= minspeed
+        yield dict(
+            **{k: track[k]
+               for k in track['static']},
+            **{k: track[k][mask]
+               for k in track['dynamic']},
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )
+
+
+async def min_speed_filter_async(tracks, minspeed):
+    async for track in tracks:
+        if len(track['time']) == 1:
+            yield track
+            continue
+        deltas = delta_knots(track)
+        deltas = np.append(deltas, [deltas[-1]])
+        mask = deltas >= minspeed
         yield dict(
             **{k: track[k]
                for k in track['static']},
