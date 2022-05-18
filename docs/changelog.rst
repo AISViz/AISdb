@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.22
+-------
+
+add code coverage to CI
+
+
 v1.3.21
 -------
 

@@ -25,6 +25,7 @@
 *.so
 *.txt
 .cache
+.coverage
 .eggs
 .git
 .pytest_cache

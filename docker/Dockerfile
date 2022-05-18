@@ -17,7 +17,7 @@ USER "ais_env"
 RUN rustup install stable && rustup default stable
 RUN python -m ensurepip && python -m pip install --upgrade pip numpy wheel
 COPY --chown="ais_env" docs/requirements.txt docs/requirements.txt
-RUN python -m pip install -r ./docs/requirements.txt && python -m pip install pytest pytest-asyncio
+RUN python -m pip install -r ./docs/requirements.txt && python -m pip install pytest pytest-asyncio coverage
 COPY --chown=ais_env aisdb_web/package.json aisdb_web/package.json
 RUN cd aisdb_web && npm install
 COPY --chown="ais_env" ./target/wheels/aisdb-*cp310*.whl ./

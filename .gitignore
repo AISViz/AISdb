@@ -16,6 +16,7 @@
 *.so
 *.swp
 *__pycache__*
+.coverage
 .env
 .pytest_cache
 .rustup
