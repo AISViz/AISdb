@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.23
+-------
+
+improved checksums logic for raw data file duplicate checking
+
+
 v1.3.22
 -------
 
