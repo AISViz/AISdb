@@ -110,7 +110,7 @@ def _vinfo(track, conn):
             'mmsi':
             track['mmsi'],
             'imo':
-            track['imo'],
+            track['imo'] if 'imo' in track.keys() else 0,
             'name': (track['vessel_name'] if 'vessel_name' in track.keys()
                      and track['vessel_name'] is not None else ''),
             'vesseltype_generic':
@@ -141,7 +141,7 @@ def _vinfo(track, conn):
     return track
 
 
-def vessel_info(tracks, trafficDB):
+def vessel_info(tracks, trafficDBpath):
     ''' append metadata scraped from marinetraffic.com to track dictionaries.
 
         See :meth:`aisdb.database.dbqry.DBQuery.check_marinetraffic` for a
@@ -155,6 +155,8 @@ def vessel_info(tracks, trafficDB):
                 collection of track dictionaries
 
     '''
+    trafficDB = sqlite3.connect(trafficDBpath)
+    trafficDB.row_factory = sqlite3.Row
     with trafficDB as conn:
         for track in tracks:
             yield _vinfo(track, conn)

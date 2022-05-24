@@ -29,6 +29,7 @@ from aisdb.webdata.merge_data import (
     merge_tracks_shoredist,
 )
 from aisdb.proc_util import _segment_rng
+from aisdb.wsa import wetted_surface_area
 
 _colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
 
@@ -89,10 +90,8 @@ def _staticinfo(track, domain):
         home_port=_sanitize(track['marinetraffic_info']['home_port']),
         error404=track['marinetraffic_info']['error404'],
         trackID=track["label"] if 'label' in track.keys() else '',
-        #summer_DWT=int(track['deadweight_tonnage'])
-        #if 'deadweight_tonnage' in track.keys() else '',
-        hull_submerged_surface_area=f"{track['submerged_hull_m^2']:.0f}"
-        if 'submerged_hull_m^2' in track.keys() else '',
+        hull_submerged_surface_area=f"{track['submerged_hull_m^2']:.0f}",
+        #if 'submerged_hull_m^2' in track.keys() else '',
     )
 
 
@@ -289,7 +288,8 @@ def _pipeline(track, *, domain, trafficDBpath, tmp_dir, maxdelta,
             fence_tracks(
                 encode_greatcircledistance(
                     split_timedelta(
-                        vessel_info([track], trafficDB=trafficDB),
+                        wetted_surface_area(
+                            vessel_info([track], trafficDB=trafficDB), ),
                         maxdelta=maxdelta,
                     ),
                     distance_threshold=distance_threshold,

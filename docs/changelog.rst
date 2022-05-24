@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.25
+-------
+
+update wetted surface area computation
+
+
 v1.3.24
 -------
 

@@ -2,10 +2,8 @@
 
 import numpy as np
 
-from aisdb.wsa import wsa
 from aisdb.webdata.bathymetry import Gebco
 from aisdb.webdata.shore_dist import shore_dist_gfw
-#from webdata import marinetraffic
 
 
 def merge_tracks_shoredist(tracks, data_dir):
@@ -54,19 +52,8 @@ def merge_tracks_bathymetry(tracks, data_dir, context=None):
             yield track
 
 
-def _mergetrack(track, *, bathymetry, sdist, hullgeom, retry_zero,
-                skip_missing):
+def _mergetrack(track, *, bathymetry, sdist):
     # vessel tonnage from marinetraffic.com
-    track['deadweight_tonnage'] = hullgeom.get_tonnage_mmsi_imo(
-        track['mmsi'],
-        track['imo'],
-        retry_zero=retry_zero,
-        skip_missing=skip_missing)
-
-    # hull submerged surface area regression on tonnage
-    track['submerged_hull_m^2'] = wsa(track['deadweight_tonnage'],
-                                      track['ship_type'] or 0)
-
     # shore, port distance from cell grid
     track['km_from_shore'] = np.array(
         [sdist.getdist(x, y) for x, y in zip(track['lon'], track['lat'])])
@@ -79,12 +66,6 @@ def _mergetrack(track, *, bathymetry, sdist, hullgeom, retry_zero,
     ])
 
     # update indices
-    track['static'] = set(track['static']).union(
-        set([
-            'submerged_hull_m^2',
-            'deadweight_tonnage',
-        ]))
-
     track['dynamic'] = set(track['dynamic']).union(
         set([
             'km_from_shore',
@@ -101,7 +82,6 @@ def merge_layers(
     retry_zero=False,
     skip_missing=True,
     bathymetry=None,
-    hullgeom=None,
     sdist=None,
 ):
     ''' generator function to merge AIS row data with shore distance, bathymetry, geometry databases
@@ -125,7 +105,7 @@ def merge_layers(
     # read data layers from disk to merge with AIS
     # print('aggregating ais, shore distance, bathymetry, vessel geometry...')
     #with shore_dist_gfw() as sdist, Gebco(
-    #) as bathymetry, marinetraffic.scrape_tonnage() as hullgeom:
+    #) as bathymetry:
     if bathymetry is None:
         bathymetry = Gebco()
     if sdist is None:
@@ -136,7 +116,6 @@ def merge_layers(
             track,
             bathymetry=bathymetry,
             sdist=sdist,
-            hullgeom=hullgeom,
             retry_zero=retry_zero,
             skip_missing=skip_missing,
         )
