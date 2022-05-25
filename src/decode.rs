@@ -208,12 +208,26 @@ pub fn decode_insert_msgs(
             payload: Some(payload),
         };
 
+        /*
         if is_dynamic {
             positions.push(message);
             count += 1;
         } else {
             stat_msgs.push(message);
             count += 1;
+        }
+        */
+
+        match (is_dynamic, &message.payload) {
+            (_, None) => continue,
+            (true, Some(_m)) => {
+                positions.push(message);
+                count += 1;
+            }
+            (false, Some(_m)) => {
+                stat_msgs.push(message);
+                count += 1;
+            }
         }
 
         if positions.len() >= 500000 {
@@ -335,9 +349,13 @@ pub mod tests {
         assert_eq!(expected, result);
     }
 
-    pub async fn test_decode_insert_msgs() -> Result<(), Error> {
+    #[test]
+    pub fn test_decode_insert_msgs() -> Result<(), Error> {
         let mut parser = NmeaParser::new();
-        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
+        let mut fpaths =
+            glob_dir(std::path::PathBuf::from("aisdb/tests/"), "nm4").expect("globbing");
+        fpaths
+            .append(&mut glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing"));
         for filepath in fpaths {
             parser = decode_insert_msgs(
                 &std::path::Path::new("testdata/test.db").to_path_buf(),

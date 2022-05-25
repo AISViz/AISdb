@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.26
+-------
+
+fixed decoded messages counting issue in rust decoder and updated testing
+
+
 v1.3.25
 -------
 
