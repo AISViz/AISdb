@@ -131,9 +131,17 @@ class DBQuery(UserDict):
         aisdatabase = DBConn(dbpath)
         cur = aisdatabase.cur
         vinfo = VesselInfo(trafficDBpath)
-        for month in self.data['months'][::-1]:
+        for month in self.data['months']:
             print(f'retrieving vessel info for {month}', end='', flush=True)
 
+            # create any missing tables
+            cur.execute(
+                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+                [f'ais_{month}_dynamic'])
+            if len(cur.fetchall()) == 0:
+                sqlite_createtable_dynamicreport(cur, month)
+
+            # check unique mmsis
             sql = f'''
             SELECT DISTINCT(mmsi) FROM ais_{month}_dynamic AS d WHERE
             {sqlfcn_callbacks.in_validmmsi_bbox(alias='d', **boundary)}
@@ -142,6 +150,7 @@ class DBQuery(UserDict):
             print('.', end='', flush=True)  # first dot
             mmsis = cur.fetchall()
 
+            # retrieve vessel metadata
             if len(mmsis) > 0:
                 vinfo.vessel_info_callback(mmsis=np.array(mmsis),
                                            data_dir=data_dir,

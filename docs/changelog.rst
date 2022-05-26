@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.30
+-------
+
+create aggregated data results if they dont exist upon DB Query
+
+
 v1.3.29
 -------
 
