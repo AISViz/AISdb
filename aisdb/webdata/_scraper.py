@@ -1,6 +1,7 @@
 ''' webscraper using selenium, firefox, and mozilla geckodriver '''
 
 import os
+import sys
 
 from aisdb.webdata import _init_configs
 
@@ -57,6 +58,8 @@ class _Scraper():
         if proxy is not None:
             host, port = proxy.split(':')
             service_args = ['--host', host, '--port', port]
+
+        sys.path.append(data_dir)
 
         self.driver = webdriver.WebDriver(
                 options=opt,

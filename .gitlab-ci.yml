@@ -4,6 +4,7 @@ stages:
   - pkgbuild
   - rust-test
   - python-test
+  - python-profile
   - build-website
 
 pkgbuild:
@@ -29,6 +30,16 @@ python-test:
     - rm aisdb/__init__.py aisdb/tests/__init__.py
     - python -m coverage run -m pytest --color=yes --tb=native --doctest-modules -k "not merge" aisdb/tests/
     - python -m coverage report
+  cache:
+    key: persistent_000
+    paths:
+      - aisdb/tests/marinetraffic_test.db
+
+python-profile:
+  stage: python-profile
+  script:
+    - python -m cProfile -o profile $(which py.test)
+    - python -c "import pstats; p = pstats.Stats('profile'); p.strip_dirs(); p.sort_stats('tottime'); p.print_stats(50);"
   cache:
     key: persistent_000
     paths:

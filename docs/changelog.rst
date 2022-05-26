@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.35
+-------
+
+add profiling to CI
+
+
 v1.3.34
 -------
 
