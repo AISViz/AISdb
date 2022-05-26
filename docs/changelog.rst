@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.32
+-------
+
+automatically create missing tables for DB query
+
+
 v1.3.31
 -------
 

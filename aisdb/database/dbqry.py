@@ -190,11 +190,14 @@ class DBQuery(UserDict):
         aisdatabase = DBConn(dbpath)
 
         for month in self.data['months']:
-            #cur.execute(
-            #    'SELECT * FROM sqlite_master WHERE type="table" and name=?',
-            #    [f'ais_{month}_static'])
-            #if len(cur.fetchall()) == 0:
-            #    sqlite_createtable_staticreport(cur, month)
+            # create static tables if necessary
+            aisdatabase.cur.execute(
+                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+                [f'ais_{month}_static'])
+            if len(aisdatabase.cur.fetchall()) == 0:
+                sqlite_createtable_staticreport(aisdatabase.cur, month)
+
+            # create aggregate tables if necessary
             aisdatabase.cur.execute(
                 'SELECT * FROM sqlite_master WHERE type="table" and name=?',
                 [f'static_{month}_aggregate'])
@@ -204,11 +207,13 @@ class DBQuery(UserDict):
                 print(f'building static index for month {month}...',
                       flush=True)
                 aggregate_static_msgs(dbpath, [month])
-            #cur.execute(
-            #    'SELECT * FROM sqlite_master WHERE type="table" and name=?',
-            #    [f'ais_{month}_dynamic'])
-            #if len(cur.fetchall()) == 0:
-            #    sqlite_createtable_dynamicreport(cur, month)
+
+            # create dynamic tables if necessary
+            aisdatabase.cur.execute(
+                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+                [f'ais_{month}_dynamic'])
+            if len(aisdatabase.cur.fetchall()) == 0:
+                sqlite_createtable_dynamicreport(aisdatabase.cur, month)
 
         dt = datetime.now()
         aisdatabase.cur.execute(qry)
