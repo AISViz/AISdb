@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.33
+-------
+
+update Dockerfile
+
+
 v1.3.32
 -------
 
