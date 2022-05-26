@@ -1,4 +1,5 @@
 import os
+import sys
 import configparser
 
 cfgfile = os.path.join(os.path.expanduser('~'), '.config', 'ais.cfg')
@@ -19,6 +20,8 @@ def _init_configs(data_dir):
 
     if not os.path.isdir(data_dir):
         os.mkdir(data_dir)
+
+    sys.path.append(data_dir)
 
     if not os.path.isfile(os.path.join(
             data_dir, 'webdriver')) and not os.path.isfile(

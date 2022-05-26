@@ -20,7 +20,7 @@ pkgbuild:
 rust-test:
   stage: rust-test
   script:
-    - cargo test --color=always -- --nocapture
+    - cargo test --color=always --release -- --nocapture
 
 python-test:
   stage: python-test

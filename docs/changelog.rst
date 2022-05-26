@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.34
+-------
+
+add webdriver to system path
+
+
 v1.3.33
 -------
 
