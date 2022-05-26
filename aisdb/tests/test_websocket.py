@@ -3,6 +3,7 @@ import asyncio
 import pytest
 
 from aisdb import websocket_server, decode_msgs
+from aisdb.webdata.marinetraffic import VesselInfo
 from aisdb.tests.create_testing_data import random_polygons_domain
 
 
@@ -12,6 +13,8 @@ async def test_websocket_nodata_nosocket(tmpdir):
     dbpath = os.path.join(tmpdir, 'test_websocket_server.db')
     trafficDBpath = str(os.path.join(tmpdir,
                                      'test_websocket_trafficDBpath.db'))
+    # create tables in __init__ fcn
+    VesselInfo(trafficDBpath=trafficDBpath)
     datapath = os.path.join(os.path.dirname(__file__),
                             'testingdata_20211101.nm4')
     decode_msgs(

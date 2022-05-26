@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.31
+-------
+
+add heatmaps experimental feature to webserver backend
+
+
 v1.3.30
 -------
 

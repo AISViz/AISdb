@@ -25,6 +25,37 @@ with open(_insert_sqlfile, 'r') as f:
     _insert_sql = f.read()
 
 
+def _nullinfo(track):
+    return {
+        'mmsi':
+        track['mmsi'],
+        'imo':
+        track['imo'] if 'imo' in track.keys() else 0,
+        'name': (track['vessel_name'] if 'vessel_name' in track.keys()
+                 and track['vessel_name'] is not None else ''),
+        'vesseltype_generic':
+        None,
+        'vesseltype_detailed':
+        None,
+        'callsign':
+        None,
+        'flag':
+        None,
+        'gross_tonnage':
+        None,
+        'summer_dwt':
+        None,
+        'length_breadth':
+        None,
+        'year_built':
+        None,
+        'home_port':
+        None,
+        'error404':
+        1
+    }
+
+
 def _loaded(drv: WebDriver) -> bool:
     asset_type = 'asset_type' in drv.current_url
     e404 = '404' == drv.title[0:3]
@@ -123,34 +154,7 @@ def vessel_info(tracks, trafficDBpath):
         if track['mmsi'] in meta.keys():
             track['marinetraffic_info'] = meta[track['mmsi']]
         else:
-            track['marinetraffic_info'] = {
-                'mmsi':
-                track['mmsi'],
-                'imo':
-                track['imo'] if 'imo' in track.keys() else 0,
-                'name': (track['vessel_name'] if 'vessel_name' in track.keys()
-                         and track['vessel_name'] is not None else ''),
-                'vesseltype_generic':
-                None,
-                'vesseltype_detailed':
-                None,
-                'callsign':
-                None,
-                'flag':
-                None,
-                'gross_tonnage':
-                None,
-                'summer_dwt':
-                None,
-                'length_breadth':
-                None,
-                'year_built':
-                None,
-                'home_port':
-                None,
-                'error404':
-                1
-            }
+            track['marinetraffic_info'] = _nullinfo(track)
         yield track
 
 
@@ -175,6 +179,9 @@ class VesselInfo():
         self.proxy = proxy
         self.trafficDB = sqlite3.Connection(trafficDBpath)
         self.trafficDB.row_factory = sqlite3.Row
+        # create a new info table if it doesnt exist yet
+        with self.trafficDB as conn:
+            conn.execute(_createtable_sql)
 
     def __enter__(self):
         return self
@@ -255,10 +262,6 @@ class VesselInfo():
         # only check unique mmsis
         mmsis = np.unique(mmsis).astype(int)
         print('.', end='')  # second dot (first in dbqry.py)
-
-        # create a new info table if it doesnt exist yet
-        with self.trafficDB as conn:
-            conn.execute(_createtable_sql)
 
         # check existing
         sqlcount = 'SELECT mmsi FROM webdata_marinetraffic \t'
