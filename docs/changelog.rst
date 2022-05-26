@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.27
+-------
+
+update nodejs server routing
+
+
 v1.3.26
 -------
 
