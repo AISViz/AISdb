@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.28
+-------
+
+update docs for submerged surface area
+
+
 v1.3.27
 -------
 
