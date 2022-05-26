@@ -93,52 +93,14 @@ def _insertvesselrow(elem, mmsi, trafficDB):
         conn.execute(_insert_sql, insertrow).fetchall()
 
 
-def _vinfo(track, conn):
-    track['static'] = set(track['static']).union({'marinetraffic_info'})
-    res = conn.execute(
-        'select * from webdata_marinetraffic where CAST(mmsi AS INT) = ?',
-        [track['mmsi']],
-    ).fetchall()
-    if len(res) >= 1:
-        for r in res:
-            if (r['error404'] == 0 and r['imo'] > 0):
-                track['marinetraffic_info'] = dict(r)
-                break
-            track['marinetraffic_info'] = dict(r)
-    else:
-        track['marinetraffic_info'] = {
-            'mmsi':
-            track['mmsi'],
-            'imo':
-            track['imo'] if 'imo' in track.keys() else 0,
-            'name': (track['vessel_name'] if 'vessel_name' in track.keys()
-                     and track['vessel_name'] is not None else ''),
-            'vesseltype_generic':
-            None,
-            'vesseltype_detailed':
-            None,
-            'callsign':
-            None,
-            'flag':
-            None,
-            'gross_tonnage':
-            None,
-            'summer_dwt':
-            None,
-            'length_breadth':
-            None,
-            'year_built':
-            None,
-            'home_port':
-            None,
-            'error404':
-            1
-        }
-    if ('vessel_name' in track.keys() and
-        (track['marinetraffic_info']['name'] in (None, 0, '0', 'None', '')
-         or 'name' not in track['marinetraffic_info'].keys())):
-        track['marinetraffic_info']['name'] = track['vessel_name']
-    return track
+def _metadict(trafficDBpath):
+    trafficDB = sqlite3.connect(trafficDBpath)
+    trafficDB.row_factory = sqlite3.Row
+    with trafficDB as conn:
+        res = conn.execute(
+            'select * from webdata_marinetraffic where error404 != 1',
+        ).fetchall()
+    return {r['mmsi']: dict(r) for r in res}
 
 
 def vessel_info(tracks, trafficDBpath):
@@ -155,11 +117,41 @@ def vessel_info(tracks, trafficDBpath):
                 collection of track dictionaries
 
     '''
-    trafficDB = sqlite3.connect(trafficDBpath)
-    trafficDB.row_factory = sqlite3.Row
-    with trafficDB as conn:
-        for track in tracks:
-            yield _vinfo(track, conn)
+    meta = _metadict(trafficDBpath)
+    for track in tracks:
+        track['static'] = set(track['static']).union({'marinetraffic_info'})
+        if track['mmsi'] in meta.keys():
+            track['marinetraffic_info'] = meta[track['mmsi']]
+        else:
+            track['marinetraffic_info'] = {
+                'mmsi':
+                track['mmsi'],
+                'imo':
+                track['imo'] if 'imo' in track.keys() else 0,
+                'name': (track['vessel_name'] if 'vessel_name' in track.keys()
+                         and track['vessel_name'] is not None else ''),
+                'vesseltype_generic':
+                None,
+                'vesseltype_detailed':
+                None,
+                'callsign':
+                None,
+                'flag':
+                None,
+                'gross_tonnage':
+                None,
+                'summer_dwt':
+                None,
+                'length_breadth':
+                None,
+                'year_built':
+                None,
+                'home_port':
+                None,
+                'error404':
+                1
+            }
+        yield track
 
 
 class VesselInfo():

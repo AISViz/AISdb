@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.29
+-------
+
+improvements to marinetraffic data integration and testing
+
+
 v1.3.28
 -------
 

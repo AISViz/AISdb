@@ -29,6 +29,10 @@ python-test:
     - rm aisdb/__init__.py aisdb/tests/__init__.py
     - python -m coverage run -m pytest --color=yes --tb=native --doctest-modules -k "not merge" aisdb/tests/
     - python -m coverage report
+  cache:
+    key: persistent_000
+    paths:
+      - aisdb/tests/marinetraffic_test.db
 
 build-website:
   stage: build-website

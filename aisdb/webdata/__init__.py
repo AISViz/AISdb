@@ -7,6 +7,8 @@ srcurl = 'https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/KVijQsMQQ
 
 
 def _init_configs(data_dir):
+    if not os.path.isdir(data_dir):
+        os.mkdir(data_dir)
     if os.path.isfile(cfgfile):
         cfg = configparser.ConfigParser()
         with open(cfgfile, 'r') as f:

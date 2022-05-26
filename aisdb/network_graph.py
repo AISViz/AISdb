@@ -189,9 +189,6 @@ def _serialize_network_edge(tracks, domain, tmp_dir):
 
         returns: None
     '''
-    if not os.path.isdir(tmp_dir):
-        os.mkdir(tmp_dir)
-
     for track in tracks:
         filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
         if not 'in_zone' in track.keys():
@@ -278,18 +275,17 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
             os.remove(picklefile)
 
 
-def _pipeline(track, *, domain, trafficDBpath, tmp_dir, maxdelta,
-              distance_threshold, speed_threshold, minscore):
-    trafficDB = sqlite3.Connection(trafficDBpath)
-    trafficDB.row_factory = sqlite3.Row
+def _pipeline(track, *, domain, tmp_dir, maxdelta, distance_threshold,
+              speed_threshold, minscore):
+    #trafficDB = sqlite3.Connection(trafficDBpath)
+    #trafficDB.row_factory = sqlite3.Row
 
     for x in _serialize_network_edge(
             # merge_tracks_shoredist(merge_tracks_bathymetry(
             fence_tracks(
                 encode_greatcircledistance(
                     split_timedelta(
-                        wetted_surface_area(
-                            vessel_info([track], trafficDB=trafficDB), ),
+                        wetted_surface_area([track], ),
                         maxdelta=maxdelta,
                     ),
                     distance_threshold=distance_threshold,
@@ -401,22 +397,26 @@ def graph(rowgen,
         ...                     trafficDBpath=trafficDBpath, parallel=12)
     '''
     with tempfile.TemporaryDirectory() as tmp_dir:
-        fcn = partial(_pipeline,
-                      domain=domain,
-                      trafficDBpath=trafficDBpath,
-                      tmp_dir=tmp_dir,
-                      speed_threshold=speed_threshold,
-                      distance_threshold=distance_threshold,
-                      minscore=minscore,
-                      maxdelta=maxdelta)
+        fcn = partial(
+            _pipeline,
+            domain=domain,
+            #trafficDBpath=trafficDBpath,
+            tmp_dir=tmp_dir,
+            speed_threshold=speed_threshold,
+            distance_threshold=distance_threshold,
+            minscore=minscore,
+            maxdelta=maxdelta)
 
         if not processes or processes == 1:
-            for track in TrackGen(rowgen):
+            for track in vessel_info(TrackGen(rowgen),
+                                     trafficDBpath=trafficDBpath):
                 _ = fcn(track)
 
         else:
             with Pool(processes=processes) as p:
-                p.imap_unordered(fcn, TrackGen(rowgen))
+                p.imap_unordered(
+                    fcn,
+                    vessel_info(TrackGen(rowgen), trafficDBpath=trafficDBpath))
                 p.close()
                 p.join()
 
