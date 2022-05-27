@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.36
+-------
+
+ignore marinetraffic tests in CI
+
+
 v1.3.35
 -------
 

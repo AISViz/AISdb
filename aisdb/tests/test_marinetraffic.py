@@ -46,6 +46,6 @@ def test_retrieve_marinetraffic_data(tmpdir):
         assert 'marinetraffic_info' in track.keys()
 
 
-def test_metadict(tmpdir):
+def test_marinetraffic_metadict(tmpdir):
     #trafficDBpath = '/RAID0/ais/marinetraffic_V2.db'
     _metadict(trafficDBpath)

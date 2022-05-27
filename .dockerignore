@@ -45,6 +45,7 @@ docker/tag_img.sh
 docs/html
 docs/source/api
 prof
+profile
 release
 target/release
 testdata
