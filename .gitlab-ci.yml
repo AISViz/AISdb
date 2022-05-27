@@ -38,7 +38,7 @@ python-test:
 python-profile:
   stage: python-profile
   script:
-    - python -m cProfile -o profile $(which py.test)
+    - python -m cProfile -o profile '/usr/bin/python -m pytest'
     - python -c "import pstats; p = pstats.Stats('profile'); p.strip_dirs(); p.sort_stats('tottime'); p.print_stats(50);"
   cache:
     key: persistent_000
