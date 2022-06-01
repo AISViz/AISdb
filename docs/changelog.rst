@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.37
+-------
+
+update server routing
+
+
 v1.3.36
 -------
 
