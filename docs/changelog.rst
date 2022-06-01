@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.38
+-------
+
+heatmap prototyping
+
+
 v1.3.37
 -------
 

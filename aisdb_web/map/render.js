@@ -22,6 +22,7 @@ async function screenshot_callback() {
     document.body.removeChild(a);
   });
 }
+window.screnshot_single = screenshot_callback;
 
 /** take a screenshot using screenshot_callback() of each vessel type specified
  * in opts. if opts is undefined, the following vesseltypes will be used:

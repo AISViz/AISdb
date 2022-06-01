@@ -1,5 +1,5 @@
 /** @module clientsocket */
-import { newPolygonFeature, newTrackFeature } from './map';
+import { newHeatmapFeatures, newPolygonFeature, newTrackFeature } from './map';
 import { process_response } from './pkg/client';
 import { searchbtn, resetSearchState, setSearchRange } from './selectform';
 import parseUrl from './url';
@@ -21,10 +21,14 @@ if (port === undefined) {
   port = '9924';
 }
 
-
-// const socketHost = `ws://${hostname}:9924`;
-/** @constant {string} socketHost socket host address */
-const socketHost = `wss://${hostname}/ws`;
+let socketHost = null;
+if (import.meta.env.VITE_DISABLE_SSL !== null &&
+  import.meta.env.VITE_DISABLE_SSL !== undefined) {
+  socketHost = `ws://${hostname}:9924`;
+} else {
+  /** @constant {string} socketHost socket host address */
+  socketHost = `wss://${hostname}/ws`;
+}
 /** @constant {WebSocket} socket database websocket */
 let socket = new WebSocket(socketHost);
 
@@ -147,6 +151,8 @@ socket.onmessage = async function(event) {
     processed.coordinates = [ processed.coordinates ];
     newPolygonFeature(processed, response.meta);
     await socket.send(JSON.stringify({ type: 'ack' }));
+  } else if (response.type === 'heatmap') {
+    newHeatmapFeatures(response.xy);
   } else if (response.type === 'done') {
     document.getElementById('status-div').textContent = response.status;
     window.statusmsg = response.status;
