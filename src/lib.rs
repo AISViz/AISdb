@@ -14,11 +14,15 @@ pub mod db;
 #[path = "decode.rs"]
 pub mod decode;
 
+#[path = "load_geotiff.rs"]
+pub mod load_geotiff;
+
 #[path = "util.rs"]
 pub mod util;
 
 use csvreader::*;
 use decode::*;
+use load_geotiff::load_pixel;
 
 macro_rules! zip {
     ($x: expr) => ($x);
@@ -74,11 +78,17 @@ pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<
     line.into_iter().collect::<Vec<usize>>()
 }
 
+#[pyfunction]
+pub fn load_geotiff_pixel(lon: usize, lat: usize, filepath: &str) -> usize {
+    load_pixel(lon, lat, &filepath)
+}
+
 #[pymodule]
 #[allow(unused_variables)]
 pub fn aisdb(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(haversine))?;
     module.add_wrapped(wrap_pyfunction!(decoder))?;
     module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
+    //module.add_wrapped(wrap_pyfunction!(load_geotiff_pixel))?;
     Ok(())
 }
