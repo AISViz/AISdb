@@ -29,9 +29,9 @@ geotiff = "0.0.2"
 geo-types = "*"
 include_dir = "0.7.2"
 
-[dependencies.async-std]
-version = "1.11.0"
-features = [ "attributes",]
+#[dependencies.async-std]
+#version = "1.11.0"
+#features = [ "attributes",]
 
 [dependencies.chrono]
 version = "0.4"
@@ -51,7 +51,7 @@ version = "0.16.4"
 features = [ "extension-module",]
 
 [dependencies.rusqlite]
-version = "0.26"
+version = "0.27"
 
 [profile.release]
 lto = true

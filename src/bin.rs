@@ -45,8 +45,8 @@ use util::*;
 /// Accepts command line args for dbpath and rawdata_dir.
 /// A new database will be created from decoded messages at
 /// the specified path
-#[async_std::main]
-pub async fn main() -> Result<(), Error> {
+//#[async_std::main]
+pub fn main() -> Result<(), Error> {
     // collect command line arguments
     let args = match parse_args() {
         Ok(v) => v,
