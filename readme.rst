@@ -56,6 +56,12 @@ What is AIS?
 
 .. install:
 
+Install Prerequisite
+--------------------
+
+SQLite version 3.35 or newer is required https://www.sqlite.org/download.html
+
+
 Installing from PyPI
 ----------------------
 

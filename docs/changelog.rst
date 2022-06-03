@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.39
+-------
+
+improved compatability with python versions before 3.10
+
+
 v1.3.38
 -------
 
