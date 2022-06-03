@@ -36,9 +36,10 @@ class _Scraper():
         _init_configs(data_dir=data_dir)
 
         headless = True
-        match os.environ.get('HEADLESS', True):
-            case '0' | 'False' | 'false':
-                headless = False
+        env_headless = os.environ.get('Headless', True)
+        if env_headless in ('0', 'False', 'false'):
+            headless = False
+
 
         # configs
         (opt := Options()).headless = headless
