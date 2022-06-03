@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.40
+-------
+
+add callback SQL function for in_time_bbox_inmmsi
+
+
 v1.3.39
 -------
 

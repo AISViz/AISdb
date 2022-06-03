@@ -35,7 +35,7 @@ class DBQuery(UserDict):
         Args:
             callback: (function)
                 anonymous function yielding SQL code specifying "WHERE" clauses.
-                common queries are included in aisdb.database.sqlfcn_callbacks,
+                common queries are included in :module:`aisdb.database.sqlfcn_callbacks`,
                 e.g.
 
                 >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
