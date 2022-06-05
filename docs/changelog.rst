@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.41
+-------
+
+add example script for starting websocket server
+
+
 v1.3.40
 -------
 
