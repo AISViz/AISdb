@@ -1,5 +1,4 @@
-''' scrape vessel information such as deadweight tonnage from marinetraffic.com
-'''
+''' scrape vessel information such as deadweight tonnage from marinetraffic.com '''
 
 import os
 
@@ -9,26 +8,61 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
-from aisdb import data_dir, sqlpath
-from aisdb.webdata.scraper import Scraper
+from aisdb import sqlpath
+from aisdb.webdata._scraper import _Scraper
 import sqlite3
 
-trafficDBpath = os.path.join(data_dir, 'marinetraffic.db')
-trafficDB = sqlite3.Connection(trafficDBpath)
-trafficDB.row_factory = sqlite3.Row
+_err404 = 'INSERT INTO webdata_marinetraffic(mmsi, error404) '
+_err404 += 'VALUES (CAST(? as INT), 1)'
+
+_createtable_sqlfile = os.path.join(sqlpath,
+                                    'createtable_webdata_marinetraffic.sql')
+with open(_createtable_sqlfile, 'r') as f:
+    _createtable_sql = f.read()
+
+_insert_sqlfile = os.path.join(sqlpath, 'insert_webdata_marinetraffic.sql')
+with open(_insert_sqlfile, 'r') as f:
+    _insert_sql = f.read()
 
 
-err404 = 'INSERT OR IGNORE INTO webdata_marinetraffic(mmsi, imo, error404) '
-err404 += 'VALUES (CAST(? as INT), CAST(? as INT), 1)'
+def _nullinfo(track):
+    return {
+        'mmsi':
+        track['mmsi'],
+        'imo':
+        track['imo'] if 'imo' in track.keys() else 0,
+        'name': (track['vessel_name'] if 'vessel_name' in track.keys()
+                 and track['vessel_name'] is not None else ''),
+        'vesseltype_generic':
+        None,
+        'vesseltype_detailed':
+        None,
+        'callsign':
+        None,
+        'flag':
+        None,
+        'gross_tonnage':
+        None,
+        'summer_dwt':
+        None,
+        'length_breadth':
+        None,
+        'year_built':
+        None,
+        'home_port':
+        None,
+        'error404':
+        1
+    }
 
 
 def _loaded(drv: WebDriver) -> bool:
     asset_type = 'asset_type' in drv.current_url
     e404 = '404' == drv.title[0:3]
     exists = drv.find_elements(
-            by='id',
-            value='vesselDetails_voyageInfoSection',
-            )
+        by='id',
+        value='vesselDetails_voyageInfoSection',
+    )
     return (exists or e404 or asset_type)
 
 
@@ -46,37 +80,37 @@ def _getrow(vessel: dict) -> tuple:
         vessel['IMO'] = 0
     if 'Name' not in vessel.keys():
         vessel['Name'] = ''
+    if 'Call Sign' not in vessel.keys():
+        vessel['Call Sign'] = ''
     if 'Gross Tonnage' not in vessel.keys() or vessel['Gross Tonnage'] == '-':
         vessel['Gross Tonnage'] = 0
-    elif 'Gross Tonnage' in vessel.keys() and isinstance(vessel['Gross Tonnage'], str):
+    elif ('Gross Tonnage' in vessel.keys()
+          and isinstance(vessel['Gross Tonnage'], str)):
         vessel['Gross Tonnage'] = int(vessel['Gross Tonnage'].split()[0])
     if 'Summer DWT' not in vessel.keys() or vessel['Summer DWT'] == '-':
         vessel['Summer DWT'] = 0
-    elif 'Summer DWT' in vessel.keys() and isinstance(vessel['Summer DWT'], str):
+    elif ('Summer DWT' in vessel.keys()
+          and isinstance(vessel['Summer DWT'], str)):
         vessel['Summer DWT'] = int(vessel['Summer DWT'].split()[0])
     if 'Year Built' not in vessel.keys() or vessel['Year Built'] == '-':
         vessel['Year Built'] = 0
-    return (int(vessel['MMSI']),
-            int(vessel['IMO']),
-            vessel['Name'],
-            vessel['Vessel Type - Generic'],
-            vessel['Vessel Type - Detailed'],
-            vessel['Call Sign'],
-            vessel['Flag'],
-            int(vessel['Gross Tonnage']),
-            int(vessel['Summer DWT']),
-            vessel['Length Overall x Breadth Extreme'],
-            int(vessel['Year Built']),
-            vessel['Home Port'],
-            )
+    return (
+        int(vessel['MMSI']),
+        int(vessel['IMO']),
+        vessel['Name'],
+        vessel['Vessel Type - Generic'],
+        vessel['Vessel Type - Detailed'],
+        vessel['Call Sign'],
+        vessel['Flag'],
+        int(vessel['Gross Tonnage']),
+        int(vessel['Summer DWT']),
+        vessel['Length Overall x Breadth Extreme'],
+        int(vessel['Year Built']),
+        vessel['Home Port'],
+    )
 
 
-def _insertelem(elem, mmsi, imo):
-    # prepare sql code for inserting vessel info
-    insert_sqlfile = os.path.join(sqlpath, 'insert_webdata_marinetraffic.sql')
-    with open(insert_sqlfile, 'r') as f:
-        insert_sql = f.read()
-
+def _insertvesselrow(elem, mmsi, trafficDB):
     vessel = {}
     for info in elem.text.split('\n'):
         _updateinfo(info, vessel)
@@ -84,65 +118,70 @@ def _insertelem(elem, mmsi, imo):
         return
     insertrow = _getrow(vessel)
 
-    print(vessel)
+    print(insertrow)
 
     with trafficDB as conn:
-        conn.execute(insert_sql, insertrow)
-        if vessel['MMSI'] != mmsi:
-            conn.execute(err404, (str(mmsi), str(imo)))
-        if vessel['IMO'] != imo:
-            vessel['IMO'] = int(imo)
-            insertrow = _getrow(vessel)
-            conn.execute(insert_sql, insertrow)
+        conn.execute(_insert_sql, insertrow).fetchall()
 
 
-def _vinfo(track, conn):
-    track['static'] = set(track['static']).union({'marinetraffic_info'})
-    res = conn.execute(
-            'select * from webdata_marinetraffic where mmsi = ?',
-            [track['mmsi']],
-            ).fetchall()
-    if len(res) >= 1:
-        for r in res:
-            if (r['error404'] == 0 and r['imo'] > 0
-                    and r['vesseltype_generic'] is not None):
-                track['marinetraffic_info'] = dict(r)
-                break
-            track['marinetraffic_info'] = dict(r)
-    else:
-        track['marinetraffic_info'] = {
-                'mmsi': track['mmsi'],
-                'imo': track['imo'],
-                'name': track['vessel_name'] if 'vessel_name' in track.keys() and track['vessel_name'] is not None else '',
-                'vesseltype_generic': None,
-                'vesseltype_detailed': None,
-                'callsign': None,
-                'flag': None,
-                'gross_tonnage': None,
-                'summer_dwt': None,
-                'length_breadth': None,
-                'year_built': None,
-                'home_port': None,
-                'error404': 1,
-                }
-    if track['marinetraffic_info']['name'] in (None, 0, '0', 'None', '') or 'name' not in track['marinetraffic_info'].keys():
-        track['marinetraffic_info']['name'] = track['vessel_name']
-    return track
-
-
-def vessel_info(tracks):
+def _metadict(trafficDBpath):
+    trafficDB = sqlite3.connect(trafficDBpath)
+    trafficDB.row_factory = sqlite3.Row
     with trafficDB as conn:
-        for track in tracks:
-            yield _vinfo(track, conn)
+        res = conn.execute(
+            'select * from webdata_marinetraffic where error404 != 1',
+        ).fetchall()
+    return {r['mmsi']: dict(r) for r in res}
+
+
+def vessel_info(tracks, trafficDBpath):
+    ''' append metadata scraped from marinetraffic.com to track dictionaries.
+
+        See :meth:`aisdb.database.dbqry.DBQuery.check_marinetraffic` for a
+        high-level method to retrieve metadata for all vessels observed within
+        a specific query time and region, or alternatively see
+        :meth:`aisdb.webdata.marinetraffic.VesselInfo.vessel_info_callback`
+        for scraping metadata for a given list of MMSIs
+
+        args:
+            tracks (iter)
+                collection of track dictionaries
+
+    '''
+    meta = _metadict(trafficDBpath)
+    for track in tracks:
+        track['static'] = set(track['static']).union({'marinetraffic_info'})
+        if track['mmsi'] in meta.keys():
+            track['marinetraffic_info'] = meta[track['mmsi']]
+        else:
+            track['marinetraffic_info'] = _nullinfo(track)
+        yield track
 
 
 class VesselInfo():
+    ''' scrape vessel metadata from marinetraffic.com
 
-    def __init__(self, proxy=None):
+        args:
+            trafficDBpath (string)
+                path where vessel traffic metadata should be stored
+
+        See :meth:`aisdb.database.dbqry.DBQuery.check_marinetraffic` for a
+        high-level method to retrieve metadata for all vessels observed within
+        a specific query time and region, or alternatively see
+        :meth:`aisdb.webdata.marinetraffic.VesselInfo.vessel_info_callback`
+        for scraping metadata for a given list of MMSIs
+    '''
+
+    def __init__(self, trafficDBpath, proxy=None):
         self.filename = 'marinetraffic.db'
         self.driver = None
         self.baseurl = 'https://www.marinetraffic.com/'
         self.proxy = proxy
+        self.trafficDB = sqlite3.Connection(trafficDBpath)
+        self.trafficDB.row_factory = sqlite3.Row
+        # create a new info table if it doesnt exist yet
+        with self.trafficDB as conn:
+            conn.execute(_createtable_sql)
 
     def __enter__(self):
         return self
@@ -152,37 +191,27 @@ class VesselInfo():
             self.driver.close()
             self.driver.quit()
 
-    def _getinfo(self, url, searchmmsi, searchimo):
+    def _getinfo(self, *, url, searchmmsi, data_dir, infotxt=''):
         if self.driver is None:
-            self.driver = Scraper(proxy=self.proxy).driver
+            self.driver = _Scraper(data_dir=data_dir, proxy=self.proxy).driver
 
-        print(url, end='\t')
+        print(infotxt + url, end='\t')
         try:
             self.driver.get(url)
             WebDriverWait(self.driver, 15).until(_loaded)
         except TimeoutException:
-            print(f'timed out, skipping {searchmmsi=} {searchimo=}')
-
-            '''
-            # validate IMO
-            if searchimo != 0:
-                checksum = str(
-                        np.sum(
-                            np.array(list(map(int, list(str(searchimo)[:-1])))) *
-                            np.array([7, 6, 5, 4, 3, 2])))[-1]
-            else:
-                checksum = '0'
-            '''
+            print(f'timed out, skipping {searchmmsi=}')
 
             # if timeout occurs, mark as error 404
-            with trafficDB as conn:
-                conn.execute(err404, (str(searchmmsi), str(searchimo)))
+            with self.trafficDB as conn:
+                conn.execute(_err404, (str(searchmmsi), ))
             return
         except Exception as err:
             self.driver.close()
             self.driver.quit()
             raise err
 
+        # recurse through vessel listings if multiple vessels appear
         if 'asset_type' in self.driver.current_url:
             print('recursing...')
 
@@ -190,71 +219,86 @@ class VesselInfo():
             for elem in self.driver.find_elements(
                     By.CLASS_NAME,
                     value='ag-cell-content-link',
-                    ):
+            ):
                 urls.append(elem.get_attribute('href'))
 
             for url in urls:
-                self._getinfo(url, searchmmsi, searchimo)
+                self._getinfo(url=url,
+                              searchmmsi=searchmmsi,
+                              data_dir=data_dir)
 
-            # recursion break condition
-            with trafficDB as conn:
-                #conn.execute(err404, (searchmmsi, searchimo))
-                conn.execute(err404, (str(searchmmsi), str(searchimo)))
+            with self.trafficDB as conn:
+                insert404 = conn.execute(
+                    'SELECT COUNT(*) FROM webdata_marinetraffic WHERE mmsi=?',
+                    (str(searchmmsi), )).fetchone()[0] == 0
+                if insert404:
+                    conn.execute(_err404, (str(searchmmsi), ))
 
         elif 'hc-en' in self.driver.current_url:
             raise RuntimeError('bad url??')
 
         elif self.driver.title[0:3] == '404':
-            print(f'404 error! {searchmmsi=} {searchimo=}')
-            with trafficDB as conn:
-                #conn.execute(err404, (searchmmsi, searchimo))
-                conn.execute(err404, (str(searchmmsi), str(searchimo)))
+            print(f'404 error! {searchmmsi=}')
+            with self.trafficDB as conn:
+                conn.execute(_err404, (str(searchmmsi), ))
 
         value = 'vesselDetails_vesselInfoSection'
         for elem in self.driver.find_elements(value=value):
-            _ = _insertelem(elem, searchmmsi, searchimo)
+            _ = _insertvesselrow(elem, searchmmsi, self.trafficDB)
 
-    def vessel_info_callback(self, mmsis, imos, retry_404=False):
-        # only check unique mmsis and matching imo
-        mmsis, midx = np.unique(mmsis, return_index=True)
-        imos = [i if i is not None else 0 for i in imos[midx]]
-        mmsis = np.array(mmsis, dtype=int)
-        imos = np.array(imos, dtype=int)
-        assert mmsis.size == imos.size
-        print('.', end='')  # second dot
+    def vessel_info_callback(self,
+                             mmsis,
+                             data_dir,
+                             retry_404=False,
+                             infotxt=''):
+        ''' search for metadata for given mmsis
 
-        # create a new info table if it doesnt exist yet
-        createtable_sqlfile = os.path.join(
-                sqlpath,
-                'createtable_webdata_marinetraffic.sql',
-                )
-        with (trafficDB as conn, open(createtable_sqlfile, 'r') as f):
-            createtable_sql = f.read()
-            conn.execute(createtable_sql)
+            args:
+                mmsis (list)
+                    list of MMSI identifiers (integers)
+                data_dir (string)
+                    path to download and initialize web scraping drivers
+        '''
+        # only check unique mmsis
+        mmsis = np.unique(mmsis).astype(int)
+        print('.', end='')  # second dot (first in dbqry.py)
 
         # check existing
-        qrymmsis = ','.join(map(str, mmsis))
-        sqlcount = 'SELECT CAST(mmsi AS INT), CAST(imo as INT)\n'
-        sqlcount += f'FROM webdata_marinetraffic WHERE mmsi IN ({qrymmsis})\n'
+        sqlcount = 'SELECT mmsi FROM webdata_marinetraffic \t'
+        sqlcount += f'WHERE mmsi IN ({",".join(["?" for _ in mmsis])})\n'
         if retry_404:
-            sqlcount += 'AND error404 != 1\n'
+            sqlcount += 'AND error404 != 1 \n'
         sqlcount += 'ORDER BY mmsi'
-        with trafficDB as conn:
-            existing = conn.execute(sqlcount).fetchall()
-        print('.', end='')  # third dot
+        with self.trafficDB as conn:
+            existing = conn.execute(sqlcount, tuple(map(str,
+                                                        mmsis))).fetchall()
+        print('.')  # third dot
 
         # skip existing mmsis
-        ex_mmsis, ex_imos = np.array(existing).T
+        ex_mmsis = np.array(existing).flatten()
         xor_mmsis = np.setdiff1d(mmsis, ex_mmsis, assume_unique=True)
         if xor_mmsis.size == 0:
             return
-
-        print('.')  # fourth dot
 
         for mmsi in xor_mmsis:
             if not 200000000 <= mmsi <= 780000000:
                 continue
             url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}'
-            self._getinfo(url, mmsi, 0)
+            self._getinfo(url=url,
+                          searchmmsi=mmsi,
+                          data_dir=data_dir,
+                          infotxt=infotxt)
 
         return
+
+
+'''
+# validate IMO
+if searchimo != 0:
+    checksum = str(
+            np.sum(
+                np.array(list(map(int, list(str(searchimo)[:-1])))) *
+                np.array([7, 6, 5, 4, 3, 2])))[-1]
+else:
+    checksum = '0'
+'''

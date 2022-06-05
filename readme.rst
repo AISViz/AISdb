@@ -56,51 +56,36 @@ What is AIS?
 
 .. install:
 
-Installing
-----------
+Install Prerequisite
+--------------------
 
-Database creation with Rust can be enabled by installing the Rust compiler
-(Optional). 
-If installed, a rust executable will be compiled during pip install
+SQLite version 3.35 or newer is required https://www.sqlite.org/download.html
 
-.. code-block:: sh
 
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+Installing from PyPI
+----------------------
 
-The package can be installed using pip:
+TODO: upload package wheels to PyPI
 
-.. code-block:: sh
 
-  python3 -m venv env_aisdb
-  source env_aisdb/bin/activate
-  python3 -m pip install --verbose 'git+https://gitlab.meridian.cs.dal.ca/public_projects/aisdb#egg=aisdb'
+Installing from Source
+----------------------
 
-Although the graphical interface is still a work in progress, it can be
-enabled by `installing QGIS <https://qgis.org/en/site/forusers/download.html>`__. Note that
-when creating an environment using venv, the ``--system-site-packages``
-option must be used to share QGIS application data with the environment.
-
-Alternatively, the package can be :ref:`installed with docker <docker>`
-
-.. _Configuring: 
-
-Configuring
------------
-
-| A config file can be used to specify storage location for the database
-  as well as directory paths for where to look for additional data. The
-  package will look for configs in ``$HOME/.config/ais.cfg``,
-  where $HOME is the user’s home directory. The following defaults will be 
-  used for missing values
+Build wheel files using the included docker environment. By default, wheels will be built for python versions 3.7, 3.8, 3.9, and 3.10 using the manylinux2014_x86_64 target. Resulting wheel files will be output to ./target/wheels/
 
 .. code-block:: sh
 
-  dbpath = $HOME/ais/ais.db
-  data_dir = $HOME/ais/
-  zones_dir = $HOME/ais/zones/
-  tmp_dir = $HOME/ais/tmp_parsing/
-  rawdata_dir = $HOME/ais/rawdata/
-  output_dir = $HOME/ais/scriptoutput/
+  docker-compose up --build pkgbuild
+
+
+Package wheels can be installed using pip:
+
+.. code-block:: sh
+
+  python -m pip install aisdb-1.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+
+
+Read more about the docker services for this package in ``docker-compose.yml`` and :ref:`AISDB docker services <docker>`
 
 
 Code examples

@@ -14,13 +14,18 @@ import os
 
 from PIL import Image
 
-from aisdb import data_dir
 from aisdb.webdata.load_raster import load_raster_pixel
 
 
 class shore_dist_gfw():
 
-    def __init__(self):
+    def __init__(self, data_dir):
+        '''
+            args:
+                data_dir:
+                    path to folder where rasters are located
+        '''
+        self.data_dir = data_dir
         self.shoreimg = None
         self.portimg = None
         self.__enter__()
@@ -33,14 +38,14 @@ class shore_dist_gfw():
         Image.MAX_IMAGE_PIXELS = 650000000
 
         if self.shoreimg is None:
-            shorerasterpath = os.path.join(data_dir, shorerasterfile)
+            shorerasterpath = os.path.join(self.data_dir, shorerasterfile)
             assert os.path.isfile(
                 shorerasterpath
             ), ' raster file not found! see docstring for download URL'
             self.shoreimg = Image.open(shorerasterpath)
 
         if self.portimg is None:
-            portrasterpath = os.path.join(data_dir, portrasterfile)
+            portrasterpath = os.path.join(self.data_dir, portrasterfile)
             assert os.path.isfile(
                 portrasterpath
             ), ' raster file not found! see docstring for download URL'

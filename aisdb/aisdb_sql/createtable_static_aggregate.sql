@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS static_{}_aggregate (
+CREATE TABLE static_{}_aggregate (
     mmsi INTEGER PRIMARY KEY,
     vessel_name TEXT,
     ship_type INTEGER,
@@ -7,4 +7,4 @@ CREATE TABLE IF NOT EXISTS static_{}_aggregate (
     dim_port INTEGER,
     dim_star INTEGER,
     imo INTEGER
-);
+) STRICT;

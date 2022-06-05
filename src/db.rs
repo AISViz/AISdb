@@ -71,7 +71,12 @@ pub fn sqlite_create_rtree(tx: &Transaction, mstr: &str) -> Result<usize, rusqli
 }
 
 /// insert static reports into database
-pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
+pub fn sqlite_insert_static(
+    tx: &Transaction,
+    msgs: Vec<VesselData>,
+    mstr: &str,
+    source: &str,
+) -> Result<()> {
     let sql = sql_from_file("insert_static.sql").replace("{}", mstr);
 
     let mut stmt = tx.prepare_cached(&sql)?;
@@ -98,13 +103,19 @@ pub fn sqlite_insert_static(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str)
             eta.format("%d").to_string(),
             eta.format("%H").to_string(),
             eta.format("%M").to_string(),
+            source,
         ])?;
     }
     Ok(())
 }
 
 /// insert position reports into database
-pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str) -> Result<()> {
+pub fn sqlite_insert_dynamic(
+    tx: &Transaction,
+    msgs: Vec<VesselData>,
+    mstr: &str,
+    source: &str,
+) -> Result<()> {
     let sql = sql_from_file("insert_dynamic_clusteredidx.sql").replace("{}", mstr);
 
     let mut stmt = tx
@@ -125,6 +136,7 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
                 p.heading_true.unwrap_or(-1.),
                 p.special_manoeuvre.unwrap_or(false),
                 p.timestamp_seconds,
+                source,
             ])
             .expect("executing prepared row");
     }
@@ -133,25 +145,33 @@ pub fn sqlite_insert_dynamic(tx: &Transaction, msgs: Vec<VesselData>, mstr: &str
 }
 
 /// prepare a new transaction, ensure tables are created, and insert dynamic messages
-pub fn prepare_tx_dynamic(c: &mut Connection, positions: Vec<VesselData>) -> Result<()> {
+pub fn prepare_tx_dynamic(
+    c: &mut Connection,
+    source: &str,
+    positions: Vec<VesselData>,
+) -> Result<()> {
     let mstr = epoch_2_dt(*positions[positions.len() - 1].epoch.as_ref().unwrap() as i64)
         .format("%Y%m")
         .to_string();
     let t = c.transaction().unwrap();
     let _c = sqlite_createtable_dynamicreport(&t, &mstr).expect("creating dynamic table");
-    let _d = sqlite_insert_dynamic(&t, positions, &mstr).expect("insert dynamic");
+    let _d = sqlite_insert_dynamic(&t, positions, &mstr, &source).expect("insert dynamic");
     let _ = t.commit();
     Ok(())
 }
 
 /// prepare a new transaction, ensure tables are created, and insert static messages
-pub fn prepare_tx_static(c: &mut Connection, stat_msgs: Vec<VesselData>) -> Result<()> {
+pub fn prepare_tx_static(
+    c: &mut Connection,
+    source: &str,
+    stat_msgs: Vec<VesselData>,
+) -> Result<()> {
     let mstr = epoch_2_dt(*stat_msgs[stat_msgs.len() - 1].epoch.as_ref().unwrap() as i64)
         .format("%Y%m")
         .to_string();
     let t = c.transaction().unwrap();
     let _c = sqlite_createtable_staticreport(&t, &mstr).expect("create static table");
-    let _s = sqlite_insert_static(&t, stat_msgs, &mstr).expect("insert static");
+    let _s = sqlite_insert_static(&t, stat_msgs, &mstr, &source).expect("insert static");
     let _ = t.commit();
     Ok(())
 }

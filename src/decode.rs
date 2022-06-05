@@ -70,6 +70,7 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
                         {
                             return Some((payload.to_string(), i.try_into().unwrap()));
                         } else {
+                            #[cfg(debug_assertions)]
                             println!(
                                 "skipped- tag:{:?}\tmeta:{:?}\tpayload:{:?}",
                                 tag, meta, payload
@@ -81,7 +82,12 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
             }
             //println!("{:?}", meta);
             if meta.contains(' ') {
-                let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap();
+                #[cfg(debug_assertions)]
+                println!("{:?}", meta);
+                let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap_or(0);
+                if ii == 0 {
+                    return None;
+                }
 
                 let now = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -111,18 +117,23 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
 /// discards UTC date response and binary application payloads before
 /// decoding them
 pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
-    //println!("{:?}", msg);
     let cols: Vec<&str> = msg.split(',').collect();
     if cols.len() < 6 {
         return Some((msg.to_string(), *epoch));
     }
+    #[cfg(debug_assertions)]
+    println!(
+        "{:?} {:?} {:?} {:?} {:?} {:?}",
+        cols[0], cols[1], cols[2], cols[3], cols[4], cols[5]
+    );
     let count = str::parse::<u8>(cols[1]).unwrap_or(1);
-    match (cols[0], count, cols[2], cols[3], cols[4], cols[5]) {
-        (prefix, c, _fragment_no, _seq_id, _channel, tx)
-            if &tx.chars().count() > &2
-                && (c == 1)
-                && (&tx[0..1] == ";" || &tx[0..1] == "I" || &tx[0..1] == "J")
-                && (prefix == "!AIVDM" || prefix == "!AIVDO") =>
+    let fragment_no = str::parse::<u8>(cols[2]).unwrap_or(1);
+    match (cols[0], count, fragment_no, cols[3], cols[4], cols[5]) {
+        (_prefix, c, f, _seq_id, _channel, tx)
+            if (&tx.chars().count() <= &2
+                || ((c == 1)
+                    && (f == 1)
+                    && (&tx[0..1] == ";" || &tx[0..1] == "I" || &tx[0..1] == "J"))) =>
         {
             //println!("skipped {:?}", msg);
             None
@@ -137,6 +148,9 @@ pub fn filter_vesseldata(
     epoch: &i32,
     parser: &mut NmeaParser,
 ) -> Option<(ParsedMessage, i32, bool)> {
+    #[cfg(debug_assertions)]
+    println!("{:?} {:?}", epoch, sentence);
+
     match parser.parse_sentence(sentence).ok()? {
         ParsedMessage::VesselDynamicData(vdd) => {
             Some((ParsedMessage::VesselDynamicData(vdd), *epoch, true))
@@ -154,6 +168,7 @@ pub fn filter_vesseldata(
 pub fn decode_insert_msgs(
     dbpath: &std::path::Path,
     filename: &std::path::Path,
+    source: &str,
     mut parser: NmeaParser,
 ) -> Result<NmeaParser, Error> {
     //) -> Result<(), Error> {
@@ -193,6 +208,7 @@ pub fn decode_insert_msgs(
             payload: Some(payload),
         };
 
+        /*
         if is_dynamic {
             positions.push(message);
             count += 1;
@@ -200,23 +216,36 @@ pub fn decode_insert_msgs(
             stat_msgs.push(message);
             count += 1;
         }
+        */
+
+        match (is_dynamic, &message.payload) {
+            (_, None) => continue,
+            (true, Some(_m)) => {
+                positions.push(message);
+                count += 1;
+            }
+            (false, Some(_m)) => {
+                stat_msgs.push(message);
+                count += 1;
+            }
+        }
 
         if positions.len() >= 500000 {
-            let _d = prepare_tx_dynamic(&mut c, positions);
+            let _d = prepare_tx_dynamic(&mut c, &source, positions);
             positions = vec![];
         };
         if stat_msgs.len() >= 500000 {
-            let _s = prepare_tx_static(&mut c, stat_msgs);
+            let _s = prepare_tx_static(&mut c, &source, stat_msgs);
             stat_msgs = vec![];
         }
     }
 
     // insert remaining
     if positions.len() > 0 {
-        let _d = prepare_tx_dynamic(&mut c, positions);
+        let _d = prepare_tx_dynamic(&mut c, &source, positions);
     }
     if stat_msgs.len() > 0 {
-        let _s = prepare_tx_static(&mut c, stat_msgs);
+        let _s = prepare_tx_static(&mut c, &source, stat_msgs);
     }
 
     let elapsed = start.elapsed();
@@ -238,7 +267,10 @@ pub fn decode_insert_msgs(
         8
     );
 
-    println!("{}count:{: >8}    {}    {}", fname1, count, elapsed1, rate1,);
+    println!(
+        "{} count:{: >8}    {}    {}",
+        fname1, count, elapsed1, rate1,
+    );
 
     Ok(parser)
 }
@@ -258,43 +290,44 @@ pub mod tests {
     #[test]
     pub fn testingdata() -> Result<(), &'static str> {
         let c = r#"
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;I=i:8f0D4l>niTdDO`cO3jGqrlQ,0*67
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,another_error!!;wqlirf
-\s:42958i,t:1635809521*6F\!AIVDM,1,1,,A,B4eIh>@0<voAFw6HKAi7swf1lH@s,0*61
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,B,14eGdb0001sM5sjIS3C5:qpt0L0G,0*0CFFF
-!AIVDM,1,1,,,IjHcmoT=Jk;9uh,4*3E
-!AIVDM,1,1,,,;3atgG6bSvJKGpi6=:9Twkk13W:3,0*03
-!AIVDM,1,1,,,;3f?`?bDiW2w=Pt3hfnEP6pCJoli,0*4E
-!AIVDM,1,1,,,;4=BV5C@NGJfs0ck@oM2gB>6E2hB,0*39
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;5L<FJ3An>wAqn=voHSOHqTv=`GN,0*21
-!AIVDM,1,1,,,;7a`OobAVQO<A1nbiBc3rBqih5UB,0*78
-\s:42958,c:1635809454\!AIVDM,1,1,,,;9L:cO`CgQ@S:NcT04HENVk@:JR=,0*5F
-!AIVDM,1,1,,,;:JvB;MhC4pvK3KB43F60v4bAhuF,0*7B
-,t:1635809521*6F!AIVDM,1,1,,,;;d6bbCsM8qH5>?=U0BMdo>>VvmU,0*39
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;;si?Qj0:wNL4tDTd`BN41nL0D11,0*0D
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;=K;HJ:wsf0Bg8IDJ2MQ7PISJ;jJ,0*23
-\c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;=OeV7HR4n8tM3grUTk1Cs9glLGE,0*5A
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;@Ha?G0t<>ekGDOI:>sE<2BnWHNr,0*33
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;AHld`?P<wLu6<T:L6TVm0QqcQWl,0*48
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;BI:gwCuqWqP7Wr8JVKTwAIDRiWl,0*5E
-\s:42958,t:1635809521*6F\!AIVDM,1,1,,,;EH8O`wtiWs;0MmE@F;U2:srnf?E,0*75
-\s:42958,c:,t:1635809521*6F\!AIVDM,1,1,,,;I=i:8f0D4l>niTdDO`cO3jGqrlQ,0*67
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;KaC759LogaaW=4r:nn>VEc<m2qs,0*73
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;KpNTNJNbq9wMffET:P<C35Pmo`1,0*26
-\g:23412341234kj\!AIVDM,1,1,,,;M`m7tluWVNmIBnh5NoiARj<spps,0*51
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;OJvuN<7esIlAgPIus4NJa:UlqDP,0*22
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;RIRt:dp:3qqmr67hRoGGJ>e7uTi,0*63
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;U>f0=vU6au?gW@E8UuVoI=P07H=,0*20
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;cvCpIRTKPSqU9kT0dOLKWuC2KE2,0*2C
-\s:42958,c:-12134,t:1635809521*6F\!AIVDM,1,1,,,;cw3<IPo<pHlaoEPuT9PqcAn5fnM,0*47
-\s:42958,c:asbhdjf,t:1635809521*6F\!AIVDM,1,1,,,;eeA1PBssU1OQwN8orvatv97;@tm,0*21
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;g9tT:6O@0Ujsr<mCJCwnAG83cv?,0*0A
-\s:42958,c1635809454,t:1635809521*6F\!AIVDM,1,1,,,;h3woll47wk?0<tSF0l4Q@000P00,0*4B
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;i<rac5sg@;huMi4QhiWacTLEQj<,0*71
-\s:42958,c:1635809454,t:1635809521*6F\!AIVDM,2,1,4,,54sc8041SAu`uDPr220dU<56222222222222221618@247?m07SUEBp1,0*0C
-\c:1617253215*5A\!AIVDM,1,1,,,13nWPR0003K7<OsQsrGW1K>L0881,0*68
-\c:1617284347*56\!AIVDM,1,1,,,13n7aN0wQnsN4lfE8nEUgDf:0<00,0*18
-\c:1617289692*56\!AIVDM,1,1,,,C4N6S1005=6h:aw8::=9CwTHL:`<BVAWWWKQa1111110CP81110W,0*7A"#;
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;I=i:8f0D4l>niTdDO`cO3jGqrlQ,0*67
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,another_error!!;wqlirf
+            \s:42958i,t:1635809521*6F\!AIVDM,1,1,,A,B4eIh>@0<voAFw6HKAi7swf1lH@s,0*61
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,B,14eGdb0001sM5sjIS3C5:qpt0L0G,0*0CFFF
+            !AIVDM,1,1,,,IjHcmoT=Jk;9uh,4*3E
+            !AIVDM,1,1,,,;3atgG6bSvJKGpi6=:9Twkk13W:3,0*03
+            !AIVDM,1,1,,,;3f?`?bDiW2w=Pt3hfnEP6pCJoli,0*4E
+            !AIVDM,1,1,,,;4=BV5C@NGJfs0ck@oM2gB>6E2hB,0*39
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;5L<FJ3An>wAqn=voHSOHqTv=`GN,0*21
+            !AIVDM,1,1,,,;7a`OobAVQO<A1nbiBc3rBqih5UB,0*78
+            \s:42958,c:1635809454\!AIVDM,1,1,,,;9L:cO`CgQ@S:NcT04HENVk@:JR=,0*5F
+            !AIVDM,1,1,,,;:JvB;MhC4pvK3KB43F60v4bAhuF,0*7B
+            ,t:1635809521*6F!AIVDM,1,1,,,;;d6bbCsM8qH5>?=U0BMdo>>VvmU,0*39
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;;si?Qj0:wNL4tDTd`BN41nL0D11,0*0D
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;=K;HJ:wsf0Bg8IDJ2MQ7PISJ;jJ,0*23
+            \c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;=OeV7HR4n8tM3grUTk1Cs9glLGE,0*5A
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;@Ha?G0t<>ekGDOI:>sE<2BnWHNr,0*33
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;AHld`?P<wLu6<T:L6TVm0QqcQWl,0*48
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;BI:gwCuqWqP7Wr8JVKTwAIDRiWl,0*5E
+            \s:42958,t:1635809521*6F\!AIVDM,1,1,,,;EH8O`wtiWs;0MmE@F;U2:srnf?E,0*75
+            \s:42958,c:,t:1635809521*6F\!AIVDM,1,1,,,;I=i:8f0D4l>niTdDO`cO3jGqrlQ,0*67
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;KaC759LogaaW=4r:nn>VEc<m2qs,0*73
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;KpNTNJNbq9wMffET:P<C35Pmo`1,0*26
+            \g:23412341234kj\!AIVDM,1,1,,,;M`m7tluWVNmIBnh5NoiARj<spps,0*51
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;OJvuN<7esIlAgPIus4NJa:UlqDP,0*22
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;RIRt:dp:3qqmr67hRoGGJ>e7uTi,0*63
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;U>f0=vU6au?gW@E8UuVoI=P07H=,0*20
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;cvCpIRTKPSqU9kT0dOLKWuC2KE2,0*2C
+            \s:42958,c:-12134,t:1635809521*6F\!AIVDM,1,1,,,;cw3<IPo<pHlaoEPuT9PqcAn5fnM,0*47
+            \s:42958,c:asbhdjf,t:1635809521*6F\!AIVDM,1,1,,,;eeA1PBssU1OQwN8orvatv97;@tm,0*21
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;g9tT:6O@0Ujsr<mCJCwnAG83cv?,0*0A
+            \s:42958,c1635809454,t:1635809521*6F\!AIVDM,1,1,,,;h3woll47wk?0<tSF0l4Q@000P00,0*4B
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,1,1,,,;i<rac5sg@;huMi4QhiWacTLEQj<,0*71
+            \s:42958,c:1635809454,t:1635809521*6F\!AIVDM,2,1,4,,54sc8041SAu`uDPr220dU<56222222222222221618@247?m07SUEBp1,0*0C
+            \c:1617253215*5A\!AIVDM,1,1,,,13nWPR0003K7<OsQsrGW1K>L0881,0*68
+            \c:1617284347*56\!AIVDM,1,1,,,13n7aN0wQnsN4lfE8nEUgDf:0<00,0*18
+            \c:1551783351,t:1635809521*6F\!AIVDM,1,1,,A,I0,4*5B
+            \c:1617289692*56\!AIVDM,1,1,,,C4N6S1005=6h:aw8::=9CwTHL:`<BVAWWWKQa1111110CP81110W,0*7A"#;
 
         if create_dir_all("testdata/").is_ok() {
             let mut output = File::create("testdata/testingdata.nm4").unwrap();
@@ -316,13 +349,18 @@ pub mod tests {
         assert_eq!(expected, result);
     }
 
-    pub async fn test_decode_insert_msgs() -> Result<(), Error> {
+    #[test]
+    pub fn test_decode_insert_msgs() -> Result<(), Error> {
         let mut parser = NmeaParser::new();
-        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
+        let mut fpaths =
+            glob_dir(std::path::PathBuf::from("aisdb/tests/"), "nm4").expect("globbing");
+        fpaths
+            .append(&mut glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing"));
         for filepath in fpaths {
             parser = decode_insert_msgs(
                 &std::path::Path::new("testdata/test.db").to_path_buf(),
                 &std::path::Path::new(&filepath).to_path_buf(),
+                "TESTING",
                 parser,
             )
             .expect("test decode and insert");

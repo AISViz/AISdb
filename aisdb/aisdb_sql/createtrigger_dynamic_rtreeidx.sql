@@ -11,7 +11,8 @@ BEGIN
         sog,
         cog,
         heading,
-        utc_second
+        utc_second,
+        source
     )
     VALUES (
         --new.ROWID,
@@ -23,6 +24,7 @@ BEGIN
         new.sog,
         new.cog,
         new.heading,
-        new.utc_second
+        new.utc_second,
+        new.source
     )
 ; END

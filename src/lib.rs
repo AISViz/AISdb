@@ -14,11 +14,15 @@ pub mod db;
 #[path = "decode.rs"]
 pub mod decode;
 
+#[path = "load_geotiff.rs"]
+pub mod load_geotiff;
+
 #[path = "util.rs"]
 pub mod util;
 
 use csvreader::*;
 use decode::*;
+use load_geotiff::load_pixel;
 
 macro_rules! zip {
     ($x: expr) => ($x);
@@ -36,7 +40,7 @@ pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 }
 
 #[pyfunction]
-pub fn decode_native(dbpath: &str, files: Vec<&str>) {
+pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str) {
     // array tuples containing (dbpath, filepath)
     let mut path_arr = vec![];
     for file in files {
@@ -56,9 +60,9 @@ pub fn decode_native(dbpath: &str, files: Vec<&str>) {
             || f.to_str().unwrap().contains(&".TXT")
             || f.to_str().unwrap().contains(&".txt")
         {
-            parser = decode_insert_msgs(&d, &f, parser).expect("decoding NM4");
+            parser = decode_insert_msgs(&d, &f, &source, parser).expect("decoding NM4");
         } else if f.to_str().unwrap().contains(&".csv") || f.to_str().unwrap().contains(&".CSV") {
-            decodemsgs_ee_csv(&d, &f).expect("decoding CSV");
+            decodemsgs_ee_csv(&d, &f, &source).expect("decoding CSV");
         } else {
             panic!("unknown file extension {:?}", &d);
         }
@@ -74,11 +78,17 @@ pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<
     line.into_iter().collect::<Vec<usize>>()
 }
 
+#[pyfunction]
+pub fn load_geotiff_pixel(lon: usize, lat: usize, filepath: &str) -> usize {
+    load_pixel(lon, lat, &filepath)
+}
+
 #[pymodule]
 #[allow(unused_variables)]
 pub fn aisdb(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(haversine))?;
-    module.add_wrapped(wrap_pyfunction!(decode_native))?;
+    module.add_wrapped(wrap_pyfunction!(decoder))?;
     module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
+    //module.add_wrapped(wrap_pyfunction!(load_geotiff_pixel))?;
     Ok(())
 }

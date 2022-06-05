@@ -1,32 +1,13 @@
 import os
-from hashlib import sha256
-from functools import reduce
-from datetime import datetime
 
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb import zones_dir, data_dir
-from aisdb.proc_util import glob_files
-from aisdb.database.sqlfcn_callbacks import in_timerange
-from aisdb.database.dbqry import DBQuery
 from aisdb.database.dbconn import DBConn
-from aisdb.gis import Domain, DomainFromTxts
-
-arrayhash = lambda matrix, nbytes=2: sha256(
-    reduce(np.append, matrix).tobytes()).hexdigest()[nbytes * -8:]
-
-testdbpath = os.path.join(data_dir, 'testdb', 'test.db')
+from aisdb.gis import Domain
 
 
 def sample_dynamictable_insertdata(testdbpath):
-    args = DBQuery(
-        start=datetime(2000, 1, 1),
-        end=datetime(2000, 2, 1),
-        callback=in_timerange,
-    )
-    args.check_idx(dbpath=testdbpath)
-
     db = DBConn(dbpath=testdbpath)
     db.cur.execute(
         'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702800, -60.994833, 47.434647238127695, -1, -1)'
@@ -64,24 +45,16 @@ def sample_gulfstlawrence_bbox():
     return gulfstlawrence_bbox_xy.T
 
 
-def zonegeoms_or_randompoly(randomize=False, count=10):
-    shapefilepaths = glob_files(zones_dir, '.txt')
-    if len(shapefilepaths) > 0 and not randomize:
-        domain = DomainFromTxts('testdomain', zones_dir)
-    else:
-        domain = Domain('testdomain',
-                        [{
-                            'name': 'random',
-                            'geometry': Polygon(zip(*sample_random_polygon()))
-                        } for _ in range(count)])
-    return domain
+def random_polygons_domain(count=10):
+    return Domain('testdomain',
+                  [{
+                      'name': 'random',
+                      'geometry': Polygon(zip(*sample_random_polygon()))
+                  } for _ in range(count)])
 
 
-def create_testing_aisdata():
-    testdir = os.path.join(data_dir, 'testdb')
-    if not os.path.isdir(testdir):
-        os.mkdir(testdir)
-    fpath = os.path.join(testdir, 'testingdata.nm4')
+def create_testing_aisdata(data_dir):
+    fpath = os.path.join(data_dir, 'testingdata.nm4')
     print(f'creating testing data: {fpath}')
     with open(fpath, 'w') as f:
         f.write(r'''

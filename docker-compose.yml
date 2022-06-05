@@ -8,12 +8,7 @@ services:
     image: ghcr.io/pyo3/maturin:main
     volumes:
       - ./:/io
-      #- ./aisdb:/io/aisdb
-      #- ./src:/io/src
-      #- ./target:/io/target
-      #- ./build.rs:/io/build.rs
-      #- ./Cargo.toml/io/Cargo.toml
-    command: build --release --manylinux 2014
+    command: build --release --manylinux 2014 --strip
 
   # run rust tests
   rust-test:
@@ -46,7 +41,7 @@ services:
     volumes:
       - ./aisdb/tests:/home/ais_env/tests
     command: 
-      ["python", "-m", "pytest", "--color=yes", "--tb=native", "--doctest-modules", "tests/", "-s", "-k", "not merge"]
+      ["python", "-m", "pytest", "--color=yes", "--tb=native", "--doctest-modules", "tests/", "-s", "-k", "not async"]
 
   # nodeJS docs server + webapp
   webserver:
@@ -59,14 +54,6 @@ services:
         BINGMAPSKEY: ${BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
         AISDBHOST: ${AISDBHOST:-127.0.0.1}
         AISDBPORT: ${AISDBPORT:-9924}
-    #volumes:
-      #- ./Cargo.toml:/home/ais_env/Cargo.toml:ro
-      #- ./src:/home/ais_env/src:ro
-      #- ./build.rs:/home/ais_env/build.rs:ro
-      #- ./aisdb:/home/ais_env/aisdb:ro
-      #- ./aisdb_web/build_website.sh:/home/ais_env/aisdb_web/build_website.sh:ro
-      #- ./aisdb_web/map:/home/ais_env/aisdb_web/map:ro
-      #- ./:/home/ais_env/
     command:
       ['npm', '--prefix', 'aisdb_web/', 'start']
     networks:
@@ -85,7 +72,16 @@ services:
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
       AISDBPORT: ${AISDBPORT:-9924}
     command:
-      ['python', '-Ouc', 'import asyncio; from aisdb.websocket_server import SocketServ; serv=SocketServ(False); asyncio.run(serv.main())']
+      ['python', '-Ouc', 'import asyncio;
+      from aisdb.websocket_server import SocketServ;
+      from aisdb import DomainFromTxts;
+      serv=SocketServ(
+        dbpath="${AISDBPATH:-/home/ais_env/ais/ais.db}", 
+        domain=DomainFromTxts("example", "${AISDBZONES:-/home/ais_env/ais/zones/}", correct_coordinate_range=False), 
+        trafficDBpath="${AISDBMARINETRAFFIC:-/home/ais_env/ais/marinetraffic.db}", 
+        enable_ssl=False,
+      );
+      asyncio.run(serv.main())']
     networks: 
       ipv6_private:
         ipv6_address: "fc00::6"

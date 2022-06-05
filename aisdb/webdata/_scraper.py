@@ -1,8 +1,8 @@
 ''' webscraper using selenium, firefox, and mozilla geckodriver '''
 
 import os
+import sys
 
-from aisdb.common import data_dir
 from aisdb.webdata import _init_configs
 
 import shutil
@@ -12,12 +12,12 @@ from selenium.webdriver.firefox.options import Options
 
 cfgfile = os.path.join(os.path.expanduser('~'), '.config', 'ais.cfg')
 
-os.environ['PATH'] = f'{data_dir}:{os.environ.get("PATH")}'
 
+class _Scraper():
 
-class Scraper():
+    def __init__(self, data_dir, proxy=None):
 
-    def __init__(self, proxy=None):
+        os.environ['PATH'] = f'{data_dir}:{os.environ.get("PATH")}'
         '''
             args:
                 proxy (string):
@@ -33,12 +33,13 @@ class Scraper():
             raise RuntimeError(
                     'firefox must be installed to use this feature!')
 
-        _init_configs()
+        _init_configs(data_dir=data_dir)
 
         headless = True
-        match os.environ.get('HEADLESS', True):
-            case '0' | 'False' | 'false':
-                headless = False
+        env_headless = os.environ.get('Headless', True)
+        if env_headless in ('0', 'False', 'false'):
+            headless = False
+
 
         # configs
         (opt := Options()).headless = headless
@@ -58,6 +59,8 @@ class Scraper():
         if proxy is not None:
             host, port = proxy.split(':')
             service_args = ['--host', host, '--port', port]
+
+        sys.path.append(data_dir)
 
         self.driver = webdriver.WebDriver(
                 options=opt,

@@ -2,18 +2,18 @@
     generate queries
 '''
 
-import asyncio
+import sqlite3
 import aiosqlite
 from collections import UserDict
 from datetime import datetime
+from functools import reduce
 
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb import dbpath
 from aisdb.database import sqlfcn_callbacks
 from aisdb.database.dbconn import DBConn
-from aisdb.database.sqlfcn import crawl
+from aisdb.database import sqlfcn
 from aisdb.database.sqlfcn_callbacks import dt2monthstr, arr2polytxt
 from aisdb.database.create_tables import (
     aggregate_static_msgs,
@@ -24,8 +24,8 @@ from aisdb.webdata.marinetraffic import VesselInfo
 
 from aisdb.gis import epoch_2_dt
 
-epoch2monthstr = lambda start, end, **_: dt2monthstr(epoch_2_dt(start),
-                                                     epoch_2_dt(end))
+_epoch2monthstr = lambda start, end, **_: dt2monthstr(epoch_2_dt(start),
+                                                      epoch_2_dt(end))
 
 
 class DBQuery(UserDict):
@@ -35,7 +35,7 @@ class DBQuery(UserDict):
         Args:
             callback: (function)
                 anonymous function yielding SQL code specifying "WHERE" clauses.
-                common queries are included in aisdb.database.sqlfcn_callbacks,
+                common queries are included in :module:`aisdb.database.sqlfcn_callbacks`,
                 e.g.
 
                 >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
@@ -61,13 +61,13 @@ class DBQuery(UserDict):
         complete example:
 
         >>> from datetime import datetime
-        >>> from aisdb import dbpath, DBQuery
+        >>> from aisdb import DBQuery
         >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 
+        >>> dbpath = '~/ais/ais.db'
         >>> start, end = datetime(2022, 1, 1), datetime(2022, 1, 7)
         >>> q = DBQuery(callback=in_timerange_validmmsi, start=start, end=end)
 
-        >>> q.check_idx()  # build index if necessary
         >>> print(f'iterating over rows returned from {dbpath}')
         >>> for rows in q.gen_qry():
         ...     print(rows)
@@ -90,7 +90,7 @@ class DBQuery(UserDict):
             elif isinstance(kwargs['start'], datetime):
                 self.data.update({'months': dt2monthstr(**kwargs)})
             elif isinstance(kwargs['start'], (float, int)):
-                self.data.update({'months': epoch2monthstr(**kwargs)})
+                self.data.update({'months': _epoch2monthstr(**kwargs)})
             else:
                 assert False
 
@@ -109,119 +109,112 @@ class DBQuery(UserDict):
             else:
                 assert 'radius' in self.keys(), 'undefined radius'
 
-    def check_idx(self, dbpath=dbpath, vesselinfo=False, domain=None):
-        ''' Ensure that all tables exist, and indexes are built, for the
-            timespan covered by the DBQuery.
-            Scrapes metadata for vessels in domain and stores to
-            marinetraffic.db inside data_dir
+    def check_marinetraffic(self,
+                            dbpath,
+                            trafficDBpath,
+                            boundary,
+                            data_dir,
+                            retry_404=False):
+        ''' scrape metadata for vessels in domain from marinetraffic
 
             args:
                 dbpath (string)
-                    Path to database
+                    database file path
+                trafficDBpath (string)
+                    marinetraffic database path
+                boundary (dict)
+                    uses keys xmin, xmax, ymin, and ymax to denote the region
+                    of vessels that should be checked.
+                    if using aisdb.gis.Domain, the Domain.boundary attribute
+                    can be supplied here
         '''
         aisdatabase = DBConn(dbpath)
         cur = aisdatabase.cur
-        vinfo = VesselInfo()
-        for month in self.data['months'][::-1]:
-            cur.execute(
-                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
-                [f'ais_{month}_static'])
-            if len(cur.fetchall()) == 0:
-                sqlite_createtable_staticreport(cur, month)
+        vinfo = VesselInfo(trafficDBpath)
+        for month in self.data['months']:
+            print(f'retrieving vessel info for {month}', end='', flush=True)
 
-            cur.execute(
-                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
-                [f'static_{month}_aggregate'])
-
-            if len(cur.fetchall()) == 0:
-                print(f'building static index for month {month}...',
-                      flush=True)
-                aggregate_static_msgs(dbpath, [month])
-
+            # create any missing tables
             cur.execute(
                 'SELECT * FROM sqlite_master WHERE type="table" and name=?',
                 [f'ais_{month}_dynamic'])
             if len(cur.fetchall()) == 0:
                 sqlite_createtable_dynamicreport(cur, month)
 
-            cur.execute(
-                'SELECT * FROM sqlite_master WHERE type="index" and name=?',
-                [f'idx_{month}_m_t_x_y'])
-
-            if len(cur.fetchall()) == 0:
-                print(f'building dynamic index for month {month}...',
-                      flush=True)
-                cur.execute(
-                    f'CREATE INDEX IF NOT EXISTS idx_{month}_m_t_x_y '
-                    f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude)'
-                )
-
-            if ('xmin' not in self.keys() or 'xmax' not in self.keys()
-                    or 'ymin' not in self.keys() or 'ymax' not in self.keys()):
-                continue
-
-            if not vesselinfo:
-                continue
-
-            if not domain:
-                print('Domain argument required to check vessel info!')
-                continue
-
-            # scrape metadata for observed vessels from marinetraffic
-            # if no domain is provided, defaults to area surrounding canada
-            print(f'retrieving vessel info for {month}', end='', flush=True)
-
+            # check unique mmsis
             sql = f'''
             SELECT DISTINCT(mmsi) FROM ais_{month}_dynamic AS d WHERE
-            {sqlfcn_callbacks.in_validmmsi_bbox(alias='d',
-                xmin=domain.minX,
-                xmax=domain.maxX,
-                ymin=domain.minY,
-                ymax=domain.maxY)}
+            {sqlfcn_callbacks.in_validmmsi_bbox(alias='d', **boundary)}
             '''
             cur.execute(sql)
             print('.', end='', flush=True)  # first dot
             mmsis = cur.fetchall()
-            imos = [0 for _ in mmsis]
 
+            # retrieve vessel metadata
             if len(mmsis) > 0:
-                vinfo.vessel_info_callback(np.array(mmsis), np.array(imos))
+                vinfo.vessel_info_callback(mmsis=np.array(mmsis),
+                                           data_dir=data_dir,
+                                           retry_404=retry_404,
+                                           infotxt=f'{month} ')
 
-        aisdatabase.conn.commit()
         aisdatabase.conn.close()
 
     def gen_qry(self,
-                fcn=crawl,
-                dbpath=dbpath,
+                dbpath,
+                fcn=sqlfcn.crawl_dynamic,
                 printqry=False,
-                check_idx=False,
-                maxlength=0):
+                force_reaggregate_static=False):
         ''' queries the database using the supplied SQL function and dbpath.
             generator only stores one item at at time before yielding
 
             args:
                 self (UserDict)
                     dictionary containing kwargs
-                fcn (function)
-                    callback function that will generate SQL code using
-                    the args stored in self
                 dbpath (string)
                     database location. defaults to the path configured
                     in ~/.config/ais.cfg
+                fcn (function)
+                    callback function that will generate SQL code using
+                    the args stored in self
 
             yields:
                 numpy array of rows for each unique MMSI
                 arrays are sorted by MMSI
                 rows are sorted by time
         '''
-        if check_idx:
-            self.check_idx()
         qry = fcn(**self)
 
         # initialize db, run query
         if printqry:
             print(qry)
         aisdatabase = DBConn(dbpath)
+
+        for month in self.data['months']:
+            # create static tables if necessary
+            aisdatabase.cur.execute(
+                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+                [f'ais_{month}_static'])
+            if len(aisdatabase.cur.fetchall()) == 0:
+                sqlite_createtable_staticreport(aisdatabase.cur, month)
+
+            # create aggregate tables if necessary
+            aisdatabase.cur.execute(
+                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+                [f'static_{month}_aggregate'])
+
+            if len(aisdatabase.cur.fetchall()
+                   ) == 0 or force_reaggregate_static:
+                print(f'building static index for month {month}...',
+                      flush=True)
+                aggregate_static_msgs(dbpath, [month])
+
+            # create dynamic tables if necessary
+            aisdatabase.cur.execute(
+                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+                [f'ais_{month}_dynamic'])
+            if len(aisdatabase.cur.fetchall()) == 0:
+                sqlite_createtable_dynamicreport(aisdatabase.cur, month)
+
         dt = datetime.now()
         aisdatabase.cur.execute(qry)
         delta = datetime.now() - dt
@@ -229,46 +222,54 @@ class DBQuery(UserDict):
             print(
                 f'query time: {delta.total_seconds():.2f}s\nfetching rows...')
 
-        # get 100k rows at a time, yield sets of rows for each unique MMSI
-        mmsi_rows = None
+        # get 500k rows at a time, yield sets of rows for each unique MMSI
+        mmsi_rows = []
         res = aisdatabase.cur.fetchmany(10**5)
+        assert res != [], f'no rows for query: {qry}'
         while len(res) > 0:
-            if mmsi_rows is None:
-                mmsi_rows = np.array(res, dtype=object)
-            else:
-                mmsi_rows = np.vstack((mmsi_rows, np.array(res, dtype=object)))
-
-            while len(mmsi_rows) > 1 and (
-                    int(mmsi_rows[0][0]) != int(mmsi_rows[-1][0]) or
-                (maxlength > 0 and len(mmsi_rows) > maxlength)):
-                ummsi_idx = np.where(mmsi_rows[:, 0] != mmsi_rows[0, 0])[0][0]
-                if maxlength:
-                    ummsi_idx = min(ummsi_idx, maxlength)
-                yield np.array(mmsi_rows[0:ummsi_idx], dtype=object)
-                mmsi_rows = mmsi_rows[ummsi_idx:]
-
+            mmsi_rows += res
+            ummsi_idx = np.where(
+                np.array(mmsi_rows)[:-1, 0] != np.array(mmsi_rows)[1:,
+                                                                   0])[0] + 1
+            ummsi_idx = reduce(np.append, ([0], ummsi_idx, [len(mmsi_rows)]))
+            for i in range(len(ummsi_idx) - 2):
+                yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
+            if len(ummsi_idx) > 2:
+                mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
             res = aisdatabase.cur.fetchmany(10**5)
-
-        yield np.array(mmsi_rows, dtype=object)
+        yield mmsi_rows
         aisdatabase.conn.close()
 
-    async def async_qry(self, fcn=crawl, dbpath=dbpath):
-        loop = asyncio.get_running_loop()
+    async def async_qry(self,
+                        dbpath,
+                        fcn=sqlfcn.crawl_dynamic,
+                        force_reaggregate_static=False):
         aisdatabase = await aiosqlite.connect(dbpath)
+        aisdatabase.row_factory = sqlite3.Row
+        for month in self.data['months']:
+            precursor = await aisdatabase.execute(
+                'SELECT * FROM sqlite_master WHERE type="table" and name=?',
+                [f'static_{month}_aggregate'])
+
+            if len(await
+                   precursor.fetchall()) == 0 or force_reaggregate_static:
+                print(f'building static index for month {month}...',
+                      flush=True)
+                aggregate_static_msgs(dbpath, [month])
         cursor = await aisdatabase.execute(fcn(**self))
-        mmsi_rows = None
+        mmsi_rows = []
         res = await cursor.fetchmany(10**5)
         while len(res) > 0:
-            if mmsi_rows is None:
-                mmsi_rows = np.array(res, dtype=object)
-            else:
-                mmsi_rows = np.vstack((mmsi_rows, np.array(res, dtype=object)))
-            while len(mmsi_rows) > 1 and (int(mmsi_rows[0][0]) != int(
-                    mmsi_rows[-1][0])):
-                ummsi_idx = np.where(mmsi_rows[:, 0] != mmsi_rows[0, 0])[0][0]
-                yield np.array(mmsi_rows[0:ummsi_idx], dtype=object)
-                mmsi_rows = mmsi_rows[ummsi_idx:]
+            mmsi_rows += res
+            ummsi_idx = np.where(
+                np.array(mmsi_rows)[:-1, 0] != np.array(mmsi_rows)[1:,
+                                                                   0])[0] + 1
+            ummsi_idx = reduce(np.append, ([0], ummsi_idx, [len(mmsi_rows)]))
+            for i in range(len(ummsi_idx) - 2):
+                yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
+            if len(ummsi_idx) > 2:
+                mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
             res = await cursor.fetchmany(10**5)
-        yield np.array(mmsi_rows, dtype=object)
+        yield mmsi_rows
         await cursor.close()
         await aisdatabase.close()

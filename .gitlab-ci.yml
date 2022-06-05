@@ -4,32 +4,56 @@ stages:
   - pkgbuild
   - rust-test
   - python-test
+  - python-profile
   - build-website
 
 pkgbuild:
-  image: ghcr.io/pyo3/maturin:main
+  image: 
+    name: ghcr.io/pyo3/maturin:main
+    entrypoint: [""]
   stage: pkgbuild
   script:
-    - build --release --manylinux 2014
+    - maturin build --release --manylinux 2014 --strip
+  artifacts:
+    paths:
+      - target/wheels/
 
 rust-test:
   stage: rust-test
   script:
-    - cargo test --release --color=always -- --nocapture
+    - cargo test --color=always --release -- --nocapture
 
-# skip tests requiring web data sources
 python-test:
   stage: python-test
   script:
-    - python -m pip install .
-    - python -m pytest --color=yes --tb=native --doctest-modules tests/ -k "not merge"
+    - python -m pip install ./target/wheels/aisdb-*cp310*.whl --force-reinstall
+    - rm aisdb/__init__.py aisdb/tests/__init__.py
+    - python -m coverage run -m pytest --color=yes --tb=native --doctest-modules -k "not marinetraffic" aisdb/tests/
+    - python -m coverage report
+  cache:
+    key: persistent_000
+    paths:
+      - aisdb/tests/marinetraffic_test.db
+
+#python-profile:
+#  stage: python-profile
+#  script:
+#    - python -m cProfile -o profile '/usr/bin/python -m pytest'
+#    - python -c "import pstats; p = pstats.Stats('profile'); p.strip_dirs(); p.sort_stats('tottime'); p.print_stats(50);"
+#  cache:
+#    key: persistent_000
+#    paths:
+#      - aisdb/tests/marinetraffic_test.db
 
 build-website:
   stage: build-website
   only: 
     - master
   script:
-    - /bin/bash aisdb_web/build_website.sh
+    - cd aisdb_web && npm install
+    - /bin/bash build_website.sh
+
+
   #  - rm -rf public && cp -r docs/html public
   #artifacts:
   #  paths:

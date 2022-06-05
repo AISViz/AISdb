@@ -42,6 +42,11 @@ in_validmmsi_bbox = lambda **kwargs: f'''\
     {valid_mmsi(**kwargs)} AND
     {in_bbox(**kwargs)} '''
 
+in_time_bbox_inmmsi = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND
+    {in_bbox(**kwargs)} AND
+    {in_mmsi(**kwargs)} '''
+
 in_time_bbox_validmmsi = lambda **kwargs: f'''\
     {in_timerange(**kwargs)} AND
     {in_bbox(**kwargs)} AND

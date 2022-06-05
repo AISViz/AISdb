@@ -3,36 +3,25 @@ import os
 import ssl
 import websockets
 import calendar
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import orjson as json
 import numpy as np
 
-import aisdb
 from aisdb import (
     DBConn,
     DBQuery,
-    DomainFromTxts,
-    dbpath,
+    sqlfcn,
     sqlfcn_callbacks,
-    zones_dir,
 )
-from aisdb.webdata.marinetraffic import trafficDB, _vinfo
+from aisdb.webdata.marinetraffic import _metadict, _nullinfo
 from aisdb.track_gen import (
     TrackGen_async,
     encode_greatcircledistance_async,
-    compress_tracks_async,
+    min_speed_filter_async,
+    split_timedelta_async,
 )
-
-
-def request_size(*, xmin, xmax, ymin, ymax, start, end):
-    ''' restrict box size to 3000 kilometers diagonal distance per month'''
-    dist_diag = aisdb.haversine(x1=xmin, y1=ymin, x2=xmax, y2=ymax) / 1000
-    delta_t = (end - start).total_seconds() / 60 / 60 / 24 / 30
-    if dist_diag * delta_t > 3000:
-        return False
-    else:
-        return True
+from aisdb.interp import interp_time_async
 
 
 class SocketServ():
@@ -40,13 +29,13 @@ class SocketServ():
         to client data requests
     '''
 
-    def __init__(self, enable_ssl=True):
+    def __init__(self, dbpath, domain, trafficDBpath, enable_ssl=True):
+        self.dbpath = dbpath
         self.host = os.environ.get('AISDBHOSTALLOW', '*')
         port = os.environ.get('AISDBPORT', 9924)
         self.port = int(port)
-        self.domain = DomainFromTxts(zones_dir.rsplit(os.path.sep, 1)[1],
-                                     zones_dir,
-                                     correct_coordinate_range=False)
+        self.domain = domain
+        self.vesselinfo = _metadict(trafficDBpath)
 
         if enable_ssl:
             sslpath = os.path.join('/etc/letsencrypt/live/',
@@ -61,6 +50,7 @@ class SocketServ():
             self.ssl_args = {}
 
     async def handler(self, websocket):
+        ''' handle messages received by the websocket '''
         async for clientmsg in websocket:
             print(f'{datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} '
                   f'{websocket.remote_address} {str(clientmsg)}')
@@ -76,10 +66,14 @@ class SocketServ():
             elif req['type'] == 'validrange':
                 await self.req_valid_range(req, websocket)
 
+            elif req['type'] == 'heatmap':
+                await self.req_heatmap(req, websocket)
+
             elif req['type'] == 'ack':
                 pass
 
     async def await_response(self, websocket):
+        ''' await the client response and react accordingly '''
         clientresponse = await websocket.recv()
         response = json.loads(clientresponse)
         if 'type' not in response.keys():
@@ -102,8 +96,28 @@ class SocketServ():
             raise RuntimeWarning(f'Unhandled client message: {response}')
         return 0
 
+    def _create_dbqry(self, req):
+        start = datetime(*map(int, req['start'].split('-')))
+        end = datetime(*map(int, req['end'].split('-')))
+        qry = DBQuery(
+            start=start,
+            end=end,
+            callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
+            xmin=req['area']['minX'],
+            xmax=req['area']['maxX'],
+            ymin=req['area']['minY'],
+            ymax=req['area']['maxY'],
+        )
+        return qry
+
     async def req_valid_range(self, req, websocket):
-        with DBConn(dbpath).conn as conn:
+        ''' send the range of valid database query time ranges to the client.
+            sample request JSON::
+
+                {"type" : "validrange"}
+
+        '''
+        with DBConn(self.dbpath).conn as conn:
             res = sorted([
                 s.split('_')[1] for line in conn.execute(
                     "SELECT name FROM sqlite_master "
@@ -124,7 +138,11 @@ class SocketServ():
             }))
 
     async def req_zones(self, req, websocket):
-        zones = {'type': 'zones', 'geometries': []}
+        ''' send zone polygons to client. sample request JSON::
+
+                {"type" : "zones"}
+
+        '''
         for zone in self.domain.zones:
             x, y = zone['geometry'].boundary.coords.xy
             event = {
@@ -144,33 +162,46 @@ class SocketServ():
         await websocket.send(json.dumps({'type': 'doneZones'}))
 
     async def req_tracks_raw(self, req, websocket):
-        start = datetime(*map(int, req['start'].split('-')))
-        end = datetime(*map(int, req['end'].split('-')))
-        qry = DBQuery(
-            start=start,
-            end=end,
-            callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
-            xmin=req['area']['minX'],
-            xmax=req['area']['maxX'],
-            ymin=req['area']['minY'],
-            ymax=req['area']['maxY'],
-        )
+        ''' create database query, generate track vectors from rows,
+            and clean tracks using
+            :func:`aisdb.track_gen.encode_greatcircledistance_async`,
+            then send resulting vectors to client. sample request JSON::
+
+                {
+                    "type": "track_vectors",
+                    "start": "2021-07-01",
+                    "end": "2021-07-14",
+                    "area": {
+                          "minX": -66.23671874999998,
+                          "maxX": -60.15029296874998,
+                          "minY": 41.70498349725793,
+                          "maxY": 45.413175940838045
+                        }
+                }
+
+        '''
+        qry = self._create_dbqry(req)
         qrygen = encode_greatcircledistance_async(
-            compress_tracks_async(TrackGen_async(qry.async_qry()), 0.001),
+            TrackGen_async(
+                qry.async_qry(self.dbpath, fcn=sqlfcn.crawl_dynamic_static)),
             distance_threshold=250000,
             minscore=0,
             speed_threshold=50,
         )
-        with trafficDB as conn:
+        with self.trafficDB as conn:
             count = 0
             async for track in qrygen:
-                #track = await track_coroutine
-                _vinfo(track, conn)
+                #_vinfo(track, conn)
+                if track['mmsi'] in self.vesselinfo.keys():
+                    track['marinetraffic_info'] = self.vesselinfo[
+                        track['mmsi']]
+                else:
+                    track['marinetraffic_info'] = _nullinfo(track)
                 event = {
                     'msgtype': 'track_vector',
-                    'x': track['lon'].astype(np.float32),
-                    'y': track['lat'].astype(np.float32),
-                    't': track['time'].astype(np.uint32),
+                    'x': track['lon'],
+                    'y': track['lat'],
+                    't': track['time'],
                     'meta': {
                         str(k): str(v)
                         for k, v in dict(
@@ -197,13 +228,77 @@ class SocketServ():
                         'status': 'No data for selection'
                     }))
 
+    async def req_heatmap(self, req, websocket):
+        ''' create database query, generate track vectors from rows,
+            and clean tracks using
+            :func:`aisdb.track_gen.encode_greatcircledistance_async`.
+            interpolate tracks to 10-minute resolution, and return point
+            geometry for rendering the heatmap. send resulting geometry to
+            client. sample request JSON::
+
+                {
+                    "type": "track_vectors",
+                    "start": "2021-07-01",
+                    "end": "2021-07-14",
+                    "area": {
+                          "minX": -66.23671874999998,
+                          "maxX": -60.15029296874998,
+                          "minY": 41.70498349725793,
+                          "maxY": 45.413175940838045
+                        }
+                }
+
+        '''
+        qry = self._create_dbqry(req)
+        subqry = qry.copy()
+        count = 0
+        for day in np.arange(
+                qry['start'],
+                qry['end'],
+                timedelta(days=1),
+        ).astype(datetime):
+            subqry['start'] = day
+            subqry['end'] = day + timedelta(days=1)
+            interps = interp_time_async(
+                min_speed_filter_async(
+                    encode_greatcircledistance_async(
+                        split_timedelta_async(TrackGen_async(
+                            subqry.async_qry(self.dbpath,
+                                             fcn=sqlfcn.crawl_dynamic)),
+                                              maxdelta=timedelta(hours=2)),
+                        distance_threshold=250000,
+                        minscore=0,
+                        speed_threshold=50,
+                    ),
+                    minspeed=1,
+                ),
+                step=timedelta(minutes=60),
+            )
+            async for itr in interps:
+                response = {
+                    'type': 'heatmap',
+                    'xy': list(zip(itr['lon'], itr['lat']))
+                }
+                await websocket.send(
+                    json.dumps(response, option=json.OPT_SERIALIZE_NUMPY))
+            count += 1
+            json.dumps({
+                'type':
+                'done',
+                'status':
+                f'Searching... Heatmap Days Processed: {count}'
+            })
+
     async def main(self):
+        ''' run the server main loop asynchronously. should be called with
+            :func:`asyncio.run`
+        '''
         async with websockets.serve(
                 self.handler,
                 host=self.host,
                 port=self.port,
                 **self.ssl_args,
-                ping_timeout=300,
+                ping_timeout=120,
         ):
             await asyncio.Future()
 

@@ -10,14 +10,12 @@ from aisdb.database.dbconn import DBConn
 import aisdb
 
 
-def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
+def decode_msgs(filepaths, dbpath, source, vacuum=False, skip_checksum=False):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
         A checksum of the first kilobyte of every file will be stored to
         prevent loading the same file twice.
-
-        Rust must be installed for this function to work.
 
         args:
             filepaths (list)
@@ -25,8 +23,16 @@ def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
                 ingested into the database
             dbpath (string)
                 database filepath
-            vacuum (boolean)
+            source (string)
+                data source name or description. will be used as a primary key
+                column, so duplicate messages from different sources will not be
+                ignored as duplicates upon insert
+            vacuum (boolean, str)
                 if True, the database will be vacuumed after completion.
+                if string, the database will be vacuumed into the filepath
+                given.
+                Its recommended to supply a filepath string on a seperate
+                hard drive from dbpath to increase vacuum speed.
                 This will result in a smaller database but takes a long
                 time for large datasets
 
@@ -40,40 +46,36 @@ def decode_msgs(filepaths, dbpath, vacuum=False, skip_checksum=False):
         ...              '~/ais/rawdata_dir/20220102.nm4']
         >>> decode_msgs(filepaths, dbpath)
     '''
-    batchsize = 5
-
     if len(filepaths) == 0:
         raise ValueError('must supply atleast one filepath.')
 
-    dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
+    if ':memory:' not in dbpath:
+        dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
+    else:
+        dbdir, dbname = '', ':memory:'
 
     with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
-        if not skip_checksum:
-            print('checking file signatures...')
-
-            for i in range(len(filepaths) - 1, -1, -1):
-
-                with open(os.path.abspath(filepaths[i]), 'rb') as f:
-                    signature = md5(f.read(1000)).hexdigest()
-
-                if dbindex.serialized(seed=signature):
-                    print(
-                        f'found matching checksum, skipping {filepaths.pop(i)}'
-                    )
-
-        for j in range(0, len(filepaths), batchsize):
-            aisdb.decode_native(dbpath, filepaths[j:j + batchsize])
-
+        for file in filepaths:
             if not skip_checksum:
-                for file in filepaths[j:j + batchsize]:
-                    with open(os.path.abspath(file), 'rb') as f:
-                        signature = md5(f.read(1000)).hexdigest()
-                    dbindex.insert_hash(seed=signature)
+                with open(os.path.abspath(file), 'rb') as f:
+                    signature = md5(f.read(1000)).hexdigest()
+                if dbindex.serialized(seed=signature):
+                    print(f'found matching checksum, skipping {file}')
+                    continue
+            aisdb.rustdecoder(dbpath=dbpath, files=[file], source=source)
+            if not skip_checksum:
+                dbindex.insert_hash(seed=signature)
 
-    if vacuum:
+    if vacuum is not False:
         print("finished parsing data\nvacuuming...")
         db = DBConn(dbpath)
-        db.cur.execute("VACUUM")
+        if vacuum is True:
+            db.cur.execute("VACUUM")
+        elif isinstance(vacuum, str):
+            assert not os.path.isfile(vacuum)
+            db.cur.execute(f"VACUUM INTO {vacuum}")
+        else:
+            raise ValueError('vacuum arg must be boolean or filepath string')
         db.conn.commit()
         db.conn.close()
 

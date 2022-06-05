@@ -16,6 +16,7 @@ USAGE:
 
 ARGS:
   --dbpath        SQLite database path
+  --source        Datasource name
 
 OPTIONS:
   -h, --help      Prints this message
@@ -33,6 +34,7 @@ pub struct AppArgs {
     pub dbpath: std::path::PathBuf,
     pub files: Vec<std::path::PathBuf>,
     pub rawdata_dir: Option<std::path::PathBuf>,
+    pub source: String,
     //pub start: usize,
     //pub end: usize,
 }
@@ -59,6 +61,7 @@ pub fn parse_args() -> Result<AppArgs, pico_args::Error> {
             .opt_value_from_os_str("--rawdata_dir", parse_path)
             .unwrap(),
         files: pargs.values_from_os_str("--file", parse_path).unwrap(),
+        source: pargs.value_from_str("--source").unwrap(),
         /*
         start: pargs
             .opt_value_from_fn("--start", str::parse)

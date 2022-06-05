@@ -2,7 +2,6 @@ import numpy as np
 from PIL import Image
 
 from aisdb.proc_util import binarysearch
-from aisdb import data_dir
 
 
 def pixelindex(x1, y1, im):

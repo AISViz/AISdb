@@ -1,18 +1,20 @@
 /** @module map */
 import 'ol/ol.css';
-import * as olProj from 'ol/proj';
-import { Map as _Map } from 'ol';
+// import * as olProj from 'ol/proj';
+import { fromLonLat } from 'ol/proj';
 import BingMaps from 'ol/source/BingMaps';
+import Draw from 'ol/interaction/Draw';
+import Feature from 'ol/Feature';
+import GeoJSON from 'ol/format/GeoJSON';
+import Point from 'ol/geom/Point';
 import TileLayer from 'ol/layer/Tile';
 import View from 'ol/View';
-import GeoJSON from 'ol/format/GeoJSON';
-import { Vector as VectorSource } from 'ol/source';
-import { Vector as VectorLayer } from 'ol/layer';
-import Draw from 'ol/interaction/Draw';
 import { DragBox, defaults } from 'ol/interaction';
-import Feature from 'ol/Feature';
-import Select from 'ol/interaction/Select';
-import { click } from 'ol/events/condition';
+import { Map as _Map } from 'ol';
+import { Vector as VectorLayer, Heatmap } from 'ol/layer';
+import { Vector as VectorSource } from 'ol/source';
+// import Select from 'ol/interaction/Select';
+// import { click } from 'ol/events/condition';
 
 import {
   dragBoxStyle,
@@ -54,7 +56,7 @@ let mapLayer = new TileLayer({
 /** contains geometry for map selection feature */
 const drawSource = new VectorSource({ wrapX: false });
 /** contains drawSource for map selection layer */
-const drawLayer = new VectorLayer({ source: drawSource, zIndex: 2 });
+const drawLayer = new VectorLayer({ source: drawSource, zIndex: 4 });
 
 /** contains geometry for map zone polygons */
 const polySource = new VectorSource({});
@@ -73,14 +75,24 @@ const lineLayer = new VectorLayer({
   zIndex: 3,
 });
 
+/** map heatmap source */
+const heatSource = new VectorSource({ });
+/** map heatmap layer */
+const heatLayer = new Heatmap({
+  source: heatSource,
+  blur: 30,
+  radius: 3,
+  zIndex: 2,
+});
+
 
 /** default map position
  * @see module:url
  */
 let mapview = new View({
-  center: olProj.fromLonLat([ -63.6, 44.0 ]), // east
-  // center: olProj.fromLonLat([-123.0, 49.2]), //west
-  // center: olProj.fromLonLat([ -100, 57 ]), // canada
+  center: fromLonLat([ -63.6, 44.0 ]), // east
+  // center: fromLonLat([-123.0, 49.2]), //west
+  // center: fromLonLat([ -100, 57 ]), // canada
   zoom: 7,
 });
 
@@ -91,7 +103,7 @@ let mapview = new View({
  */
 let map = new _Map({
   target: 'mapDiv', // div item in index.html
-  layers: [ mapLayer, polyLayer, lineLayer, drawLayer ],
+  layers: [ mapLayer, polyLayer, lineLayer, heatLayer, drawLayer ],
   view: mapview,
   interactions: defaults({ doubleClickZoom:false }),
 });
@@ -200,6 +212,17 @@ function newPolygonFeature(geojs, meta) {
   });
   feature.setProperties({ meta_str: meta.name });
   polySource.addFeature(feature);
+}
+/** add vessel points to overall heatmap
+ * @param {Array} xy Coordinate tuples
+ */
+function newHeatmapFeatures(xy) {
+  xy.forEach(async (p) => {
+    let pt = new Feature({
+      geometry: new Point(fromLonLat(p)),
+    });
+    heatSource.addFeature(pt);
+  });
 }
 
 
@@ -320,6 +343,7 @@ export {
   lineSource,
   map,
   mapview,
+  newHeatmapFeatures,
   newPolygonFeature,
   newTrackFeature,
   polySource,

@@ -45,8 +45,8 @@ use util::*;
 /// Accepts command line args for dbpath and rawdata_dir.
 /// A new database will be created from decoded messages at
 /// the specified path
-#[async_std::main]
-pub async fn main() -> Result<(), Error> {
+//#[async_std::main]
+pub fn main() -> Result<(), Error> {
     // collect command line arguments
     let args = match parse_args() {
         Ok(v) => v,
@@ -71,9 +71,9 @@ pub async fn main() -> Result<(), Error> {
             || f.to_str().unwrap().contains(&".TXT")
             || f.to_str().unwrap().contains(&".txt")
         {
-            parser = decode_insert_msgs(&d, &f, parser).expect("decoding NM4");
+            parser = decode_insert_msgs(&d, &f, &args.source, parser).expect("decoding NM4");
         } else if f.to_str().unwrap().contains(&".csv") || f.to_str().unwrap().contains(&".CSV") {
-            decodemsgs_ee_csv(&d, &f).expect("decoding CSV");
+            decodemsgs_ee_csv(&d, &f, &args.source).expect("decoding CSV");
         } else {
             panic!("unknown file extension {:?}", &d);
         }

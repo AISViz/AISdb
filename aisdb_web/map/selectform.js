@@ -104,8 +104,13 @@ async function newSearch(start, end) {
   statusdiv.textContent = 'Searching...';
   searchbtn.textContent = 'Cancel';
   window.statusmsg = statusdiv.textContent;
+  let type = 'track_vectors';
+  if (window.heatmaptest === true) {
+    type = 'heatmap';
+    console.log('debugging heatmap...');
+  }
   await socket.send(JSON.stringify({
-    type: 'track_vectors',
+    type: type,
     start: start,
     end: end,
     area: window.searcharea,
@@ -201,7 +206,6 @@ searchbtn.onclick = async function() {
  */
 clearbtn.onclick = async function() {
   selectbtn.textContent = 'Select Area';
-  window.searcharea = null;
   await setSearchAreaFromSelected();
   window.statusmsg = '';
   statusdiv.textContent = '';
@@ -211,10 +215,6 @@ clearbtn.onclick = async function() {
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
   clearFeatures();
-  for (let ft of polySource.getFeatures()) {
-    ft.set('selected', false);
-    ft.setStyle(polyStyle);
-  }
 };
 
 

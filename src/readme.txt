@@ -13,6 +13,7 @@ USAGE:
 
 ARGS:
   --dbpath        SQLite database path
+  --source        Datasource name
 
 OPTIONS:
   -h, --help      Prints this message

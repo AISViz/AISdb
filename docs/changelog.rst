@@ -2,6 +2,276 @@
 Changelog
 =========
 
+v1.3.41
+-------
+
+add example script for starting websocket server
+
+
+v1.3.40
+-------
+
+add callback SQL function for in_time_bbox_inmmsi
+
+
+v1.3.39
+-------
+
+improved compatability with python versions before 3.10
+
+
+v1.3.38
+-------
+
+heatmap prototyping
+
+
+v1.3.37
+-------
+
+update server routing
+
+
+v1.3.36
+-------
+
+ignore marinetraffic tests in CI
+
+
+v1.3.35
+-------
+
+add profiling to CI
+
+
+v1.3.34
+-------
+
+add webdriver to system path
+
+
+v1.3.33
+-------
+
+update Dockerfile
+
+
+v1.3.32
+-------
+
+automatically create missing tables for DB query
+
+
+v1.3.31
+-------
+
+add heatmaps experimental feature to webserver backend
+
+
+v1.3.30
+-------
+
+create aggregated data results if they dont exist upon DB Query
+
+
+v1.3.29
+-------
+
+improvements to marinetraffic data integration and testing
+
+
+v1.3.28
+-------
+
+update docs for submerged surface area
+
+
+v1.3.27
+-------
+
+update nodejs server routing
+
+
+v1.3.26
+-------
+
+fixed decoded messages counting issue in rust decoder and updated testing
+
+
+v1.3.25
+-------
+
+update wetted surface area computation
+
+
+v1.3.24
+-------
+
+add asynchronous track generators, min speed filter, and update testing
+
+
+v1.3.23
+-------
+
+improved checksums logic for raw data file duplicate checking
+
+
+v1.3.22
+-------
+
+add code coverage to CI
+
+
+v1.3.21
+-------
+
+error handling in web scraping
+
+
+v1.3.20
+-------
+
+asynchronous linear interpolation
+
+
+v1.3.19
+-------
+
+improved database query logic; update static messages aggregation and tests
+
+
+v1.3.18
+-------
+
+update testing
+
+
+v1.3.17
+-------
+
+improved error handling when decoding timestamps
+
+
+v1.3.16
+-------
+
+update documentation
+
+
+v1.3.15
+-------
+
+fix webscraping schema insert conflict
+
+
+v1.3.14
+-------
+
+fix function name in broken test
+
+
+v1.3.13
+-------
+
+bug fixes and improvements to web scraping database
+
+
+v1.3.12
+-------
+
+minor docs cleanup
+
+
+v1.3.11
+-------
+
+update parameter selection and docs in  network graph module
+
+
+v1.3.10
+-------
+
+prevent panic when decoding malformed NMEA messages
+
+
+v1.3.9
+------
+
+update webscraping for zero-config changes
+
+
+v1.3.8
+------
+
+minor changes to docs and docker build
+
+
+v1.3.7
+------
+
+client side bug fixes
+
+
+v1.3.6
+------
+
+bug fixes
+
+
+v1.3.5
+------
+
+refactor encoder
+
+
+v1.3.4
+------
+
+add more integration testing
+
+
+v1.3.3
+------
+
+replace GPL license with MIT license
+
+
+v1.3.2
+------
+
+update websocket server and docker-compose for zero-config
+
+
+v1.3.1
+------
+
+remove configuration requirement
+
+
+v1.3.0
+------
+
+updated database model (version:minor)
+
+
+v1.2.2
+------
+
+fix commit script and remove version.py
+
+
+v1.2.1
+------
+
+minor fixes in dockerfile to install latest package wheel
+
+
+v1.2.0
+------
+
+Package build overhaul using native rust modules #version:minor
+
+
 v1.1.10
 -------
 

@@ -7,8 +7,6 @@ if (sqlite3.sqlite_version_info[0] < 3
             and sqlite3.sqlite_version_info[1] < 35)):
     import pysqlite3 as sqlite3
 
-from aisdb import dbpath
-
 
 def create_table_coarsetype(cur):
     ''' create a table to describe integer vessel type as a human-readable string
@@ -128,8 +126,8 @@ class DBConn():
                 database cursor object
     '''
 
-    def __init__(self, dbpath=dbpath):
-        if dbpath is not None and dbpath != ':memory:':
+    def __init__(self, dbpath):
+        if dbpath is not None and ':memory:' not in dbpath:
             if not os.path.isdir(os.path.dirname(dbpath)):
                 print(f'creating directory path: {dbpath}')
                 os.mkdir(os.path.dirname(dbpath))
@@ -140,10 +138,10 @@ class DBConn():
                                     timeout=5,
                                     detect_types=sqlite3.PARSE_DECLTYPES
                                     | sqlite3.PARSE_COLNAMES)
+        self.conn.row_factory = sqlite3.Row
 
-        #self.conn.execute('PRAGMA synchronous=0')
         self.conn.execute('PRAGMA temp_store=MEMORY')
-        self.conn.execute('PRAGMA threads=6')
+        self.conn.execute('PRAGMA threads=3')
         self.conn.commit()
 
         self.cur = self.conn.cursor()

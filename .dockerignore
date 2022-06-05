@@ -10,6 +10,7 @@
 **/debug
 **/debug/*
 **/testdata
+**.d
 **__pycache__**
 **webdriver
 *.d
@@ -24,6 +25,7 @@
 *.so
 *.txt
 .cache
+.coverage
 .eggs
 .git
 .pytest_cache
@@ -42,6 +44,9 @@ build
 docker/tag_img.sh
 docs/html
 docs/source/api
+prof
+profile
 release
+target/release
 testdata
 !docs/requirements.txt
