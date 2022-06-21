@@ -27,7 +27,7 @@ Package features:
       <img 
         src='_images/scriptoutput.png' 
         width="800"
-        onerror="this.onerror=null;this.src='docs/source/scriptoutput.png';"
+        onerror="this.onerror=null;this.src='https://aisdb.meridian.cs.dal.ca/doc/_images/scriptoutput.png';"
       ></img>
    </a>
 
