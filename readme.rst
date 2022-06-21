@@ -25,9 +25,9 @@ Package features:
 
    <a href='_images/scriptoutput.png'>
       <img 
-        src='_images/scriptoutput.png' 
+        src='https://aisdb.meridian.cs.dal.ca/doc/_images/scriptoutput.png' 
         width="800"
-        onerror="this.html=''; this.width=0px;"
+        onerror="this.html='';"
       ></img>
    </a>
 

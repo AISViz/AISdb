@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.42
+-------
+
+update readme #nocommit
+
+
 v1.3.41
 -------
 
