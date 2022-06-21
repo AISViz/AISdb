@@ -27,7 +27,7 @@ Package features:
       <img 
         src='_images/scriptoutput.png' 
         width="800"
-        onerror="this.html=''; this.width=0px;"
+        onerror="this.onerror=null;this.src='docs/source/scriptoutput.png';"
       ></img>
    </a>
 
