@@ -3,6 +3,8 @@ SELECT
     dynamic_{}.time,
     dynamic_{}.longitude,
     dynamic_{}.latitude,
+    dynamic_{}.sog,
+    dynamic_{}.cog,
     static_{}.imo,
     static_{}.vessel_name,
     static_{}.dim_bow,

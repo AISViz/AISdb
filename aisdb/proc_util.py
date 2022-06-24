@@ -134,10 +134,20 @@ def write_csv(
     '''
 
     cols = [
-        'mmsi', 'time', 'datetime', 'lon', 'lat', 'vessel_name',
-        'ship_type_txt', 'imo', 'dim_bow', 'dim_stern', 'dim_star', 'dim_port'
+        'mmsi',
+        'time',
+        'datetime',
+        'lon',
+        'lat',
+        'cog',
+        'sog',
+        'vessel_name',
+        'imo',
+        'dim_bow',
+        'dim_stern',
+        'dim_star',
+        'dim_port',
     ]
-    assert False, 'datetime column function undefined'
     tracks_dt = _datetime_column(tracks)
 
     tr1 = next(tracks_dt)
@@ -145,6 +155,9 @@ def write_csv(
     colnames = (
         cols + [f for f in tr1['dynamic'] if f not in cols + skipcols] +
         [f for f in list(tr1['static'])[::-1] if f not in cols + skipcols])
+
+    if 'marinetraffic_info' in tr1.keys():
+        colnames += tuple(tr1['marinetraffic_info'].keys())
 
     decimals = {
         'lon': 5,
@@ -158,6 +171,8 @@ def write_csv(
         for i in range(0, track['time'].size):
             row = [(track[c][i] if c in track['dynamic'] else
                     (track[c] if track[c] != 0 else '')) for c in colnames]
+            if 'marinetraffic_info' in track.keys():
+                row += track['marinetraffic_info'].values()
             for ci, r in zip(range(len(colnames)), row):
                 if colnames[ci] in decimals.keys() and r != '':
                     row[ci] = f'{r:.{decimals[colnames[ci]]}f}'
@@ -168,6 +183,7 @@ def write_csv(
         f.write(','.join(colnames) + '\n')
         writer = csv.writer(f,
                             delimiter=',',
+                            quotechar="'",
                             quoting=csv.QUOTE_NONE,
                             dialect='unix')
         _append(tr1, writer, colnames, decimals)
