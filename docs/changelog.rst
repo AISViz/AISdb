@@ -5,7 +5,7 @@ Changelog
 v1.3.42
 -------
 
-update readme #nocommit
+improvements to CSV output from track vectors
 
 
 v1.3.41
