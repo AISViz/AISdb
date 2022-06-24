@@ -3,7 +3,6 @@
 import os
 import pickle
 import re
-import sqlite3
 import tempfile
 from datetime import timedelta
 from functools import partial, reduce
@@ -28,7 +27,7 @@ from aisdb.webdata.merge_data import (
     merge_tracks_bathymetry,
     merge_tracks_shoredist,
 )
-from aisdb.proc_util import _segment_rng
+from aisdb.proc_util import _segment_rng, _sanitize
 from aisdb.wsa import wetted_surface_area
 
 _colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
@@ -55,19 +54,6 @@ def _time_in_shoredist_rng(track, subset, dist0=0.01, dist1=5):
             maxdelta=timedelta(minutes=1),
             key='time'),
     ))
-
-
-def _sanitize(s):
-    # note: the first comma uses ASCII code 44,
-    # second comma uses ASCII decimal 130 !!
-    # not the same char!
-    if s is None:
-        return ''
-    elif s == '-':
-        return ''
-    else:
-        return str(s).replace(',', '').replace(chr(130), '').replace(
-            '#', '').replace('"', '').replace("'", '').replace('\n', '')
 
 
 def _staticinfo(track, domain):
