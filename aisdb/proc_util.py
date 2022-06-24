@@ -10,6 +10,19 @@ import csv
 import numpy as np
 
 
+def _sanitize(s):
+    # note: the first comma uses ASCII code 44,
+    # second comma uses ASCII decimal 130 !!
+    # not the same char!
+    if s is None:
+        return ''
+    elif s == '-':
+        return ''
+    else:
+        return str(s).replace(',', '').replace(chr(130), '').replace(
+            '#', '').replace('"', '').replace("'", '').replace('\n', '')
+
+
 def _epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
     ''' convert epoch minutes to datetime.datetime.
         redefinition of function in aisdb.gis to avoid circular import
@@ -134,17 +147,31 @@ def write_csv(
     '''
 
     cols = [
-        'mmsi', 'time', 'datetime', 'lon', 'lat', 'vessel_name',
-        'ship_type_txt', 'imo', 'dim_bow', 'dim_stern', 'dim_star', 'dim_port'
+        'mmsi', 'datetime', 'time', 'lon', 'lat', 'sog', 'cog', 'imo',
+        'dim_bow', 'dim_stern', 'dim_star', 'dim_port'
     ]
-    assert False, 'datetime column function undefined'
     tracks_dt = _datetime_column(tracks)
 
     tr1 = next(tracks_dt)
 
+    if 'marinetraffic_info' not in tr1.keys():
+        cols.append('vessel_name')
+
     colnames = (
         cols + [f for f in tr1['dynamic'] if f not in cols + skipcols] +
         [f for f in list(tr1['static'])[::-1] if f not in cols + skipcols])
+
+    if 'marinetraffic_info' in tr1.keys():
+        colnames += tuple(tr1['marinetraffic_info'].keys())
+        colnames.remove('marinetraffic_info')
+        colnames.remove('error404')
+        colnames.remove('dim_bow')
+        colnames.remove('dim_stern')
+        colnames.remove('dim_star')
+        colnames.remove('dim_port')
+        colnames.remove('coarse_type_txt')
+        colnames.remove('vessel_name')
+        colnames = list(dict.fromkeys(colnames))
 
     decimals = {
         'lon': 5,
@@ -155,9 +182,17 @@ def write_csv(
     }
 
     def _append(track, writer, colnames=colnames, decimals=decimals):
+        if 'marinetraffic_info' in track.keys():
+            for key, val in track['marinetraffic_info'].items():
+                if key in ('error404', 'mmsi', 'imo'):
+                    continue
+                track[key] = val
+            del track['marinetraffic_info']
+
         for i in range(0, track['time'].size):
             row = [(track[c][i] if c in track['dynamic'] else
-                    (track[c] if track[c] != 0 else '')) for c in colnames]
+                    (_sanitize(track[c]) if track[c] != 0 else ''))
+                   for c in colnames]
             for ci, r in zip(range(len(colnames)), row):
                 if colnames[ci] in decimals.keys() and r != '':
                     row[ci] = f'{r:.{decimals[colnames[ci]]}f}'
@@ -168,6 +203,7 @@ def write_csv(
         f.write(','.join(colnames) + '\n')
         writer = csv.writer(f,
                             delimiter=',',
+                            quotechar="'",
                             quoting=csv.QUOTE_NONE,
                             dialect='unix')
         _append(tr1, writer, colnames, decimals)
