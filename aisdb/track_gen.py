@@ -54,6 +54,28 @@ _statcols = set([
 ])
 
 
+def _yieldsegments(rows, staticcols, dynamiccols):
+    lon = np.array([r['longitude'] for r in rows], dtype=float)
+    lat = np.array([r['latitude'] for r in rows], dtype=float)
+    time = np.array([r['time'] for r in rows], dtype=np.uint32)
+    idx = aisdb.simplify_linestring_idx(lon, lat, precision=0.001)
+    trackdict = dict(
+        **{col: rows[0][col]
+           for col in staticcols},
+        lon=lon[idx].astype(np.float32),
+        lat=lat[idx].astype(np.float32),
+        time=time[idx],
+        sog=np.array([r['sog'] for r in rows], dtype=np.float16),
+        cog=np.array([r['cog'] for r in rows], dtype=np.uint16),
+        static=staticcols,
+        dynamic=dynamiccols,
+    )
+    assert 'time' in trackdict.keys()
+
+    for segment in _segment_longitude(trackdict):
+        yield segment
+
+
 def TrackGen(rowgen: iter) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
@@ -96,37 +118,15 @@ def TrackGen(rowgen: iter) -> dict:
                                                       'latitude']))
             dynamiccols = dynamiccols.union(set(['lon', 'lat', 'time']))
             firstrow = False
-
-        lon = np.array([r['longitude'] for r in rows], dtype=float)
-        lat = np.array([r['latitude'] for r in rows], dtype=float)
-        time = np.array([r['time'] for r in rows], dtype=np.uint32)
-        idx = aisdb.simplify_linestring_idx(lon, lat, precision=0.001)
-
-        trackdict = dict(
-            **{col: rows[0][col]
-               for col in staticcols},
-            lon=lon[idx].astype(np.float32),
-            lat=lat[idx].astype(np.float32),
-            time=time[idx],
-            **{
-                #col: np.array([r[col] for r in rows[idx]], dtype=object)
-                col: np.array([r[col] for r in np.array(rows)[idx]],
-                              dtype=object)
-                for col in dynamiccols.difference(set(['lon', 'lat', 'time']))
-            },
-            static=staticcols,
-            dynamic=dynamiccols,
-        )
-        assert 'time' in trackdict.keys()
-
-        for segment in _segment_longitude(trackdict):
-            yield segment
+        for track in _yieldsegments(rows, staticcols, dynamiccols):
+            yield track
 
 
 async def TrackGen_async(rowgen: iter) -> dict:
     firstrow = True
     async for rows in rowgen:
         assert not (rows is None or len(rows) == 0), 'rows cannot be empty'
+        assert isinstance(rows[0], sqlite3.Row)
         if firstrow:
             staticcols = set(rows[0].keys()) & _statcols
             dynamiccols = set(rows[0].keys()) ^ staticcols
@@ -134,32 +134,8 @@ async def TrackGen_async(rowgen: iter) -> dict:
                                                       'latitude']))
             dynamiccols = dynamiccols.union(set(['lon', 'lat', 'time']))
             firstrow = False
-        assert isinstance(rows[0], sqlite3.Row)
-
-        lon = np.array([r['longitude'] for r in rows], dtype=float)
-        lat = np.array([r['latitude'] for r in rows], dtype=float)
-        time = np.array([r['time'] for r in rows], dtype=np.uint32)
-        idx = aisdb.simplify_linestring_idx(lon, lat, precision=0.001)
-
-        trackdict = dict(
-            **{col: rows[0][col]
-               for col in staticcols},
-            lon=lon[idx].astype(np.float32),
-            lat=lat[idx].astype(np.float32),
-            time=time[idx],
-            **{
-                col: np.array([r[col] for r in np.array(rows)[idx]],
-                              dtype=object)
-                for col in dynamiccols.difference(set(['lon', 'lat', 'time']))
-            },
-            static=staticcols,
-            dynamic=dynamiccols,
-        )
-        assert 'lon' in trackdict.keys()
-        assert 'lon' in trackdict['dynamic']
-
-        for segment in _segment_longitude(trackdict):
-            yield segment
+        for track in _yieldsegments(rows, staticcols, dynamiccols):
+            yield track
 
 
 TrackGen_async.__doc__ = TrackGen.__doc__
