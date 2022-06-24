@@ -10,8 +10,6 @@ import shutil
 from selenium.webdriver.firefox import webdriver
 from selenium.webdriver.firefox.options import Options
 
-cfgfile = os.path.join(os.path.expanduser('~'), '.config', 'ais.cfg')
-
 
 class _Scraper():
 
@@ -26,12 +24,12 @@ class _Scraper():
         '''
 
         firefoxpath = '/usr/lib/firefox/firefox' if os.path.isfile(
-                '/usr/lib/firefox/firefox') else shutil.which('firefox')
+            '/usr/lib/firefox/firefox') else shutil.which('firefox')
         # firefoxpath = shutil.which('firefox')
 
         if firefoxpath is None:
             raise RuntimeError(
-                    'firefox must be installed to use this feature!')
+                'firefox must be installed to use this feature!')
 
         _init_configs(data_dir=data_dir)
 
@@ -39,7 +37,6 @@ class _Scraper():
         env_headless = os.environ.get('Headless', True)
         if env_headless in ('0', 'False', 'false'):
             headless = False
-
 
         # configs
         (opt := Options()).headless = headless
@@ -49,7 +46,8 @@ class _Scraper():
         opt.set_preference('media.autoplay.allow-muted', False)
         opt.set_preference('media.autoplay.block-event.enabled', True)
         opt.set_preference('media.autoplay.block-webaudio', True)
-        opt.set_preference('services.sync.prefs.sync.media.autoplay.default', False)
+        opt.set_preference('services.sync.prefs.sync.media.autoplay.default',
+                           False)
         opt.set_preference('ui.context_menus.after_mouseup', False)
         opt.set_preference('privacy.sanitize.sanitizeOnShutdown', True)
         opt.set_preference('dom.disable_beforeunload', True)
@@ -63,12 +61,13 @@ class _Scraper():
         sys.path.append(data_dir)
 
         self.driver = webdriver.WebDriver(
-                options=opt,
-                keep_alive=True,
-                service_args=service_args,
-                log_path=os.path.join(data_dir,'geckodriver.log'),
-                service_log_path=os.path.join(data_dir,'geckodriver_service.log'),
-                )
+            options=opt,
+            keep_alive=True,
+            service_args=service_args,
+            executable_path=os.path.join(data_dir, 'webdriver'),
+            log_path=os.path.join(data_dir, 'geckodriver.log'),
+            service_log_path=os.path.join(data_dir, 'geckodriver_service.log'),
+        )
 
         if headless:
             self.driver.set_window_size(9999, 9999)
