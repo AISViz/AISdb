@@ -59,6 +59,9 @@ def decode_msgs(filepaths, dbpath, source, vacuum=False, skip_checksum=False):
             if not skip_checksum:
                 with open(os.path.abspath(file), 'rb') as f:
                     signature = md5(f.read(1000)).hexdigest()
+                    if file[-4:] == '.csv':  # skip header row (~1.6kb)
+                        _ = f.read(600)
+                        signature = md5(f.read(1000)).hexdigest()
                 if dbindex.serialized(seed=signature):
                     print(f'found matching checksum, skipping {file}')
                     continue

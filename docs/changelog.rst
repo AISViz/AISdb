@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.43
+-------
+
+skip header row when checking CSV file checksums
+
+
 v1.3.42
 -------
 
