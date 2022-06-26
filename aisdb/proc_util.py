@@ -287,25 +287,33 @@ def getfiledate(filename):
     if filesize == 0:
         return False
     with open(filename, 'r') as f:
-        line = f.readline()
-        head = line.rsplit('\\', 1)[0]
-        n = 0
-        while 'c:' not in head:
-            n += 1
+        if 'csv' in filename:
+            reader = csv.reader(f)
+            head = next(reader)
+            row1 = next(reader)
+            rowdict = {a: b for a, b in zip(head, row1)}
+            fdate = datetime.strptime(rowdict['Time'], '%Y%m%d_%H%M%S').date()
+            return fdate
+        else:
             line = f.readline()
             head = line.rsplit('\\', 1)[0]
-            if n > 10000:
-                print(f'bad! {filename}')
+            n = 0
+            while 'c:' not in head:
+                n += 1
+                line = f.readline()
+                head = line.rsplit('\\', 1)[0]
+                if n > 10000:
+                    print(f'bad! {filename}')
+                    return False
+            split0 = re.split('c:', head)[1]
+            try:
+                epoch = int(re.split('[^0-9]', split0)[0])
+            except ValueError:
                 return False
-        split0 = re.split('c:', head)[1]
-        try:
-            epoch = int(re.split('[^0-9]', split0)[0])
-        except ValueError:
-            return False
-        except Exception as err:
-            raise err
-    fdate = datetime.fromtimestamp(epoch).date()
-    return fdate
+            except Exception as err:
+                raise err
+        fdate = datetime.fromtimestamp(epoch).date()
+        return fdate
 
 
 def dms2dd(d, m, s, ax):

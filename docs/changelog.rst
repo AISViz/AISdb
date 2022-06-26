@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.44
+-------
+
+get approximate file date from CSV files
+
+
 v1.3.43
 -------
 
