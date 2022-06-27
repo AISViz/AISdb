@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.45
+-------
+
+error handling when reading Spire/exactEarth CSV files
+
+
 v1.3.44
 -------
 

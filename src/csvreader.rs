@@ -21,7 +21,11 @@ pub fn csvdt_2_epoch(dt: &str) -> i64 {
 }
 
 /// filter everything but vessel data, sort vessel data into static and dynamic vectors
-pub fn filter_vesseldata_csv(row: StringRecord) -> Option<(StringRecord, i32, bool)> {
+pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringRecord, i32, bool)> {
+    if rowopt.is_none() {
+        return None;
+    }
+    let row = rowopt.unwrap();
     let clonedrow = row.clone();
     let msgtype = clonedrow.get(1).unwrap();
     match msgtype {
@@ -39,7 +43,7 @@ pub fn filter_vesseldata_csv(row: StringRecord) -> Option<(StringRecord, i32, bo
     }
 }
 
-//pub fn decodemsgs_ee_csv(filename: &str) -> (Vec<VesselData>, Vec<VesselData>) {
+/// perform database input
 pub fn decodemsgs_ee_csv(
     dbpath: &std::path::Path,
     filename: &std::path::PathBuf,
@@ -63,7 +67,7 @@ pub fn decodemsgs_ee_csv(
 
     for (row, epoch, is_dynamic) in reader
         .records()
-        .filter_map(|r| filter_vesseldata_csv(r.unwrap()))
+        .filter_map(|r| filter_vesseldata_csv(r.ok()))
     {
         count += 1;
         if is_dynamic {
