@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.46
+-------
+
+add example script for unzipping raw data and creating SQL databases`
+
+
 v1.3.45
 -------
 
