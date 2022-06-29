@@ -16,12 +16,15 @@ pkgbuild:
     - maturin build --release --manylinux 2014 --strip
   artifacts:
     paths:
-      - ./target/wheels/
+      - ./target/
 
 rust-test:
   stage: rust-test
   script:
     - cargo test --color=always --release -- --nocapture
+  artifacts:
+    paths:
+      - ./target/
 
 python-test:
   stage: python-test
@@ -34,11 +37,12 @@ python-test:
   needs:
     - job: pkgbuild
       artifacts: true
+    - job: rust-test 
+      artifacts: true
   cache:
     key: persistent_000
     paths:
       - aisdb/tests/marinetraffic_test.db
-      - ./target/wheels/
 
 #python-profile:
 #  stage: python-profile
