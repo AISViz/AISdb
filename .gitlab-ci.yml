@@ -16,7 +16,7 @@ pkgbuild:
     - maturin build --release --manylinux 2014 --strip
   artifacts:
     paths:
-      - target/wheels/
+      - ./target/wheels/
 
 rust-test:
   stage: rust-test
@@ -31,12 +31,14 @@ python-test:
     - rm aisdb/__init__.py aisdb/tests/__init__.py
     - python -m coverage run -m pytest --color=yes --tb=native --doctest-modules -k "not marinetraffic" aisdb/tests/
     - python -m coverage report
-  dependencies:
-    - pkgbuild
+  needs:
+    - job: pkgbuild
+      artifacts: true
   cache:
     key: persistent_000
     paths:
       - aisdb/tests/marinetraffic_test.db
+      - ./target/wheels/
 
 #python-profile:
 #  stage: python-profile
