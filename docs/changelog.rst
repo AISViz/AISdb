@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.49
+-------
+
+bug fix in bathymetry database
+
+
 v1.3.48
 -------
 
