@@ -24,6 +24,7 @@ for zipfilelocation in zipfiles:
         source = 'exactEarth'
 
     # unzip file into unzip_dir and handle errors
+    print(f'unzipping {zipfilelocation}...')
     try:
         aisdb.proc_util._fast_unzip(zipf=zipfilelocation, dirname=unzip_dir)
     except BadZipFile:
@@ -32,8 +33,6 @@ for zipfilelocation in zipfiles:
     except Exception as err:
         print(f'{zipfilelocation} err: {err.with_traceback(None)}')
         continue
-
-    print(f'unzipping {zipfilelocation}...')
 
     # iterate through unzipped files
     for filelocation in (aisdb.proc_util.glob_files(unzip_dir, ext='.nm4') +
