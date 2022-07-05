@@ -35,19 +35,13 @@ class Gebco():
         self.__enter__()
 
     def __enter__(self):
+        Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError
+
         if self.rasterfiles is not None:
             return self
 
-        self.fetch_bathymetry_grid()  # download bathymetry rasters if missing
-        Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError
-        filebounds = lambda fpath: {
-            f[0]: float(f[1:])
-            for f in fpath.split('gebco_2022_', 1)[1].rsplit('.tif', 1)[0].
-            split('_')
-        }
-
         self.rasterfiles = {
-            f: filebounds(f)
+            f: _filebounds(f)
             for f in {
                 k: None
                 for k in sorted([
@@ -56,6 +50,7 @@ class Gebco():
                 ])
             }
         }
+        self.fetch_bathymetry_grid()  # download bathymetry rasters if missing
 
         return self
 
@@ -89,11 +84,12 @@ class Gebco():
                 members = list(contents - exists)
                 print('extracting bathymetry data...')
                 zip_ref.extractall(path=self.data_dir, members=members)
-        else:
-            return
 
         # zzz
         time.sleep(5)
+
+        if os.path.isfile(self.griddata):
+            return
 
         print('creating bathymetry SQL database from raster files...\n'
               f'this will create a ~200gb file at {self.griddata}')
@@ -143,24 +139,6 @@ class Gebco():
                 yspacing = lat[1] - lat[0]
 
                 for x, i in zip(lon, range(xsize)):
-                    _ = '''
-                    rowval = (val[j] * -1
-                              for j in range(i * xsize, (i + 1) * xsize))
-                    rowlat = np.append(lat[0:xsize],
-                                       [lat[xsize - 1] + yspacing])
-                    rowlon0 = (x for _ in range(xsize))
-                    rowlon1 = (x + xspacing for _ in range(xsize))
-                    if i % 1000 == 0:
-                        assert self.getdepth(rowlon0[0],
-                                             rowlat[1]) == rowval[0]
-                    insertrows = zip(
-                        rowlon0,
-                        rowlon1,
-                        rowlat[:-1] if rowlat[0] <= rowlat[1] else rowlat[1:],
-                        rowlat[1:] if rowlat[0] <= rowlat[1] else rowlat[:-1],
-                        rowval,
-                    )
-                    '''
                     rowlon0 = (x for _ in range(xsize))
                     rowlon1 = (x + xspacing for _ in range(xsize))
                     rowlat = np.append(lat[0:xsize],
