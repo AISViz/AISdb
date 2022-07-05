@@ -2,6 +2,42 @@
 Changelog
 =========
 
+v1.3.48
+-------
+
+update code example
+
+
+v1.3.47
+-------
+
+R-Tree database creation for bathymetry derived from rasters
+
+
+v1.3.46
+-------
+
+add example script for unzipping raw data and creating SQL databases`
+
+
+v1.3.45
+-------
+
+error handling when reading Spire/exactEarth CSV files
+
+
+v1.3.44
+-------
+
+get approximate file date from CSV files
+
+
+v1.3.43
+-------
+
+skip header row when checking CSV file checksums
+
+
 v1.3.42
 -------
 
