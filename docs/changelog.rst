@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.47
+-------
+
+R-Tree database creation for bathymetry derived from rasters
+
+
 v1.3.46
 -------
 
