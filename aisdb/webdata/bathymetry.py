@@ -143,24 +143,6 @@ class Gebco():
                 yspacing = lat[1] - lat[0]
 
                 for x, i in zip(lon, range(xsize)):
-                    _ = '''
-                    rowval = (val[j] * -1
-                              for j in range(i * xsize, (i + 1) * xsize))
-                    rowlat = np.append(lat[0:xsize],
-                                       [lat[xsize - 1] + yspacing])
-                    rowlon0 = (x for _ in range(xsize))
-                    rowlon1 = (x + xspacing for _ in range(xsize))
-                    if i % 1000 == 0:
-                        assert self.getdepth(rowlon0[0],
-                                             rowlat[1]) == rowval[0]
-                    insertrows = zip(
-                        rowlon0,
-                        rowlon1,
-                        rowlat[:-1] if rowlat[0] <= rowlat[1] else rowlat[1:],
-                        rowlat[1:] if rowlat[0] <= rowlat[1] else rowlat[:-1],
-                        rowval,
-                    )
-                    '''
                     rowlon0 = (x for _ in range(xsize))
                     rowlon1 = (x + xspacing for _ in range(xsize))
                     rowlat = np.append(lat[0:xsize],
