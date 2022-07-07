@@ -28,7 +28,9 @@ python-test:
   stage: python-test
   script:
     - find ./target/
-    - export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp310*.whl | head -n1`"
+    - python --version
+    #- export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp310*.whl | head -n1`"
+    - export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp37*.whl | head -n1`"
     - python -m pip install ${WHEEL} --force-reinstall
     - rm aisdb/__init__.py aisdb/tests/__init__.py
     - python -m coverage run -m pytest --color=yes --tb=native --doctest-modules -k "not marinetraffic" aisdb/tests/
