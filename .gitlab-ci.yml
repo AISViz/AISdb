@@ -17,15 +17,12 @@ pkgbuild:
     - find ./target
   artifacts:
     paths:
-      - ./target/
+      - ./target/wheels
 
 rust-test:
   stage: rust-test
   script:
     - cargo test --color=always -- --nocapture
-  artifacts:
-    paths:
-      - ./target/
 
 python-test:
   stage: python-test
@@ -38,8 +35,6 @@ python-test:
     - python -m coverage report
   needs:
     - job: pkgbuild
-      artifacts: true
-    - job: rust-test 
       artifacts: true
   cache:
     key: persistent_000
