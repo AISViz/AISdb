@@ -13,8 +13,8 @@ pkgbuild:
     entrypoint: [""]
   stage: pkgbuild
   script:
-    - maturin build --release --manylinux 2014 --strip
-    - find ./target
+    - maturin build --release --manylinux 2014 --strip --interpreter 3.7 3.8 3.9 3.10
+    - find ./target/wheels/
   artifacts:
     paths:
       - ./target/wheels
@@ -29,8 +29,7 @@ python-test:
   script:
     - find ./target/
     - python --version
-    #- export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp310*.whl | head -n1`"
-    - export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp37*.whl | head -n1`"
+    - export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp310*.whl | head -n1`"
     - python -m pip install ${WHEEL} --force-reinstall
     - rm aisdb/__init__.py aisdb/tests/__init__.py
     - python -m coverage run -m pytest --color=yes --tb=native --doctest-modules -k "not marinetraffic" aisdb/tests/
