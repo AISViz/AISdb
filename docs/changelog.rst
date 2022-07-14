@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.51
+-------
+
+update CI arguments
+
+
 v1.3.50
 -------
 
