@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.59
+-------
+
+update example for refactored database connection API
+
+
 v1.3.58
 -------
 
