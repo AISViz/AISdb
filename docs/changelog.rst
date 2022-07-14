@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.54
+-------
+
+bug fix in write_csv() when querying only dynamic tables without left join
+
+
 v1.3.53
 -------
 

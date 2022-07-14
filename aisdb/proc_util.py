@@ -169,8 +169,10 @@ def write_csv(
         colnames.remove('dim_stern')
         colnames.remove('dim_star')
         colnames.remove('dim_port')
-        colnames.remove('coarse_type_txt')
-        colnames.remove('vessel_name')
+        if 'coarse_type_txt' in colnames:
+            colnames.remove('coarse_type_txt')
+        if 'vessel_name' in colnames:
+            colnames.remove('vessel_name')
         colnames = list(dict.fromkeys(colnames))
 
     decimals = {
