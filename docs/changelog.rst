@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.52
+-------
+
+add support for multiple connected databases (synchronous), and refactor asynchronous database connection into its own class
+
+
 v1.3.51
 -------
 
