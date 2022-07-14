@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.61
+-------
+
+update compose file
+
+
 v1.3.60
 -------
 

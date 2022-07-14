@@ -122,6 +122,8 @@ services:
       ipv6_private:
         ipv6_address: "fc00::7"
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    depends_on:
+      - nginx
 
 
 networks:
