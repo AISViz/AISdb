@@ -1,4 +1,6 @@
+!docs/requirements.txt
 **.csv
+**.d
 **.db
 **.db
 **.egg-info
@@ -10,7 +12,7 @@
 **/debug
 **/debug/*
 **/testdata
-**.d
+**/webdriver
 **__pycache__**
 **webdriver
 *.d
@@ -49,4 +51,3 @@ profile
 release
 target/release
 testdata
-!docs/requirements.txt
