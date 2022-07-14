@@ -21,9 +21,15 @@ if (port === undefined) {
   port = '9924';
 }
 
+/**
+  for local testing, do:
+  export VITE_DISABLE_SSL=1
+  npx vite ./aisdb_web/map/
+  */
 let socketHost = null;
 if (import.meta.env.VITE_DISABLE_SSL !== null &&
   import.meta.env.VITE_DISABLE_SSL !== undefined) {
+  console.log('CAUTION: connecting to websocket over unencrypted connection!');
   socketHost = `ws://${hostname}:9924`;
 } else {
   /** @constant {string} socketHost socket host address */
