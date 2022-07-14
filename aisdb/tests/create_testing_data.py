@@ -5,10 +5,18 @@ from shapely.geometry import Polygon
 
 from aisdb.database.dbconn import DBConn
 from aisdb.gis import Domain
+from aisdb.database.create_tables import (
+    #aggregate_static_msgs,
+    sqlite_createtable_dynamicreport,
+    sqlite_createtable_staticreport,
+)
 
 
-def sample_dynamictable_insertdata(testdbpath):
-    db = DBConn(dbpath=testdbpath)
+def sample_dynamictable_insertdata(*, db, dbpath):
+    #db = DBConn(dbpath=testdbpath)
+    assert isinstance(db, DBConn)
+    sqlite_createtable_staticreport(db, month="200001", dbpath=dbpath)
+    sqlite_createtable_dynamicreport(db, month="200001", dbpath=dbpath)
     db.cur.execute(
         'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702800, -60.994833, 47.434647238127695, -1, -1)'
     )

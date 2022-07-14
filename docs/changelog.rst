@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.55
+-------
+
+update testing for new database API
+
+
 v1.3.54
 -------
 
