@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.60
+-------
+
+update websocket_server for new asynchronous database connection API
+
+
 v1.3.59
 -------
 

@@ -9,11 +9,11 @@ import orjson as json
 import numpy as np
 
 from aisdb import (
-    DBConn,
-    DBQuery,
     sqlfcn,
     sqlfcn_callbacks,
 )
+from aisdb.database.dbconn import DBConn_async
+from aisdb.database.dbqry import DBQuery_async
 from aisdb.webdata.marinetraffic import _metadict, _nullinfo
 from aisdb.track_gen import (
     TrackGen_async,
@@ -96,10 +96,11 @@ class SocketServ():
             raise RuntimeWarning(f'Unhandled client message: {response}')
         return 0
 
-    def _create_dbqry(self, req):
+    def _create_dbqry(self, req, db):
         start = datetime(*map(int, req['start'].split('-')))
         end = datetime(*map(int, req['end'].split('-')))
-        qry = DBQuery(
+        qry = DBQuery_async(
+            db=db,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
@@ -117,19 +118,19 @@ class SocketServ():
                 {"type" : "validrange"}
 
         '''
-        with DBConn(self.dbpath).conn as conn:
-            res = sorted([
-                s.split('_')[1] for line in conn.execute(
-                    "SELECT name FROM sqlite_master "
-                    "WHERE type='table' AND name LIKE '%_dynamic'").fetchall()
-                for s in line
-            ])
-        startyear = max(int(res[0][:4]), 2012)
-        start_month_range = calendar.monthrange(startyear, int(res[0][4:]))[-1]
-        end_month_range = calendar.monthrange(int(res[-1][:4]),
-                                              int(res[-1][4:]))[-1]
-        startval = f'{startyear}-{res[0][4:]}-{start_month_range}'
-        endval = f'{res[-1][:4]}-{res[-1][4:]}-{end_month_range}'
+        async with DBConn_async(dbpath=self.dbpath) as db:
+            res1 = await db.conn.execute_fetchall(
+                "SELECT name FROM main.sqlite_master "
+                "WHERE type='table' AND name LIKE '%_dynamic'")
+            dynamic_months = sorted(
+                [s.split('_')[1] for line in res1 for s in line])
+        startyear = max(int(dynamic_months[0][:4]), 2012)
+        start_month_range = calendar.monthrange(startyear,
+                                                int(dynamic_months[0][4:]))[-1]
+        end_month_range = calendar.monthrange(int(dynamic_months[-1][:4]),
+                                              int(dynamic_months[-1][4:]))[-1]
+        startval = f'{startyear}-{dynamic_months[0][4:]}-{start_month_range}'
+        endval = f'{dynamic_months[-1][:4]}-{dynamic_months[-1][4:]}-{end_month_range}'
         await websocket.send(
             json.dumps({
                 'type': 'validrange',
@@ -180,15 +181,16 @@ class SocketServ():
                 }
 
         '''
-        qry = self._create_dbqry(req)
-        qrygen = encode_greatcircledistance_async(
-            TrackGen_async(
-                qry.async_qry(self.dbpath, fcn=sqlfcn.crawl_dynamic_static)),
-            distance_threshold=250000,
-            minscore=0,
-            speed_threshold=50,
-        )
-        with self.trafficDB as conn:
+        async with DBConn_async(dbpath=self.dbpath) as db:
+            qry = self._create_dbqry(req, db)
+            qrygen = encode_greatcircledistance_async(
+                TrackGen_async(
+                    qry.gen_qry(self.dbpath, fcn=sqlfcn.crawl_dynamic_static)),
+                distance_threshold=250000,
+                minscore=0,
+                speed_threshold=50,
+            )
+            #with self.trafficDB as conn:
             count = 0
             async for track in qrygen:
                 #_vinfo(track, conn)
