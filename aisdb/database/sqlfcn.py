@@ -2,24 +2,31 @@
 import os
 
 from aisdb import sqlpath
+from aisdb.database.dbconn import get_dbname
 
 
-def _dynamic(month, callback, **kwargs):
+def _dynamic(*, dbpath, month, callback, **kwargs):
     ''' SQL common table expression for selecting from dynamic tables '''
     sqlfile = 'cte_dynamic_clusteredidx.sql'
     with open(os.path.join(sqlpath, sqlfile), 'r') as f:
         sql = f.read()
     args = [month for _ in range(len(sql.split('{}')) - 1)]
-    return sql.format(*args) + callback(month=month, alias='d', **kwargs)
+    return sql.format(*args).replace(
+        f'ais_{month}_dynamic',
+        f'{get_dbname(dbpath)}.ais_{month}_dynamic') + callback(
+            month=month, alias='d', **kwargs)
+    return sql.format(*args)
 
 
-def _static(month='197001', **_):
+def _static(*, dbpath, month='197001', **_):
     ''' SQL common table expression for selecting from static tables '''
     sqlfile = 'cte_static_aggregate.sql'
     with open(os.path.join(sqlpath, sqlfile), 'r') as f:
         sql = f.read()
     args = [month for _ in range(len(sql.split('{}')) - 1)]
-    return sql.format(*args)
+    return sql.format(*args).replace(
+        f'static_{month}_aggregate',
+        f'{get_dbname(dbpath)}.static_{month}_aggregate')
 
 
 def _leftjoin(month='197001'):
@@ -33,16 +40,18 @@ def _leftjoin(month='197001'):
     return sql.format(*args)
 
 
-def _aliases(month, callback, kwargs):
+def _aliases(*, dbpath, month, callback, kwargs):
     ''' declare common table expression aliases '''
     sqlfile = 'cte_aliases.sql'
     with open(os.path.join(sqlpath, sqlfile), 'r') as f:
         sql = f.read()
-    args = (month, _dynamic(month, callback, **kwargs), month, _static(month))
+    args = (month,
+            _dynamic(dbpath=dbpath, month=month, callback=callback,
+                     **kwargs), month, _static(dbpath=dbpath, month=month))
     return sql.format(*args)
 
 
-def crawl_dynamic(months, callback, **kwargs):
+def crawl_dynamic(*, dbpath, months, callback, **kwargs):
     ''' iterate over position reports tables to create SQL query spanning
         desired time range
 
@@ -50,12 +59,13 @@ def crawl_dynamic(months, callback, **kwargs):
         and should not be called directly
     '''
     sql_dynamic = '\nUNION\n'.join([
-        _dynamic(month=month, callback=callback, **kwargs) for month in months
+        _dynamic(dbpath=dbpath, month=month, callback=callback, **kwargs)
+        for month in months
     ]) + '\nORDER BY 1,2'
     return sql_dynamic
 
 
-def crawl_dynamic_static(months, callback, **kwargs):
+def crawl_dynamic_static(*, dbpath, months, callback, **kwargs):
     ''' iterate over position reports and static messages tables to create SQL
         query spanning desired time range
 
@@ -66,7 +76,7 @@ def crawl_dynamic_static(months, callback, **kwargs):
     with open(os.path.join(sqlpath, sqlfile), 'r') as f:
         sql_coarsetype = f.read()
     sql_aliases = ''.join([
-        _aliases(month=month, callback=callback, kwargs=kwargs)
+        _aliases(dbpath=dbpath, month=month, callback=callback, kwargs=kwargs)
         for month in months
     ])
     sql_union = '\nUNION\n'.join([_leftjoin(month=month) for month in months])

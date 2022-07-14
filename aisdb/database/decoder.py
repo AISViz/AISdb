@@ -6,11 +6,16 @@ import os
 from hashlib import md5
 
 from aisdb.index import index
-from aisdb.database.dbconn import DBConn
+from aisdb.database.dbconn import DBConn, get_dbname, DBConn_async
 import aisdb
 
 
-def decode_msgs(filepaths, dbpath, source, vacuum=False, skip_checksum=False):
+def decode_msgs(filepaths,
+                db,
+                dbpath,
+                source,
+                vacuum=False,
+                skip_checksum=False):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
@@ -21,8 +26,8 @@ def decode_msgs(filepaths, dbpath, source, vacuum=False, skip_checksum=False):
             filepaths (list)
                 absolute filepath locations for AIS message files to be
                 ingested into the database
-            dbpath (string)
-                database filepath
+            db (:class:`aisdb.database.dbconn.DBConn`)
+                database connection object
             source (string)
                 data source name or description. will be used as a primary key
                 column, so duplicate messages from different sources will not be
@@ -30,32 +35,39 @@ def decode_msgs(filepaths, dbpath, source, vacuum=False, skip_checksum=False):
             vacuum (boolean, str)
                 if True, the database will be vacuumed after completion.
                 if string, the database will be vacuumed into the filepath
-                given.
-                Its recommended to supply a filepath string on a seperate
-                hard drive from dbpath to increase vacuum speed.
-                This will result in a smaller database but takes a long
-                time for large datasets
+                given. Consider vacuuming to second hard disk to speed this up
 
         returns:
             None
 
         example:
 
-        >>> from aisdb import dbpath, decode_msgs
+            >>> from aisdb import dbpath, decode_msgs
         >>> filepaths = ['~/ais/rawdata_dir/20220101.nm4',
-        ...              '~/ais/rawdata_dir/20220102.nm4']
+                ...              '~/ais/rawdata_dir/20220102.nm4']
         >>> decode_msgs(filepaths, dbpath)
     '''
+    if not isinstance(db, DBConn):
+        if isinstance(db, DBConn_async):
+            raise ValueError('Files must be decoded synchronously!')
+        raise ValueError('db argument must be a DBConn database connection. '
+                         f'got {DBConn}')
     if len(filepaths) == 0:
         raise ValueError('must supply atleast one filepath.')
 
-    if ':memory:' not in dbpath:
-        dbdir, dbname = dbpath.rsplit(os.path.sep, 1)
+    dbpathlist = [p for p in db.dbpaths if 'checksums' in p]
+    if dbpathlist == []:
+        hashmap_dbpath = os.path.join(os.path.dirname(db.dbpaths[0]),
+                                      'checksums.db')
     else:
-        dbdir, dbname = '', ':memory:'
+        hashmap_dbpath = dbpathlist[0]
 
-    with index(bins=False, storagedir=dbdir, filename=dbname) as dbindex:
+    hashmap_dbdir, hashmap_dbname = hashmap_dbpath.rsplit(os.path.sep, 1)
+
+    with index(bins=False, storagedir=hashmap_dbdir,
+               filename=hashmap_dbname) as dbindex:
         for file in filepaths:
+            # fdate = getfiledate(file)
             if not skip_checksum:
                 with open(os.path.abspath(file), 'rb') as f:
                     signature = md5(f.read(1000)).hexdigest()
@@ -69,17 +81,16 @@ def decode_msgs(filepaths, dbpath, source, vacuum=False, skip_checksum=False):
             if not skip_checksum:
                 dbindex.insert_hash(seed=signature)
 
+    dbname = get_dbname(dbpath)
     if vacuum is not False:
         print("finished parsing data\nvacuuming...")
-        db = DBConn(dbpath)
         if vacuum is True:
-            db.cur.execute("VACUUM")
+            db.cur.execute(f'VACUUM {dbname}')
         elif isinstance(vacuum, str):
             assert not os.path.isfile(vacuum)
-            db.cur.execute(f"VACUUM INTO {vacuum}")
+            db.cur.execute(f"VACUUM {dbname} INTO {vacuum}")
         else:
             raise ValueError('vacuum arg must be boolean or filepath string')
         db.conn.commit()
-        db.conn.close()
 
     return
