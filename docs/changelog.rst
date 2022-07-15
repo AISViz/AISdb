@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.62
+-------
+
+update dbqry testing
+
+
 v1.3.61
 -------
 

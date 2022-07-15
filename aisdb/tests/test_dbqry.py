@@ -71,7 +71,7 @@ async def test_query_async(tmpdir):
     testdbpath = os.path.join(tmpdir, 'test_query_async.db')
     #aisdatabase = DBConn_async(dbpath=testdbpath)
     # create db synchronously
-    with DBConn() as aisdatabase:
+    with DBConn(dbpath=testdbpath) as aisdatabase:
         sqlite_createtable_staticreport(db=aisdatabase,
                                         month="202009",
                                         dbpath=testdbpath)
@@ -79,7 +79,7 @@ async def test_query_async(tmpdir):
                                          month="202009",
                                          dbpath=testdbpath)
         aggregate_static_msgs(aisdatabase, ["202009"])
-    async with DBConn_async() as aisdatabase:
+    async with DBConn_async(dbpath=testdbpath) as aisdatabase:
         q = DBQuery_async(
             db=aisdatabase,
             dbpath=testdbpath,
