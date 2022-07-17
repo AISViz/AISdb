@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.64
+-------
+
+update install instructions in readme
+
+
 v1.3.63
 -------
 
