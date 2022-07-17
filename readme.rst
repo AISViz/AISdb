@@ -78,7 +78,10 @@ Clone the repository and create a virtual python environment to install the pack
   cd aisdb
 
 
-Python wheel files can be built using the included docker environment. By default, wheels will be built using the manylinux2014_x86_64 target. Results will be output to ``./target/wheels/``. Package wheels can then be installed using pip
+Python wheel files can be built using the included docker environment. 
+By default, wheels will be built using the manylinux2014_x86_64 target. 
+Results will be output to ``./target/wheels/``. 
+Package wheels can then be installed using pip
 
 .. code-block:: sh
 
@@ -89,7 +92,8 @@ Python wheel files can be built using the included docker environment. By defaul
   python -m pip install ${WHEELFILE}
 
 
-Alternatively, for an editable installation, rust targets can be compiled to shared object (.so) format using `maturin build system<https://maturin.rs/develop.html>`_. Conda users may need to `install maturin from conda-forge<https://maturin.rs/installation.html#conda>`
+Alternatively, for an editable installation, rust targets can be compiled to shared object (.so) format using `maturin build system<https://maturin.rs/develop.html>`_. 
+Conda users may need to `install maturin from conda-forge<https://maturin.rs/installation.html#conda>`_
 
 .. code-block:: sh
 
