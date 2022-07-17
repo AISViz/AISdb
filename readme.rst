@@ -87,7 +87,7 @@ Package wheels can then be installed using pip
 
   python -m pip install --upgrade docker-compose maturin
   docker-compose up --build pkgbuild  # may require sudo 
-  PYTHON3VERSION="`maturin list-python | tail -n +2 | sort -g | head -n1 | egrep -o 'python3.*' | cut -d'.' -f2`"
+  PYTHON3VERSION=`maturin list-python | python -c "import sys; print(sorted([int(l.split('.')[1].split(' ')[0]) for l in sys.stdin if 'CPython' in l])[-1])" `
   WHEELFILE="`ls ./target/wheels/aisdb-*cp3$PYTHON3VERSION*.whl -r1 | head -n1`"
   python -m pip install ${WHEELFILE}
 
