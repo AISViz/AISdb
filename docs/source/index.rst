@@ -7,6 +7,7 @@ AISDB Docs: Index
 
    Webmap </map/index.html#http://>  
    readme
+   webserver
    docker
    database
    AIS_base_station
