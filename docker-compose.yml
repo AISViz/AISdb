@@ -106,7 +106,7 @@ services:
     # add something like the following to docker-compose.override.yml for SSL
     #  - ~/cert/conf:/etc/letsencrypt
     command:
-      ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT} $${USEPROXYSERVERNAME}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
+      ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
     depends_on:
       - webserver
       - websocket

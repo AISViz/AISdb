@@ -92,8 +92,8 @@ Package wheels can then be installed using pip
   python -m pip install ${WHEELFILE}
 
 
-Alternatively, for an editable installation, rust targets can be compiled to shared object (.so) format using `maturin build system<https://maturin.rs/develop.html>`_. 
-Conda users may need to `install maturin from conda-forge<https://maturin.rs/installation.html#conda>`_
+Alternatively, for an editable installation, rust targets can be compiled to shared object (.so) format using `maturin build system <https://maturin.rs/develop.html>`__. 
+Conda users may need to `install maturin from conda-forge <https://maturin.rs/installation.html#conda>`__
 
 .. code-block:: sh
 
