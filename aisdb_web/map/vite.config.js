@@ -38,8 +38,8 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ],
-        start_url: '/map',
-        scope: '/map',
+        start_url: '/map/index.html',
+        scope: '/map/',
         background_color : '#282c34',
         theme_color: '#282c34',
         display: 'fullscreen',
@@ -49,7 +49,7 @@ export default defineConfig({
             name: 'Ecoregions Shortcut',
             short_name: 'Ecoregions',
             description: 'Display map with ecoregion polygons overlay',
-            url: '/map?ecoregions',
+            url: '/map/?ecoregions',
             icons: [
               {
                 src: '/favicon.svg',

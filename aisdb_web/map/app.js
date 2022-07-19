@@ -3,17 +3,12 @@ import './map';
 window.addEventListener('load', () => {
   if ('serviceWorker' in navigator) {
     import('virtual:pwa-register').then(({ registerSW }) => {
-      registerSW();
+      registerSW({
+        registerType: 'autoUpdate',
+        srcDir: 'map',
+      });
     });
     // && !/localhost/.test(window.location)) {
-    /*
-    const updateSW = registerSW({
-      onNeedRefresh: function() {
-        updateSW();
-      },
-    });
-    */
-    // registerSW();
   }
 });
 
