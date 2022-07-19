@@ -1,14 +1,10 @@
-import './wasm_hook';
 import './map';
-import './selectform';
-import './clientsocket';
-import './render';
-
-import { registerSW } from 'virtual:pwa-register';
-
 
 window.addEventListener('load', () => {
   if ('serviceWorker' in navigator) {
+    import('virtual:pwa-register').then(({ registerSW }) => {
+      registerSW();
+    });
     // && !/localhost/.test(window.location)) {
     /*
     const updateSW = registerSW({
@@ -17,6 +13,7 @@ window.addEventListener('load', () => {
       },
     });
     */
-    registerSW();
+    // registerSW();
   }
 });
+

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.66
+-------
+
+refactor aisdb_web/map/
+
+
 v1.3.65
 -------
 

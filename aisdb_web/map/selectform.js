@@ -4,8 +4,6 @@ import 'flatpickr/dist/flatpickr.css';
 
 import { socket, waitForTimerange } from './clientsocket';
 import {
-  addInteraction,
-  clearFeatures,
   dragBox,
   draw,
   drawSource,
@@ -147,7 +145,9 @@ selectmenu.childNodes.forEach((opt) => {
       map.removeInteraction(draw);
       map.removeInteraction(dragBox);
       drawSource.clear();
-      addInteraction();
+      // addInteraction();
+      map.addInteraction(draw);
+      map.addInteraction(dragBox);
     }
   };
 });
@@ -214,7 +214,8 @@ clearbtn.onclick = async function() {
   }
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
-  clearFeatures();
+  drawSource.clear();
+  lineSource.clear();
 };
 
 
@@ -275,7 +276,7 @@ let selectedType = 'All';
  * current selectedType
  * @see selectedType
  */
-function set_track_style(ft) {
+async function set_track_style(ft) {
   if (selectedType === 'All') {
     ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
   } else if (ft.get('meta').vesseltype_generic.includes(selectedType)) {
@@ -287,9 +288,10 @@ function set_track_style(ft) {
 
 
 /** update all track features in lineSource according to current selectedType
+ * @param {ol.source.Vector} lineSource target layer
  * @see selectedType
  */
-function update_vesseltype_styles() {
+function update_vesseltype_styles(lineSource) {
   /* vessel types selector action */
   if (selectedType === 'All') {
     for (let ft of lineSource.getFeatures()) {
@@ -319,14 +321,14 @@ function createVesselMenuItem(label, value, symbol) {
   if (symbol === undefined) {
     symbol = '●';
   }
-  let opt = document.createElement('a');
+  let opt = document.createElement('div');
   let colordot = `<div class="colordot" style="color: rgb(${vesseltypes[label]});">${symbol}</div>`;
   opt.className = 'hiddenmenu-item';
   opt.innerHTML = `<div>${label}</div>&ensp;${colordot}`;
   opt.dataset.value = value;
   opt.onclick = function() {
     selectedType = opt.dataset.value;
-    update_vesseltype_styles();
+    update_vesseltype_styles(lineSource);
     vesseltypeselect.innerHTML = `Vessel Type ${colordot}`;
     vesselmenu.classList.toggle('show');
   };
