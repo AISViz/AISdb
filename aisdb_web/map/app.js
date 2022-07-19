@@ -1,5 +1,6 @@
 import './map';
 
+/*
 window.addEventListener('load', () => {
   if ('serviceWorker' in navigator) {
     import('virtual:pwa-register').then(({ registerSW }) => {
@@ -11,4 +12,5 @@ window.addEventListener('load', () => {
     // && !/localhost/.test(window.location)) {
   }
 });
+*/
 
