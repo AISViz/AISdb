@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
-import { VitePWA } from 'vite-plugin-pwa';
+//import { VitePWA } from 'vite-plugin-pwa';
 
 const root = resolve(__dirname);
 const outDir = resolve(__dirname, '..', 'dist_map');
