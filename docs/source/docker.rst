@@ -29,14 +29,16 @@ By default, the webserver will listen to requests from all clients (``*``), but 
 The default command for starting the websocket server will look for the database file, zone polygons folder, and marinetraffic database file at the following volume locations.
 These can be mounted inside the docker container using a ``docker-compose.override.yml`` in the root project directory, for example:
 
-.. code-block:: yml
+.. code-block:: 
+
+.. code-block:: yaml
 
    services:
      websocket:
        volumes:
-         - /home/arch/ais/ais_2022.db:/home/ais_env/ais/ais.db
-         - /home/arch/ais/:/home/ais_env/ais/
-         - /home/arch/ais/marinetraffic.db:/home/ais_env/ais/marinetraffic.db
+         - /home/$USER/ais/ais_2022.db:/home/ais_env/ais/ais.db
+         - /home/$USER/ais/:/home/ais_env/ais/
+         - /home/$USER/ais/marinetraffic.db:/home/ais_env/ais/marinetraffic.db
 
    
 Instead of using the default command, consider writing a script similar to examples/start_websocket.py with the filepath locations replaced, and volume paths adjusted accordingly
@@ -63,24 +65,24 @@ Website SSL
 Not required for local development.
 
 In ``docker-compose.override.yml``, mount local directories intended for storing certificates from letsencrypt.
-Replace ``/home/arch/cert/`` with a new local directory for this purpose.
+Replace ``/home/$USER/cert/`` with a new local directory for this purpose.
 
-.. code-block:: yml
+.. code-block:: yaml
 
   services:
     nginx:
       volumes:
-        - /home/arch/cert/conf:/etc/letsencrypt
-        - /home/arch/cert/www:/var/www/certbot
+        - /home/$USER/cert/conf:/etc/letsencrypt
+        - /home/$USER/cert/www:/var/www/certbot
     certbot:
       volumes:
-        - /home/arch/cert/conf:/etc/letsencrypt
-        - /home/arch/cert/www:/var/www/certbot
+        - /home/$USER/cert/conf:/etc/letsencrypt
+        - /home/$USER/cert/www:/var/www/certbot
 
 Disable SSL configuration in nginx temporarily to serve the authentication challenge.
 Make the following modification to ``docker/nginx.conf``, commenting lines for SSL:
 
-.. code-block:: conf
+.. code-block:: cfg
 
    #listen 443 ssl http2;
    #listen [::]:443 ssl http2;
@@ -99,8 +101,8 @@ Restart the router to apply the changes, and then verify that the router is serv
    docker exec -it certbot certbot certonly --manual -d $DOMAIN
 
    # in another terminal window:
-   mkdir -p /home/arch/cert/www/.well-known/acme-challenge/
-   echo "<challenge token from certbot prompt goes here>" > /home/arch/cert/www/.well-known/acme-challenge/<challenge filename>
+   mkdir -p /home/$USER/cert/www/.well-known/acme-challenge/
+   echo "<challenge token from certbot prompt goes here>" > /home/$USER/cert/www/.well-known/acme-challenge/<challenge filename>
    docker-compose restart nginx
 
    # verify with curl
@@ -110,7 +112,7 @@ Restart the router to apply the changes, and then verify that the router is serv
 If cURL returns the challenge token provided by certbot, proceed with the prompt by pressing 'Enter'.
 Revert ``docker/nginx.conf`` to use SSL and restart the service
 
-.. code-block:: conf
+.. code-block:: cfg
 
    listen 443 ssl http2;
    listen [::]:443 ssl http2;

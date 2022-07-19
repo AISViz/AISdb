@@ -27,6 +27,7 @@ COPY --chown=ais_env aisdb_web/package.json aisdb_web/package.json
 RUN cd aisdb_web && npm install
 COPY --chown="ais_env" ./target/wheels/aisdb-*cp310*.whl ./
 RUN python -m pip install `ls -r1 aisdb-*cp310*.whl | head -n1`
+COPY --chown=ais_env examples/ examples/
 
 # build sphinx docs and nodejs webapp
 FROM aisdb AS webserv
@@ -36,6 +37,7 @@ ARG AISDBPORT
 COPY --chown=ais_env Cargo.toml pyproject.toml build.rs readme.rst ./
 COPY --chown=ais_env aisdb/ aisdb/
 COPY --chown=ais_env src/ src/
+RUN cargo doc --document-private-items --no-deps --package=aisdb --release --target-dir="aisdb_web/dist_cargodoc"
 COPY --chown=ais_env docs/ docs/
 COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 COPY --chown=ais_env aisdb_web/ aisdb_web/

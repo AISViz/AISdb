@@ -72,17 +72,12 @@ services:
       AISDBHOST: ${AISDBHOST:-127.0.0.1}
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
       AISDBPORT: ${AISDBPORT:-9924}
-    command:
-      ['python', '-Ouc', 'import asyncio;
-      from aisdb.websocket_server import SocketServ;
-      from aisdb import DomainFromTxts;
-      serv=SocketServ(
-        dbpath="${AISDBPATH:-/home/ais_env/ais/ais.db}", 
-        domain=DomainFromTxts("example", "${AISDBZONES:-/home/ais_env/ais/zones/}", correct_coordinate_range=False), 
-        trafficDBpath="${AISDBMARINETRAFFIC:-/home/ais_env/ais/marinetraffic.db}", 
-        enable_ssl=False,
-      );
-      asyncio.run(serv.main())']
+      AISDBPATH: ${AISDBPATH:-/home/ais_env/ais/ais.db}
+      AISDBZONES: ${AISDBZONES:-/home/ais_env/ais/zones/}
+      AISDBMARINETRAFFIC: ${AISDBMARINETRAFFIC:-/home/ais_env/ais/marinetraffic.db}
+    init: true
+    command: 
+      ["python", "-Ou", "examples/start_websocket.py"]
     networks: 
       ipv6_private:
         ipv6_address: "fc00::6"
@@ -105,6 +100,7 @@ services:
       - ./docker/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
     # add something like the following to docker-compose.override.yml for SSL
     #  - ~/cert/conf:/etc/letsencrypt
+    init: true
     command:
       ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
     depends_on:

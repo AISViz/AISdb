@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.65
+-------
+
+update docker docs and configuration
+
+
 v1.3.64
 -------
 
