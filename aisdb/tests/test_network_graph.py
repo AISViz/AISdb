@@ -32,8 +32,8 @@ from aisdb.tests.create_testing_data import (
 trafficDBpath = os.environ.get(
     'AISDBMARINETRAFFIC',
     os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        'tests',
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        'testdata',
         'marinetraffic_test.db',
     ))
 

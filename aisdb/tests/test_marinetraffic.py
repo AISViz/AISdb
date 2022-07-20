@@ -20,7 +20,6 @@ if not os.path.isdir(testdir):
     os.mkdir(testdir)
 
 trafficDBpath = os.path.join(testdir, 'marinetraffic_test.db')
-#webdriverpath = os.path.join(testdir, 'webdriver')
 
 
 def test_init_scraper():

@@ -23,15 +23,9 @@ def _scraper(data_dir, proxyhost=None, proxyport=None):
     '''
     assert shutil.which('firefox'), 'Firefox is required for this feature'
 
-    #env_headless = os.environ.get('Headless', True)
-    #if env_headless in ('0', 'False', 'false'):
-    #    headless = False
-
     # configs
-    headless = True
     opt = Options()
-    if headless:
-        opt.headless = True
+    opt.headless = True if not os.environ.get('DEBUG') else False
     opt.set_preference('permissions.default.image', 2)
     opt.set_preference('extensions.contentblocker.enabled', True)
     opt.set_preference('media.autoplay.default', 2)
@@ -43,8 +37,7 @@ def _scraper(data_dir, proxyhost=None, proxyport=None):
     opt.set_preference('ui.context_menus.after_mouseup', False)
     opt.set_preference('privacy.sanitize.sanitizeOnShutdown', True)
     opt.set_preference('dom.disable_beforeunload', True)
-    # driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
-    """
+    """ chrome args
     opt.add_argument('--headless')
     opt.add_argument(f'user-data-dir={data_dir}')
     opt.add_argument('permissions.default.image=2')
@@ -68,9 +61,9 @@ def _scraper(data_dir, proxyhost=None, proxyport=None):
         options=opt,
     )
 
-    if headless:
-        driver.set_window_size(9999, 9999)
-    else:  # pragma: no cover
+    if os.environ.get('DEBUG'):
         driver.maximize_window()
+    else:
+        driver.set_window_size(9999, 9999)
 
     return driver

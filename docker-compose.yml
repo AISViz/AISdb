@@ -41,7 +41,6 @@ services:
       - AISDBDATADIR=/home/ais_env/ais
       - AISDBTESTDIR=/home/ais_env/testdata
     volumes:
-      - ./aisdb/tests:/home/ais_env/aisdb/tests
       - ./testdata:/home/ais_env/testdata
       - ${AISDBDATADIR:-~/ais/}:/home/ais_env/ais/
       - ./aisdb_web/dist_coverage/:/home/ais_env/aisdb_web/dist_coverage/
