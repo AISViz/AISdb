@@ -1,4 +1,3 @@
-!docs/requirements.txt
 **.csv
 **.d
 **.db
@@ -6,8 +5,6 @@
 **.egg-info
 **.eggs
 **.log
-**.nm4
-**.pickle
 **.so
 **/debug
 **/debug/*
@@ -35,7 +32,6 @@
 aisdb.egg_info
 aisdb_wasm/release
 aisdb_wasm/target
-aisdb_web/dist**
 aisdb_web/dist_cargodoc
 aisdb_web/dist_jsdoc
 aisdb_web/dist_map

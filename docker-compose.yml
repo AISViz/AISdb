@@ -8,8 +8,7 @@ services:
     image: ghcr.io/pyo3/maturin:main
     volumes:
       - ./:/io
-    #command: build --release --manylinux 2014 --strip --interpreter 3.7 3.8 3.9 3.10
-    command: build --release --manylinux 2014 --strip 
+    command: build --release --manylinux 2014 --strip  --interpreter 3.10
 
   # run rust tests
   rust-test:
@@ -26,9 +25,9 @@ services:
       - ./Cargo.toml:/home/ais_env/Cargo.toml
       - ./src:/home/ais_env/src
       - ./build.rs:/home/ais_env/build.rs
-      - ./aisdb/aisdb_sql:/home/ais_env/aisdb/aisdb_sql
+      #- ./aisdb/aisdb_sql:/home/ais_env/aisdb/aisdb_sql
     command:
-      ["cargo", "test", "--color=always"]
+      ["cargo", "test", "--lib", "--color=always"]
 
   # build python package and run python tests
   python-test:
@@ -39,10 +38,16 @@ services:
       dockerfile: ./docker/Dockerfile
     environment:
       - RUST_BACKTRACE=1
+      - AISDBDATADIR=/home/ais_env/ais
+      - AISDBTESTDIR=/home/ais_env/testdata
     volumes:
-      - ./aisdb/tests:/home/ais_env/tests
+      - ./aisdb/tests:/home/ais_env/aisdb/tests
+      - ./testdata:/home/ais_env/testdata
+      - ${AISDBDATADIR:-~/ais/}:/home/ais_env/ais/
+      - ./aisdb_web/dist_coverage/:/home/ais_env/aisdb_web/dist_coverage/
+    init: true
     command: 
-      ["python", "-m", "pytest", "--color=yes", "--tb=native", "--doctest-modules", "tests/", "-s", "-k", "not async"]
+      ["python", "-m", "pytest", "aisdb/tests/", "--durations=10"]
 
   # nodeJS docs server + webapp
   webserver:
@@ -55,6 +60,8 @@ services:
         BINGMAPSKEY: ${BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
         AISDBHOST: ${AISDBHOST:-127.0.0.1}
         AISDBPORT: ${AISDBPORT:-9924}
+    depends_on:
+      - python-test  # for test coverage report
     command:
       ['npm', '--prefix', 'aisdb_web/', 'start']
     networks:
@@ -72,9 +79,12 @@ services:
       AISDBHOST: ${AISDBHOST:-127.0.0.1}
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
       AISDBPORT: ${AISDBPORT:-9924}
-      AISDBPATH: ${AISDBPATH:-/home/ais_env/ais/ais.db}
-      AISDBZONES: ${AISDBZONES:-/home/ais_env/ais/zones/}
-      AISDBMARINETRAFFIC: ${AISDBMARINETRAFFIC:-/home/ais_env/ais/marinetraffic.db}
+      # consider mounting volumes at the following locations
+      AISDBPATH: '/home/ais_env/ais/ais.db'
+      AISDBZONES: '/home/ais_env/ais/zones/'
+      AISDBMARINETRAFFIC: '/home/ais_env/ais/marinetraffic.db'
+      #AISDBDATADIR: '/home/ais_env/ais/'
+      #AISDBTESTDIR: '/home/ais_env/testdata'
     init: true
     command: 
       ["python", "-Ou", "examples/start_websocket.py"]

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.72
+-------
+
+update docker builds
+
+
 v1.3.71
 -------
 
