@@ -36,7 +36,7 @@ def _epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
     elif isinstance(ep_arr, (float, int, np.uint32)):
         return delta(int(ep_arr), unit=unit)
 
-    else:
+    else:  # pragma: no cover
         raise ValueError(
             f'input must be integer or array of integers. got {ep_arr=}{type(ep_arr)}'
         )
@@ -70,9 +70,9 @@ def binarysearch(arr, search, descending=False):
     low, high = 0, arr.size - 1
     if descending:
         arr = arr[::-1]
-    if search < arr[0]:
+    if search < arr[0]:  # pragma: no cover
         return 0
-    elif search >= arr[-1]:
+    elif search >= arr[-1]:  # pragma: no cover
         return len(arr) - 1
     while (low <= high):
         mid = (low + high) // 2
@@ -89,11 +89,10 @@ def binarysearch(arr, search, descending=False):
 
 
 def _splits_idx(vector: np.ndarray, d: timedelta) -> np.ndarray:
-    if isinstance(d, timedelta):
-        splits = np.nonzero(
-            vector[1:] - vector[:-1] >= d.total_seconds())[0] + 1
-    else:
-        splits = np.nonzero(vector[1:] - vector[:-1] >= d)[0] + 1
+    assert isinstance(d, timedelta)
+    splits = np.nonzero(vector[1:] - vector[:-1] >= d.total_seconds())[0] + 1
+    #else:
+    #    splits = np.nonzero(vector[1:] - vector[:-1] >= d)[0] + 1
     idx = np.append(np.append([0], splits), [vector.size])
     return idx
 
@@ -145,21 +144,9 @@ def write_csv(
             skipcols (list)
                 columns to be omitted from results
     '''
-
-    cols = [
-        'mmsi', 'datetime', 'time', 'lon', 'lat', 'sog', 'cog', 'imo',
-        'dim_bow', 'dim_stern', 'dim_star', 'dim_port'
-    ]
     tracks_dt = _datetime_column(tracks)
-
     tr1 = next(tracks_dt)
-
-    if 'marinetraffic_info' not in tr1.keys():
-        cols.append('vessel_name')
-
-    colnames = (
-        cols + [f for f in tr1['dynamic'] if f not in cols + skipcols] +
-        [f for f in list(tr1['static'])[::-1] if f not in cols + skipcols])
+    colnames = list(tr1['dynamic']) + list(tr1['static'])
 
     if 'marinetraffic_info' in tr1.keys():
         colnames += tuple(tr1['marinetraffic_info'].keys())
@@ -215,33 +202,6 @@ def write_csv(
     return
 
 
-def write_binary(tracks, fpath):
-    ''' serialize track dictionaries as binary to fpath '''
-    with open(fpath, 'wb') as f:
-        for track in tracks:
-            pickle.dump(track, f)
-
-
-def read_binary(fpath, count=None):
-    ''' read serialized track dictionaries from fpath '''
-    results = []
-    n = 0
-    with open(fpath, 'rb') as f:
-        while True:
-            try:
-                getrow = pickle.load(f)
-            except EOFError:
-                break
-            except Exception as e:
-                raise e
-            n += 1
-            results.append(getrow)
-            if count is not None and n >= count:
-                break
-
-    return results
-
-
 def glob_files(dirpath, ext='.txt', keyorder=lambda key: key):
     ''' walk a directory to glob txt files. can be used with ZoneGeomFromTxt()
 
@@ -286,7 +246,7 @@ def getfiledate(filename):
                 raw AIS data file in .nm4 format
     '''
     filesize = os.path.getsize(filename)
-    if filesize == 0:
+    if filesize == 0:  # pragma: no cover
         return False
     with open(filename, 'r') as f:
         if 'csv' in filename:
@@ -304,29 +264,16 @@ def getfiledate(filename):
                 n += 1
                 line = f.readline()
                 head = line.rsplit('\\', 1)[0]
-                if n > 10000:
-                    print(f'bad! {filename}')
-                    return False
+                #if n > 10000:
+                #    print(f'bad! {filename}')
+                #    return False
+                assert n <= 10000
             split0 = re.split('c:', head)[1]
             try:
                 epoch = int(re.split('[^0-9]', split0)[0])
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 return False
-            except Exception as err:
+            except Exception as err:  # pragma: no cover
                 raise err
         fdate = datetime.fromtimestamp(epoch).date()
         return fdate
-
-
-def dms2dd(d, m, s, ax):
-    ''' convert degrees, minutes, seconds to decimal degrees '''
-    dd = float(d) + float(m) / 60 + float(s) / (60 * 60)
-    if (ax == 'W' or ax == 'S') and dd > 0: dd *= -1
-    return dd
-
-
-def strdms2dd(strdms):
-    '''  convert string representation of degrees, minutes, seconds to decimal deg '''
-    d, m, s, ax = [v for v in strdms.replace("''", '"').split(' ') if v != '']
-    return dms2dd(float(d.rstrip('°')), float(m.rstrip("'")),
-                  float(s.rstrip('"')), ax.upper())

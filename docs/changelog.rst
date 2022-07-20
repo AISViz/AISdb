@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.70
+-------
+
+removed unused utils and fix but in write_csv()
+
+
 v1.3.69
 -------
 
