@@ -33,8 +33,7 @@ python-test:
     - source env/bin/activate && python -m pip install --upgrade pip maturin
     - source env/bin/activate && maturin develop --release --extras=test,docs
     - mkdir -p data_dir
-    - source env/bin/activate && AISDBDATADIR="./data_dir/" python -m pytest aisdb/tests/ --durations=5 -x -s -k 'not marinetraffic and not bathymetry'
-  #coverage: '(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$'
+    - source env/bin/activate && AISDBDATADIR="./data_dir/" python -m pytest aisdb/tests/ --durations=5 -s -k 'not marinetraffic'
   coverage: '/TOTAL.*\s+(\d+\%)/'
   cache:
     key: persistent_000

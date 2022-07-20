@@ -26,7 +26,6 @@ services:
       - ./src:/home/ais_env/src
       - ./build.rs:/home/ais_env/build.rs
       - ./testdata:/home/ais_env/testdata
-      #- ./aisdb/aisdb_sql:/home/ais_env/aisdb/aisdb_sql
       - ./target/:/home/ais_env/target
     command:
       ["cargo", "test", "--lib", "--release", "--color=always"]
@@ -47,6 +46,8 @@ services:
       - ${AISDBDATADIR:-/home/$USER/ais/}:/home/ais_env/ais/
       - ./aisdb_web/dist_coverage/:/home/ais_env/aisdb_web/dist_coverage/
       - ./target/:/home/ais_env/target
+    depends_on:
+      - rust-test  # for testingdata
     init: true
     command: 
       ["python", "-m", "pytest", "aisdb/tests/", "--durations=10"]
