@@ -4,6 +4,7 @@ import os
 import pickle
 import re
 import tempfile
+import types
 from datetime import timedelta
 from functools import partial, reduce
 from hashlib import sha256
@@ -11,6 +12,8 @@ from multiprocessing import Pool
 
 import numpy as np
 
+import aisdb
+from aisdb.database import sqlfcn
 from aisdb.gis import (
     delta_knots,
     delta_meters,
@@ -25,14 +28,13 @@ from aisdb.track_gen import (
 from aisdb.webdata.marinetraffic import vessel_info
 from aisdb.webdata.merge_data import (
     merge_tracks_bathymetry,
-    merge_tracks_shoredist,
+    #merge_tracks_shoredist,
 )
 from aisdb.proc_util import _segment_rng, _sanitize
 from aisdb.wsa import wetted_surface_area
 
 _colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
-
-
+"""
 def _depth_nonnegative(track, zoneset):
     ''' returns absolute value of bathymetric depths with topographic heights
         converted to 0
@@ -54,6 +56,7 @@ def _time_in_shoredist_rng(track, subset, dist0=0.01, dist1=5):
             maxdelta=timedelta(minutes=1),
             key='time'),
     ))
+"""
 
 
 def _staticinfo(track, domain):
@@ -177,10 +180,8 @@ def _serialize_network_edge(tracks, domain, tmp_dir):
     '''
     for track in tracks:
         filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
-        if not 'in_zone' in track.keys():
-            get_zones = fence_tracks([track], domain=domain)
-            track = next(get_zones)
-            assert list(get_zones) == []
+        assert 'in_zone' in track.keys(
+        ), 'need to append zone info from fence_tracks'
 
         with open(filepath, 'ab') as f:
             transits = np.where(
@@ -263,15 +264,12 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
 
 def _pipeline(track, *, domain, tmp_dir, maxdelta, distance_threshold,
               speed_threshold, minscore):
-    #trafficDB = sqlite3.Connection(trafficDBpath)
-    #trafficDB.row_factory = sqlite3.Row
-
     for x in _serialize_network_edge(
             # merge_tracks_shoredist(merge_tracks_bathymetry(
             fence_tracks(
                 encode_greatcircledistance(
                     split_timedelta(
-                        wetted_surface_area([track], ),
+                        [track],
                         maxdelta=maxdelta,
                     ),
                     distance_threshold=distance_threshold,
@@ -280,16 +278,16 @@ def _pipeline(track, *, domain, tmp_dir, maxdelta, distance_threshold,
                 ),
                 domain=domain,
             ),
-            # data_dir=data_dir), data_dir=data_dir),
             domain=domain,
             tmp_dir=tmp_dir,
     ):
         assert x is None
 
 
-def graph(rowgen,
+def graph(qry,
           *,
           domain,
+          dbpath,
           trafficDBpath,
           processes=0,
           outputfile='output.csv',
@@ -302,9 +300,8 @@ def graph(rowgen,
         represented by movements between zones.
 
         args:
-            rowgen (iter)
-                :py:meth:`aisdb.database.dbqry.DBQuery.gen_qry` database
-                query generator
+            qry (:py:class:`aisdb.database.dbqry.DBQuery`)
+                database query generator
             domain (:py:class:`aisdb.gis.Domain`)
                 collection of zones defined as polygons, these will
                 be used as nodes in the network graph
@@ -382,27 +379,38 @@ def graph(rowgen,
         >>> network_graph.graph(rowgen, domain=domain,
         ...                     trafficDBpath=trafficDBpath, parallel=12)
     '''
+    assert not isinstance(qry, types.GeneratorType),\
+        'Got a generator for "qry" arg instead of DBQuery'
+
+    assert isinstance(qry, aisdb.database.dbqry.DBQuery),\
+        f'Not a DBQuery object! Got {qry}'
+
     with tempfile.TemporaryDirectory() as tmp_dir:
-        fcn = partial(
-            _pipeline,
-            domain=domain,
-            #trafficDBpath=trafficDBpath,
-            tmp_dir=tmp_dir,
-            speed_threshold=speed_threshold,
-            distance_threshold=distance_threshold,
-            minscore=minscore,
-            maxdelta=maxdelta)
+        fcn = partial(_pipeline,
+                      domain=domain,
+                      tmp_dir=tmp_dir,
+                      speed_threshold=speed_threshold,
+                      distance_threshold=distance_threshold,
+                      minscore=minscore,
+                      maxdelta=maxdelta)
+
+        rowgen = qry.gen_qry(
+            dbpath=dbpath,
+            fcn=sqlfcn.crawl_dynamic_static,
+        )
+        tracks = wetted_surface_area(
+            vessel_info(TrackGen(rowgen), trafficDBpath=trafficDBpath))
 
         if not processes or processes == 1:
-            for track in vessel_info(TrackGen(rowgen),
-                                     trafficDBpath=trafficDBpath):
+            for track in tracks:
+                assert isinstance(track, dict)
+                assert isinstance(track['time'], np.ndarray)
                 _ = fcn(track)
 
         else:
             with Pool(processes=processes) as p:
-                p.imap_unordered(
-                    fcn,
-                    vessel_info(TrackGen(rowgen), trafficDBpath=trafficDBpath))
+                #p.imap_unordered(fcn, tracks)
+                p.map_async(fcn, tracks)
                 p.close()
                 p.join()
 

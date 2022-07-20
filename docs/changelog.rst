@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.74
+-------
+
+update network_graph pipeline and bug fixes
+
+
 v1.3.73
 -------
 
