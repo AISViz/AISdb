@@ -1,22 +1,21 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytest
 
 from aiosqlite.core import Connection
 
-from aisdb import track_gen, decode_msgs, sqlfcn, sqlfcn_callbacks
+from aisdb import track_gen, sqlfcn, sqlfcn_callbacks
 from aisdb.database.dbconn import DBConn, DBConn_async
 from aisdb.database.dbqry import DBQuery, DBQuery_async
 from aisdb.track_gen import encode_greatcircledistance_async
-from aisdb.track_gen import encode_greatcircledistance, min_speed_filter
-from aisdb.database.create_tables import aggregate_static_msgs
 from aisdb.tests.create_testing_data import sample_database_file
+from aisdb.interp import interp_time, interp_time_async
 
 start = datetime(2021, 11, 1)
 end = datetime(2021, 11, 2)
 
 
-def test_TrackGen(tmpdir):
+def test_interp(tmpdir):
     dbpath = os.path.join(tmpdir, 'test_trackgen_encode.db')
     sample_database_file(dbpath)
 
@@ -28,9 +27,9 @@ def test_TrackGen(tmpdir):
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
         rowgen = qry.gen_qry(dbpath, printqry=True)
-        tracks = encode_greatcircledistance(
+        tracks = interp_time(
             track_gen.TrackGen(rowgen),
-            distance_threshold=250000,
+            step=timedelta(hours=0.5),
         )
 
         for track in tracks:
@@ -39,29 +38,8 @@ def test_TrackGen(tmpdir):
                 print(track)
 
 
-def test_min_speed_filter(tmpdir):
-    dbpath = os.path.join(tmpdir, 'test_trackgen_speed_filter.db')
-    sample_database_file(dbpath)
-
-    with DBConn(dbpath=dbpath) as db:
-        qry = DBQuery(
-            db=db,
-            start=start,
-            end=end,
-            callback=sqlfcn_callbacks.in_timerange_validmmsi,
-        )
-        rowgen = qry.gen_qry(dbpath, printqry=True)
-        tracks = min_speed_filter(encode_greatcircledistance(
-            track_gen.TrackGen(rowgen),
-            distance_threshold=250000,
-        ),
-                                  minspeed=5)
-        for track in tracks:
-            assert 'time' in track.keys()
-
-
 @pytest.mark.asyncio
-async def test_TrackGen_async(tmpdir):
+async def test_interp_async(tmpdir):
     dbpath = os.path.join(tmpdir, 'test_trackgen_async.db')
     sample_database_file(dbpath)
 
@@ -75,9 +53,9 @@ async def test_TrackGen_async(tmpdir):
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
         rowgen = qry.gen_qry(dbpath, fcn=sqlfcn.crawl_dynamic_static)
-        tracks = encode_greatcircledistance_async(
+        tracks = interp_time_async(
             track_gen.TrackGen_async(rowgen),
-            distance_threshold=250000,
+            step=timedelta(hours=0.5),
         )
 
         async for track in tracks:

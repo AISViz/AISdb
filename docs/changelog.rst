@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.79
+-------
+
+improved test coverage for DBQuery, decoder, marinetraffic, network_graph, and trackgen modules
+
+
 v1.3.78
 -------
 

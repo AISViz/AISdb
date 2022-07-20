@@ -4,7 +4,7 @@ from datetime import datetime
 import pytest
 from shapely.geometry import Polygon
 
-from aisdb import DBConn, DBQuery, sqlfcn_callbacks, Domain
+from aisdb import DBConn, DBQuery, sqlfcn_callbacks, Domain, sqlfcn
 from aisdb.database.dbconn import DBConn_async
 from aisdb.database.dbqry import DBQuery_async
 
@@ -36,7 +36,6 @@ def test_query_emptytable(tmpdir):
 
 def test_prepare_qry_domain(tmpdir):
     testdbpath = os.path.join(tmpdir, 'test_prepare_qry_domain.db')
-    #aisdatabase = DBConn(dbpath=testdbpath)
     with DBConn(dbpath=testdbpath) as aisdatabase:
         sqlite_createtable_staticreport(aisdatabase,
                                         month="200001",
@@ -66,10 +65,54 @@ def test_prepare_qry_domain(tmpdir):
         return rowgen
 
 
+def test_sql_query_strings(tmpdir):
+    testdbpath = os.path.join(tmpdir, 'test_prepare_qry_domain.db')
+    with DBConn(dbpath=testdbpath) as aisdatabase:
+        sqlite_createtable_staticreport(aisdatabase,
+                                        month="200001",
+                                        dbpath=testdbpath)
+        sqlite_createtable_dynamicreport(aisdatabase,
+                                         month="200001",
+                                         dbpath=testdbpath)
+        sample_dynamictable_insertdata(db=aisdatabase, dbpath=testdbpath)
+
+        z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
+        domain = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
+
+        start = datetime(2000, 1, 1)
+        end = datetime(2000, 2, 1)
+
+        for callback in [
+                sqlfcn_callbacks.in_timerange,
+                sqlfcn_callbacks.in_timerange_validmmsi,
+                sqlfcn_callbacks.in_timerange_hasmmsi,
+                sqlfcn_callbacks.in_time_bbox_inmmsi
+        ]:
+            rowgen = DBQuery(
+                db=aisdatabase,
+                start=start,
+                end=end,
+                xmin=domain.maxX,
+                xmax=domain.minX,
+                ymin=domain.minY,
+                ymax=domain.maxY,
+                callback=callback,
+                mmsi=316000000,
+                mmsis=[316000000, 316000001],
+            ).gen_qry(dbpath=testdbpath, fcn=sqlfcn.crawl_dynamic_static)
+            try:
+                next(rowgen)
+            except SyntaxError:
+                pass
+            except Exception as err:
+                raise err
+
+    return
+
+
 @pytest.mark.asyncio
 async def test_query_async(tmpdir):
     testdbpath = os.path.join(tmpdir, 'test_query_async.db')
-    #aisdatabase = DBConn_async(dbpath=testdbpath)
     # create db synchronously
     with DBConn(dbpath=testdbpath) as aisdatabase:
         sqlite_createtable_staticreport(db=aisdatabase,

@@ -3,13 +3,12 @@ import os
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb.database.dbconn import DBConn
 from aisdb.gis import Domain
 from aisdb.database.create_tables import (
-    #aggregate_static_msgs,
     sqlite_createtable_dynamicreport,
     sqlite_createtable_staticreport,
 )
+from aisdb import decode_msgs, DBConn, aggregate_static_msgs
 
 
 def sample_dynamictable_insertdata(*, db, dbpath):
@@ -104,3 +103,21 @@ def create_testing_aisdata(data_dir):
 \c:1617284347*56\!AIVDM,1,1,,,13n7aN0wQnsN4lfE8nEUgDf:0<00,0*18
 \c:1617289692*56\!AIVDM,1,1,,,C4N6S1005=6h:aw8::=9CwTHL:`<BVAWWWKQa1111110CP81110W,0*7A'''
                 )
+
+
+def sample_database_file(dbpath):
+    ''' test data for date 2021-11-01 '''
+    datapath = os.path.join(os.path.dirname(__file__),
+                            'testingdata_20211101.nm4')
+    months = ["202111"]
+    with DBConn(dbpath=dbpath) as db:
+        decode_msgs(
+            db=db,
+            filepaths=[datapath],
+            dbpath=dbpath,
+            source='TESTING',
+            vacuum=False,
+            skip_checksum=True,
+        )
+        aggregate_static_msgs(db, months)
+    return months
