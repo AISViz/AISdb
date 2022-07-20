@@ -3,7 +3,7 @@
 import os
 import zipfile
 import time
-import sqlite3
+import hashlib
 
 from PIL import Image
 from tqdm import tqdm
@@ -11,6 +11,7 @@ import requests
 import rasterio
 
 from aisdb.webdata.load_raster import pixelindex_rasterio, load_raster_pixel
+from aisdb.proc_util import fast_unzip
 
 Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError
 
@@ -77,14 +78,13 @@ class Gebco():
                               unit_scale=True) as t:
                         for chunk in payload.iter_content(chunk_size=8192):
                             _ = t.update(f.write(chunk))
+            with open(zipf, 'rb') as z:
+                sha256sum = hashlib.sha256(z.read()).hexdigest()
+            print('verifying checksum...')
+            assert sha256sum == '5ade15083909fcd6003409df678bdc6537b8691df996f8d806b48de962470cc3',\
+                    'checksum failed!'
 
-            # unzip the downloaded file
-            exists = set(sorted(os.listdir(self.data_dir)))
-            with zipfile.ZipFile(zipf, 'r') as zip_ref:
-                contents = set(zip_ref.namelist())
-                members = list(contents - exists)
-                print('extracting bathymetry data...')
-                zip_ref.extractall(path=self.data_dir, members=members)
+            fast_unzip([zipf], os.path.dirname(zipf), 1)
 
         # zzz
         time.sleep(5)
