@@ -3,6 +3,22 @@ from PIL import Image
 
 from aisdb.proc_util import binarysearch
 
+import rasterio
+
+
+def pixelindex_rasterio(x1, y1, dataset, band1):
+    x, y = dataset.index(x1, y1)
+    return band1[x, y]
+
+
+def load_raster_pixel_rasterio(x1, y1, filepath):
+    dataset = rasterio.open(filepath)
+    band1 = dataset.read(1)
+    #lon = np.linspace(dataset.bounds.left, dataset.bounds.right, dataset.width, endpoint=True)
+    #lat = np.linspace(dataset.bounds.top, dataset.bounds.bottom, dataset.height, endpoint=True)
+    x, y = dataset.index(x1, y1)
+    return band1[x, y]
+
 
 def pixelindex(x1, y1, im):
     ''' convert WGS84 coordinates to raster grid index

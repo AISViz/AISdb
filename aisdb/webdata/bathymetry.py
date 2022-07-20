@@ -7,11 +7,12 @@ import sqlite3
 
 from PIL import Image
 from tqdm import tqdm
-import numpy as np
 import requests
+import rasterio
 
-from aisdb.webdata.load_raster import pixelindex, load_raster_pixel
-from aisdb import sqlpath
+from aisdb.webdata.load_raster import pixelindex_rasterio, load_raster_pixel
+
+Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError
 
 url = 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2022/geotiff/'
 
@@ -35,7 +36,7 @@ class Gebco():
         self.__enter__()
 
     def __enter__(self):
-        Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError
+        #Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError
 
         if self.rasterfiles is not None:
             return self
@@ -87,6 +88,8 @@ class Gebco():
 
         # zzz
         time.sleep(5)
+        return
+        """
 
         if os.path.isfile(self.griddata):
             return
@@ -156,6 +159,21 @@ class Gebco():
                 print(f'completed {r}')
 
         return
+    """
+
+    def getdepth_manual(self, lon, lat):
+        ''' get grid cell elevation value for given coordinate.
+            negative values indicate below sealevel
+        '''
+        for filepath, bounds in self.rasterfiles.items():
+            if bounds['w'] <= lon <= bounds['e'] and bounds[
+                    's'] <= lat <= bounds['n']:
+                if 'img' not in bounds.keys():
+                    bounds['img'] = Image.open(
+                        os.path.join(self.data_dir, filepath))
+                return load_raster_pixel(lon, lat, img=bounds['img'])
+
+        raise ValueError('given lon, lat not in file!')
 
     def getdepth(self, lon, lat):
         ''' get grid cell elevation value for given coordinate.
@@ -165,12 +183,19 @@ class Gebco():
             if bounds['w'] <= lon <= bounds['e'] and bounds[
                     's'] <= lat <= bounds['n']:
                 if 'img' not in bounds.keys():
-                    bounds.update({
-                        'img':
-                        Image.open(os.path.join(self.data_dir, filepath))
-                    })
-                return load_raster_pixel(lon, lat, img=bounds['img']) * -1
+                    #imgfile = { 'img': Image.open(os.path.join(self.data_dir, filepath)) }
+                    raster = rasterio.open(
+                        os.path.join(self.data_dir, filepath))
+                    rasterdata = {'img': raster, 'band1': raster.read(1)}
+                    bounds.update(rasterdata)
+                #return load_raster_pixel(lon, lat, img=bounds['img']) * -1
+                return pixelindex_rasterio(lon,
+                                           lat,
+                                           dataset=bounds['img'],
+                                           band1=bounds['band1'])
+        raise ValueError('given lon, lat not in file!')
 
+    """
     def getdepth_cellborders_nonnegative_avg(self, lon, lat):
         ''' get the average depth of surrounding grid cells from the given
             coordinate.
@@ -197,3 +222,4 @@ class Gebco():
                 ])
 
                 return np.average(depths * -1)
+    """

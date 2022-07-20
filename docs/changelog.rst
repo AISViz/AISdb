@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.77
+-------
+
+support for rasterio when loading rasters
+
+
 v1.3.76
 -------
 
