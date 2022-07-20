@@ -21,6 +21,7 @@ pkgbuild:
 rust-test:
   stage: rust-test
   script:
+    - cargo clean
     - cargo test --color=always -- --nocapture
   artifacts:
     paths:

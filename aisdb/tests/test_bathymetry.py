@@ -14,6 +14,11 @@ lon100k = (np.random.random(100000) * 90) - 90
 lat100k = (np.random.random(100000) * 90) + 0
 
 
+def test_fetch_bathygrid():
+    print(f'fetching bathymetry rasters: {data_dir=}')
+    bathy = aisdb.webdata.bathymetry.Gebco(data_dir=data_dir)
+
+
 def test_bathymetry_rasterio():
     bathy = aisdb.webdata.bathymetry.Gebco(data_dir=data_dir)
     v = bathy.getdepth(x1, y1)
