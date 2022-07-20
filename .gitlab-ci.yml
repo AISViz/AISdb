@@ -27,9 +27,10 @@ python-test:
   stage: python-test
   script:
     - python -m venv env
-    - source env/bin/activate && python -m pip install --upgrade maturin pytest pytest-cov pytest-asyncio
+    - source env/bin/activate && python -m pip install --upgrade pip maturin
     - source env/bin/activate && maturin develop --release --extras=test,docs
-    - source env/bin/activate && AISDBDATADIR="$HOME/ais" python -m pytest aisdb/tests/ --durations=5 -x -s
+    - mkdir -p data_dir
+    - source env/bin/activate && AISDBDATADIR="./data_dir/" python -m pytest aisdb/tests/ --durations=5 -x -s
   #coverage: '(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$'
   coverage: '/TOTAL.*\s+(\d+\%)/'
   cache:
@@ -37,6 +38,7 @@ python-test:
     paths:
       - testdata/*
       - aisdb_web/dist_coverage/
+      - data_dir
 
 build-website:
   stage: build-website
