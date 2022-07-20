@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.75
+-------
+
+update websocket example
+
+
 v1.3.74
 -------
 

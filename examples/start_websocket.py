@@ -1,6 +1,6 @@
-from os import environ
-from asyncio import run
+import asyncio
 
+from os import environ
 from aisdb.websocket_server import SocketServ
 from aisdb import DomainFromTxts
 
@@ -9,7 +9,7 @@ zones_dir = environ.get('AISDBZONES', '/home/ais_env/ais/zones/')
 trafficDBpath = environ.get('AISDBMARINETRAFFIC',
                             '/home/ais_env/ais/marinetraffic.db')
 
-print(f'starting websocket\n{dbpath = }\n{zones_dir = }\n{trafficDBpath = }')
+print(f'starting websocket\n{dbpath = }\n{zones_dir = }\n{trafficDBpath = }\n')
 
 domain = DomainFromTxts(
     domainName='example',
@@ -24,4 +24,4 @@ serv = SocketServ(
     enable_ssl=False,
 )
 
-run(serv.main())
+asyncio.run(serv.main())
