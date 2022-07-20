@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.78
+-------
+
+bug fix for storing cog, sog arrays in track dictionary
+
+
 v1.3.77
 -------
 
