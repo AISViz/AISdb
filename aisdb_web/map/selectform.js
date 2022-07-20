@@ -344,9 +344,6 @@ vesseltypeselect.onclick = function() {
 };
 
 
-// const downloadbtn = document.getElementById('downloadbtn');
-// downloadbtn.style.display = 'none';
-
 export {
   clearbtn,
   searchbtn,
