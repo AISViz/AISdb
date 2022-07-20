@@ -16,7 +16,7 @@ USER "ais_env"
 RUN rustup install stable && rustup default stable
 RUN python -m venv env
 ENV PATH=./env/bin:$PATH
-RUN python -m pip install maturin pytest pytest-asyncio pytest-cov sphinx sphinx-rtd-theme --no-warn-script-location --upgrade
+RUN python -m pip install maturin
 COPY --chown=ais_env aisdb_web/package.json aisdb_web/package.json
 RUN cd aisdb_web && npm install
 COPY --chown="ais_env" .coveragerc .coveragerc
@@ -24,7 +24,7 @@ COPY --chown=ais_env Cargo.toml pyproject.toml build.rs readme.rst ./
 COPY --chown=ais_env examples/ examples/
 COPY --chown=ais_env src/ src/
 COPY --chown=ais_env aisdb/ aisdb/
-RUN source ./env/bin/activate && maturin develop --release
+RUN source ./env/bin/activate && maturin develop --release --extras=test,docs
 
 # build sphinx docs and nodejs webapp
 FROM aisdb AS webserv
