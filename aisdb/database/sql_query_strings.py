@@ -20,6 +20,11 @@ def in_bbox(*, alias, xmin, xmax, ymin, ymax, **_):
         returns:
             SQL code (string)
     '''
+    if xmin == -180 and xmax == 180:
+        return f'''({alias}.longitude >= {xmin} AND {alias}.longitude <= {xmax}) AND
+    {alias}.latitude >= {ymin} AND
+    {alias}.latitude <= {ymax}'''
+
     x0 = shiftcoord([xmin])[0]
     x1 = shiftcoord([xmax])[0]
     if x0 < x1:

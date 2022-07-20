@@ -47,22 +47,16 @@ def decode_msgs(filepaths,
                 ...              '~/ais/rawdata_dir/20220102.nm4']
         >>> decode_msgs(filepaths, dbpath)
     '''
-    if not isinstance(db, DBConn):
+    if not isinstance(db, DBConn):  # pragma: no cover
         if isinstance(db, DBConn_async):
             raise ValueError('Files must be decoded synchronously!')
         raise ValueError('db argument must be a DBConn database connection. '
                          f'got {DBConn}')
-    if len(filepaths) == 0:
+
+    if len(filepaths) == 0:  # pragma: no cover
         raise ValueError('must supply atleast one filepath.')
 
-    dbpathlist = [p for p in db.dbpaths if 'checksums' in p]
-    if dbpathlist == []:
-        hashmap_dbpath = os.path.join(os.path.dirname(db.dbpaths[0]),
-                                      'checksums.db')
-    else:
-        hashmap_dbpath = dbpathlist[0]
-
-    hashmap_dbdir, hashmap_dbname = hashmap_dbpath.rsplit(os.path.sep, 1)
+    hashmap_dbdir, hashmap_dbname = dbpath.rsplit(os.path.sep, 1)
 
     with index(bins=False, storagedir=hashmap_dbdir,
                filename=hashmap_dbname) as dbindex:
@@ -88,8 +82,8 @@ def decode_msgs(filepaths,
             db.cur.execute(f'VACUUM {dbname}')
         elif isinstance(vacuum, str):
             assert not os.path.isfile(vacuum)
-            db.cur.execute(f"VACUUM {dbname} INTO {vacuum}")
-        else:
+            db.cur.execute(f"VACUUM '{dbname}' INTO '{vacuum}'")
+        else:  # pragma: no cover
             raise ValueError('vacuum arg must be boolean or filepath string')
         db.conn.commit()
 

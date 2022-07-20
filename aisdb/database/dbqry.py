@@ -75,7 +75,7 @@ class DBQuery(UserDict):
 
     def __init__(self, *, db, **kwargs):
 
-        if not isinstance(db, (DBConn, DBConn_async)):
+        if not isinstance(db, (DBConn, DBConn_async)):  # pragma: no cover
             raise ValueError(
                 'db argument must be a DBConn database connection.'
                 f'\tfound: {db}')
@@ -85,37 +85,16 @@ class DBQuery(UserDict):
         self.create_qry_params()
 
     def create_qry_params(self):
-        if 'xy' in self.keys() and 'x' not in self.keys(
-        ) and 'y' not in self.keys():
-            self['x'] = self['xy'][::2]
-            self['y'] = self['xy'][1::2]
-
-        # if sum(map(lambda t: t in kwargs.keys(), ('start', 'end',))) == 2:
         if 'start' in self.data.keys() and 'end' in self.data.keys():
-
-            if self.data['start'] >= self.data['end']:
+            if self.data['start'] >= self.data['end']:  # pragma: no cover
                 raise ValueError('Start must occur before end')
             elif isinstance(self.data['start'], datetime):
                 self.data.update({'months': dt2monthstr(**self.data)})
-            elif isinstance(self.data['start'], (float, int)):
+            elif isinstance(self.data['start'],
+                            (float, int)):  # pragma: no cover
                 self.data.update({'months': _epoch2monthstr(**self.data)})
-            else:
+            else:  # pragma: no cover
                 assert False
-
-        if 'x' in self.data.keys() and 'y' in self.data.keys():
-            xy = (self['x'], self['y'])
-            matching = [(list, np.ndarray, tuple) for _ in range(2)]
-
-            if sum(map(isinstance, xy, matching)) == 2:
-                assert len(self['x']) == len(
-                    self['y']), 'coordinate arrays are not equivalent length'
-                assert Polygon(zip(self.data['x'],
-                                   self.data['y'])).is_valid, 'invalid polygon'
-                self.data['poly'] = arr2polytxt(x=self.data['x'],
-                                                y=self.data['y'])
-
-            else:
-                assert 'radius' in self.keys(), 'undefined radius'
 
     def check_marinetraffic(
             self,
@@ -153,7 +132,6 @@ class DBQuery(UserDict):
                     f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
                     [f'ais_{month}_dynamic'])
                 if len(cur.fetchall()) == 0:
-                    #sqlite_createtable_dynamicreport(cur, month, dbpath=dbpath)
                     continue
 
                 # check unique mmsis
@@ -228,7 +206,7 @@ class DBQuery(UserDict):
             self.db.cur.execute(
                 f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
                 [f'ais_{month}_dynamic'])
-            if len(self.db.cur.fetchall()) == 0:
+            if len(self.db.cur.fetchall()) == 0:  # pragma: no cover
                 sqlite_createtable_dynamicreport(self.db, month, dbpath=dbpath)
 
         dt = datetime.now()
@@ -242,7 +220,7 @@ class DBQuery(UserDict):
         mmsi_rows = []
         res = self.db.cur.fetchmany(10**5)
 
-        if res == []:
+        if res == []:  # pragma: no cover
             raise SyntaxError(f'no results for query!\n{qry}')
 
         while len(res) > 0:
@@ -267,13 +245,6 @@ class DBQuery_async(DBQuery):
         self.db = db
         self.create_qry_params()
 
-    async def __ainit__(self, db, dbpath, **kwargs):
-        assert False
-        super().__init__(**kwargs)
-        self.db = db
-        self.dbpath = dbpath
-        return self
-
     async def gen_qry(self,
                       dbpath,
                       fcn=sqlfcn.crawl_dynamic,
@@ -284,7 +255,7 @@ class DBQuery_async(DBQuery):
                 ('SELECT * FROM main.sqlite_master '
                  'WHERE type="table" and name=?'),
                 [f'static_{month}_aggregate'])
-            if res == []:
+            if res == []:  # pragma: no cover
                 with DBConn() as syncdb:
                     print('Aggregating static messages synchronously... '
                           'This should only happen once!')

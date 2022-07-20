@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.67
+-------
+
+database cleanup and fix bug in zone bounding box for SQL query
+
+
 v1.3.66
 -------
 

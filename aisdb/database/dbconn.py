@@ -6,7 +6,7 @@ import aiosqlite
 import sqlite3
 if (sqlite3.sqlite_version_info[0] < 3
         or (sqlite3.sqlite_version_info[0] <= 3
-            and sqlite3.sqlite_version_info[1] < 35)):
+            and sqlite3.sqlite_version_info[1] < 35)):  # pragma: no cover
     import pysqlite3 as sqlite3
 import warnings
 
@@ -104,7 +104,7 @@ _create_coarsetype_index = 'CREATE UNIQUE INDEX idx_coarsetype ON coarsetype_ref
 
 
 def get_dbname(dbpath):
-    if dbpath is None:
+    if dbpath is None:  # pragma: no cover
         raise ValueError('dbpath cannot be None')
     name_ext = os.path.split(dbpath)[1]
     name = name_ext.split('.')[0]
@@ -143,7 +143,7 @@ class DBConn():
         if dbpath is not None:
             dbpaths.append(dbpath)
 
-        if dbpaths == []:
+        if dbpaths == []:  # pragma: no cover
             warnings.warn('No database arguments to DBConn()')
 
         # configs
@@ -162,10 +162,7 @@ class DBConn():
         self.dbnames = []
         for dbp in dbpaths:
             # check that directory exists
-            if not os.path.isdir(os.path.dirname(dbp)):
-                print(f'creating directory path: {dbp}')
-                os.mkdir(os.path.dirname(dbp))
-
+            assert os.path.isdir(os.path.dirname(dbp))
             self.attach(dbp)
 
         self.cur.execute('SELECT name FROM sqlite_master '
@@ -199,8 +196,9 @@ class DBConn():
         if not attached:
             self.cur.execute('ATTACH DATABASE ? AS ?', [dbpath, dbname])
 
-        if dbpath not in self.dbpaths:
-            self.dbpaths.append(dbpath)
+        #if dbpath not in self.dbpaths:
+        #    self.dbpaths.append(dbpath)
+        assert dbpath in self.dbpaths
 
         if dbname not in self.dbnames:
             self.dbnames.append(dbname)
@@ -222,26 +220,15 @@ class DBConn():
 
 class DBConn_async():
 
-    #def __init__(self, dbpath=None, dbpaths=[]):
     def __init__(self, dbpath=None):
-        #self.dbpaths = []
-        #self.dbnames = []
-        #if dbpath is not None:
-        #    dbpaths.append(dbpath)
-        #if dbpaths == []:
-        #    warnings.warn('No database arguments to DBConn()')
         self.dbpath = dbpath
 
     async def __aenter__(self):
-        #self.conn = await aiosqlite.connect(':memory:')
         self.conn = await aiosqlite.connect(self.dbpath)
         self.conn.row_factory = sqlite3.Row
 
         for p in pragmas:
             _ = await self.conn.execute(p)
-
-        #for dbpath in self.dbpaths:
-        #    await self.attach(dbpath)
 
         coarsetype_cursor = await self.conn.execute(
             'SELECT name FROM sqlite_master '
@@ -255,28 +242,6 @@ class DBConn_async():
 
     async def __aexit__(self, exc_class, exc, tb):
         await self.conn.close()
-        return
-
-    async def attach(self, dbpath):
-        assert isinstance(self.conn, aiosqlite.core.Connection)
-        dbname = get_dbname(dbpath)
-        cursor = await self.conn.execute('PRAGMA database_list')
-        res = await cursor.fetchall()
-
-        attached = False
-        for r in res:
-            if r['name'] == dbname:
-                attached = True
-
-        if not attached:
-            _ = await self.conn.execute('ATTACH DATABASE ? AS ?',
-                                        [dbpath, dbname])
-
-        if dbpath not in self.dbpaths:
-            self.dbpaths.append(dbpath)
-
-        if dbname not in self.dbnames:
-            self.dbnames.append(dbname)
         return
 
     async def create_table_coarsetype(self):

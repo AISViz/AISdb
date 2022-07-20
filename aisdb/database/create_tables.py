@@ -3,21 +3,12 @@ from collections import Counter
 
 import numpy as np
 
-from aisdb.database.dbconn import DBConn, DBConn_async, get_dbname
+from aisdb.database.dbconn import DBConn, get_dbname
 
 from aisdb import sqlpath
 
 
-def sqlite_create_table_polygons(db, dbpath):
-    with open(os.path.join(sqlpath, 'createtable_polygon_rtree.sql'),
-              'r') as f:
-        sql = f.read().replace('ais_', f'{get_dbname(dbpath)}.ais_')
-    print(sql)
-    db.cur.execute(sql)
-
-
 def sqlite_createtable_dynamicreport(db, month, dbpath):
-    #assert isinstance(db, (DBConn, DBConn_async)), f'not a DBConn object {db}'
     assert isinstance(db, (DBConn)), f'not a DBConn object {db}'
     with open(os.path.join(sqlpath, 'createtable_dynamic_clustered.sql'),
               'r') as f:
@@ -28,12 +19,10 @@ def sqlite_createtable_dynamicreport(db, month, dbpath):
 
 
 def sqlite_createtable_staticreport(db, month, dbpath):
-    #assert isinstance(db, (DBConn, DBConn_async)), f'not a DBConn object {db}'
     assert isinstance(db, (DBConn)), f'not a DBConn object {db}'
     with open(os.path.join(sqlpath, 'createtable_static.sql'), 'r') as f:
         sql = f.read().format(month).replace(
             f'ais_{month}', f'{get_dbname(dbpath)}.ais_{month}')
-    #print(sql)
     db.cur.execute(sql)
 
 
@@ -51,14 +40,13 @@ def aggregate_static_msgs(db, months_str):
             months_str (array)
                 array of strings with format: YYYYmm
     '''
-    if not isinstance(db, DBConn):
+    if not isinstance(db, DBConn):  # pragma: no cover
         raise ValueError('db argument must be a DBConn database connection')
 
     conn, cur = db.conn, db.cur
 
     for dbpath in db.dbpaths:
-        if 'checksums' in dbpath:
-            continue
+        assert 'checksums' not in dbpath
         dbname = get_dbname(dbpath)
 
         for month in months_str:
