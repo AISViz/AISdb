@@ -75,3 +75,12 @@ tag:
     - tag=`cat pyproject.toml | grep version | grep -Eo "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"`
     - git tag "$tag"
     - git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
+
+variables:
+  ACCESS_TOKEN: $ACCESS_TOKEN
+  CI_SERVER_HOST: $CI_SERVER_HOST
+  CI_PROJECT_PATH: $CI_PROJECT_PATH
+  GITLAB_USER_NAME: $GITLAB_USER_NAME
+  GITLAB_USER_EMAIL: $GITLAB_USER_EMAIL
+  
+
