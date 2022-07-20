@@ -25,7 +25,6 @@ rust-test:
   artifacts:
     paths:
       - ./testdata
-      - ./target/
 
 python-test:
   stage: python-test
@@ -44,14 +43,12 @@ python-test:
       - ./aisdb_web/dist_coverage/
       - ./data_dir
       - ./env
-      - ./target/
       - ./testdata/
   artifacts:
     paths:
       - ./aisdb_web/dist_coverage/
       - ./data_dir
       - ./env
-      - ./target
       - ./testdata
 
 build-website:
