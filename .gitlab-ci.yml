@@ -42,6 +42,9 @@ python-test:
       - testdata/*
       - aisdb_web/dist_coverage/
       - data_dir
+  artifacts:
+    paths:
+      - ./env
 
 build-website:
   stage: build-website
@@ -49,4 +52,4 @@ build-website:
     - master
   script:
     - cd aisdb_web && npm install
-    - /bin/bash build_website.sh
+    - source env/bin/activate && /bin/bash build_website.sh
