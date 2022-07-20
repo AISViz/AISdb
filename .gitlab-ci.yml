@@ -41,13 +41,11 @@ python-test:
   cache:
     key: persistent_000
     paths:
-      - ~/ais/
       - ./aisdb_web/dist_coverage/
       - ./data_dir
       - ./testdata/
   artifacts:
     paths:
-      - ~/ais/
       - ./aisdb_web/dist_coverage/
       - ./data_dir
       - ./testdata
