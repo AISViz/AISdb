@@ -352,10 +352,7 @@ pub mod tests {
     #[test]
     pub fn test_decode_insert_msgs() -> Result<(), Error> {
         let mut parser = NmeaParser::new();
-        let mut fpaths =
-            glob_dir(std::path::PathBuf::from("aisdb/tests/"), "nm4").expect("globbing");
-        fpaths
-            .append(&mut glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing"));
+        let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
         for filepath in fpaths {
             parser = decode_insert_msgs(
                 &std::path::Path::new("testdata/test.db").to_path_buf(),

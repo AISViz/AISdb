@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.68
+-------
+
+improved logging and fixed test in rust decoder
+
+
 v1.3.67
 -------
 

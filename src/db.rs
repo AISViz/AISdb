@@ -138,7 +138,7 @@ pub fn sqlite_insert_dynamic(
                 p.timestamp_seconds,
                 source,
             ])
-            .expect("executing prepared row");
+            .expect(format!("executing prepared row on {}", tx.path().unwrap().display()).as_str());
     }
 
     Ok(())
