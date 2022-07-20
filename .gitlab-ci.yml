@@ -29,7 +29,7 @@ python-test:
     - python -m venv env
     - source env/bin/activate && python -m pip install --upgrade maturin pytest pytest-cov pytest-asyncio
     - source env/bin/activate && maturin develop --release --extras=test,docs
-    - source env/bin/activate && python -m pytest aisdb/tests/ --durations=5 -x -s
+    - source env/bin/activate && AISDBDATADIR="$HOME/ais" python -m pytest aisdb/tests/ --durations=5 -x -s
   #coverage: '(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$'
   coverage: '/TOTAL.*\s+(\d+\%)/'
   cache:
