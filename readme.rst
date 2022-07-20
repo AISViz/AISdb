@@ -7,6 +7,10 @@ AISDB: Readme
       <img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" />
     </a>
 
+    <a href="https://aisdb.meridian.cs.dal.ca/">
+      <img alt="website" src="https://img.shields.io/gitlab/pipeline-status/public_projects/aisdb?branch=master&gitlab_url=https%3A%2F%2Fgitlab.meridian.cs.dal.ca&label=website"/>
+    </a>
+
     <a href="/coverage">
       <img alt="coverage" src="https://img.shields.io/gitlab/coverage/public_projects/aisdb/master?gitlab_url=https%3A%2F%2Fgitlab.meridian.cs.dal.ca&job_name=python-test"/>
     </a>
