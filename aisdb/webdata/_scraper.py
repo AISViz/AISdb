@@ -1,75 +1,76 @@
 ''' webscraper using selenium, firefox, and mozilla geckodriver '''
 
 import os
-import sys
-
-from aisdb.webdata import _init_configs
-
 import shutil
 
-from selenium.webdriver.firefox import webdriver
+from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
+from webdriver_manager.firefox import GeckoDriverManager
+# from selenium.webdriver.chrome.options import Options
+# from selenium.webdriver.chrome.service import Service
+# from webdriver_manager.chrome import ChromeDriverManager
 
 
-class _Scraper():
+def _scraper(data_dir, proxyhost=None, proxyport=None):
+    '''
+        args:
+            data_dir (string)
+                direcotory path to store webdrivers and logs
+            proxy (string):
+                Optional. String addressing IP and port, e.g.
+                "127.0.0.1:8080"
+    '''
+    assert shutil.which('firefox'), 'Firefox is required for this feature'
 
-    def __init__(self, data_dir, proxy=None):
+    #env_headless = os.environ.get('Headless', True)
+    #if env_headless in ('0', 'False', 'false'):
+    #    headless = False
 
-        os.environ['PATH'] = f'{data_dir}:{os.environ.get("PATH")}'
-        '''
-            args:
-                proxy (string):
-                    Optional. String addressing IP and port, e.g.
-                    "127.0.0.1:8080"
-        '''
+    # configs
+    headless = True
+    opt = Options()
+    if headless:
+        opt.headless = True
+    opt.set_preference('permissions.default.image', 2)
+    opt.set_preference('extensions.contentblocker.enabled', True)
+    opt.set_preference('media.autoplay.default', 2)
+    opt.set_preference('media.autoplay.allow-muted', False)
+    opt.set_preference('media.autoplay.block-event.enabled', True)
+    opt.set_preference('media.autoplay.block-webaudio', True)
+    opt.set_preference('services.sync.prefs.sync.media.autoplay.default',
+                       False)
+    opt.set_preference('ui.context_menus.after_mouseup', False)
+    opt.set_preference('privacy.sanitize.sanitizeOnShutdown', True)
+    opt.set_preference('dom.disable_beforeunload', True)
+    # driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
+    """
+    opt.add_argument('--headless')
+    opt.add_argument(f'user-data-dir={data_dir}')
+    opt.add_argument('permissions.default.image=2')
+    opt.add_argument('extensions.contentblocker.enabled=True')
+    opt.add_argument('media.autoplay.default=2')
+    opt.add_argument('media.autoplay.allow-muted=False')
+    opt.add_argument('media.autoplay.block-event.enabled=True')
+    opt.add_argument('media.autoplay.block-webaudio=True')
+    opt.add_argument(
+        'services.sync.prefs.sync.media.autoplay.default=False')
+    opt.add_argument('ui.context_menus.after_mouseup=False')
+    opt.add_argument('privacy.sanitize.sanitizeOnShutdown=True')
+    opt.add_argument('dom.disable_beforeunload=True')
+    """
 
-        firefoxpath = '/usr/lib/firefox/firefox' if os.path.isfile(
-            '/usr/lib/firefox/firefox') else shutil.which('firefox')
-        # firefoxpath = shutil.which('firefox')
-
-        if firefoxpath is None:
-            raise RuntimeError(
-                'firefox must be installed to use this feature!')
-
-        _init_configs(data_dir=data_dir)
-
-        headless = True
-        env_headless = os.environ.get('Headless', True)
-        if env_headless in ('0', 'False', 'false'):
-            headless = False
-
-        # configs
-        (opt := Options()).headless = headless
-        opt.set_preference('permissions.default.image', 2)
-        opt.set_preference('extensions.contentblocker.enabled', True)
-        opt.set_preference('media.autoplay.default', 2)
-        opt.set_preference('media.autoplay.allow-muted', False)
-        opt.set_preference('media.autoplay.block-event.enabled', True)
-        opt.set_preference('media.autoplay.block-webaudio', True)
-        opt.set_preference('services.sync.prefs.sync.media.autoplay.default',
-                           False)
-        opt.set_preference('ui.context_menus.after_mouseup', False)
-        opt.set_preference('privacy.sanitize.sanitizeOnShutdown', True)
-        opt.set_preference('dom.disable_beforeunload', True)
-        # driverpath = 'webdriver' if os.name != 'nt' else 'geckodriver.exe'
-
-        service_args = []
-        if proxy is not None:
-            host, port = proxy.split(':')
-            service_args = ['--host', host, '--port', port]
-
-        sys.path.append(data_dir)
-
-        self.driver = webdriver.WebDriver(
-            options=opt,
-            keep_alive=True,
-            service_args=service_args,
-            executable_path=os.path.join(data_dir, 'webdriver'),
+    driver = webdriver.Firefox(
+        service=Service(
+            executable_path=GeckoDriverManager().install(),
             log_path=os.path.join(data_dir, 'geckodriver.log'),
-            service_log_path=os.path.join(data_dir, 'geckodriver_service.log'),
-        )
+        ),
+        options=opt,
+    )
 
-        if headless:
-            self.driver.set_window_size(9999, 9999)
-        else:
-            self.driver.maximize_window()
+    if headless:
+        driver.set_window_size(9999, 9999)
+    else:  # pragma: no cover
+        driver.maximize_window()
+
+    return driver
