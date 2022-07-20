@@ -14,18 +14,17 @@ pkgbuild:
   stage: pkgbuild
   script:
     - maturin build --release --manylinux 2014 --strip --interpreter 3.8 3.9 3.10
-  artifacts:
-    paths:
-      - ./target/
+  #artifacts:
+  #  paths:
+  #    - ./target/
 
 rust-test:
   stage: rust-test
   script:
-    - cargo clean
-    - cargo test --color=always -- --nocapture
+    - cargo test --color=always --release
   artifacts:
     paths:
-      - ./testdata
+      - ./testdata/*
 
 python-test:
   stage: python-test
