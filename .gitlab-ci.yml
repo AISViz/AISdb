@@ -6,6 +6,7 @@ stages:
   - python-test
   - python-profile
   - build-website
+  - publish
 
 pkgbuild:
   image: 
@@ -21,7 +22,7 @@ pkgbuild:
 rust-test:
   stage: rust-test
   script:
-    - cargo test --color=always --release
+    - cargo test --color=always --release --lib
   artifacts:
     paths:
       - ./testdata/*
@@ -60,3 +61,17 @@ build-website:
   script:
     - cd aisdb_web && npm install
     - source ./env/bin/activate && /bin/bash build_website.sh
+
+tag:
+  stage: publish
+  only:
+    - master
+  dependencies:
+    - python-test
+    - build_website
+  script: 
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+    - tag=`cat pyproject.toml | grep version | grep -Eo "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"`
+    - git tag "$tag"
+    - git push --tags http://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
