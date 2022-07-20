@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.71
+-------
+
+error handling in interp.py
+
+
 v1.3.70
 -------
 
