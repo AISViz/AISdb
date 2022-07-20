@@ -22,7 +22,7 @@ pub mod util;
 
 use csvreader::*;
 use decode::*;
-use load_geotiff::load_pixel;
+//use load_geotiff::load_pixel;
 
 macro_rules! zip {
     ($x: expr) => ($x);
@@ -78,10 +78,12 @@ pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<
     line.into_iter().collect::<Vec<usize>>()
 }
 
+/*
 #[pyfunction]
 pub fn load_geotiff_pixel(lon: usize, lat: usize, filepath: &str) -> usize {
     load_pixel(lon, lat, &filepath)
 }
+*/
 
 #[pymodule]
 #[allow(unused_variables)]

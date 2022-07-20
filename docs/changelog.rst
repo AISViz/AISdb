@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.69
+-------
+
+remove unused rust module
+
+
 v1.3.68
 -------
 
