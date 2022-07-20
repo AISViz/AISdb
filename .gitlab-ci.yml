@@ -13,8 +13,7 @@ pkgbuild:
     entrypoint: [""]
   stage: pkgbuild
   script:
-    - maturin build --release --manylinux 2014 --strip --interpreter 3.7 3.8 3.9 3.10
-    - find ./target/wheels/
+    - maturin build --release --manylinux 2014 --strip --interpreter 3.8 3.9 3.10
   artifacts:
     paths:
       - ./target/wheels
@@ -27,31 +26,19 @@ rust-test:
 python-test:
   stage: python-test
   script:
-    - find ./target/wheels
-    - python --version
-    - export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp310*.whl | head -n1`"
-    - python -m pip install ${WHEEL} --force-reinstall
-    - rm aisdb/__init__.py aisdb/tests/__init__.py
-    #- python -m coverage run -m pytest --color=yes --tb=native --doctest-modules -k "not marinetraffic" aisdb/tests/
-    - python -m coverage run -m pytest --color=yes --tb=native --doctest-modules aisdb/tests/
-    - python -m coverage report
-  needs:
-    - job: pkgbuild
-      artifacts: true
+    #- export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp310*.whl | head -n1`"
+    #- python -m pip install ${WHEEL} --force-reinstall
+    - python -m pytest aisdb/tests --durations=5
+  #needs:
+  #  - job: pkgbuild
+  #    artifacts: true
+  #coverage: '(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$'
+  coverage: '/TOTAL.*\s+(\d+\%)/'
   cache:
     key: persistent_000
     paths:
-      - aisdb/tests/marinetraffic_test.db
-
-#python-profile:
-#  stage: python-profile
-#  script:
-#    - python -m cProfile -o profile '/usr/bin/python -m pytest'
-#    - python -c "import pstats; p = pstats.Stats('profile'); p.strip_dirs(); p.sort_stats('tottime'); p.print_stats(50);"
-#  cache:
-#    key: persistent_000
-#    paths:
-#      - aisdb/tests/marinetraffic_test.db
+      - testdata/*
+      - aisdb_web/dist_coverage/
 
 build-website:
   stage: build-website
@@ -60,13 +47,3 @@ build-website:
   script:
     - cd aisdb_web && npm install
     - /bin/bash build_website.sh
-
-
-  #  - rm -rf public && cp -r docs/html public
-  #artifacts:
-  #  paths:
-  #    - public
-  #cache:
-  #  key: "$CI_COMMIT_REF_SLUG"
-  #  paths:
-  #    - public

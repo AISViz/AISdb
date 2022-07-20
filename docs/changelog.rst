@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.73
+-------
+
+gitlab CI coverage
+
+
 v1.3.72
 -------
 
