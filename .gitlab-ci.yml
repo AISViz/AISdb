@@ -26,21 +26,15 @@ rust-test:
 python-test:
   stage: python-test
   script:
-    #- export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp310*.whl | head -n1`"
-    #- python -m pip install ${WHEEL} --force-reinstall
     - python -m venv env
     - source env/bin/activate && python -m pip install --upgrade maturin pytest pytest-cov pytest-asyncio
     - source env/bin/activate && maturin develop --release
     - source env/bin/activate && python -m pytest aisdb/tests/ --durations=5
-  #needs:
-  #  - job: pkgbuild
-  #    artifacts: true
   #coverage: '(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$'
   coverage: '/TOTAL.*\s+(\d+\%)/'
   cache:
     key: persistent_000
     paths:
-      - env
       - testdata/*
       - aisdb_web/dist_coverage/
 
