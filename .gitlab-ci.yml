@@ -28,7 +28,7 @@ python-test:
   script:
     #- export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp310*.whl | head -n1`"
     #- python -m pip install ${WHEEL} --force-reinstall
-    - python -m pytest aisdb/tests --durations=5
+    - env/bin/python -m pytest aisdb/tests/ --durations=5
   #needs:
   #  - job: pkgbuild
   #    artifacts: true
