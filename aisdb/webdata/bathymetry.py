@@ -34,6 +34,8 @@ class Gebco():
         self.rasterfiles = None
         self.data_dir = data_dir
         self.griddata = os.path.join(self.data_dir, 'griddata.db')
+        if not os.path.isdir(data_dir):
+            os.mkdir(data_dir)
         self.__enter__()
 
     def __enter__(self):
