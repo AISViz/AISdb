@@ -41,15 +41,15 @@ python-test:
   cache:
     key: persistent_000
     paths:
+      - ~/ais/
       - ./aisdb_web/dist_coverage/
       - ./data_dir
-      - ./env
       - ./testdata/
   artifacts:
     paths:
+      - ~/ais/
       - ./aisdb_web/dist_coverage/
       - ./data_dir
-      - ./env
       - ./testdata
 
 build-website:
@@ -60,6 +60,7 @@ build-website:
     - python-test
   script:
     - cd aisdb_web && npm install
+    - /bin/bash -c '[[ ! -d "env" ]] && python -m venv env'
     - source ./env/bin/activate && /bin/bash build_website.sh
 
 tag:

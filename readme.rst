@@ -11,6 +11,9 @@ AISDB: Readme
       <img alt="coverage" src="https://img.shields.io/gitlab/coverage/public_projects/aisdb/master?gitlab_url=https%3A%2F%2Fgitlab.meridian.cs.dal.ca&job_name=python-test"/>
     </a>
 
+    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/releases">
+      <img alt="release" src="https://img.shields.io/gitlab/v/release/public_projects/aisdb?gitlab_url=https%3A%2F%2Fgitlab.meridian.cs.dal.ca&include_prereleases&sort=semver"/>
+    </a>
 
 .. description:
 
