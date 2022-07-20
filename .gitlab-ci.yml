@@ -14,9 +14,9 @@ pkgbuild:
   stage: pkgbuild
   script:
     - maturin build --release --manylinux 2014 --strip --interpreter 3.8 3.9 3.10
-  #artifacts:
-  #  paths:
-  #    - ./target/wheels
+  artifacts:
+    paths:
+      - ./target/
 
 rust-test:
   stage: rust-test
@@ -25,30 +25,41 @@ rust-test:
   artifacts:
     paths:
       - ./testdata
+      - ./target/
 
 python-test:
   stage: python-test
   script:
-    - python -m venv env
+    - [[ ! -d "env" ]] && python -m venv env
     - source env/bin/activate && python -m pip install --upgrade pip maturin
     - source env/bin/activate && maturin develop --release --extras=test,docs
     - mkdir -p data_dir
     - source env/bin/activate && AISDBDATADIR="./data_dir/" python -m pytest aisdb/tests/ --durations=5 -s -k 'not marinetraffic'
   coverage: '/TOTAL.*\s+(\d+\%)/'
+  dependencies:
+    - rust-test
   cache:
     key: persistent_000
     paths:
-      - testdata/*
-      - aisdb_web/dist_coverage/
-      - data_dir
+      - ./aisdb_web/dist_coverage/
+      - ./data_dir
+      - ./target/
+      - ./testdata/
+      - ./env
   artifacts:
     paths:
+      - ./aisdb_web/dist_coverage/
+      - ./data_dir
       - ./env
+      - ./target
+      - ./testdata
 
 build-website:
   stage: build-website
   only: 
     - master
+  dependencies:
+    - python-test
   script:
     - cd aisdb_web && npm install
-    - source env/bin/activate && /bin/bash build_website.sh
+    - source ./env/bin/activate && /bin/bash build_website.sh
