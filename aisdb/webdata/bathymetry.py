@@ -172,8 +172,7 @@ class Gebco():
                     bounds['img'] = Image.open(
                         os.path.join(self.data_dir, filepath))
                 return load_raster_pixel(lon, lat, img=bounds['img'])
-
-        raise ValueError('given lon, lat not in file!')
+        raise ValueError(f'given lon, lat not in files! {lon=} {lat=}')
 
     def getdepth(self, lon, lat):
         ''' get grid cell elevation value for given coordinate.
@@ -193,7 +192,7 @@ class Gebco():
                                            lat,
                                            dataset=bounds['img'],
                                            band1=bounds['band1'])
-        raise ValueError('given lon, lat not in file!')
+        raise ValueError(f'given lon, lat not in files! {lon=} {lat=}')
 
     """
     def getdepth_cellborders_nonnegative_avg(self, lon, lat):

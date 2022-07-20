@@ -21,6 +21,10 @@ COPY --chown=ais_env aisdb_web/package.json aisdb_web/package.json
 RUN cd aisdb_web && npm install
 COPY --chown="ais_env" .coveragerc .coveragerc
 COPY --chown=ais_env Cargo.toml pyproject.toml build.rs readme.rst ./
+RUN mkdir src \
+  && echo 'fn main(){}' > src/bin.rs \
+  && echo 'fn main(){}' > src/lib.rs \
+  && cargo check --release
 COPY --chown=ais_env examples/ examples/
 COPY --chown=ais_env src/ src/
 COPY --chown=ais_env aisdb/ aisdb/
