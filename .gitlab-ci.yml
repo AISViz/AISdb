@@ -19,7 +19,7 @@ pkgbuild:
       - ./target/wheels/
 
 rust-test:
-  stage: rust-test
+  #stage: rust-test
   script:
     - cargo test --color=always --release --lib
   artifacts:
@@ -27,7 +27,7 @@ rust-test:
       - ./testdata/*
 
 python-test:
-  stage: python-test
+  #stage: python-test
   script:
     - python -m venv env
     - source env/bin/activate && python -m pip install --upgrade pip maturin
