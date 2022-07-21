@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.80
+-------
+
+auto versioning for CI
+
+
 v1.3.79
 -------
 
@@ -59,7 +65,7 @@ error handling in interp.py
 v1.3.70
 -------
 
-removed unused utils and fix but in write_csv()
+removed unused utils and fix bug in write_csv()
 
 
 v1.3.69
