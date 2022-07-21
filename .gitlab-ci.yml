@@ -2,8 +2,8 @@ image: meridiancfi/aisdb:latest
 
 stages:
   - pkgbuild
-#  - rust-test
-#  - python-test
+  - rust-test
+  - python-test
   - build-website
   - publish
 
@@ -18,7 +18,7 @@ pkgbuild:
     paths:
       - ./target/wheels/
 
-rust-test:
+.rust-test:
   stage: rust-test
   script:
     - cargo test --color=always --release --lib
@@ -26,7 +26,7 @@ rust-test:
     paths:
       - ./testdata/*
 
-python-test:
+.python-test:
   stage: python-test
   script:
     - python -m venv env
@@ -58,7 +58,7 @@ build-website:
     - python-test
   script:
     - python -m venv env
-    - source env/bin/activate && python -m pip install --upgrade pip maturin
+    - source env/bin/activate && python -m pip install --upgrade pip maturin sphinx sphinx-rtd-theme
     - cd aisdb_web && npm install
     - source ../env/bin/activate && /bin/bash ./build_website.sh
   artifacts:
