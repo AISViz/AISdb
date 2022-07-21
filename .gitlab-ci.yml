@@ -60,8 +60,8 @@ build-website:
   script:
     - cd aisdb_web && npm install
     - python -m venv env
-    - source env/bin/activate && maturin develop --release --extras=test,docs
     - source env/bin/activate && python -m pip install --upgrade pip maturin
+    - source env/bin/activate && maturin develop --release --extras=test,docs
     - source ./env/bin/activate && /bin/bash build_website.sh
   artifacts:
     paths:
