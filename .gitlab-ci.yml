@@ -18,37 +18,37 @@ pkgbuild:
     paths:
       - ./target/wheels/
 
-rust-test:
+#rust-test:
   #stage: rust-test
-  script:
-    - cargo test --color=always --release --lib
-  artifacts:
-    paths:
-      - ./testdata/*
+#  script:
+#    - cargo test --color=always --release --lib
+#  artifacts:
+#    paths:
+#      - ./testdata/*
 
-python-test:
+#python-test:
   #stage: python-test
-  script:
-    - python -m venv env
-    - source env/bin/activate && python -m pip install --upgrade pip maturin
-    - source env/bin/activate && maturin develop --release --extras=test,docs
-    - mkdir -p data_dir
-    - source env/bin/activate && AISDBDATADIR=data_dir python -m pytest aisdb/tests/ --durations=5 -s -k 'not marinetraffic and not rasterio and not pillow and not bathy'
-  coverage: '/TOTAL.*\s+(\d+\%)/'
+ # script:
+#    - python -m venv env
+#    - source env/bin/activate && python -m pip install --upgrade pip maturin
+ #   - source env/bin/activate && maturin develop --release --extras=test,docs
+#    - mkdir -p data_dir
+ #   - source env/bin/activate && AISDBDATADIR=data_dir python -m pytest aisdb/tests/ --durations=5 -s -k 'not marinetraffic and not rasterio and not pillow and not bathy'
+ # coverage: '/TOTAL.*\s+(\d+\%)/'
   #dependencies:
   #  - rust-test
-  cache:
-    key: persistent_000
-    paths:
-      - ./env
-      - ./aisdb_web/dist_coverage/
-      - ./data_dir
-      - ./testdata/
-  artifacts:
-    paths:
-      - ./aisdb_web/dist_coverage/
-      - ./data_dir
-      - ./testdata
+ # cache:
+  #  key: persistent_000
+  #  paths:
+  #    - ./env
+#      - ./aisdb_web/dist_coverage/
+ #     - ./data_dir
+  #    - ./testdata/
+ # artifacts:
+  #  paths:
+  #    - ./aisdb_web/dist_coverage/
+   #   - ./data_dir
+  #    - ./testdata
 
 build-website:
   stage: build-website
