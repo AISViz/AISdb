@@ -21,6 +21,7 @@ cargo doc \
 
 
 # sphinx docs site build
+cd "${ROOTDIR}"
 rm -rf "$SPHINXDIR"
 [[ ! -z `ls -A "${RSTSOURCEDIR}/api"` ]] && rm ${RSTSOURCEDIR}/api/*
 mkdir -p "${RSTSOURCEDIR}/api"
@@ -33,6 +34,7 @@ cp "${RSTSOURCEDIR}/scriptoutput.png" "$SPHINXDIR/_images/"
 
 
 # jsdocs site build
+cd "${SCRIPTPATH}"
 npx jsdoc \
   --recurse "${MAPDIR}" \
   --package "${ROOTDIR}/aisdb_web/package.json" \
