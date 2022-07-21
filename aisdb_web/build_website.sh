@@ -12,6 +12,7 @@ WASMDIR="${ROOTDIR}/aisdb_wasm"
 set -e
 
 # cargo docs site build
+cd "${ROOTDIR}"
 cargo doc \
   --document-private-items \
   --no-deps \

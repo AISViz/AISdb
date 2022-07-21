@@ -41,14 +41,11 @@ stages:
     key: persistent_000
     paths:
       - ./env
-      - ./aisdb_web/dist_coverage/
       - ./data_dir
       - ./testdata/
   artifacts:
     paths:
       - ./aisdb_web/dist_coverage/
-      - ./data_dir
-      - ./testdata
 
 build-website:
   stage: build-website
@@ -62,11 +59,13 @@ build-website:
     - source env/bin/activate && maturin develop --release --extras=test,docs
     - cd aisdb_web && npm install
     - source ../env/bin/activate && /bin/bash ./build_website.sh
+    - cd ..
+  cache:
+    - ./env
+      - ./data_dir
   artifacts:
     paths:
-      - ./env
       - ./aisdb_web/
-      - ./data_dir
 
 tag:
   stage: publish
