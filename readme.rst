@@ -3,8 +3,21 @@ AISDB: Readme
 
 .. raw:: html
 
-    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master"><img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" /></a>
+    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/commits/master">
+      <img alt="pipeline status" src="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/badges/master/pipeline.svg" />
+    </a>
 
+    <a href="https://aisdb.meridian.cs.dal.ca/">
+      <img alt="website" src="https://img.shields.io/gitlab/pipeline-status/public_projects/aisdb?branch=master&gitlab_url=https%3A%2F%2Fgitlab.meridian.cs.dal.ca&label=website"/>
+    </a>
+
+    <a href="/coverage">
+      <img alt="coverage" src="https://img.shields.io/gitlab/coverage/public_projects/aisdb/master?gitlab_url=https%3A%2F%2Fgitlab.meridian.cs.dal.ca&job_name=python-test"/>
+    </a>
+
+    <a href="https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/-/releases">
+      <img alt="release" src="https://img.shields.io/gitlab/v/release/public_projects/aisdb?gitlab_url=https%3A%2F%2Fgitlab.meridian.cs.dal.ca&include_prereleases&sort=semver"/>
+    </a>
 
 .. description:
 
@@ -34,12 +47,8 @@ Package features:
 
 | Web Interface:
   https://aisdb.meridian.cs.dal.ca/
-| Python Documentation:
+| Docs:
   https://aisdb.meridian.cs.dal.ca/doc/readme.html
-| Rust Documentation:
-  https://aisdb.meridian.cs.dal.ca/rust/doc/aisdb/index.html
-| JavaScript Documentation:
-  https://aisdb.meridian.cs.dal.ca/js/
 | Source Code: 
   https://gitlab.meridian.cs.dal.ca/public_projects/aisdb
 
@@ -59,11 +68,12 @@ What is AIS?
 Install Prerequisite
 --------------------
 
-SQLite version 3.35 or newer is required https://www.sqlite.org/download.html
+Python version 3.8 or higher (tested on version 3.10).
+
 
 
 Installing from PyPI
-----------------------
+--------------------
 
 TODO: upload package wheels to PyPI
 
@@ -71,18 +81,37 @@ TODO: upload package wheels to PyPI
 Installing from Source
 ----------------------
 
-Build wheel files using the included docker environment. By default, wheels will be built for python versions 3.7, 3.8, 3.9, and 3.10 using the manylinux2014_x86_64 target. Resulting wheel files will be output to ./target/wheels/
+Clone the repository and create a virtual python environment to install the package. Navigate to the project root folder
 
 .. code-block:: sh
 
-  docker-compose up --build pkgbuild
+  python -m venv env_ais
+  source ./env_ais/bin/activate
+  git clone https://gitlab.meridian.cs.dal.ca/public_projects/aisdb.git
+  cd aisdb
 
 
-Package wheels can be installed using pip:
+Python wheel files can be built using the included docker environment. 
+By default, wheels will be built using the manylinux2014_x86_64 target. 
+Results will be output to ``./target/wheels/``. 
+Package wheels can then be installed using pip
 
 .. code-block:: sh
 
-  python -m pip install aisdb-1.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  python -m pip install --upgrade docker-compose maturin
+  docker-compose up --build pkgbuild  # may require sudo 
+  PYTHON3VERSION=`maturin list-python | python -c "import sys; print(sorted([int(l.split('.')[1].split(' ')[0]) for l in sys.stdin if 'CPython' in l])[-1])" `
+  WHEELFILE="`ls ./target/wheels/aisdb-*cp3$PYTHON3VERSION*.whl -r1 | head -n1`"
+  python -m pip install ${WHEELFILE}
+
+
+Alternatively, for an editable installation, rust targets can be compiled to shared object (.so) format using `maturin build system <https://maturin.rs/develop.html>`__. 
+Conda users may need to `install maturin from conda-forge <https://maturin.rs/installation.html#conda>`__
+
+.. code-block:: sh
+
+  python -m pip install maturin
+  maturin develop --release
 
 
 Read more about the docker services for this package in ``docker-compose.yml`` and :ref:`AISDB docker services <docker>`

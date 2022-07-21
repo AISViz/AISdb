@@ -39,7 +39,7 @@ label {
   cursor: pointer;
   --border-radius: 0px;
   --width: 10em;
-  overflow: auto;
+  --overflow: auto;
 }
 
 .hiddenmenu-item {
@@ -51,35 +51,35 @@ label {
   display: inline-block;
   flex-direction: column-reverse;
   text-align: center;
-  --overflow: scroll;
   min-width: 7.25vw;
 }
 
 .hiddenmenu-content {
+  max-height: 65vh;
+  max-width: 50vw;
+  overflow-y: auto;
   display: none;
   position: absolute;
   bottom: 24px;
   z-index: 1;
-  --width: 100%;
-  --overflow: auto;
-  --overflow-y: auto;
   background-color: #FFFFFF;
   text-align: right;
 }
 
-.hiddenmenu-content a {
+.hiddenmenu-content div {
+  display: inline-block;
+}
+
+.hiddenmenu-item {
   text-decoration: none;
   display: block;
+  display: inline-block;
   padding: 0px 6px;
   min-width: 14em;
 }
 
-.hiddenmenu-content a:hover {
+.hiddenmenu-item:hover {
   background-color: rgba(100,100,100,0.5);
-}
-
-.hiddenmenu-content div {
-  display: inline-block;
 }
 
 .colordot {

@@ -4,7 +4,6 @@ import logging
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
 from .database.create_tables import (
-    sqlite_create_table_polygons,
     aggregate_static_msgs,
     sqlite_createtable_dynamicreport,
     sqlite_createtable_staticreport,
@@ -55,8 +54,6 @@ from .network_graph import graph
 from .proc_util import (
     fast_unzip,
     glob_files,
-    read_binary,
-    write_binary,
     write_csv,
 )
 

@@ -2,6 +2,7 @@
 import html2canvas from 'html2canvas';
 
 import { update_vesseltype_styles, waitForSearchState } from './selectform';
+import { lineSource } from './map';
 
 /** callback to capture the current map canvas as PNG base64image.
  * a download link is appended to the document, which will click itself,
@@ -64,7 +65,7 @@ async function screenshot(opts) {
     await new Promise((r) => {
       return setTimeout(r, 500);
     });
-    update_vesseltype_styles();
+    update_vesseltype_styles(lineSource);
     await new Promise((r) => {
       return setTimeout(r, 500);
     });

@@ -8,7 +8,7 @@ services:
     image: ghcr.io/pyo3/maturin:main
     volumes:
       - ./:/io
-    command: build --release --manylinux 2014 --strip
+    command: build --release --manylinux 2014 --strip  --interpreter 3.10
 
   # run rust tests
   rust-test:
@@ -25,9 +25,10 @@ services:
       - ./Cargo.toml:/home/ais_env/Cargo.toml
       - ./src:/home/ais_env/src
       - ./build.rs:/home/ais_env/build.rs
-      - ./aisdb/aisdb_sql:/home/ais_env/aisdb/aisdb_sql
+      - ./testdata:/home/ais_env/testdata
+      - ./target/:/home/ais_env/target
     command:
-      ["cargo", "test", "--color=always"]
+      ["cargo", "test", "--lib", "--release", "--color=always"]
 
   # build python package and run python tests
   python-test:
@@ -38,10 +39,18 @@ services:
       dockerfile: ./docker/Dockerfile
     environment:
       - RUST_BACKTRACE=1
+      - AISDBDATADIR=/home/ais_env/ais
+      - AISDBTESTDIR=/home/ais_env/testdata
     volumes:
-      - ./aisdb/tests:/home/ais_env/tests
+      - ${AISDBDATADIR:-/home/$USER/ais/}:/home/ais_env/ais/
+      - ./aisdb_web/dist_coverage/:/home/ais_env/aisdb_web/dist_coverage/
+      - ./target/:/home/ais_env/target
+      - ./testdata:/home/ais_env/testdata
+    #depends_on:
+    #  - rust-test  # for testingdata
+    init: true
     command: 
-      ["python", "-m", "pytest", "--color=yes", "--tb=native", "--doctest-modules", "tests/", "-s", "-k", "not async"]
+      ["python", "-m", "pytest", "aisdb/tests/", "--durations=10"]
 
   # nodeJS docs server + webapp
   webserver:
@@ -54,6 +63,8 @@ services:
         BINGMAPSKEY: ${BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
         AISDBHOST: ${AISDBHOST:-127.0.0.1}
         AISDBPORT: ${AISDBPORT:-9924}
+    depends_on:
+      - python-test  # for test coverage report
     command:
       ['npm', '--prefix', 'aisdb_web/', 'start']
     networks:
@@ -71,17 +82,15 @@ services:
       AISDBHOST: ${AISDBHOST:-127.0.0.1}
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
       AISDBPORT: ${AISDBPORT:-9924}
-    command:
-      ['python', '-Ouc', 'import asyncio;
-      from aisdb.websocket_server import SocketServ;
-      from aisdb import DomainFromTxts;
-      serv=SocketServ(
-        dbpath="${AISDBPATH:-/home/ais_env/ais/ais.db}", 
-        domain=DomainFromTxts("example", "${AISDBZONES:-/home/ais_env/ais/zones/}", correct_coordinate_range=False), 
-        trafficDBpath="${AISDBMARINETRAFFIC:-/home/ais_env/ais/marinetraffic.db}", 
-        enable_ssl=False,
-      );
-      asyncio.run(serv.main())']
+      # consider mounting volumes at the following locations
+      AISDBPATH: '/home/ais_env/ais/ais.db'
+      AISDBZONES: '/home/ais_env/ais/zones/'
+      AISDBMARINETRAFFIC: '/home/ais_env/ais/marinetraffic.db'
+      #AISDBDATADIR: '/home/ais_env/ais/'
+      #AISDBTESTDIR: '/home/ais_env/testdata'
+    init: true
+    command: 
+      ["python", "-Ou", "examples/start_websocket.py"]
     networks: 
       ipv6_private:
         ipv6_address: "fc00::6"
@@ -104,8 +113,9 @@ services:
       - ./docker/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
     # add something like the following to docker-compose.override.yml for SSL
     #  - ~/cert/conf:/etc/letsencrypt
+    init: true
     command:
-      ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT} $${USEPROXYSERVERNAME}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
+      ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
     depends_on:
       - webserver
       - websocket
@@ -121,6 +131,8 @@ services:
       ipv6_private:
         ipv6_address: "fc00::7"
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    depends_on:
+      - nginx
 
 
 networks:

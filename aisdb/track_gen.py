@@ -3,10 +3,12 @@
 from functools import reduce
 from datetime import timedelta
 import sqlite3
+import types
 
 import numpy as np
 
 import aisdb
+from aisdb.database.dbqry import DBQuery
 from .gis import delta_knots, delta_meters
 from .proc_util import _segment_rng
 
@@ -65,14 +67,16 @@ def _yieldsegments(rows, staticcols, dynamiccols):
         lon=lon[idx].astype(np.float32),
         lat=lat[idx].astype(np.float32),
         time=time[idx],
-        sog=np.array([r['sog'] for r in rows], dtype=np.float16),
-        cog=np.array([r['cog'] for r in rows], dtype=np.uint16),
+        sog=np.array([r['sog'] for r in rows], dtype=np.float16)[idx],
+        cog=np.array([r['cog'] for r in rows], dtype=np.uint16)[idx],
         static=staticcols,
         dynamic=dynamiccols,
     )
     assert 'time' in trackdict.keys()
 
     for segment in _segment_longitude(trackdict):
+        for key in segment['dynamic']:
+            assert len(segment[key]) == len(segment['time'])
         yield segment
 
 
@@ -108,6 +112,7 @@ def TrackGen(rowgen: iter) -> dict:
         ...     print(f'keys: {track.keys()}')
     '''
     firstrow = True
+    assert isinstance(rowgen, types.GeneratorType)
     for rows in rowgen:
         assert not (rows is None or len(rows) == 0), 'rows cannot be empty'
         assert isinstance(rows[0], sqlite3.Row)

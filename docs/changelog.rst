@@ -2,6 +2,186 @@
 Changelog
 =========
 
+v1.3.79
+-------
+
+improved test coverage for DBQuery, decoder, marinetraffic, network_graph, and trackgen modules
+
+
+v1.3.78
+-------
+
+bug fix for storing cog, sog arrays in track dictionary
+
+
+v1.3.77
+-------
+
+support for rasterio when loading rasters
+
+
+v1.3.76
+-------
+
+refactor web scraping toolchain
+
+
+v1.3.75
+-------
+
+update websocket example
+
+
+v1.3.74
+-------
+
+update network_graph pipeline and bug fixes
+
+
+v1.3.73
+-------
+
+gitlab CI coverage
+
+
+v1.3.72
+-------
+
+update docker builds
+
+
+v1.3.71
+-------
+
+error handling in interp.py
+
+
+v1.3.70
+-------
+
+removed unused utils and fix but in write_csv()
+
+
+v1.3.69
+-------
+
+remove unused rust module
+
+
+v1.3.68
+-------
+
+improved logging and fixed test in rust decoder
+
+
+v1.3.67
+-------
+
+database cleanup and fix bug in zone bounding box for SQL query
+
+
+v1.3.66
+-------
+
+refactor aisdb_web/map/
+
+
+v1.3.65
+-------
+
+update docker docs and configuration
+
+
+v1.3.64
+-------
+
+update install instructions in readme
+
+
+v1.3.63
+-------
+
+update websocket test
+
+
+v1.3.62
+-------
+
+update dbqry testing
+
+
+v1.3.61
+-------
+
+update compose file
+
+
+v1.3.60
+-------
+
+update websocket_server for new asynchronous database connection API
+
+
+v1.3.59
+-------
+
+update example for refactored database connection API
+
+
+v1.3.58
+-------
+
+code comments in aisdb_web
+
+
+v1.3.57
+-------
+
+update requirements
+
+
+v1.3.56
+-------
+
+update dockerfile
+
+
+v1.3.55
+-------
+
+update testing for new database API
+
+
+v1.3.54
+-------
+
+bug fix in write_csv() when querying only dynamic tables without left join
+
+
+v1.3.53
+-------
+
+refactoring database modules to support multiple attached databases
+
+
+v1.3.52
+-------
+
+add support for multiple connected databases (synchronous), and refactor asynchronous database connection into its own class
+
+
+v1.3.51
+-------
+
+update CI arguments
+
+
+v1.3.50
+-------
+
+update dotfiles
+
+
 v1.3.49
 -------
 

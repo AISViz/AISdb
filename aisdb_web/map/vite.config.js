@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
-import { VitePWA } from 'vite-plugin-pwa';
+//import { VitePWA } from 'vite-plugin-pwa';
 
 const root = resolve(__dirname);
 const outDir = resolve(__dirname, '..', 'dist_map');
@@ -16,6 +16,7 @@ export default defineConfig({
       }
     }
   },
+  /*
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
@@ -38,8 +39,8 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ],
-        start_url: '/',
-        scope: '/',
+        start_url: '/map/index.html',
+        scope: '/map/',
         background_color : '#282c34',
         theme_color: '#282c34',
         display: 'fullscreen',
@@ -49,7 +50,7 @@ export default defineConfig({
             name: 'Ecoregions Shortcut',
             short_name: 'Ecoregions',
             description: 'Display map with ecoregion polygons overlay',
-            url: '/?ecoregions',
+            url: '/map/?ecoregions',
             icons: [
               {
                 src: '/favicon.svg',
@@ -63,4 +64,5 @@ export default defineConfig({
       }
     })
   ],
+  */
 });

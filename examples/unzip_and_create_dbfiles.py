@@ -55,11 +55,13 @@ for zipfilelocation in zipfiles:
 
         # insert into SQL database
         dbpath = basepath.replace('{}', str(filedate.year))
-        aisdb.decode_msgs(
-            filepaths=[filelocation],
-            dbpath=dbpath,
-            source=source,
-        )
+        with aisdb.DBConn(dbpath=dbpath) as db:
+            aisdb.decode_msgs(
+                filepaths=[filelocation],
+                db=db,
+                dbpath=dbpath,
+                source=source,
+            )
 
         # zero the unzipped data file
         with open(filelocation, 'wb') as f:

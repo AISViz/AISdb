@@ -6,6 +6,8 @@ import numpy as np
 
 
 def np_interp_linear(track, key, intervals):
+    #assert len(track[key]) > 1
+    assert len(track['time']) == len(track[key])
     return np.interp(
         x=intervals.astype(int),
         xp=track['time'].astype(int),
@@ -29,17 +31,23 @@ def interp_time(tracks, step=timedelta(minutes=10)):
         returns:
             dictionary of interpolated tracks
     '''
+    stepcount = int(step.total_seconds())
     for track in tracks:
 
         if track['time'].size <= 1:
-            yield track.copy()
+            yield track
             continue
 
+        stop = track['time'][-1] + (
+            stepcount if track['time'][-1] - track['time'][0] < stepcount else
+            track['time'][-1]) + 1
         intervals = np.arange(
             start=track['time'][0],
-            stop=track['time'][-1],
-            step=int(step.total_seconds()),
+            stop=stop,
+            step=stepcount,
         ).astype(int)
+
+        assert len(intervals) >= 2
 
         itr = dict(
             **{k: track[k]
@@ -52,7 +60,7 @@ def interp_time(tracks, step=timedelta(minutes=10)):
                 for k in track['dynamic'] if k != 'time'
             },
         )
-        yield itr.copy()
+        yield itr
 
     return
 

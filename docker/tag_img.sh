@@ -4,8 +4,6 @@ set -e
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 cd "${SCRIPTPATH}/.."
 
-docker-compose up --build --force-recreate pkgbuild
-
 echo "GIT CONTEXT:"
 echo
 git ls-files --exclude-from=.gitignore

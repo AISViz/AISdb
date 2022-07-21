@@ -1,16 +1,16 @@
 **.csv
+**.d
 **.db
 **.db
 **.egg-info
 **.eggs
 **.log
-**.nm4
-**.pickle
+**.pytest_cache
 **.so
 **/debug
 **/debug/*
 **/testdata
-**.d
+**/webdriver
 **__pycache__**
 **webdriver
 *.d
@@ -33,7 +33,6 @@
 aisdb.egg_info
 aisdb_wasm/release
 aisdb_wasm/target
-aisdb_web/dist**
 aisdb_web/dist_cargodoc
 aisdb_web/dist_jsdoc
 aisdb_web/dist_map
@@ -49,4 +48,3 @@ profile
 release
 target/release
 testdata
-!docs/requirements.txt

@@ -2,10 +2,10 @@ image: meridiancfi/aisdb:latest
 
 stages:
   - pkgbuild
-  - rust-test
-  - python-test
-  - python-profile
+#  - rust-test
+#  - python-test
   - build-website
+  - publish
 
 pkgbuild:
   image: 
@@ -13,63 +13,79 @@ pkgbuild:
     entrypoint: [""]
   stage: pkgbuild
   script:
-    - maturin build --release --manylinux 2014 --strip
-    - find ./target
+    - maturin build --release --manylinux 2014 --strip --interpreter 3.8 3.9 3.10
   artifacts:
     paths:
-      - ./target/
+      - ./target/wheels/
 
 rust-test:
   stage: rust-test
   script:
-    - cargo test --color=always -- --nocapture
+    - cargo test --color=always --release --lib
   artifacts:
     paths:
-      - ./target/
+      - ./testdata/*
 
 python-test:
   stage: python-test
   script:
-    - find ./target/
-    - export WHEEL="`ls -r1 ./target/wheels/aisdb-*cp310*.whl | head -n1`"
-    - python -m pip install ${WHEEL} --force-reinstall
-    - rm aisdb/__init__.py aisdb/tests/__init__.py
-    - python -m coverage run -m pytest --color=yes --tb=native --doctest-modules -k "not marinetraffic" aisdb/tests/
-    - python -m coverage report
-  needs:
-    - job: pkgbuild
-      artifacts: true
-    - job: rust-test 
-      artifacts: true
+    - python -m venv env
+    - source env/bin/activate && python -m pip install --upgrade pip maturin
+    - source env/bin/activate && maturin develop --release --extras=test,docs
+    - mkdir -p data_dir
+    - source env/bin/activate && AISDBDATADIR=data_dir python -m pytest aisdb/tests/ --durations=5 -s -k 'not marinetraffic and not rasterio and not pillow and not bathy'
+  coverage: '/TOTAL.*\s+(\d+\%)/'
+  dependencies:
+    - rust-test
   cache:
     key: persistent_000
     paths:
-      - aisdb/tests/marinetraffic_test.db
-
-#python-profile:
-#  stage: python-profile
-#  script:
-#    - python -m cProfile -o profile '/usr/bin/python -m pytest'
-#    - python -c "import pstats; p = pstats.Stats('profile'); p.strip_dirs(); p.sort_stats('tottime'); p.print_stats(50);"
-#  cache:
-#    key: persistent_000
-#    paths:
-#      - aisdb/tests/marinetraffic_test.db
+      - ./env
+      - ./aisdb_web/dist_coverage/
+      - ./data_dir
+      - ./testdata/
+  artifacts:
+    paths:
+      - ./aisdb_web/dist_coverage/
+      - ./data_dir
+      - ./testdata
 
 build-website:
   stage: build-website
   only: 
     - master
+  dependencies:
+    - python-test
   script:
+    - python -m venv env
+    - source env/bin/activate && python -m pip install --upgrade pip maturin
     - cd aisdb_web && npm install
-    - /bin/bash build_website.sh
+    - source ../env/bin/activate && /bin/bash ./build_website.sh
+  artifacts:
+    paths:
+      - ./env
+      - ./aisdb_web/
+      - ./data_dir
 
+tag:
+  stage: publish
+  only:
+    - master
+  dependencies:
+    - python-test
+    - build-website
+  script: 
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+    - tag=`cat pyproject.toml | grep version | grep -Eo "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"`
+    - git tag "$tag"
+    - git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
 
-  #  - rm -rf public && cp -r docs/html public
-  #artifacts:
-  #  paths:
-  #    - public
-  #cache:
-  #  key: "$CI_COMMIT_REF_SLUG"
-  #  paths:
-  #    - public
+variables:
+  ACCESS_TOKEN: $ACCESS_TOKEN
+  CI_SERVER_HOST: $CI_SERVER_HOST
+  CI_PROJECT_PATH: $CI_PROJECT_PATH
+  GITLAB_USER_NAME: $GITLAB_USER_NAME
+  GITLAB_USER_EMAIL: $GITLAB_USER_EMAIL
+  
+

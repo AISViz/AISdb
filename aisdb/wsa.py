@@ -103,7 +103,7 @@ def wetted_surface_area(tracks):
                 raise KeyError(
                     "'ship_type' not in track: try using "
                     "aisdb.database.sqlfcn.crawl_dynamic_static as 'fcn' arg "
-                    "for DBQuery()")
+                    "for DBQuery.gen_qry()")
             hull = _wsa(dwt, track['ship_type'] or 0)
 
         track['submerged_hull_m^2'] = hull

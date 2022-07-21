@@ -9,8 +9,10 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
 from aisdb import sqlpath
-from aisdb.webdata._scraper import _Scraper
+from aisdb.webdata._scraper import _scraper
 import sqlite3
+
+baseurl = 'https://www.marinetraffic.com/'
 
 _err404 = 'INSERT INTO webdata_marinetraffic(mmsi, error404) '
 _err404 += 'VALUES (CAST(? as INT), 1)'
@@ -56,7 +58,7 @@ def _nullinfo(track):
     }
 
 
-def _loaded(drv: WebDriver) -> bool:
+def _loaded(drv: WebDriver) -> bool:  # pragma: no cover
     asset_type = 'asset_type' in drv.current_url
     e404 = '404' == drv.title[0:3]
     exists = drv.find_elements(
@@ -66,14 +68,14 @@ def _loaded(drv: WebDriver) -> bool:
     return (exists or e404 or asset_type)
 
 
-def _updateinfo(info: str, vessel: dict) -> None:
+def _updateinfo(info: str, vessel: dict) -> None:  # pragma: no cover
     i = info.split(': ')
     if len(i) < 2:
         return
     vessel[i[0]] = i[1]
 
 
-def _getrow(vessel: dict) -> tuple:
+def _getrow(vessel: dict) -> tuple:  # pragma: no cover
     if 'MMSI' not in vessel.keys() or vessel['MMSI'] == '-':
         vessel['MMSI'] = 0
     if 'IMO' not in vessel.keys() or vessel['IMO'] == '-':
@@ -110,7 +112,7 @@ def _getrow(vessel: dict) -> tuple:
     )
 
 
-def _insertvesselrow(elem, mmsi, trafficDB):
+def _insertvesselrow(elem, mmsi, trafficDB):  # pragma: no cover
     vessel = {}
     for info in elem.text.split('\n'):
         _updateinfo(info, vessel)
@@ -150,6 +152,7 @@ def vessel_info(tracks, trafficDBpath):
     '''
     meta = _metadict(trafficDBpath)
     for track in tracks:
+        assert isinstance(track, dict)
         track['static'] = set(track['static']).union({'marinetraffic_info'})
         if track['mmsi'] in meta.keys():
             track['marinetraffic_info'] = meta[track['mmsi']]
@@ -158,7 +161,7 @@ def vessel_info(tracks, trafficDBpath):
         yield track
 
 
-class VesselInfo():
+class VesselInfo():  # pragma: no cover
     ''' scrape vessel metadata from marinetraffic.com
 
         args:
@@ -172,13 +175,13 @@ class VesselInfo():
         for scraping metadata for a given list of MMSIs
     '''
 
-    def __init__(self, trafficDBpath, proxy=None):
-        self.filename = 'marinetraffic.db'
+    def __init__(self, trafficDBpath, proxyhost=None, proxyport=None):
+        #self.filename = 'marinetraffic.db'
         self.driver = None
-        self.baseurl = 'https://www.marinetraffic.com/'
-        self.proxy = proxy
+        self.proxy = [proxyhost, proxyport]
         self.trafficDB = sqlite3.Connection(trafficDBpath)
         self.trafficDB.row_factory = sqlite3.Row
+
         # create a new info table if it doesnt exist yet
         with self.trafficDB as conn:
             conn.execute(_createtable_sql)
@@ -188,12 +191,14 @@ class VesselInfo():
 
     def __exit__(self, exc_type, exc_value, tb):
         if self.driver is not None:
-            self.driver.close()
+            #self.driver.close()
             self.driver.quit()
 
     def _getinfo(self, *, url, searchmmsi, data_dir, infotxt=''):
         if self.driver is None:
-            self.driver = _Scraper(data_dir=data_dir, proxy=self.proxy).driver
+            self.driver = _scraper(data_dir=data_dir,
+                                   proxyhost=self.proxy[0],
+                                   proxyport=self.proxy[1])
 
         print(infotxt + url, end='\t')
         try:
@@ -283,7 +288,7 @@ class VesselInfo():
         for mmsi in xor_mmsis:
             if not 200000000 <= mmsi <= 780000000:
                 continue
-            url = f'{self.baseurl}en/ais/details/ships/mmsi:{mmsi}'
+            url = f'{baseurl}en/ais/details/ships/mmsi:{mmsi}'
             self._getinfo(url=url,
                           searchmmsi=mmsi,
                           data_dir=data_dir,

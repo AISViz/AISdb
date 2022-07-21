@@ -1,6 +1,6 @@
 /** @module clientsocket */
 import { newHeatmapFeatures, newPolygonFeature, newTrackFeature } from './map';
-import { process_response } from './pkg/client';
+// import { process_response } from './pkg/client';
 import { searchbtn, resetSearchState, setSearchRange } from './selectform';
 import parseUrl from './url';
 
@@ -21,9 +21,15 @@ if (port === undefined) {
   port = '9924';
 }
 
+/**
+  for local testing, do:
+  export VITE_DISABLE_SSL=1
+  npx vite ./aisdb_web/map/
+  */
 let socketHost = null;
 if (import.meta.env.VITE_DISABLE_SSL !== null &&
   import.meta.env.VITE_DISABLE_SSL !== undefined) {
+  console.log('CAUTION: connecting to websocket over unencrypted connection!');
   socketHost = `ws://${hostname}:9924`;
 } else {
   /** @constant {string} socketHost socket host address */
@@ -126,6 +132,7 @@ socket.onerror = function(event) {
   socket.close();
 };
 
+let _process_response = null;
 
 /** socket message event.
  * handles messages from server according to response type
@@ -134,17 +141,23 @@ socket.onerror = function(event) {
  * @param {Object} event onmessage event
  */
 socket.onmessage = async function(event) {
+  if (_process_response === null) {
+    let { default:init, process_response } = await import ('./pkg/client');
+    init();
+    _process_response = process_response;
+  }
+
   let txt = await event.data.text();
   let response = JSON.parse(txt);
   if (response.msgtype === 'track_vector') {
-    let processed = convert_utf8_js(process_response({
+    let processed = convert_utf8_js(_process_response({
       rawdata:convert_js_utf8(response)
     }));
     // console.log(JSON.stringify(response['meta']['vesseltype_generic']));
     newTrackFeature(processed, response.meta);
     await socket.send(JSON.stringify({ type: 'ack' }));
   } else if (response.msgtype === 'zone') {
-    let processed = convert_utf8_js(process_response({
+    let processed = convert_utf8_js(_process_response({
       rawdata:convert_js_utf8(response)
     }));
     processed.type = 'Polygon';

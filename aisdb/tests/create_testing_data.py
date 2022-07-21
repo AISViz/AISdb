@@ -3,12 +3,19 @@ import os
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb.database.dbconn import DBConn
 from aisdb.gis import Domain
+from aisdb.database.create_tables import (
+    sqlite_createtable_dynamicreport,
+    sqlite_createtable_staticreport,
+)
+from aisdb import decode_msgs, DBConn, aggregate_static_msgs
 
 
-def sample_dynamictable_insertdata(testdbpath):
-    db = DBConn(dbpath=testdbpath)
+def sample_dynamictable_insertdata(*, db, dbpath):
+    #db = DBConn(dbpath=testdbpath)
+    assert isinstance(db, DBConn)
+    sqlite_createtable_staticreport(db, month="200001", dbpath=dbpath)
+    sqlite_createtable_dynamicreport(db, month="200001", dbpath=dbpath)
     db.cur.execute(
         'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702800, -60.994833, 47.434647238127695, -1, -1)'
     )
@@ -96,3 +103,21 @@ def create_testing_aisdata(data_dir):
 \c:1617284347*56\!AIVDM,1,1,,,13n7aN0wQnsN4lfE8nEUgDf:0<00,0*18
 \c:1617289692*56\!AIVDM,1,1,,,C4N6S1005=6h:aw8::=9CwTHL:`<BVAWWWKQa1111110CP81110W,0*7A'''
                 )
+
+
+def sample_database_file(dbpath):
+    ''' test data for date 2021-11-01 '''
+    datapath = os.path.join(os.path.dirname(__file__),
+                            'testingdata_20211101.nm4')
+    months = ["202111"]
+    with DBConn(dbpath=dbpath) as db:
+        decode_msgs(
+            db=db,
+            filepaths=[datapath],
+            dbpath=dbpath,
+            source='TESTING',
+            vacuum=False,
+            skip_checksum=True,
+        )
+        aggregate_static_msgs(db, months)
+    return months
