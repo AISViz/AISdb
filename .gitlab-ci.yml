@@ -2,9 +2,8 @@ image: meridiancfi/aisdb:latest
 
 stages:
   - pkgbuild
-  - rust-test
-  - python-test
-  - python-profile
+#  - rust-test
+#  - python-test
   - build-website
   - publish
 
@@ -61,7 +60,7 @@ build-website:
     - python -m venv env
     - source env/bin/activate && python -m pip install --upgrade pip maturin
     - cd aisdb_web && npm install
-    - source ./env/bin/activate && /bin/bash ./build_website.sh
+    - source ../env/bin/activate && /bin/bash ./build_website.sh
   artifacts:
     paths:
       - ./env
