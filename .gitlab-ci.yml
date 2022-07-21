@@ -61,7 +61,9 @@ build-website:
     - source ../env/bin/activate && /bin/bash ./build_website.sh
     - cd ..
   cache:
-    - ./env
+    key: persistent_000
+    paths:
+      - ./env
       - ./data_dir
   artifacts:
     paths:
