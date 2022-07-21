@@ -81,11 +81,11 @@ tag:
     - git config --global user.name "${GITLAB_USER_NAME}"
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - TAG=`cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"`
-    - git tag "$TAG-testCI1"
+    - git tag "$TAG-testCI2"
     - git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
   release:
-    tag_name: test1
-    description: test1
+    tag_name: $CI_COMMIN_TAG$TAG 
+    description: $CI_COMMIT_TAG$TAG
 
 
 variables:
