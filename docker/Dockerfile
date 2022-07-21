@@ -9,6 +9,7 @@ RUN pacman -Syyuu --noconfirm \
     nodejs \
     npm \
     python \
+    release-cli \
     rustup \
     wasm-pack
 RUN useradd -m "ais_env"
