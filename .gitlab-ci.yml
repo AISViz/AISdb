@@ -7,7 +7,7 @@ stages:
   - build-website
   - publish
 
-pkgbuild:
+.pkgbuild:
   image: 
     name: ghcr.io/pyo3/maturin:main
     entrypoint: [""]
@@ -59,6 +59,7 @@ build-website:
   script:
     - python -m venv env
     - source env/bin/activate && python -m pip install --upgrade pip maturin sphinx sphinx-rtd-theme
+    - source env/bin/activate && maturin develop --release --extras=test,docs
     - cd aisdb_web && npm install
     - source ../env/bin/activate && /bin/bash ./build_website.sh
   artifacts:
