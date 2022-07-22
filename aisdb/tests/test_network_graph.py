@@ -9,8 +9,10 @@ from functools import partial
 
 from shapely.geometry import Polygon
 
+from aisdb.proc_util import getfiledate
 from aisdb.database.dbqry import DBQuery, DBConn
 from aisdb.database import sqlfcn, sqlfcn_callbacks
+from aisdb.database.decoder import decode_msgs
 from aisdb.gis import Domain
 from aisdb.track_gen import (
     fence_tracks,
@@ -28,6 +30,11 @@ from aisdb.tests.create_testing_data import (
     sample_gulfstlawrence_bbox,
     sample_database_file,
 )
+
+testingdata_nm4 = os.path.join(os.path.dirname(__file__),
+                               'testingdata_20211101.nm4')
+testingdata_csv = os.path.join(os.path.dirname(__file__),
+                               'testingdata_20210701.csv')
 
 trafficDBpath = os.environ.get(
     'AISDBMARINETRAFFIC',
@@ -59,16 +66,15 @@ domain = Domain('gulf domain',
 
 
 def test_geofencing(tmpdir):
-    testdbpath = os.path.join(tmpdir, 'test_network_graph.db')
-    #aisdatabase = DBConn(dbpath=testdbpath)
-
-    months = sample_database_file(testdbpath)
-
-    year, month = int(months[0][0:4]), int(months[0][4:])
-    start = datetime(year, month, 1)
-    end = datetime(year, month, 1) + timedelta(weeks=4)
+    testdbpath = os.path.join(tmpdir, 'test_geofencing.db')
+    start = datetime(*getfiledate(testingdata_nm4).timetuple()[0:6])
+    end = start + timedelta(weeks=4)
     with DBConn(dbpath=testdbpath) as aisdatabase:
         # query configs
+        decode_msgs([testingdata_csv, testingdata_nm4],
+                    aisdatabase,
+                    testdbpath,
+                    source='TESTING')
 
         rowgen = DBQuery(
             db=aisdatabase,
@@ -81,7 +87,6 @@ def test_geofencing(tmpdir):
             callback=sqlfcn_callbacks.in_bbox,
         )
 
-        #sample_dynamictable_insertdata(db=aisdatabase, dbpath=testdbpath)
         # processing configs
         distsplit = partial(
             encode_greatcircledistance,
@@ -97,17 +102,18 @@ def test_geofencing(tmpdir):
 
 
 def test_graph_CSV_marinetraffic(tmpdir):
-    testdbpath = os.path.join(tmpdir, 'test_network_graph.db')
+    testdbpath = os.path.join(tmpdir,
+                              'test_network_graph_CSV_marinetraffic.db')
     outpath = os.path.join(tmpdir, 'output.csv')
 
-    #aisdatabase = DBConn(dbpath=testdbpath)
+    start = datetime(*getfiledate(testingdata_nm4).timetuple()[0:6])
+    end = start + timedelta(weeks=4)
 
-    months = sample_database_file(testdbpath)
-
-    year, month = int(months[0][0:4]), int(months[0][4:])
-    start = datetime(year, month, 1)
-    end = datetime(year, month, 1) + timedelta(weeks=4)
     with DBConn(dbpath=testdbpath) as aisdatabase:
+        decode_msgs([testingdata_csv, testingdata_nm4],
+                    aisdatabase,
+                    testdbpath,
+                    source='TESTING')
         qry = DBQuery(
             db=aisdatabase,
             start=start,
@@ -134,17 +140,18 @@ def test_graph_CSV_marinetraffic(tmpdir):
 
 
 def test_graph_CSV_parallel_marinetraffic(tmpdir):
-    testdbpath = os.path.join(tmpdir, 'test_network_graph.db')
+    testdbpath = os.path.join(
+        tmpdir, 'test_network_graph_CSV_parallel_marinetraffic.db')
     outpath = os.path.join(tmpdir, 'output.csv')
 
-    #aisdatabase = DBConn(dbpath=testdbpath)
-
-    months = sample_database_file(testdbpath)
-
-    year, month = int(months[0][0:4]), int(months[0][4:])
-    start = datetime(year, month, 1)
-    end = datetime(year, month, 1) + timedelta(weeks=4)
+    start = datetime(
+        *getfiledate(testingdata_nm4).timetuple()[0:6]) - timedelta(weeks=1)
+    end = start + timedelta(weeks=4)
     with DBConn(dbpath=testdbpath) as aisdatabase:
+        decode_msgs([testingdata_csv, testingdata_nm4],
+                    aisdatabase,
+                    testdbpath,
+                    source='TESTING')
         qry = DBQuery(
             db=aisdatabase,
             start=start,

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.88
+-------
+
+added tests and improved test coverage
+
+
 v1.3.87
 -------
 

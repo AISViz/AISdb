@@ -3,6 +3,7 @@ from datetime import datetime
 
 from aisdb.database.dbconn import DBConn
 from aisdb.database.dbqry import DBQuery
+from aisdb.database.decoder import decode_msgs
 from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 from aisdb.database.create_tables import (
     aggregate_static_msgs,
@@ -28,6 +29,13 @@ def test_create_dynamic_table(tmpdir):
 
 def test_create_static_aggregate_table(tmpdir):
     dbpath = os.path.join(tmpdir, 'test_create_static_aggregate_table.db')
+    testingdata_nm4 = os.path.join(os.path.dirname(__file__),
+                                   'testingdata_20211101.nm4')
+    testingdata_csv = os.path.join(os.path.dirname(__file__),
+                                   'testingdata_20210701.csv')
     with DBConn(dbpath=dbpath) as db:
-        _ = sqlite_createtable_staticreport(db, "202009", dbpath=dbpath)
-        aggregate_static_msgs(db, ["202009"])
+        decode_msgs([testingdata_csv, testingdata_nm4],
+                    db=db,
+                    dbpath=dbpath,
+                    source='TESTING')
+        aggregate_static_msgs(db, ["202111", "202107"])

@@ -21,6 +21,7 @@ testdir = os.environ.get(
 )
 if not os.path.isdir(testdir):
     os.mkdir(testdir)
+
 trafficDBpath = os.path.join(testdir, 'marinetraffic_test.db')
 
 
@@ -50,6 +51,25 @@ def test_write_csv_rows(tmpdir):
         )
 
 
+def test_write_csv_fromdict(tmpdir):
+    dbpath = os.path.join(tmpdir, 'test_write_csv.db')
+    sample_database_file(dbpath)
+
+    with DBConn(dbpath=dbpath) as db:
+        qry = DBQuery(
+            db=db,
+            start=start,
+            end=end,
+            callback=sqlfcn_callbacks.in_timerange_validmmsi,
+        )
+
+        rowgen = qry.gen_qry(dbpath, fcn=sqlfcn.crawl_dynamic, printqry=True)
+        tracks = track_gen.TrackGen(rowgen)
+        aisdb.proc_util.write_csv(tracks,
+                                  fpath=os.path.join(tmpdir,
+                                                     'test_write_csv.csv'))
+
+
 def test_write_csv_fromdict_marinetraffic(tmpdir):
     dbpath = os.path.join(tmpdir, 'test_write_csv.db')
     sample_database_file(dbpath)
@@ -72,8 +92,11 @@ def test_write_csv_fromdict_marinetraffic(tmpdir):
 
 
 def test_glob_files():
-    dbs = aisdb.proc_util.glob_files(testdir, '.db')
+    dbs = aisdb.proc_util.glob_files(os.path.dirname(__file__), '.nm4')
 
 
 def test_getfiledate():
-    aisdb.proc_util.getfiledate(os.path.join(testdir, 'testingdata.nm4'))
+    aisdb.proc_util.getfiledate(
+        os.path.join(os.path.dirname(__file__), 'testingdata_20211101.nm4'))
+    aisdb.proc_util.getfiledate(
+        os.path.join(os.path.dirname(__file__), 'testingdata_20210701.csv'))
