@@ -91,10 +91,10 @@ tag:
   release:
     tag_name: $VERSION
     description: $VERSION
-  artifacts:
-    paths:
-      - aisdb_web/
-      -./target/wheels/
+  #artifacts:
+    #paths:
+      #- aisdb_web/
+      #-./target/wheels/
 
 
 variables:
