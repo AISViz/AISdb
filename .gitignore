@@ -8,7 +8,6 @@
 **package-lock.json
 *.cookie
 *.crt
-*.csv
 *.db
 *.db-journal
 *.egg-info

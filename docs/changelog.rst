@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.87
+-------
+
+update dotfiles
+
+
 v1.3.86
 -------
 
