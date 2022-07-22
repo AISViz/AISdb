@@ -86,11 +86,11 @@ tag:
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - TAG=`cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"`
     - echo "$TAG" > VERSION
-    - git tag "$TAG-testCI10"
+    - git tag "$TAG-testCI11"
     - git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
   release:
-    tag_name: $VERSION
-    description: $VERSION
+    tag_name: VERSION
+    description: VERSION
   #artifacts:
     #paths:
       #- aisdb_web/
