@@ -7,7 +7,7 @@ stages:
   - build-website
   - publish
 
-.pkgbuild:
+pkgbuild:
   image: 
     name: ghcr.io/pyo3/maturin:main
     entrypoint: [""]
@@ -18,7 +18,7 @@ stages:
     paths:
       - ./target/wheels/
 
-.rust-test:
+rust-test:
   stage: rust-test
   script:
     - cargo test --color=always --release --lib
@@ -26,7 +26,7 @@ stages:
     paths:
       - ./testdata/*
 
-.python-test:
+python-test:
   stage: python-test
   script:
     - python -m venv env
@@ -35,8 +35,8 @@ stages:
     - mkdir -p data_dir
     - source env/bin/activate && AISDBDATADIR=data_dir python -m pytest aisdb/tests/ --durations=5 -s -k 'not marinetraffic and not rasterio and not pillow and not bathy'
   coverage: '/TOTAL.*\s+(\d+\%)/'
-  #dependencies:
-  #  - rust-test
+  dependencies:
+    - rust-test
   cache:
     key: persistent_000
     paths:
@@ -51,12 +51,12 @@ stages:
         coverage_format: cobertura
         path: coverage.xml
 
-.build-website:
+build-website:
   stage: build-website
   only: 
     - master
-  #dependencies:
-    #- python-test
+  dependencies:
+    - python-test
   script:
     - python -m venv env
     - source env/bin/activate && python -m pip install --upgrade pip maturin sphinx sphinx-rtd-theme
@@ -77,23 +77,24 @@ tag:
   stage: publish
   only:
     - master
-  #dependencies:
-    #- python-test
-  #  - build-website
+  dependencies:
+    - pkgbuild
+    - python-test
+    - build-website
   script: 
     - git config --global --add safe.directory `pwd`
     - git config --global user.name "${GITLAB_USER_NAME}"
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - TAG=`cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"`
-    - git tag "$TAG-testCI12"
+    - git tag "$TAG"
     - git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
   release:
     tag_name: $(cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+")
     description: $(cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+")
-  #artifacts:
-    #paths:
-      #- aisdb_web/
-      #-./target/wheels/
+  artifacts:
+    paths:
+      - aisdb_web/
+      -./target/wheels/
 
 
 variables:
