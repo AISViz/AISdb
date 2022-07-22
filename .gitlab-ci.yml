@@ -94,7 +94,7 @@ tag:
   artifacts:
     paths:
       - aisdb_web/
-      -./target/wheels/
+      - ./target/wheels/
 
 
 variables:
