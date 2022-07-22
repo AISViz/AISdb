@@ -22,15 +22,18 @@ RUN python -m pip install maturin
 COPY --chown=ais_env aisdb_web/package.json aisdb_web/package.json
 RUN cd aisdb_web && npm install
 COPY --chown="ais_env" .coveragerc .coveragerc
+COPY --chown=ais_env aisdb/aisdb_sql aisdb/aisdb_sql
 COPY --chown=ais_env Cargo.toml pyproject.toml build.rs readme.rst ./
+# pre-cache build dependencies before compiling source
 RUN mkdir src \
   && echo 'fn main(){}' > src/bin.rs \
   && echo 'fn main(){}' > src/lib.rs \
+  && touch aisdb/__init__.py \
   && cargo check --release
 COPY --chown=ais_env examples/ examples/
 COPY --chown=ais_env src/ src/
-COPY --chown=ais_env aisdb/ aisdb/
 RUN source ./env/bin/activate && maturin develop --release --extras=test,docs
+COPY --chown=ais_env aisdb/ aisdb/
 
 # build sphinx docs and nodejs webapp
 FROM aisdb AS webserv

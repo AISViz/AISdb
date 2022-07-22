@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.85
+-------
+
+update docker builds and CI pipeline
+
+
 v1.3.84
 -------
 

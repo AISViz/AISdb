@@ -50,7 +50,7 @@ services:
     #  - rust-test  # for testingdata
     init: true
     command: 
-      ["python", "-m", "pytest", "aisdb/tests/", "--durations=10"]
+      ["python", "-m", "pytest", "aisdb/tests/", "--durations=10", "-k", "not timing"]
 
   # nodeJS docs server + webapp
   webserver:
