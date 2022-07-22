@@ -165,11 +165,7 @@ class DBConn():
             assert os.path.isdir(os.path.dirname(dbp))
             self.attach(dbp)
 
-        self.cur.execute('SELECT name FROM sqlite_master '
-                         'WHERE type="table" AND name="coarsetype_ref";')
-
-        if not self.cur.fetchall():
-            self.create_table_coarsetype()
+        self.create_table_coarsetype()
 
         self.conn.commit()
 
@@ -188,7 +184,6 @@ class DBConn():
         dbname = get_dbname(dbpath)
         self.cur.execute('PRAGMA database_list')
         res = self.cur.fetchall()
-        #attached = dbpath in self.dbpaths
         attached = False
         for r in res:
             if r['name'] == dbname:
@@ -196,8 +191,6 @@ class DBConn():
         if not attached:
             self.cur.execute('ATTACH DATABASE ? AS ?', [dbpath, dbname])
 
-        #if dbpath not in self.dbpaths:
-        #    self.dbpaths.append(dbpath)
         assert dbpath in self.dbpaths
 
         if dbname not in self.dbnames:
@@ -205,17 +198,17 @@ class DBConn():
         return
 
     def create_table_coarsetype(self):
-        ''' create a table to describe integer vessel type as a human-readable string
-            included here instead of create_tables.py to prevent circular import error
+        ''' create a table to describe integer vessel type as a human-readable
+            string.
         '''
 
         self.cur.execute(_create_coarsetype_table)
 
         self.cur.execute(_create_coarsetype_index)
 
-        self.cur.executemany((
-            'INSERT OR IGNORE INTO coarsetype_ref (coarse_type, coarse_type_txt) '
-            'VALUES (?,?) '), _coarsetype_rows)
+        self.cur.executemany(('INSERT OR IGNORE INTO coarsetype_ref '
+                              '(coarse_type, coarse_type_txt) VALUES (?,?) '),
+                             _coarsetype_rows)
 
 
 class DBConn_async():
@@ -230,13 +223,7 @@ class DBConn_async():
         for p in pragmas:
             _ = await self.conn.execute(p)
 
-        coarsetype_cursor = await self.conn.execute(
-            'SELECT name FROM sqlite_master '
-            'WHERE type="table" AND name="coarsetype_ref";')
-        coarsetype_result = await coarsetype_cursor.fetchall()
-
-        if coarsetype_result == []:
-            _ = await self.create_table_coarsetype()
+        _ = await self.create_table_coarsetype()
 
         return self
 

@@ -12,7 +12,7 @@ dt2monthstr = lambda start, end, **_: np.unique([
     t.strftime('%Y%m')
     for t in np.arange(start, end, timedelta(days=1)).astype(datetime)
 ]).astype(object)
-
+'''
 zipcoords = lambda x, y, **_: ', '.join(map(lambda xi, yi: f'{xi} {yi}', x, y))
 
 arr2polytxt = lambda x, y, **_: f'POLYGON(({zipcoords(x,y)}))'
@@ -22,6 +22,7 @@ boxpoly = lambda x, y: ([
 ], [min(y), max(y), max(y), min(y), min(y)])
 
 merge = lambda *arr: np.concatenate(np.array(*arr).T)
+'''
 
 in_time_mmsi = lambda **kwargs: f'''\
     {in_timerange(**kwargs)} AND {valid_mmsi(**kwargs)}'''

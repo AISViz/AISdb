@@ -2,9 +2,9 @@ import os
 from collections import Counter
 
 import numpy as np
+import warnings
 
 from aisdb.database.dbconn import DBConn, get_dbname
-
 from aisdb import sqlpath
 
 
@@ -108,9 +108,8 @@ def aggregate_static_msgs(db, months_str):
         cur.execute(sql_aggregate)
 
         if len(agg_rows) == 0:
-            print(
-                f'no rows to aggregate for table {dbname}.static_{month}_aggregate !'
-            )
+            warnings.warn('no rows to aggregate! '
+                          'table: {dbname}.static_{month}_aggregate')
             continue
 
         skip_nommsi = np.array(agg_rows, dtype=object)

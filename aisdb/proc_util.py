@@ -260,7 +260,7 @@ def getfiledate(filename):
             line = f.readline()
             head = line.rsplit('\\', 1)[0]
             n = 0
-            while 'c:' not in head:
+            while 'c:' not in head:  # pragma: no cover
                 n += 1
                 line = f.readline()
                 head = line.rsplit('\\', 1)[0]

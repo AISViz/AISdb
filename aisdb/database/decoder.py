@@ -83,7 +83,7 @@ def decode_msgs(filepaths,
         elif isinstance(vacuum, str):
             assert not os.path.isfile(vacuum)
             db.cur.execute(f"VACUUM '{dbname}' INTO '{vacuum}'")
-        else:  # pragma: no cover
+        else:
             raise ValueError('vacuum arg must be boolean or filepath string')
         db.conn.commit()
 

@@ -2,30 +2,22 @@
     generate queries
 '''
 
-import sqlite3
-import aiosqlite
 from collections import UserDict
 from datetime import datetime
 from functools import reduce
 
 import numpy as np
-from shapely.geometry import Polygon
 
 from aisdb.database import sqlfcn_callbacks
 from aisdb.database.dbconn import DBConn, DBConn_async, get_dbname
 from aisdb.database import sqlfcn
-from aisdb.database.sqlfcn_callbacks import dt2monthstr, arr2polytxt
+from aisdb.database.sqlfcn_callbacks import dt2monthstr
 from aisdb.database.create_tables import (
     aggregate_static_msgs,
     sqlite_createtable_dynamicreport,
     sqlite_createtable_staticreport,
 )
 from aisdb.webdata.marinetraffic import VesselInfo
-
-from aisdb.gis import epoch_2_dt
-
-_epoch2monthstr = lambda start, end, **_: dt2monthstr(epoch_2_dt(start),
-                                                      epoch_2_dt(end))
 
 
 class DBQuery(UserDict):
@@ -75,7 +67,7 @@ class DBQuery(UserDict):
 
     def __init__(self, *, db, **kwargs):
 
-        if not isinstance(db, (DBConn, DBConn_async)):  # pragma: no cover
+        if not isinstance(db, (DBConn, DBConn_async)):
             raise ValueError(
                 'db argument must be a DBConn database connection.'
                 f'\tfound: {db}')
@@ -85,16 +77,14 @@ class DBQuery(UserDict):
         self.create_qry_params()
 
     def create_qry_params(self):
-        if 'start' in self.data.keys() and 'end' in self.data.keys():
-            if self.data['start'] >= self.data['end']:  # pragma: no cover
-                raise ValueError('Start must occur before end')
-            elif isinstance(self.data['start'], datetime):
-                self.data.update({'months': dt2monthstr(**self.data)})
-            elif isinstance(self.data['start'],
-                            (float, int)):  # pragma: no cover
-                self.data.update({'months': _epoch2monthstr(**self.data)})
-            else:  # pragma: no cover
-                assert False
+        assert 'start' in self.data.keys() and 'end' in self.data.keys()
+        if self.data['start'] >= self.data['end']:
+            raise ValueError('Start must occur before end')
+        assert isinstance(self.data['start'], datetime)
+        self.data.update({'months': dt2monthstr(**self.data)})
+        #elif isinstance(self.data['start'],
+        #                (float, int)):  # pragma: no cover
+        #    self.data.update({'months': _epoch2monthstr(**self.data)})
 
     def check_marinetraffic(
             self,
@@ -131,7 +121,7 @@ class DBQuery(UserDict):
                 cur.execute(
                     f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
                     [f'ais_{month}_dynamic'])
-                if len(cur.fetchall()) == 0:
+                if len(cur.fetchall()) == 0:  # pragma: no cover
                     continue
 
                 # check unique mmsis
@@ -144,7 +134,8 @@ class DBQuery(UserDict):
                 mmsis = cur.fetchall()
 
                 # retrieve vessel metadata
-                if len(mmsis) > 0:
+                if len(mmsis) > 0:  # pragma: no cover
+                    # not covered; will be cached for testing
                     vinfo.vessel_info_callback(mmsis=np.array(mmsis),
                                                data_dir=data_dir,
                                                retry_404=retry_404,
@@ -231,8 +222,11 @@ class DBQuery(UserDict):
             ummsi_idx = reduce(np.append, ([0], ummsi_idx, [len(mmsi_rows)]))
             for i in range(len(ummsi_idx) - 2):
                 yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
-            if len(ummsi_idx) > 2:
-                mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
+            #if len(ummsi_idx) > 2:
+            #    mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
+            assert len(ummsi_idx) > 2
+            mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
+
             res = self.db.cur.fetchmany(10**5)
         yield mmsi_rows
 
@@ -274,8 +268,11 @@ class DBQuery_async(DBQuery):
             ummsi_idx = reduce(np.append, ([0], ummsi_idx, [len(mmsi_rows)]))
             for i in range(len(ummsi_idx) - 2):
                 yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
-            if len(ummsi_idx) > 2:
-                mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
+            #if len(ummsi_idx) > 2:
+            #    mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
+            assert len(ummsi_idx) > 2
+            mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
+
             res = await cursor.fetchmany(10**5)
         yield mmsi_rows
         await cursor.close()

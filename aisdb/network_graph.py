@@ -11,6 +11,7 @@ from hashlib import sha256
 from multiprocessing import Pool
 
 import numpy as np
+import warnings
 
 import aisdb
 from aisdb.database import sqlfcn
@@ -32,8 +33,6 @@ from aisdb.webdata.merge_data import (
 )
 from aisdb.proc_util import _segment_rng, _sanitize
 from aisdb.wsa import wetted_surface_area
-
-_colorhash = lambda mmsi: f'#{sha256(str(mmsi).encode()).hexdigest()[-6:]}'
 """
 def _depth_nonnegative(track, zoneset):
     ''' returns absolute value of bathymetric depths with topographic heights
@@ -415,7 +414,6 @@ def graph(qry,
                 p.join()
 
         if os.listdir(tmp_dir) == []:
-            print(f'no data for {outputfile}, skipping...\n')
-            return
-
-        _aggregate_output(outputfile=outputfile, tmp_dir=tmp_dir)
+            warnings.warn(f'no data for {outputfile}, skipping...\n')
+        else:
+            _aggregate_output(outputfile=outputfile, tmp_dir=tmp_dir)

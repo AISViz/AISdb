@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.86
+-------
+
+remove unused code and add more warnings
+
+
 v1.3.85
 -------
 
