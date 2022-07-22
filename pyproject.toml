@@ -33,4 +33,4 @@ compatability = "manylinux2014"
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 testpaths = [ "aisdb/tests",]
-addopts = "--doctest-modules --color=yes --tb=native -k 'not timing' --cov-report term --cov-report html:aisdb_web/dist_coverage --cov=aisdb"
+addopts = "--doctest-modules --color=yes --tb=native -k 'not timing' --cov-report term --cov-report html:aisdb_web/dist_coverage --cov-report xml:coverage.xml --cov=aisdb"
