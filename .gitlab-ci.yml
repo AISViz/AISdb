@@ -75,7 +75,6 @@ tag:
     - master
   dependencies:
     - pkgbuild
-    - python-test
     - build-website
   script: 
     - git config --global --add safe.directory `pwd`

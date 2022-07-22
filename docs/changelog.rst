@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.83
+-------
+
+test CI auto-versioning
+
+
 v1.3.82
 -------
 
