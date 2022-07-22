@@ -46,10 +46,6 @@ python-test:
   artifacts:
     paths:
       - ./aisdb_web/dist_coverage/
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
 
 build-website:
   stage: build-website
