@@ -1,6 +1,8 @@
 import os
 import logging
 
+from .aisdb import decoder, haversine, simplify_linestring_idx
+
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
 from .database.create_tables import (
@@ -64,9 +66,6 @@ from .track_gen import (
     max_tracklength,
     encode_greatcircledistance,
 )
-
-if not os.environ.get('SPHINXDOC'):
-    from .aisdb import decoder as rustdecoder, haversine, simplify_linestring_idx
 
 import sqlite3
 if (sqlite3.sqlite_version_info[0] < 3

@@ -3,7 +3,6 @@ import socket
 import threading
 from datetime import datetime
 import time
-import pytest
 
 from aisdb.database.decoder import decode_msgs
 
@@ -93,7 +92,6 @@ class _AISDatabaseBuilder():
             time.sleep(10)
 
 
-@pytest.mark.skip
 class MessageLogger():
     ''' log NMEA data stream from host_addr:host_port.
 

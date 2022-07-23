@@ -7,10 +7,9 @@ import types
 
 import numpy as np
 
-import aisdb
-from aisdb.database.dbqry import DBQuery
-from .gis import delta_knots, delta_meters
-from .proc_util import _segment_rng
+from aisdb import haversine, simplify_linestring_idx
+from aisdb.gis import delta_knots, delta_meters
+from aisdb.proc_util import _segment_rng
 
 staticcols = set([
     'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow',
@@ -60,7 +59,7 @@ def _yieldsegments(rows, staticcols, dynamiccols):
     lon = np.array([r['longitude'] for r in rows], dtype=float)
     lat = np.array([r['latitude'] for r in rows], dtype=float)
     time = np.array([r['time'] for r in rows], dtype=np.uint32)
-    idx = aisdb.simplify_linestring_idx(lon, lat, precision=0.001)
+    idx = simplify_linestring_idx(lon, lat, precision=0.001)
     trackdict = dict(
         **{col: rows[0][col]
            for col in staticcols},
@@ -219,7 +218,7 @@ def _score_fcn(xy1, xy2, t1, t2, *, speed_threshold, distance_threshold):
                 the score will be set to -1. Measured in meters
     '''
     # great circle distance between coordinate pairs (meters)
-    dm = max(aisdb.haversine(*xy1, *xy2), 1.)
+    dm = max(haversine(*xy1, *xy2), 1.)
 
     # elapsed time between coordinate pair timestamps (seconds)
     assert t2 >= t1

@@ -1,4 +1,4 @@
-''' geometry and GIS related utilities '''
+'''Geometry and GIS utilities'''
 
 import os
 from datetime import datetime, timedelta
@@ -11,7 +11,7 @@ import shapely.geometry
 from shapely.geometry import Polygon, LineString, Point
 
 from aisdb.proc_util import glob_files
-import aisdb
+from aisdb import haversine
 
 
 def shiftcoord(x, rng=180):
@@ -71,9 +71,8 @@ def delta_meters(track, rng=None):
     rng = range(len(track['time'])) if rng is None else rng
     return np.array(
         list(
-            map(aisdb.haversine, track['lon'][rng][:-1],
-                track['lat'][rng][:-1], track['lon'][rng][1:],
-                track['lat'][rng][1:])))
+            map(haversine, track['lon'][rng][:-1], track['lat'][rng][:-1],
+                track['lon'][rng][1:], track['lat'][rng][1:])))
 
 
 def delta_seconds(track, rng=None):
@@ -122,13 +121,13 @@ def radial_coordinate_boundary(x, y, radius=100000):
     ymin, ymax = y, y
 
     # TODO: compute precise value instead of approximating
-    while aisdb.haversine(x, y, xmin, y) < radius:
+    while haversine(x, y, xmin, y) < radius:
         xmin -= 0.001
-    while aisdb.haversine(x, y, xmax, y) < radius:
+    while haversine(x, y, xmax, y) < radius:
         xmax += 0.001
-    while aisdb.haversine(x, y, x, ymin) < radius:
+    while haversine(x, y, x, ymin) < radius:
         ymin -= 0.001
-    while aisdb.haversine(x, y, x, ymax) < radius:
+    while haversine(x, y, x, ymax) < radius:
         ymax += 0.001
 
     return {
@@ -143,7 +142,7 @@ def distance3D(x1, y1, x2, y2, depth_metres):
     ''' haversine/pythagoras approximation of vessel distance to
         point at given depth
     '''
-    a2 = aisdb.haversine(x1=x1, y1=y1, x2=x2, y2=y2)**2
+    a2 = haversine(x1=x1, y1=y1, x2=x2, y2=y2)**2
     b2 = depth_metres**2
     c2 = a2 + b2
     return np.sqrt(c2)
@@ -215,8 +214,8 @@ class Domain():
                 if not hasattr(self, 'maxY') or np.max(y) > self.maxY:
                     self.maxY = np.max(y)
             zone['maxradius'] = np.max([
-                aisdb.haversine(zone['geometry'].centroid.x,
-                                zone['geometry'].centroid.y, x2, y2)
+                haversine(zone['geometry'].centroid.x,
+                          zone['geometry'].centroid.y, x2, y2)
                 for x2, y2 in zip(x, y)
             ])
         self.boundary = {
@@ -236,7 +235,7 @@ class Domain():
         for z in self.zones:
             dist_to_centroids.update({
                 z['name']:
-                aisdb.haversine(
+                haversine(
                     x,
                     y,
                     z['geometry'].centroid.x,
@@ -331,7 +330,7 @@ class DomainFromTxts(Domain):
         '''
         for zone in zones:
             zone['maxradius'] = np.max([
-                aisdb.haversine(zone['geometry'].centroid.x,
+                haversine(zone['geometry'].centroid.x,
                                 zone['geometry'].centroid.y,
                                 x2=x,
                                 y2=y)

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.89
+-------
+
+add imported rust functions to sphinx docs
+
+
 v1.3.88
 -------
 

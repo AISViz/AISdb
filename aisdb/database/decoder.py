@@ -7,7 +7,7 @@ from hashlib import md5
 
 from aisdb.index import index
 from aisdb.database.dbconn import DBConn, get_dbname, DBConn_async
-import aisdb
+from aisdb import decoder
 
 
 def decode_msgs(filepaths,
@@ -71,7 +71,7 @@ def decode_msgs(filepaths,
                 if dbindex.serialized(seed=signature):
                     print(f'found matching checksum, skipping {file}')
                     continue
-            aisdb.rustdecoder(dbpath=dbpath, files=[file], source=source)
+            decoder(dbpath=dbpath, files=[file], source=source)
             if not skip_checksum:
                 dbindex.insert_hash(seed=signature)
 

@@ -32,9 +32,6 @@ exclude_lines =
     # dont test exceptions
     Exception
 
-    # dont test sphinxdoc directives
-    SPHINXDOC
-
 ignore_errors = True
 
 omit = 
