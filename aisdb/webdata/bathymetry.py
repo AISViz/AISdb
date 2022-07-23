@@ -34,15 +34,13 @@ class Gebco():
         self.rasterfiles = None
         self.data_dir = data_dir
         self.griddata = os.path.join(self.data_dir, 'griddata.db')
-        if not os.path.isdir(data_dir):
-            os.mkdir(data_dir)
+        assert os.path.isdir(data_dir)
         self.__enter__()
 
     def __enter__(self):
-        #Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError
-
-        if self.rasterfiles is not None:
-            return self
+        #if self.rasterfiles is not None:
+        #    return self
+        assert self.rasterfiles is None
 
         self.rasterfiles = {
             f: _filebounds(f)
@@ -54,7 +52,9 @@ class Gebco():
                 ])
             }
         }
-        self.fetch_bathymetry_grid()  # download bathymetry rasters if missing
+
+        # download bathymetry rasters if missing
+        self.fetch_bathymetry_grid()
 
         return self
 
