@@ -90,7 +90,7 @@ tag:
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - TAG=`cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"`
     - git tag "$TAG" || echo "was tagged already!"
-    - git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git || echo "was tagged already!"
+    - git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
     - ls -lash target/wheels/
     #- source env/bin/activate && maturin upload --repository --username "$MATURIN_USERNAME" --password "$MATURIN_PASSWORD"
   release:
@@ -99,8 +99,21 @@ tag:
     assets:
       links:
         - name: "aisdb_web.zip"
-          url: "https://gitlab.com/$CI_SERVER_HOST/$CI_PROJECT_PATH/-/jobs/tag/artifacts/download"
-        #- ./target/wheels/
+          url: "https://$CI_SERVER_HOST/$CI_PROJECT_PATH/-/jobs/$CI_JOB_ID/artifacts/download"
+          filepath: aisdb_web.zip
+          link_type: package
+        - name: "linux x86_64 python3.10"
+          url: "https://$CI_SERVER_HOST/$CI_PROJECT_PATH/-/jobs/$CI_JOB_ID/artifacts/download"
+          filepath: ./target/wheels/aisdb-$(cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+")-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+          link_type: package
+        - name: "linux x86_64 python3.9"
+          url: "https://$CI_SERVER_HOST/$CI_PROJECT_PATH/-/jobs/$CI_JOB_ID/artifacts/download"
+          filepath: ./target/wheels/aisdb-$(cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+")-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+          link_type: package
+        - name: "linux x86_64 python3.8"
+          url: "https://$CI_SERVER_HOST/$CI_PROJECT_PATH/-/jobs/$CI_JOB_ID/artifacts/download"
+          filepath: ./target/wheels/aisdb-$(cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+")-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+          link_type: package
 
 
 variables:
