@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.90
+-------
+
+remove merge_data and message_logger modules
+
+
 v1.3.89
 -------
 
