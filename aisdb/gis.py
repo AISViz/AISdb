@@ -249,12 +249,12 @@ class Domain():
             uses coarse filtering by precomputing distance to centroids
         '''
         nearest = self.nearest_polygons_to_point(x, y)
-        for zone in self.zones:
-            if zone['name'] not in nearest.keys():
-                continue
-            if zone['geometry'].contains(Point(x, y)):
-                return zone['name']
-        return 'Z0'
+        assert len(self.zones) > 0
+        assert self.zones[0]['name'] in nearest.keys()
+        if self.zones[0]['geometry'].contains(Point(x, y)):
+            return self.zones[0]['name']
+        else:
+            return 'Z0'
 
 
 class DomainFromTxts(Domain):

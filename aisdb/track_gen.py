@@ -352,7 +352,7 @@ def _score_encode(track, distance_threshold, speed_threshold, minscore):
             assert path is not None
             pathways.append(path)
             continue
-        elif len(pathways) > 100:
+        elif len(pathways) > 100:  # pragma: no cover
             print(f'excessive number of pathways! mmsi={track["mmsi"]}')
             # yield pathways.pop(0)
         assert len(track['time']) > 0, f'{track=}'

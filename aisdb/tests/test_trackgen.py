@@ -1,15 +1,18 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytest
 
 from aiosqlite.core import Connection
 
-from aisdb import track_gen, decode_msgs, sqlfcn, sqlfcn_callbacks
+from aisdb import track_gen, sqlfcn, sqlfcn_callbacks
 from aisdb.database.dbconn import DBConn, DBConn_async
 from aisdb.database.dbqry import DBQuery, DBQuery_async
-from aisdb.track_gen import encode_greatcircledistance_async
+from aisdb.track_gen import (
+    encode_greatcircledistance_async,
+    min_speed_filter_async,
+    split_timedelta_async,
+)
 from aisdb.track_gen import encode_greatcircledistance, min_speed_filter
-from aisdb.database.create_tables import aggregate_static_msgs
 from aisdb.tests.create_testing_data import sample_database_file
 
 start = datetime(2021, 11, 1)
@@ -75,9 +78,15 @@ async def test_TrackGen_async(tmpdir):
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
         rowgen = qry.gen_qry(dbpath, fcn=sqlfcn.crawl_dynamic_static)
-        tracks = encode_greatcircledistance_async(
-            track_gen.TrackGen_async(rowgen),
-            distance_threshold=250000,
+        tracks = min_speed_filter_async(
+            encode_greatcircledistance_async(
+                split_timedelta_async(
+                    track_gen.TrackGen_async(rowgen),
+                    maxdelta=timedelta(weeks=1),
+                ),
+                distance_threshold=250000,
+            ),
+            minspeed=3,
         )
 
         async for track in tracks:

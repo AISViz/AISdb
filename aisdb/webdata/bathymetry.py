@@ -90,24 +90,10 @@ class Gebco():
         time.sleep(5)
         return
 
-    def _filter_raster_bounds(self, pair, track):
-        filename, bounds = pair
-        if 'raster' in bounds.keys():
-            return False
-        in_lon = np.logical_and(bounds['w'] <= track['lon'],
-                                track['lon'] <= bounds['e'])
-        in_lat = np.logical_and(bounds['s'] <= track['lat'],
-                                track['lat'] <= bounds['n'])
-        if sum(np.logical_and(in_lon, in_lat)) == 0:
-            return False
-        bounds['raster'] = RasterFile(
-            imgpath=os.path.join(self.data_dir, filename))
-        return True
-
     def _check_in_bounds(self, track):
         for lon, lat in zip(track['lon'], track['lat']):
             tracer = False
-            for key, bounds in self.rasterfiles.items():
+            for key, bounds in self.rasterfiles.items():  # pragma: no cover
                 if (bounds['w'] < lon < bounds['e']
                         and bounds['s'] < lat < bounds['n']):
                     tracer = True
