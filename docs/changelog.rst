@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.91
+-------
+
+refactor raster loading
+
+
 v1.3.90
 -------
 

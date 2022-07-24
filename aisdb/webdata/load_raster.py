@@ -1,43 +1,14 @@
+import os
+
 import numpy as np
 from PIL import Image
 
 from aisdb.proc_util import binarysearch
 
-import rasterio
+Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError warning
 
 
-def pixelindex_rasterio(x1, y1, dataset, band1):
-    x, y = dataset.index(x1, y1)
-    return band1[x, y]
-
-
-def load_raster_pixel_rasterio(x1, y1, filepath):
-    dataset = rasterio.open(filepath)
-    band1 = dataset.read(1)
-    #lon = np.linspace(dataset.bounds.left, dataset.bounds.right, dataset.width, endpoint=True)
-    #lat = np.linspace(dataset.bounds.top, dataset.bounds.bottom, dataset.height, endpoint=True)
-    x, y = dataset.index(x1, y1)
-    return band1[x, y]
-
-
-def pixelindex(x1, y1, im):
-    ''' convert WGS84 coordinates to raster grid index
-
-        image tag spec:
-        http://duff.ess.washington.edu/data/raster/drg/docs/geotiff.txt
-
-        args:
-            x1: float
-                longitude coordinate
-            y1: float
-                latitude coordinate
-            img: pillow PIL.Image file
-                can be supplied instead of a filepath
-
-        returns:
-            (x, y) array indices
-    '''
-
+def _get_img_grids(im):
     # GDAL tags
     if 33922 in im.tag.tagdata.keys():
         i, j, k, x, y, z = im.tag_v2[33922]  # ModelTiepointTag
@@ -45,57 +16,88 @@ def pixelindex(x1, y1, im):
         lat = np.arange(y, y + (dy * im.size[1]), dy)[::-1] - 90
         if np.sum(lat > 91):
             lat -= 90
-
     # NASA JPL tags
-    elif 34264 in im.tag.tagdata.keys():
+    elif 34264 in im.tag.tagdata.keys():  # pragma: no cover
         dx, _, _, x, _, dy, _, y, _, _, dz, z, _, _, _, _ = im.tag_v2[
             34264]  # ModelTransformationTag
         lat = np.arange(y, y + (dy * im.size[1]), dy)
 
     else:
-        assert False, 'error: unknown metadata tag encoding'
+        raise ValueError('error: unknown metadata tag encoding')
 
     lon = np.arange(x, x + (dx * im.size[0]), dx)
 
+    return lon, lat
+
+
+def pixelindex_rasterio(x1, y1, dataset, band1):
+    x, y = dataset.index(x1, y1)
+    return band1[x, y]
+
+
+def pixelindex(x1, y1, lon, lat):
+    ''' convert WGS84 coordinates to raster grid index
+
+        image tag spec:
+        http://duff.ess.washington.edu/data/raster/drg/docs/geotiff.txt
+
+        args:
+            x1 (float)
+                longitude coordinate
+            y1 (float)
+                latitude coordinate
+            lon (np.ndarray)
+                coordinate grid X values
+            lat (np.ndarray)
+                coordinate grid Y values
+
+        returns:
+            (x, y) array indices
+    '''
+
     idx_lon = binarysearch(lon, x1)
-    idx_lat = binarysearch(lat, y1, descending=True)
+    idx_lat = binarysearch(lat, y1)
 
     return idx_lon, idx_lat
 
 
-def load_raster_pixel(x1, y1, filepath=None, img=None):
-    """ load pixel data from raster file
+class RasterFile():
 
-        args:
-            filepath: string
-                path to rasterfile
-            x1: float
-                longitude coordinate
-            y1: float
-                latitude coordinate
-            filepath: string
-                raster image location
-            img: pillow PIL.Image file
-                can be supplied instead of a filepath.
-                image will not be closed after loading data when
-                using this option
+    def __init__(self, imgpath):
+        self.imgpath = imgpath
+        assert not hasattr(self, 'img')
+        assert os.path.isfile(self.imgpath), \
+            f'raster file {self.imgpath} not found!'
+        self.img = Image.open(self.imgpath)
+        self.xy = _get_img_grids(self.img)
 
-        returns:
-            pixel value
-    """
-    if (not filepath and not img) or (filepath and img):
-        assert False, 'must pass filepath or PIL.Image'
+    def __enter__(self):
+        ''' load rasters into memory '''
+        #self._open_img(imgpath=imgpath)
+        assert hasattr(self, 'img')
+        '''
+            assert os.path.isfile(
+                self.imgpath), f'raster file {self.imgpath} not found!'
+            self.img = Image.open(self.imgpath)
+            self.xy = _get_img_grids(self.img)
+        '''
+        return self
 
-    Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError warning
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        ''' close raster files upon exit from context '''
+        self.img.close()
+        del self.img
+        del self.xy
 
-    if filepath:
-        im = Image.open(filepath)
-    else:
-        im = img
+    def _get_coordinate_value(self, lon, lat):
+        return self.img.getpixel(pixelindex(lon, lat, *self.xy))
 
-    px = im.getpixel(pixelindex(x1, y1, im))
-
-    if filepath:
-        im.close()
-
-    return px
+    def _merge_tracks(self, tracks, new_track_key: str):
+        for track in tracks:
+            track[new_track_key] = np.array([
+                self._get_coordinate_value(x, y)
+                for x, y in zip(track['lon'], track['lat'])
+            ])
+            track['dynamic'] = set(track['dynamic']).union(set([new_track_key
+                                                                ]))
+            yield track

@@ -37,7 +37,8 @@ class SocketServ():
         self.domain = domain
         self.vesselinfo = _metadict(trafficDBpath)
 
-        if enable_ssl:
+        # let nginx in docker manage SSL by default
+        if enable_ssl:  # pragma: no cover
             sslpath = os.path.join('/etc/letsencrypt/live/',
                                    os.environ.get('AISDBHOST', '127.0.0.1'))
             CRT = os.path.join(sslpath, 'fullchain.pem')

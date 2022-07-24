@@ -20,16 +20,8 @@ from aisdb.track_gen import (
     TrackGen,
 )
 from aisdb.network_graph import graph
-from aisdb.webdata.merge_data import (
-    merge_tracks_bathymetry,
-    merge_tracks_portdist,
-    merge_tracks_shoredist,
-    # merge_tracks_hullgeom,
-)
 from aisdb.tests.create_testing_data import (
-    sample_gulfstlawrence_bbox,
-    sample_database_file,
-)
+    sample_gulfstlawrence_bbox, )
 
 testingdata_nm4 = os.path.join(os.path.dirname(__file__),
                                'testingdata_20211101.nm4')

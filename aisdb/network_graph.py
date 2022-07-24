@@ -27,11 +27,8 @@ from aisdb.track_gen import (
     split_timedelta,
 )
 from aisdb.webdata.marinetraffic import vessel_info
-from aisdb.webdata.merge_data import (
-    merge_tracks_bathymetry,
-    #merge_tracks_shoredist,
-)
-from aisdb.proc_util import _segment_rng, _sanitize
+#from aisdb.webdata.bathymetry import Gebco
+from aisdb.proc_util import _sanitize
 from aisdb.wsa import wetted_surface_area
 """
 def _depth_nonnegative(track, zoneset):

@@ -42,38 +42,27 @@ def _epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
         )
 
 
-def _fast_unzip(zipf, dirname='.'):
-    ''' parallel process worker for fast_unzip() '''
-    exists = set(sorted(os.listdir(dirname)))
-    with zipfile.ZipFile(zipf, 'r') as zip_ref:
-        contents = set(zip_ref.namelist())
-        members = list(contents - exists)
-        zip_ref.extractall(path=dirname, members=members)
-
-
-def fast_unzip(zipfilenames, dirname='.', processes=12):
-    ''' unzip many files in parallel
-        any existing unzipped files in the target directory will be skipped
-    '''
-    fcn = partial(_fast_unzip, dirname=dirname)
-    with Pool(processes) as p:
-        p.imap_unordered(fcn, zipfilenames)
-        p.close()
-        p.join()
-
-
-def binarysearch(arr, search, descending=False):
+def binarysearch(arr, search):
     ''' fast indexing of ordered arrays
 
         caution: will return nearest index in out-of-bounds cases
     '''
+    assert isinstance(arr, np.ndarray)
     low, high = 0, arr.size - 1
-    if descending:
+
+    #if descending:
+    #    arr = arr[::-1]
+    if arr[0] > arr[1]:
+        descending = True
         arr = arr[::-1]
-    if search < arr[0]:  # pragma: no cover
+    else:
+        descending = False
+
+    if search < arr[0]:
         return 0
-    elif search >= arr[-1]:  # pragma: no cover
+    elif search >= arr[-1]:
         return len(arr) - 1
+
     while (low <= high):
         mid = (low + high) // 2
         if search >= arr[mid - 1] and search <= arr[mid + 1]:
@@ -82,6 +71,7 @@ def binarysearch(arr, search, descending=False):
             high = mid - 1
         else:
             low = mid + 1
+
     if descending:
         return arr.size - mid - 1
     else:
