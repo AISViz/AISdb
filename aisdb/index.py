@@ -17,6 +17,20 @@ if (sqlite3.sqlite_version_info[0] < 3
     import pysqlite3 as sqlite3
 
 
+def spacebins(a, b, delta):
+    ''' returns an array of evenly spaced values between a and b with a
+        step size of delta.
+        a modulus is applied to shift start and end values to the nearest
+        integer outside the bounds of (a,b).
+    '''
+    #this function ensures deterministic results when bins=True,
+    #with time/coordinate bounds as (a,b) values, and delta being one
+    #of (dx, dy, dz, dt).
+    return arange(
+        min(a, b) - (min(a, b) % (delta * 1)),
+        max(a, b) - (max(a, b) % (delta * -1)), delta)
+
+
 class index():
     ''' database and process management utility
 
@@ -50,20 +64,6 @@ class index():
         text = str(seed) + json.dumps(kwargs, sort_keys=True, default=str)
         checksum = md5((text).encode('utf-8')).hexdigest()
         return (int(checksum, base=16) >> 64) - (2**63) - 1
-
-    def _spacebins(self, a, b, delta):
-        ''' returns an array of evenly spaced values between a and b with a
-            step size of delta.
-            a modulus is applied to shift start and end values to the nearest
-            integer outside the bounds of (a,b).
-
-            this function ensures deterministic results when bins=True,
-            with time/coordinate bounds as (a,b) values, and delta being one
-            of (dx, dy, dz, dt).
-        '''
-        return arange(
-            min(a, b) - (min(a, b) % (delta * 1)),
-            max(a, b) - (max(a, b) % (delta * -1)), delta)
 
     def __init__(self,
                  *,
@@ -302,11 +302,11 @@ class index():
                    kwargs[axmax]) == max(kwargs[axmin], kwargs[axmax]):
                 kwargs[axmax] += delta
 
-        for x in self._spacebins(kwargs['west'], kwargs['east'], dx):
+        for x in spacebins(kwargs['west'], kwargs['east'], dx):
 
-            for y in self._spacebins(kwargs['south'], kwargs['north'], dy):
+            for y in spacebins(kwargs['south'], kwargs['north'], dy):
 
-                for z in self._spacebins(kwargs['top'], kwargs['bottom'], dz):
+                for z in spacebins(kwargs['top'], kwargs['bottom'], dz):
 
                     for t in arange(kwargs['start'].date(), kwargs['end'],
                                     dt).astype(datetime):
