@@ -21,17 +21,9 @@ from .database import sqlfcn
 
 from .database import sqlfcn_callbacks
 
-from .webdata import merge_data
-
 from .webdata.bathymetry import Gebco
 
-from .webdata.shore_dist import shore_dist_gfw
-
-from .webdata.merge_data import (
-    merge_layers,
-    merge_tracks_bathymetry,
-    merge_tracks_shoredist,
-)
+from .webdata.shore_dist import ShoreDist, PortDist
 
 from .gis import (
     Domain,
@@ -54,7 +46,6 @@ from .interp import (
 from .network_graph import graph
 
 from .proc_util import (
-    fast_unzip,
     glob_files,
     write_csv,
 )
