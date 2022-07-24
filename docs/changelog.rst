@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.93
+-------
+
+add alternative modules using rasterio in load_rasters.py and bathymetry.py
+
+
 v1.3.92
 -------
 

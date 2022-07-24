@@ -63,7 +63,7 @@ def binarysearch(arr, search):
     elif search >= arr[-1]:
         return len(arr) - 1
 
-    while (low <= high):
+    while (low <= high):  # pragma: no cover
         mid = (low + high) // 2
         if search >= arr[mid - 1] and search <= arr[mid + 1]:
             break
@@ -80,6 +80,7 @@ def binarysearch(arr, search):
 
 def _splits_idx(vector: np.ndarray, d: timedelta) -> np.ndarray:
     assert isinstance(d, timedelta)
+    vector = np.array(vector, dtype=int)
     splits = np.nonzero(vector[1:] - vector[:-1] >= d.total_seconds())[0] + 1
     #else:
     #    splits = np.nonzero(vector[1:] - vector[:-1] >= d)[0] + 1
@@ -146,9 +147,9 @@ def write_csv(
         colnames.remove('dim_stern')
         colnames.remove('dim_star')
         colnames.remove('dim_port')
-        if 'coarse_type_txt' in colnames:
+        if 'coarse_type_txt' in colnames:  # pragma: no cover
             colnames.remove('coarse_type_txt')
-        if 'vessel_name' in colnames:
+        if 'vessel_name' in colnames:  # pragma: no cover
             colnames.remove('vessel_name')
         colnames = list(dict.fromkeys(colnames))
 

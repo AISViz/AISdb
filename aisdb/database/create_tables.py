@@ -109,7 +109,7 @@ def aggregate_static_msgs(db, months_str):
 
         if len(agg_rows) == 0:
             warnings.warn('no rows to aggregate! '
-                          'table: {dbname}.static_{month}_aggregate')
+                          f'table: {dbname}.static_{month}_aggregate')
             continue
 
         skip_nommsi = np.array(agg_rows, dtype=object)

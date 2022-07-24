@@ -6,6 +6,7 @@ import sqlite3
 import types
 
 import numpy as np
+import warnings
 
 from aisdb import haversine, simplify_linestring_idx
 from aisdb.gis import delta_knots, delta_meters
@@ -161,8 +162,10 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
             yield dict(
                 **{k: track[k]
                    for k in track['static']},
-                **{k: track[k][rng]
-                   for k in track['dynamic']},
+                **{
+                    k: np.array(track[k], dtype=object)[rng]
+                    for k in track['dynamic']
+                },
                 static=track['static'],
                 dynamic=track['dynamic'],
             )
@@ -346,15 +349,17 @@ def _score_encode(track, distance_threshold, speed_threshold, minscore):
                   minscore=minscore)
     segments_idx = _segments_idx(track, **params)
     pathways = []
+    warned = False
     for i in range(segments_idx.size - 1):
         if len(pathways) == 0:
             path = _split_pathway(track, i=i, segments_idx=segments_idx)
             assert path is not None
             pathways.append(path)
             continue
-        elif len(pathways) > 100:  # pragma: no cover
-            print(f'excessive number of pathways! mmsi={track["mmsi"]}')
-            # yield pathways.pop(0)
+        elif not warned and len(pathways) > 100:
+            warnings.warn(
+                f'excessive number of pathways! mmsi={track["mmsi"]}')
+            warned = True
         assert len(track['time']) > 0, f'{track=}'
 
         scores, highscore = _scoresarray(track,

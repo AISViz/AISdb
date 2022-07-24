@@ -7,7 +7,7 @@ import hashlib
 
 import numpy as np
 
-from aisdb.webdata.load_raster import RasterFile
+from aisdb.webdata.load_raster import RasterFile_Rasterio, RasterFile
 
 from tqdm import tqdm
 import requests
@@ -90,6 +90,10 @@ class Gebco():
         time.sleep(5)
         return
 
+    def _load_raster(self, key):
+        self.rasterfiles[key]['raster'] = RasterFile(
+            imgpath=os.path.join(self.data_dir, key))
+
     def _check_in_bounds(self, track):
         for lon, lat in zip(track['lon'], track['lat']):
             tracer = False
@@ -98,8 +102,7 @@ class Gebco():
                         and bounds['s'] < lat < bounds['n']):
                     tracer = True
                     if 'raster' not in bounds.keys():
-                        bounds['raster'] = RasterFile(
-                            imgpath=os.path.join(self.data_dir, key))
+                        self._load_raster(key)
                     yield key
                     break
             assert tracer
@@ -111,6 +114,7 @@ class Gebco():
                 bounds['raster'].img.close()
 
     def merge_tracks(self, tracks):
+        ''' append `depth_metres` column  to track dictionaries '''
         for track in tracks:
             track['dynamic'] = set(track['dynamic']).union(
                 set(['depth_metres']))
@@ -128,3 +132,10 @@ class Gebco():
 
             yield track
         self._close_all()
+
+
+class Gebco_Rasterio(Gebco):
+
+    def _load_raster(self, key):
+        self.rasterfiles[key]['raster'] = RasterFile_Rasterio(
+            imgpath=os.path.join(self.data_dir, key))

@@ -251,7 +251,7 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
                         results.append(','.join(map(str, getrow.values())))
 
             if len(results) == 0:
-                continue
+                warnings.warn(f'no results for {outputfile}')
             else:
                 output.write('\n'.join(results) + '\n')
 

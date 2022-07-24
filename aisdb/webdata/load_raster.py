@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 from PIL import Image
+import rasterio
 
 from aisdb.proc_util import binarysearch
 
@@ -28,11 +29,6 @@ def _get_img_grids(im):
     lon = np.arange(x, x + (dx * im.size[0]), dx)
 
     return lon, lat
-
-
-def pixelindex_rasterio(x1, y1, dataset, band1):
-    x, y = dataset.index(x1, y1)
-    return band1[x, y]
 
 
 def pixelindex(x1, y1, lon, lat):
@@ -66,28 +62,19 @@ class RasterFile():
     def __init__(self, imgpath):
         self.imgpath = imgpath
         assert not hasattr(self, 'img')
-        assert os.path.isfile(self.imgpath), \
-            f'raster file {self.imgpath} not found!'
+        assert os.path.isfile(
+            self.imgpath), f'raster file {self.imgpath} not found!'
         self.img = Image.open(self.imgpath)
         self.xy = _get_img_grids(self.img)
 
     def __enter__(self):
         ''' load rasters into memory '''
-        #self._open_img(imgpath=imgpath)
         assert hasattr(self, 'img')
-        '''
-            assert os.path.isfile(
-                self.imgpath), f'raster file {self.imgpath} not found!'
-            self.img = Image.open(self.imgpath)
-            self.xy = _get_img_grids(self.img)
-        '''
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         ''' close raster files upon exit from context '''
         self.img.close()
-        del self.img
-        del self.xy
 
     def _get_coordinate_value(self, lon, lat):
         return self.img.getpixel(pixelindex(lon, lat, *self.xy))
@@ -101,3 +88,18 @@ class RasterFile():
             track['dynamic'] = set(track['dynamic']).union(set([new_track_key
                                                                 ]))
             yield track
+
+
+class RasterFile_Rasterio(RasterFile):
+
+    def _get_coordinate_value(self, lon, lat):
+        x, y = self.img.index(lon, lat)
+        return self.band1[x, y]
+
+    def __init__(self, imgpath):
+        self.imgpath = imgpath
+        assert not hasattr(self, 'img')
+        assert os.path.isfile(
+            self.imgpath), f'raster file {self.imgpath} not found!'
+        self.img = rasterio.open(self.imgpath)
+        self.band1 = self.img.read(1)
