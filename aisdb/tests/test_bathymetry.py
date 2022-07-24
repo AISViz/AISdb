@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-from aisdb.webdata.bathymetry import Gebco
+from aisdb.webdata.bathymetry import Gebco, Gebco_Rasterio
 
 data_dir = os.environ.get(
     'AISDBDATADIR',
@@ -12,35 +12,52 @@ data_dir = os.environ.get(
 )
 
 y1, x1 = 48.271185186388735, -61.10595523571155
+lon1M = (np.random.random(1000000) * 90) - 90
+lat1M = (np.random.random(1000000) * 90) + 0
+
+tracks_single = [dict(
+    lon=[x1],
+    lat=[y1],
+    time=[0],
+    dynamic=set(['time']),
+)]
+track1M = [
+    dict(
+        lon=lon1M,
+        lat=lat1M,
+        time=range(len(lon1M)),
+        dynamic=set(['time']),
+    )
+]
 
 
 def test_fetch_bathygrid():
     print(f'checking bathymetry rasters: {data_dir=}')
-    _bathy = Gebco(data_dir=data_dir)
+    bathy = Gebco(data_dir=data_dir)
+    assert bathy
 
 
-def test_bathymetry_single():
-    tracks = [dict(
-        lon=[x1],
-        lat=[y1],
-        time=[0],
-        dynamic=set(['time']),
-    )]
+def test_bathymetry_single_pillow():
     with Gebco(data_dir=data_dir) as bathy:
-        next(bathy.merge_tracks(tracks))
+        test = list(bathy.merge_tracks(tracks_single))
+        assert 'depth_metres' in test[0].keys()
+        print(test[0]['depth_metres'])
 
 
-def test_timing_bathymetry_1M():
-    lon100k = (np.random.random(1000000) * 90) - 90
-    lat100k = (np.random.random(1000000) * 90) + 0
-    tracks = [
-        dict(
-            lon=lon100k,
-            lat=lat100k,
-            time=range(len(lon100k)),
-            dynamic=set(['time']),
-        )
-    ]
+def test_bathymetry_single_rasterio():
+    with Gebco_Rasterio(data_dir=data_dir) as bathy:
+        test = list(bathy.merge_tracks(tracks_single))
+        assert 'depth_metres' in test[0].keys()
+        print(test[0]['depth_metres'])
+
+
+def test_timing_bathymetry_1M_pillow():
     with Gebco(data_dir=data_dir) as bathy:
-        for updated in bathy.merge_tracks(tracks):
+        for updated in bathy.merge_tracks(track1M):
+            assert 'depth_metres' in updated.keys()
+
+
+def test_timing_bathymetry_1M_rasterio():
+    with Gebco_Rasterio(data_dir=data_dir) as bathy:
+        for updated in bathy.merge_tracks(track1M):
             assert 'depth_metres' in updated.keys()

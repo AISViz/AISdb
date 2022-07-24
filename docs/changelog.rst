@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.92
+-------
+
+add more testing for rasterio, bathymetry, and network graph pipeline
+
+
 v1.3.91
 -------
 

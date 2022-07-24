@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from functools import partial
 
 from shapely.geometry import Polygon
+import numpy as np
 
 from aisdb.proc_util import getfiledate
 from aisdb.database.dbqry import DBQuery, DBConn
@@ -19,7 +20,7 @@ from aisdb.track_gen import (
     encode_greatcircledistance,
     TrackGen,
 )
-from aisdb.network_graph import graph
+from aisdb.network_graph import graph, _pipeline
 from aisdb.tests.create_testing_data import (
     sample_gulfstlawrence_bbox, )
 
@@ -129,6 +130,28 @@ def test_graph_CSV_marinetraffic(tmpdir):
             maxdelta=timedelta(weeks=1),
         )
     assert os.path.isfile(outpath)
+
+
+def test_graph_pipeline_timing(tmpdir):
+    lon1M = (np.random.random(1000000) * 90) - 90
+    lat1M = (np.random.random(1000000) * 90) + 0
+    track1M = [
+        dict(
+            lon=lon1M,
+            lat=lat1M,
+            time=range(len(lon1M)),
+            dynamic=set(['time', 'lon', 'lat']),
+            static=set(['mmsi']),
+            mmsi=316000000,
+        )
+    ]
+    _pipeline(track1M[0],
+              domain=domain,
+              tmp_dir=tmpdir,
+              maxdelta=timedelta(weeks=1),
+              distance_threshold=250000,
+              speed_threshold=50,
+              minscore=0)
 
 
 def test_graph_CSV_parallel_marinetraffic(tmpdir):
