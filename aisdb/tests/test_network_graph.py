@@ -135,7 +135,7 @@ def test_graph_CSV_single_marinetraffic(tmpdir):
         print(out.read())
 
 
-def test_graph_pipeline_timing(tmpdir):
+def test_graph_pipeline_timing_marinetraffic(tmpdir):
     count = 100
     track = dict(
         lon=(np.random.random(count) * 90) - 90,
