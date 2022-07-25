@@ -22,9 +22,13 @@ from aisdb.gis import (
 )
 from aisdb.track_gen import (
     TrackGen,
+    #TrackGen_async,
     encode_greatcircledistance,
+    #encode_greatcircledistance_async,
     fence_tracks,
-    split_timedelta,
+    #fence_tracks_async,
+    #split_timedelta,
+    #split_timedelta_async,
 )
 from aisdb.webdata.marinetraffic import vessel_info
 #from aisdb.webdata.bathymetry import Gebco
@@ -158,6 +162,31 @@ def _transitinfo(track, zoneset):
     )
 
 
+def _write_transit_info(track, domain, tmp_dir):
+    filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
+    assert 'in_zone' in track.keys(
+    ), 'need to append zone info from fence_tracks'
+
+    with open(filepath, 'ab') as f:
+        transits = np.where(
+            track['in_zone'][:-1] != track['in_zone'][1:])[0] + 1
+
+        for i in range(len(transits) - 1):
+            rng = np.array(range(transits[i], transits[i + 1] + 1))
+            track_stats = _staticinfo(track, domain)
+            track_stats.update(_transitinfo(track, rng))
+            pickle.dump(track_stats, f)
+
+        i0 = transits[-1] if len(transits) >= 1 else 0
+        rng = np.array(range(i0, len(track['in_zone'])))
+        track_stats = _staticinfo(track, domain)
+        track_stats.update(_transitinfo(track, rng))
+        track_stats['rcv_zone'] = 'NULL'
+        track_stats['transit_nodes'] = track_stats['src_zone']
+        pickle.dump(track_stats, f)
+    return
+
+
 def _serialize_network_edge(tracks, domain, tmp_dir):
     ''' at each track position where the zone changes, a transit
         index is recorded, and trajectory statistics are aggregated for this
@@ -175,29 +204,8 @@ def _serialize_network_edge(tracks, domain, tmp_dir):
         returns: None
     '''
     for track in tracks:
-        filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
-        assert 'in_zone' in track.keys(
-        ), 'need to append zone info from fence_tracks'
 
-        with open(filepath, 'ab') as f:
-            transits = np.where(
-                track['in_zone'][:-1] != track['in_zone'][1:])[0] + 1
-
-            for i in range(len(transits) - 1):
-                rng = np.array(range(transits[i], transits[i + 1] + 1))
-                track_stats = _staticinfo(track, domain)
-                track_stats.update(_transitinfo(track, rng))
-                pickle.dump(track_stats, f)
-
-            i0 = transits[-1] if len(transits) >= 1 else 0
-            rng = np.array(range(i0, len(track['in_zone'])))
-            track_stats = _staticinfo(track, domain)
-            track_stats.update(_transitinfo(track, rng))
-            track_stats['rcv_zone'] = 'NULL'
-            track_stats['transit_nodes'] = track_stats['src_zone']
-            pickle.dump(track_stats, f)
-
-        yield
+        yield _write_transit_info(track, domain, tmp_dir)
 
 
 def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
@@ -258,16 +266,17 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
             os.remove(picklefile)
 
 
-def _pipeline(track, *, domain, tmp_dir, maxdelta, distance_threshold,
-              speed_threshold, minscore):
+def _pipeline(track, *, domain, trafficDBpath, tmp_dir, maxdelta,
+              distance_threshold, speed_threshold, minscore):
+
     for x in _serialize_network_edge(
             # merge_tracks_shoredist(merge_tracks_bathymetry(
             fence_tracks(
                 encode_greatcircledistance(
-                    split_timedelta(
-                        [track],
-                        maxdelta=maxdelta,
-                    ),
+                    #split_timedelta(
+                    wetted_surface_area(
+                        vessel_info([track], trafficDBpath=trafficDBpath), ),
+                    #maxdelta=maxdelta,),
                     distance_threshold=distance_threshold,
                     minscore=minscore,
                     speed_threshold=speed_threshold,
@@ -354,8 +363,9 @@ def graph(qry,
         >>> zones = [{
         ...     'name': 'Zone1',
         ...     'geometry': shapely.geometry.Polygon(zip(
-        ...         [-170.24, -170.24, -38.5, -38.5, -170.24],
-        ...         [29.0, 75.2, 75.2, 29.0, 29.0]))
+        ...             [-170.24, -170.24, -38.5, -38.5, -170.24],
+        ...             [29.0, 75.2, 75.2, 29.0, 29.0],
+        ...         ))
         ...     }]
         >>> domain = Domain(name='new_domain', zones=zones)
         >>> trafficDBpath = './marinetraffic.db'
@@ -363,11 +373,11 @@ def graph(qry,
         query db for points in domain
 
         >>> qry = DBQuery(
-        ...     callback=in_bbox_time,
-        ...     start=datetime(2020, 9, 1),
-        ...     end=datetime(2020, 9, 3),
-        ...     **domain.boundary,
-        ...     )
+        ...             callback=in_bbox_time,
+        ...             start=datetime(2020, 9, 1),
+        ...             end=datetime(2020, 9, 3),
+        ...             **domain.boundary,
+        ...             )
         >>> rowgen = qry.gen_qry()
 
         process the vessel movement graph edges using 12 processes in parallel
@@ -376,26 +386,27 @@ def graph(qry,
         ...                     trafficDBpath=trafficDBpath, parallel=12)
     '''
     assert not isinstance(qry, types.GeneratorType),\
-        'Got a generator for "qry" arg instead of DBQuery'
+            'Got a generator for "qry" arg instead of DBQuery'
 
     assert isinstance(qry, aisdb.database.dbqry.DBQuery),\
-        f'Not a DBQuery object! Got {qry}'
+            f'Not a DBQuery object! Got {qry}'
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        fcn = partial(_pipeline,
-                      domain=domain,
-                      tmp_dir=tmp_dir,
-                      speed_threshold=speed_threshold,
-                      distance_threshold=distance_threshold,
-                      minscore=minscore,
-                      maxdelta=maxdelta)
+        fcn = partial(
+            _pipeline,  # if not processes or processes == 1 else _pipeline_async,
+            domain=domain,
+            trafficDBpath=trafficDBpath,
+            tmp_dir=tmp_dir,
+            speed_threshold=speed_threshold,
+            distance_threshold=distance_threshold,
+            minscore=minscore,
+            maxdelta=maxdelta)
 
         rowgen = qry.gen_qry(
             dbpath=dbpath,
             fcn=sqlfcn.crawl_dynamic_static,
         )
-        tracks = wetted_surface_area(
-            vessel_info(TrackGen(rowgen), trafficDBpath=trafficDBpath))
+        tracks = TrackGen(rowgen)
 
         if not processes or processes == 1:
             for track in tracks:

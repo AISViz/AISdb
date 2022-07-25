@@ -6,6 +6,7 @@ use geo::prelude::*;
 use geo_types::{Coordinate, LineString};
 use nmea_parser::NmeaParser;
 use pyo3::prelude::*;
+use std::cmp::max;
 
 #[path = "csvreader.rs"]
 pub mod csvreader;
@@ -130,6 +131,60 @@ pub fn load_geotiff_pixel(lon: usize, lat: usize, filepath: &str) -> usize {
 load_pixel(lon, lat, &filepath)
 }
 */
+/// Assigns a score for likelihood of two points being part of a sequential
+/// vessel trajectory. A hard cutoff will be applied at distance_threshold,
+/// after which all scores will be set to -1.
+///
+/// args:
+///     x1 (float)
+///         longitude of coordinate pair 1
+///     y1 (float)
+///         latitude of coordinate pair 1
+///     t1 (float)
+///         Timestamp for coordinate pair 1 in epoch seconds
+///     x2 (float)
+///         longitude of coordinate pair 2
+///     y2 (float)
+///         latitude of coordinate pair 2
+///     t2 (float)
+///         Timestamp for coordinate pair 2 in epoch seconds
+///     speed_threshold (float)
+///         Tracks will be segmented between points where computed
+///         speed values exceed this threshold. Segmented tracks will
+///         be scored for reconnection. Measured in knots
+///     distance_threshold (float)
+///         Used as a numerator when determining score; this value
+///         is divided by the distance between xy1 and xy2.
+///         If the distance between xy1 and xy2 exceeds this value,
+///         the score will be set to -1. Measured in meters
+///
+#[pyfunction]
+pub fn encoder_score_fcn(
+    x1: f64,
+    y1: f64,
+    t1: i32,
+    x2: f64,
+    y2: f64,
+    t2: i32,
+    speed_thresh: f64,
+    dist_thresh: f64,
+) -> f64 {
+    // great circle distance between coordinate pairs (meters)
+    let mut dm = haversine(x1, y1, x2, y2);
+    if dm < 1.0 {
+        dm = 1.0;
+    }
+    // elapsed time (seconds)
+    let dt = max(t2 - t1, 10) as f64;
+    // computed speed (knots)
+    let ds = (dm / dt) * 1.9438444924406;
+
+    if ds < speed_thresh && dm < dist_thresh * 2.0 {
+        dist_thresh / ds
+    } else {
+        -1.0
+    }
+}
 
 /// Functions imported from Rust
 #[pymodule]
@@ -138,6 +193,7 @@ pub fn aisdb(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(haversine))?;
     module.add_wrapped(wrap_pyfunction!(decoder))?;
     module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
+    module.add_wrapped(wrap_pyfunction!(encoder_score_fcn))?;
     //module.add_wrapped(wrap_pyfunction!(load_geotiff_pixel))?;
     Ok(())
 }

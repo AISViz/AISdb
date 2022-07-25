@@ -124,7 +124,7 @@ class Gebco():
             assert len(raster_keys) == len(track['time'])
             track['depth_metres'] = np.array([
                 self.rasterfiles[raster_keys[i]]
-                ['raster']._get_coordinate_value(
+                ['raster'].get_coordinate_value(
                     track['lon'][i],
                     track['lat'][i],
                 ) for i in range(len(track['time']))

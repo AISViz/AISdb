@@ -11,7 +11,7 @@ from shapely.geometry import Polygon
 import numpy as np
 
 from aisdb.proc_util import getfiledate
-from aisdb.database.dbqry import DBQuery, DBConn
+from aisdb.database.dbqry import DBQuery, DBConn, DBQuery_async, DBConn_async
 from aisdb.database import sqlfcn, sqlfcn_callbacks
 from aisdb.database.decoder import decode_msgs
 from aisdb.gis import Domain
@@ -94,9 +94,9 @@ def test_geofencing(tmpdir):
             geofenced(distsplit(TrackGen(rowgen.gen_qry(dbpath=testdbpath)))))
 
 
-def test_graph_CSV_marinetraffic(tmpdir):
-    testdbpath = os.path.join(tmpdir,
-                              'test_network_graph_CSV_marinetraffic.db')
+def test_graph_CSV_single_marinetraffic(tmpdir):
+    testdbpath = os.path.join(
+        tmpdir, 'test_network_graph_CSV_single_marinetraffic.db')
     outpath = os.path.join(tmpdir, 'output.csv')
 
     start = datetime(*getfiledate(testingdata_nm4).timetuple()[0:6])
@@ -118,6 +118,7 @@ def test_graph_CSV_marinetraffic(tmpdir):
             callback=sqlfcn_callbacks.in_bbox,
             fcn=sqlfcn.crawl_dynamic_static,
         )
+
         test = next(qry.gen_qry(dbpath=testdbpath))
 
         graph(
@@ -130,23 +131,44 @@ def test_graph_CSV_marinetraffic(tmpdir):
             maxdelta=timedelta(weeks=1),
         )
     assert os.path.isfile(outpath)
+    with open(outpath, 'r') as out:
+        print(out.read())
 
 
 def test_graph_pipeline_timing(tmpdir):
-    lon1M = (np.random.random(1000000) * 90) - 90
-    lat1M = (np.random.random(1000000) * 90) + 0
-    track1M = [
-        dict(
-            lon=lon1M,
-            lat=lat1M,
-            time=range(len(lon1M)),
-            dynamic=set(['time', 'lon', 'lat']),
-            static=set(['mmsi']),
-            mmsi=316000000,
-        )
-    ]
-    _pipeline(track1M[0],
+    count = 100
+    track = dict(
+        lon=(np.random.random(count) * 90) - 90,
+        lat=(np.random.random(count) * 90) + 0,
+        time=np.array(range(count)),
+        dynamic=set(['time', 'lon', 'lat']),
+        static=set(['mmsi', 'ship_type']),
+        mmsi=316000000,
+        ship_type='test',
+    )
+
+    _pipeline(track,
               domain=domain,
+              trafficDBpath=trafficDBpath,
+              tmp_dir=tmpdir,
+              maxdelta=timedelta(weeks=1),
+              distance_threshold=250000,
+              speed_threshold=50,
+              minscore=0)
+
+    count = 5000
+    track = dict(
+        lon=(np.random.random(count) * 90) - 90,
+        lat=(np.random.random(count) * 90) + 0,
+        time=np.array(range(count)),
+        dynamic=set(['time', 'lon', 'lat']),
+        static=set(['mmsi', 'ship_type']),
+        mmsi=316000000,
+        ship_type='test',
+    )
+    _pipeline(track,
+              domain=domain,
+              trafficDBpath=trafficDBpath,
               tmp_dir=tmpdir,
               maxdelta=timedelta(weeks=1),
               distance_threshold=250000,
@@ -167,6 +189,7 @@ def test_graph_CSV_parallel_marinetraffic(tmpdir):
                     aisdatabase,
                     testdbpath,
                     source='TESTING')
+        #with DBConn_async(dbpath=testdbpath) as aisdatabase:
         qry = DBQuery(
             db=aisdatabase,
             start=start,
@@ -180,13 +203,15 @@ def test_graph_CSV_parallel_marinetraffic(tmpdir):
         )
         test = next(qry.gen_qry(dbpath=testdbpath))
 
-        graph(
+        _ = graph(
             qry,
             domain=domain,
             dbpath=testdbpath,
             trafficDBpath=trafficDBpath,
-            processes=4,
+            processes=2,
             outputfile=outpath,
             maxdelta=timedelta(weeks=1),
         )
     assert os.path.isfile(outpath)
+    with open(outpath, 'r') as out:
+        print(out.read())

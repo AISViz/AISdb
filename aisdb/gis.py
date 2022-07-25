@@ -50,7 +50,8 @@ def epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
     if isinstance(ep_arr, (list, np.ndarray)):
         return np.array(list(map(partial(delta, unit=unit), map(int, ep_arr))))
 
-    elif isinstance(ep_arr, (float, int, np.uint32)):
+    elif isinstance(ep_arr,
+                    (float, int, np.uint32, np.int32, np.uint64, np.int64)):
         return delta(int(ep_arr), unit=unit)
 
     else:

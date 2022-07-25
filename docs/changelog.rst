@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.94
+-------
+
+optimized trajectory cleaning and network graph processing pipeline: rewrite trajectory encoder in rust
+
+
 v1.3.93
 -------
 

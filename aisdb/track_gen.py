@@ -8,7 +8,7 @@ import types
 import numpy as np
 import warnings
 
-from aisdb import haversine, simplify_linestring_idx
+from aisdb import haversine, simplify_linestring_idx, encoder_score_fcn
 from aisdb.gis import delta_knots, delta_meters
 from aisdb.proc_util import _segment_rng
 
@@ -194,77 +194,6 @@ async def split_timedelta_async(tracks, maxdelta=timedelta(weeks=2)):
             )
 
 
-def _score_fcn(xy1, xy2, t1, t2, *, speed_threshold, distance_threshold):
-    ''' Assigns a score for likelihood of two points being part of a sequential
-        vessel trajectory. A hard cutoff will be applied at distance_threshold,
-        after which all scores will be set to -1.
-
-        args:
-            xy1 (tuple)
-                Float values containing (longitude, latitude) for the first
-                coordinate location
-            xy2 (tuple)
-                Float values containing (longitude, latitude) for the second
-                coordinate location
-            t1 (float)
-                Timestamp for coordinate pair xy1 in epoch seconds
-            t2 (float)
-                Timestamp for coordinate pair xy2 in epoch seconds
-            speed_threshold (float)
-                Tracks will be segmented between points where computed
-                speed values exceed this threshold. Segmented tracks will
-                be scored for reconnection. Measured in knots
-            distance_threshold (float)
-                Used as a numerator when determining score; this value
-                is divided by the distance between xy1 and xy2.
-                If the distance between xy1 and xy2 exceeds this value,
-                the score will be set to -1. Measured in meters
-    '''
-    # great circle distance between coordinate pairs (meters)
-    dm = max(haversine(*xy1, *xy2), 1.)
-
-    # elapsed time between coordinate pair timestamps (seconds)
-    assert t2 >= t1
-    dt = max(abs(t2 - t1), 10.)
-    assert dt < 60 * 60 * 24 * 7 * 52 * 1, f'{dt=}'
-
-    # computed speed between coordinate pairs (knots)
-    ds = (dm / dt) * 1.9438444924406
-
-    if ds < speed_threshold and dm < distance_threshold * 2:
-        #if ds < speed_threshold:
-        #score = ((distance_threshold / dm) / dt)
-        score = distance_threshold / ds
-        return score
-    else:
-        return -1
-
-
-'''
-
-# take average of most recent 2 scores
-scores = (
-    np.array([score_fcn(
-            xy1=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]),
-            xy2=(pathway['lon'][
-                    (idx1:=min(2, pathway['time'].size-1)*-1)
-                ], pathway['lat'][idx1]),
-            t1=track['time'][segments_idx[i]],
-            t2=pathway['time'][idx1],
-        ) for pathway in pathways ], dtype=np.float16)
-    +
-    np.array([score_fcn(
-            xy1=(track['lon'][
-                    (idx2:=segments_idx[min(i+1, segments_idx.size-1)])
-                ], track['lat'][segments_idx[i]+1]),
-            xy2=(pathway['lon'][-1], pathway['lat'][-1]),
-            t1=track['time'][idx2],
-            t2=pathway['time'][-1],
-        ) for pathway in pathways ], dtype=np.float16)
-    ) / 2
-'''
-
-
 def _score_idx(scores):
     ''' Returns indices of score array where value at index is equal to the
         highest score. In tie cases, the last index will be selected
@@ -287,17 +216,23 @@ def _segments_idx(track, distance_threshold, speed_threshold, **_):
 
 def _scoresarray(track, *, pathways, i, segments_idx, distance_threshold,
                  speed_threshold, minscore):
-    scores = np.array([
-        _score_fcn(
-            xy1=(pathway['lon'][-1], pathway['lat'][-1]),
-            xy2=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]),
-            t1=pathway['time'][-1],
-            t2=track['time'][segments_idx[i]],
-            distance_threshold=distance_threshold,
-            speed_threshold=speed_threshold,
-        ) for pathway in pathways
-    ],
-                      dtype=np.float16)
+    scores = np.array(
+        [
+            #_score_fcn(
+            encoder_score_fcn(
+                #xy1=(pathway['lon'][-1], pathway['lat'][-1]),
+                x1=pathway['lon'][-1],
+                y1=pathway['lat'][-1],
+                #xy2=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]),
+                t1=pathway['time'][-1],
+                x2=track['lon'][segments_idx[i]],
+                y2=track['lat'][segments_idx[i]],
+                t2=track['time'][segments_idx[i]],
+                dist_thresh=distance_threshold,
+                speed_thresh=speed_threshold,
+            ) for pathway in pathways
+        ],
+        dtype=np.float16)
     highscore = (scores[np.where(
         scores == np.max(scores))[0][0]] if scores.size > 0 else minscore)
     return scores, highscore
@@ -315,16 +250,6 @@ def _append_highscore(track, *, highscoreidx, pathways, i, segments_idx):
         static=track['static'],
         dynamic=track['dynamic'],
     )
-
-
-'''
-def _pop_pathways(highscoreidx, pathways, n):
-    pathways[highscoreidx]['label'] = n
-    pathways[highscoreidx]['static'] = set(
-        pathways[highscoreidx]['static']).union({'label'})
-    path = pathways.pop(highscoreidx)
-    assert 'time' in path.keys()
-'''
 
 
 def _split_pathway(track, *, i, segments_idx):
