@@ -27,6 +27,7 @@ pkgbuild:
 rust-test:
   stage: rust-test
   script:
+    - mkdir -p testdata 
     - cargo test --color=always --release --lib
   artifacts:
     paths:
