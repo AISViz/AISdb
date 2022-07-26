@@ -78,16 +78,12 @@ class Gebco():
             print('verifying checksum...')
             assert sha256sum == '5ade15083909fcd6003409df678bdc6537b8691df996f8d806b48de962470cc3',\
                     'checksum failed!'
-
             with zipfile.ZipFile(zipf, 'r') as zip_ref:
                 members = list(
                     set(zip_ref.namelist()) -
                     set(sorted(os.listdir(self.data_dir))))
                 print('extracting bathymetry data...')
                 zip_ref.extractall(path=self.data_dir, members=members)
-
-        # zzz
-        time.sleep(5)
         return
 
     def _load_raster(self, key):
@@ -98,8 +94,8 @@ class Gebco():
         for lon, lat in zip(track['lon'], track['lat']):
             tracer = False
             for key, bounds in self.rasterfiles.items():  # pragma: no cover
-                if (bounds['w'] < lon < bounds['e']
-                        and bounds['s'] < lat < bounds['n']):
+                if (bounds['w'] <= lon <= bounds['e']
+                        and bounds['s'] <= lat <= bounds['n']):
                     tracer = True
                     if 'raster' not in bounds.keys():
                         self._load_raster(key)

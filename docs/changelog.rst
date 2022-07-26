@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.96
+-------
+
+fix bathymetry assertion error , closes #14
+
+
 v1.3.95
 -------
 
