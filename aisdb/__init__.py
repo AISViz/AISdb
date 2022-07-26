@@ -1,13 +1,6 @@
 import os
 import logging
 
-from .aisdb import (
-    decoder,
-    encoder_score_fcn,
-    haversine,
-    simplify_linestring_idx,
-)
-
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
 from .database.create_tables import (

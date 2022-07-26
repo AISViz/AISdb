@@ -6,12 +6,12 @@ import os
 from hashlib import md5
 
 from aisdb.index import index
-from aisdb.database.dbconn import DBConn, get_dbname, DBConn_async
-from aisdb import decoder
+from aisdb.database.dbconn import DBConn, get_dbname
+from aisdb.aisdb import decoder
 
 
 def decode_msgs(filepaths,
-                db,
+                dbconn,
                 dbpath,
                 source,
                 vacuum=False,
@@ -47,14 +47,16 @@ def decode_msgs(filepaths,
                 ...              '~/ais/rawdata_dir/20220102.nm4']
         >>> decode_msgs(filepaths, dbpath)
     '''
-    if not isinstance(db, DBConn):  # pragma: no cover
-        if isinstance(db, DBConn_async):
+    if not isinstance(dbconn, DBConn):  # pragma: no cover
+        if isinstance(dbconn):
             raise ValueError('Files must be decoded synchronously!')
         raise ValueError('db argument must be a DBConn database connection. '
                          f'got {DBConn}')
 
     if len(filepaths) == 0:  # pragma: no cover
         raise ValueError('must supply atleast one filepath.')
+
+    dbconn.attach(dbpath)
 
     hashmap_dbdir, hashmap_dbname = dbpath.rsplit(os.path.sep, 1)
 
@@ -79,12 +81,12 @@ def decode_msgs(filepaths,
     if vacuum is not False:
         print("finished parsing data\nvacuuming...")
         if vacuum is True:
-            db.cur.execute(f'VACUUM {dbname}')
+            dbconn.execute(f'VACUUM {dbname}')
         elif isinstance(vacuum, str):
             assert not os.path.isfile(vacuum)
-            db.cur.execute(f"VACUUM '{dbname}' INTO '{vacuum}'")
+            dbconn.execute(f"VACUUM '{dbname}' INTO '{vacuum}'")
         else:
             raise ValueError('vacuum arg must be boolean or filepath string')
-        db.conn.commit()
+        dbconn.commit()
 
     return

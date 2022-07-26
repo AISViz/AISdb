@@ -8,7 +8,7 @@ import types
 import numpy as np
 import warnings
 
-from aisdb import haversine, simplify_linestring_idx, encoder_score_fcn
+from aisdb.aisdb import simplify_linestring_idx, encoder_score_fcn
 from aisdb.gis import delta_knots, delta_meters
 from aisdb.proc_util import _segment_rng
 

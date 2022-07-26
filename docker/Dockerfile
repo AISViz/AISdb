@@ -40,9 +40,9 @@ COPY --chown=ais_env aisdb/ aisdb/
 
 # build sphinx docs and nodejs webapp
 FROM aisdb AS webserv
-#ARG BINGMAPSKEY
-#ARG AISDBHOST
-#ARG AISDBPORT
+ARG BINGMAPSKEY
+ARG AISDBHOST
+ARG AISDBPORT
 COPY --chown=ais_env docs/ docs/
 COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 COPY --chown=ais_env aisdb_web/ aisdb_web/

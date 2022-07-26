@@ -9,7 +9,7 @@ import parseUrl from './url';
  * @constant {string} hostname
  */
 let hostname = import.meta.env.VITE_AISDBHOST;
-if (hostname === undefined) {
+if (hostname === undefined || hostname === null) {
   hostname = 'localhost';
 }
 

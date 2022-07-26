@@ -158,6 +158,8 @@ load_pixel(lon, lat, &filepath)
 ///         If the distance between xy1 and xy2 exceeds this value,
 ///         the score will be set to -1. Measured in meters
 ///
+/// returns:
+///     score (float: f64)
 #[pyfunction]
 pub fn encoder_score_fcn(
     x1: f64,
