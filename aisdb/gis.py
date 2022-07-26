@@ -10,8 +10,8 @@ import shapely.ops
 import shapely.geometry
 from shapely.geometry import Polygon, LineString, Point
 
+from aisdb.aisdb import haversine
 from aisdb.proc_util import glob_files
-from aisdb import haversine
 
 
 def shiftcoord(x, rng=180):
@@ -341,3 +341,48 @@ class DomainFromTxts(Domain):
         '''
 
         super().__init__(domainName, zones, setattrs=False)
+
+
+class DomainFromPoints(Domain):
+    ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
+        zone geometry from .txt files directly
+    '''
+
+    def __init__(self,
+                 points,
+                 radial_distances,
+                 names=[],
+                 domainName='domain'):
+        ''' creates a bounding-box polygons
+
+            args:
+                points (list)
+                    coordinate XY pairs
+                radial_distances (list)
+                    approximate distance in meters to extend the bounding box.
+                    the distance given will be used as the minimum distance to
+                    box boundaries
+                names (list)
+                    optionally assign a zone name for each point
+
+
+        '''
+        if names == []:
+            names = range(len(points))
+        zones = []
+        for xy, d, i in zip(points, radial_distances, names):
+            bounds = radial_coordinate_boundary(*xy, d)
+            geom = {
+                'name':
+                i,
+                'geometry':
+                Polygon([
+                    (bounds['xmin'], bounds['ymin']),
+                    (bounds['xmin'], bounds['ymax']),
+                    (bounds['xmax'], bounds['ymax']),
+                    (bounds['xmax'], bounds['ymin']),
+                    (bounds['xmin'], bounds['ymin']),
+                ]),
+            }
+            zones.append(geom)
+        super().__init__(name=domainName, zones=zones)

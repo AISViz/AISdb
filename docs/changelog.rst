@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.95
+-------
+
+network graph domain from point radius geometry #12
+
+
 v1.3.94
 -------
 
