@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.98
+-------
+
+update testing for DBConn() API  (#13)
+
+
 v1.3.97
 -------
 

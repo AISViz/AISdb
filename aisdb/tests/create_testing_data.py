@@ -11,21 +11,21 @@ from aisdb.database.create_tables import (
 from aisdb import decode_msgs, DBConn, aggregate_static_msgs
 
 
-def sample_dynamictable_insertdata(*, db, dbpath):
-    #db = DBConn(dbpath=testdbpath)
-    assert isinstance(db, DBConn)
-    sqlite_createtable_staticreport(db, month="200001", dbpath=dbpath)
-    sqlite_createtable_dynamicreport(db, month="200001", dbpath=dbpath)
-    db.cur.execute(
+def sample_dynamictable_insertdata(*, dbconn, dbpath):
+    #db = DBConn()
+    assert isinstance(dbconn, DBConn)
+    sqlite_createtable_staticreport(dbconn, month="200001", dbpath=dbpath)
+    sqlite_createtable_dynamicreport(dbconn, month="200001", dbpath=dbpath)
+    dbconn.execute(
         'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702800, -60.994833, 47.434647238127695, -1, -1)'
     )
-    db.cur.execute(
+    dbconn.execute(
         'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702820, -60.994833, 47.434647238127695, -1, -1)'
     )
-    db.cur.execute(
+    dbconn.execute(
         'INSERT OR IGNORE INTO ais_200001_dynamic (mmsi, time, longitude, latitude, cog, sog) VALUES (000000001, 946702840, -60.994833, 47.434647238127695, -1, -1)'
     )
-    db.conn.commit()
+    dbconn.commit()
 
 
 def sample_random_polygon(xscale=20, yscale=20):
@@ -62,17 +62,22 @@ def random_polygons_domain(count=10):
 
 def sample_database_file(dbpath):
     ''' test data for date 2021-11-01 '''
-    datapath = os.path.join(os.path.dirname(__file__),
-                            'testingdata_20211101.nm4')
-    months = ["202111"]
-    with DBConn(dbpath=dbpath) as db:
+    datapath_csv = os.path.join(os.path.dirname(__file__),
+                                'test_data_20210701.csv')
+    # no static data in nm4
+    datapath_nm4 = os.path.join(os.path.dirname(__file__),
+                                'test_data_20211101.nm4')
+    months = ["202107", "202111"]
+    with DBConn() as dbconn:
+        dbconn.attach(dbpath)
         decode_msgs(
-            db=db,
-            filepaths=[datapath],
+            dbconn=dbconn,
+            filepaths=[datapath_csv, datapath_nm4],
             dbpath=dbpath,
             source='TESTING',
             vacuum=False,
             skip_checksum=True,
         )
-        aggregate_static_msgs(db, months)
+        aggregate_static_msgs(dbconn, months[:1])
+        dbconn.commit()
     return months

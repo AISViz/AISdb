@@ -5,7 +5,7 @@ import pytest
 from aisdb import websocket_server, decode_msgs
 from aisdb.webdata.marinetraffic import VesselInfo
 from aisdb.tests.create_testing_data import random_polygons_domain
-from aisdb.database.dbconn import DBConn_async, DBConn
+from aisdb.database.dbconn import DBConn
 from aisdb.database.create_tables import aggregate_static_msgs
 
 
@@ -18,19 +18,19 @@ async def test_websocket_nodata_nosocket(tmpdir):
     # create tables in __init__ fcn
     VesselInfo(trafficDBpath=trafficDBpath)
     datapath = os.path.join(os.path.dirname(__file__),
-                            'testingdata_20211101.nm4')
+                            'test_data_20210701.csv')
 
     # create db synchronously
-    with DBConn(dbpath=dbpath) as dbsync:
+    with DBConn() as dbsync:
         decode_msgs(
             filepaths=[datapath],
-            db=dbsync,
+            dbconn=dbsync,
             dbpath=dbpath,
             source='TESTING',
             vacuum=False,
             skip_checksum=True,
         )
-        aggregate_static_msgs(dbsync, ["202111"])
+        aggregate_static_msgs(dbsync, ["202107"])
 
     req = {
         "type": "track_vectors",

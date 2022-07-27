@@ -8,17 +8,17 @@ from aisdb.database.decoder import decode_msgs
 def test_decode_1day(tmpdir):
     dbpath = os.path.join(tmpdir, 'test_decode_1day.db')
     testingdata_nm4 = os.path.join(os.path.dirname(__file__),
-                                   'testingdata_20211101.nm4')
-    with DBConn(dbpath=dbpath) as db:
+                                   'test_data_20211101.nm4')
+    with DBConn() as dbconn:
         filepaths = [testingdata_nm4]
         dt = datetime.now()
         decode_msgs(filepaths=filepaths,
-                    db=db,
+                    dbconn=dbconn,
                     dbpath=dbpath,
                     source='TESTING',
                     vacuum=True)
         decode_msgs(filepaths=filepaths,
-                    db=db,
+                    dbconn=dbconn,
                     dbpath=dbpath,
                     source='TESTING',
                     vacuum=dbpath + '.vacuum')
@@ -29,17 +29,17 @@ def test_decode_1day(tmpdir):
 def test_decode_csv(tmpdir):
     dbpath = os.path.join(tmpdir, 'test_decode_csv.db')
     testingdata_csv = os.path.join(os.path.dirname(__file__),
-                                   'testingdata_20210701.csv')
-    with DBConn(dbpath=dbpath) as db:
+                                   'test_data_20210701.csv')
+    with DBConn() as dbconn:
         filepaths = [testingdata_csv]
         dt = datetime.now()
         decode_msgs(filepaths=filepaths,
-                    db=db,
+                    dbconn=dbconn,
                     dbpath=dbpath,
                     source='TESTING',
                     vacuum=True)
         decode_msgs(filepaths=filepaths,
-                    db=db,
+                    dbconn=dbconn,
                     dbpath=dbpath,
                     source='TESTING',
                     vacuum=dbpath + '.vacuum')

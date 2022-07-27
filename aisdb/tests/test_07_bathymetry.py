@@ -21,6 +21,14 @@ tracks_single = [dict(
     time=[0],
     dynamic=set(['time']),
 )]
+track1K = [
+    dict(
+        lon=lon1M[:1000],
+        lat=lat1M[:1000],
+        time=range(1000),
+        dynamic=set(['time']),
+    )
+]
 track1M = [
     dict(
         lon=lon1M,
@@ -61,3 +69,14 @@ def test_timing_bathymetry_1M_rasterio():
     with Gebco_Rasterio(data_dir=data_dir) as bathy:
         for updated in bathy.merge_tracks(track1M):
             assert 'depth_metres' in updated.keys()
+
+
+def test_bathy_pillow_equals_rasterio():
+    with Gebco_Rasterio(data_dir=data_dir) as rasterio, Gebco(
+            data_dir=data_dir) as pillow:
+        bathy_a = next(rasterio.merge_tracks(track1K))
+        bathy_b = next(pillow.merge_tracks(track1K))
+        avg_diff = np.average(
+            np.abs(bathy_a['depth_metres'] - bathy_b['depth_metres']))
+        print(f'{avg_diff = }')
+        assert avg_diff == 0

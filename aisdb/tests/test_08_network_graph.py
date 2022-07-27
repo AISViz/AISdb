@@ -9,11 +9,10 @@ from functools import partial
 
 from shapely.geometry import Polygon
 import numpy as np
+import warnings
 
-from aisdb.proc_util import getfiledate
-from aisdb.database.dbqry import DBQuery, DBConn, DBQuery_async, DBConn_async
+from aisdb.database.dbqry import DBQuery, DBConn
 from aisdb.database import sqlfcn, sqlfcn_callbacks
-from aisdb.database.decoder import decode_msgs
 from aisdb.gis import Domain
 from aisdb.track_gen import (
     fence_tracks,
@@ -22,12 +21,9 @@ from aisdb.track_gen import (
 )
 from aisdb.network_graph import graph, _pipeline
 from aisdb.tests.create_testing_data import (
-    sample_gulfstlawrence_bbox, )
-
-testingdata_nm4 = os.path.join(os.path.dirname(__file__),
-                               'testingdata_20211101.nm4')
-testingdata_csv = os.path.join(os.path.dirname(__file__),
-                               'testingdata_20210701.csv')
+    sample_database_file,
+    sample_gulfstlawrence_bbox,
+)
 
 trafficDBpath = os.environ.get(
     'AISDBMARINETRAFFIC',
@@ -60,17 +56,15 @@ domain = Domain('gulf domain',
 
 def test_geofencing(tmpdir):
     testdbpath = os.path.join(tmpdir, 'test_geofencing.db')
-    start = datetime(*getfiledate(testingdata_nm4).timetuple()[0:6])
+    months = sample_database_file(testdbpath)
+    start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
-    with DBConn(dbpath=testdbpath) as aisdatabase:
-        # query configs
-        decode_msgs([testingdata_csv, testingdata_nm4],
-                    aisdatabase,
-                    testdbpath,
-                    source='TESTING')
 
+    with DBConn() as aisdatabase:
+        # query configs
         rowgen = DBQuery(
-            db=aisdatabase,
+            dbconn=aisdatabase,
+            dbpath=testdbpath,
             start=start,
             end=end,
             xmin=-180,  #domain.minX,
@@ -90,25 +84,30 @@ def test_geofencing(tmpdir):
         geofenced = partial(fence_tracks, domain=domain)
 
         # query db for points in domain bounding box
-        _test = next(
-            geofenced(distsplit(TrackGen(rowgen.gen_qry(dbpath=testdbpath)))))
+        _test = next(geofenced(distsplit(TrackGen(rowgen.gen_qry()))))
+
+
+'''
+trafficDBpath = '/RAID0/ais/marinetraffic_V2.db'
+import cProfile
+cProfile.run('test_graph_CSV_single_marinetraffic(tmpdir)', sort='tottime')
+'''
 
 
 def test_graph_CSV_single_marinetraffic(tmpdir):
+
     testdbpath = os.path.join(
         tmpdir, 'test_network_graph_CSV_single_marinetraffic.db')
     outpath = os.path.join(tmpdir, 'output.csv')
 
-    start = datetime(*getfiledate(testingdata_nm4).timetuple()[0:6])
+    months = sample_database_file(testdbpath)
+    start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
 
-    with DBConn(dbpath=testdbpath) as aisdatabase:
-        decode_msgs([testingdata_csv, testingdata_nm4],
-                    aisdatabase,
-                    testdbpath,
-                    source='TESTING')
+    with DBConn() as aisdatabase:
         qry = DBQuery(
-            db=aisdatabase,
+            dbconn=aisdatabase,
+            dbpath=testdbpath,
             start=start,
             end=end,
             xmin=-180,  #domain.minX,
@@ -119,7 +118,7 @@ def test_graph_CSV_single_marinetraffic(tmpdir):
             fcn=sqlfcn.crawl_dynamic_static,
         )
 
-        test = next(qry.gen_qry(dbpath=testdbpath))
+        #test = next(qry.gen_qry())
 
         graph(
             qry,
@@ -181,17 +180,13 @@ def test_graph_CSV_parallel_marinetraffic(tmpdir):
         tmpdir, 'test_network_graph_CSV_parallel_marinetraffic.db')
     outpath = os.path.join(tmpdir, 'output.csv')
 
-    start = datetime(
-        *getfiledate(testingdata_nm4).timetuple()[0:6]) - timedelta(weeks=1)
+    months = sample_database_file(testdbpath)
+    start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
-    with DBConn(dbpath=testdbpath) as aisdatabase:
-        decode_msgs([testingdata_csv, testingdata_nm4],
-                    aisdatabase,
-                    testdbpath,
-                    source='TESTING')
-        #with DBConn_async(dbpath=testdbpath) as aisdatabase:
+    with DBConn() as dbconn:
         qry = DBQuery(
-            db=aisdatabase,
+            dbconn=dbconn,
+            dbpath=testdbpath,
             start=start,
             end=end,
             xmin=-180,  #domain.minX,
@@ -201,14 +196,14 @@ def test_graph_CSV_parallel_marinetraffic(tmpdir):
             callback=sqlfcn_callbacks.in_bbox,
             fcn=sqlfcn.crawl_dynamic_static,
         )
-        test = next(qry.gen_qry(dbpath=testdbpath))
+        test = next(qry.gen_qry())
 
         _ = graph(
             qry,
             domain=domain,
             dbpath=testdbpath,
             trafficDBpath=trafficDBpath,
-            processes=2,
+            processes=6,
             outputfile=outpath,
             maxdelta=timedelta(weeks=1),
         )
