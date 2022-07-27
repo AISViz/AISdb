@@ -163,7 +163,7 @@ def write_csv(
 
     def _append(track, writer, colnames=colnames, decimals=decimals):
         if 'marinetraffic_info' in track.keys():
-            for key, val in track['marinetraffic_info'].items():
+            for key, val in dict(track['marinetraffic_info']).items():
                 if key in ('error404', 'mmsi', 'imo'):
                     continue
                 track[key] = val

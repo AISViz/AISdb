@@ -1,4 +1,7 @@
-''' exposes the SQLite DB connection. some postgres code is also included for legacy support '''
+''' SQLite Database connection
+
+    Also see: https://docs.python.org/3/library/sqlite3.html#connection-objects
+'''
 
 import os
 
@@ -8,7 +11,6 @@ if (sqlite3.sqlite_version_info[0] < 3
         or (sqlite3.sqlite_version_info[0] <= 3
             and sqlite3.sqlite_version_info[1] < 35)):  # pragma: no cover
     import pysqlite3 as sqlite3
-import warnings
 
 _coarsetype_rows = [
     (20, 'Wing in ground craft'),
@@ -121,125 +123,49 @@ pragmas = [
 ]
 
 
-class DBConn():
+class DBConn(sqlite3.Connection):
     ''' SQLite3 database connection object
 
-        by default this will create a new SQLite database if the dbpath does
-        not yet exist
-
-        args:
-            dbpath (string)
-                defaults to dbpath as configured in ~/.config/ais.cfg
-
         attributes:
-            conn (sqlite3.Connection)
-                database connection object
-            cur (sqlite3.Cursor)
-                database cursor object
+            dbpaths (list of strings)
+                currently attached databases. initialized as [],
+                list becomes populated with databases using the .attach()
+                method
     '''
 
-    def __init__(self, *, dbpath=None, dbpaths=[]):
-
-        if dbpath is not None:
-            dbpaths.append(dbpath)
-
-        if dbpaths == []:  # pragma: no cover
-            warnings.warn('No database arguments to DBConn()')
-
-        # configs
-        self.conn = sqlite3.connect(':memory:',
-                                    timeout=5,
-                                    detect_types=sqlite3.PARSE_DECLTYPES
-                                    | sqlite3.PARSE_COLNAMES)
-        self.conn.row_factory = sqlite3.Row
-        for p in pragmas:
-            self.conn.execute(p)
-        self.conn.commit()
-        self.cur = self.conn.cursor()
-
-        # attach auxiliary databases
-        self.dbpaths = dbpaths
-        self.dbnames = []
-        for dbp in dbpaths:
-            # check that directory exists
-            assert os.path.isdir(os.path.dirname(dbp))
-            self.attach(dbp)
-
-        self.create_table_coarsetype()
-
-        self.conn.commit()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_class, exc, tb):
-        while len(self.dbnames) > 0:
-            self.dbpaths.pop()
-            self.cur.execute('DETACH DATABASE ?', [self.dbnames.pop()])
-
-        self.conn.commit()
-        self.conn.close()
-
-    def attach(self, dbpath):
-        dbname = get_dbname(dbpath)
-        self.cur.execute('PRAGMA database_list')
-        res = self.cur.fetchall()
-        attached = False
-        for r in res:
-            if r['name'] == dbname:
-                attached = True
-        if not attached:
-            self.cur.execute('ATTACH DATABASE ? AS ?', [dbpath, dbname])
-
-        assert dbpath in self.dbpaths
-
-        if dbname not in self.dbnames:
-            self.dbnames.append(dbname)
-        return
-
-    def create_table_coarsetype(self):
+    def _create_table_coarsetype(self):
         ''' create a table to describe integer vessel type as a human-readable
             string.
         '''
+        self.execute(_create_coarsetype_table)
+        self.execute(_create_coarsetype_index)
+        self.executemany(('INSERT OR IGNORE INTO coarsetype_ref '
+                          '(coarse_type, coarse_type_txt) VALUES (?,?) '),
+                         _coarsetype_rows)
+        self.commit()
 
-        self.cur.execute(_create_coarsetype_table)
-
-        self.cur.execute(_create_coarsetype_index)
-
-        self.cur.executemany(('INSERT OR IGNORE INTO coarsetype_ref '
-                              '(coarse_type, coarse_type_txt) VALUES (?,?) '),
-                             _coarsetype_rows)
-
-
-class DBConn_async():
-
-    def __init__(self, dbpath=None):
-        self.dbpath = dbpath
-
-    async def __aenter__(self):
-        self.conn = await aiosqlite.connect(self.dbpath)
-        self.conn.row_factory = sqlite3.Row
-
+    def __init__(self):
+        # configs
+        self.dbpaths = []
+        super().__init__(':memory:',
+                         timeout=5,
+                         detect_types=sqlite3.PARSE_DECLTYPES
+                         | sqlite3.PARSE_COLNAMES)
+        self.row_factory = sqlite3.Row
         for p in pragmas:
-            _ = await self.conn.execute(p)
+            self.execute(p)
+        self.commit()
+        self._create_table_coarsetype()
 
-        _ = await self.create_table_coarsetype()
+    def __exit__(self, exc_class, exc, tb):
+        for dbpath in self.dbpaths:
+            self.execute('DETACH DATABASE ?', [get_dbname(dbpath)])
+        self.commit()
+        self.close()
 
-        return self
-
-    async def __aexit__(self, exc_class, exc, tb):
-        await self.conn.close()
-        return
-
-    async def create_table_coarsetype(self):
-        ''' create a table to describe integer vessel type as a human-readable string
-            included here instead of create_tables.py to prevent circular import error
-        '''
-
-        _ = await self.conn.execute(_create_coarsetype_table)
-
-        _ = await self.conn.execute(_create_coarsetype_index)
-
-        _ = await self.conn.executemany((
-            'INSERT OR IGNORE INTO coarsetype_ref (coarse_type, coarse_type_txt) '
-            'VALUES (?,?) '), _coarsetype_rows)
+    def attach(self, dbpath):
+        ''' connect to an additional database file '''
+        if dbpath not in self.dbpaths:
+            self.execute('ATTACH DATABASE ? AS ?',
+                         [dbpath, get_dbname(dbpath)])
+            self.dbpaths.append(dbpath)

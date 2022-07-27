@@ -5,11 +5,20 @@
 from collections import UserDict
 from datetime import datetime
 from functools import reduce
+import sqlite3
 
 import numpy as np
+import aiosqlite
 
 from aisdb.database import sqlfcn_callbacks
-from aisdb.database.dbconn import DBConn, DBConn_async, get_dbname
+from aisdb.database.dbconn import (
+    DBConn,
+    _coarsetype_rows,
+    _create_coarsetype_index,
+    _create_coarsetype_table,
+    get_dbname,
+    pragmas,
+)
 from aisdb.database import sqlfcn
 from aisdb.database.sqlfcn_callbacks import dt2monthstr
 from aisdb.database.create_tables import (
@@ -25,7 +34,13 @@ class DBQuery(UserDict):
         passed to __init__(). Args are stored as a dictionary (UserDict).
 
         Args:
-            callback: (function)
+            dbconn (:class:`aisdb.database.dbconn.DBConn`)
+                database connection object
+            dbpath (string)
+                database filepath to connect to
+            dbpaths (list)
+                optionally pass a list of filepaths instead of a single dbpath
+            callback (function)
                 anonymous function yielding SQL code specifying "WHERE" clauses.
                 common queries are included in :mod:`aisdb.database.sqlfcn_callbacks.py`,
                 e.g.
@@ -40,7 +55,7 @@ class DBQuery(UserDict):
 
                 Resulting SQL is then passed to the query function as an argument.
 
-            **kwargs:
+            **kwargs (dict)
                 more arguments that will be supplied to the query function
                 and callback function
 
@@ -58,22 +73,32 @@ class DBQuery(UserDict):
 
         >>> dbpath = '~/ais/ais.db'
         >>> start, end = datetime(2022, 1, 1), datetime(2022, 1, 7)
-        >>> q = DBQuery(callback=in_timerange_validmmsi, start=start, end=end)
-
-        >>> print(f'iterating over rows returned from {dbpath}')
-        >>> for rows in q.gen_qry():
-        ...     print(rows)
+        >>> with DBConn() as dbconn:
+        >>>     q = DBQuery(dbconn=dbconn,
+        >>>                 dbpath=dbpath,
+        >>>                 callback=in_timerange_validmmsi,
+        >>>                 start=start,
+        >>>                 end=end)
+        >>>     for rows in q.gen_qry():
+        ...         print(rows)
     '''
 
-    def __init__(self, *, db, **kwargs):
+    def __init__(self, *, dbconn, dbpath=None, dbpaths=[], **kwargs):
+        if dbpaths == [] and dbpath is None:
+            raise ValueError(
+                'must supply either dbpaths list or dbpath string value')
+        elif dbpaths == []:
+            dbpaths = [dbpath]
 
-        if not isinstance(db, (DBConn, DBConn_async)):
+        for dbpath in dbpaths:
+            dbconn.attach(dbpath)
+        if not isinstance(dbconn, DBConn):
             raise ValueError(
                 'db argument must be a DBConn database connection.'
-                f'\tfound: {db}')
+                f'\tfound: {dbconn}')
 
         self.data = kwargs
-        self.db = db
+        self.dbconn = dbconn
         self.create_qry_params()
 
     def create_qry_params(self):
@@ -82,17 +107,13 @@ class DBQuery(UserDict):
             raise ValueError('Start must occur before end')
         assert isinstance(self.data['start'], datetime)
         self.data.update({'months': dt2monthstr(**self.data)})
-        #elif isinstance(self.data['start'],
-        #                (float, int)):  # pragma: no cover
-        #    self.data.update({'months': _epoch2monthstr(**self.data)})
 
-    def check_marinetraffic(
-            self,
-            #dbpath,
-            trafficDBpath,
-            boundary,
-            data_dir,
-            retry_404=False):
+    def check_marinetraffic(self,
+                            dbpath,
+                            trafficDBpath,
+                            boundary,
+                            data_dir,
+                            retry_404=False):
         ''' scrape metadata for vessels in domain from marinetraffic
 
             args:
@@ -107,42 +128,41 @@ class DBQuery(UserDict):
                     can be supplied here
 
         '''
-        cur = self.db.cur
+        self.dbconn.attach(dbpath)
+        #cur = self.dbconn.cursor()
         vinfo = VesselInfo(trafficDBpath)
         # TODO: determine which attached db to query
 
-        for dbpath in self.db.dbpaths:
-            print(f'retrieving vessel info for {dbpath}', end='', flush=True)
-            for month in self.data['months']:
-                dbname = get_dbname(dbpath)
-                self.db.attach(dbpath)
+        print(f'retrieving vessel info for {dbpath}', end='', flush=True)
+        for month in self.data['months']:
+            dbname = get_dbname(dbpath)
+            self.dbconn.attach(dbpath)
 
-                # check for missing tables
-                cur.execute(
-                    f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
-                    [f'ais_{month}_dynamic'])
-                if len(cur.fetchall()) == 0:  # pragma: no cover
-                    continue
+            # skip missing tables
+            if self.dbconn.execute(
+                (f'SELECT * FROM {dbname}.sqlite_master '
+                 'WHERE type="table" and name=?'),
+                [f'ais_{month}_dynamic']).fetchall() == 0:  # pragma: no cover
+                #if len(cur.fetchall()) == 0:  # pragma: no cover
+                continue
 
-                # check unique mmsis
-                sql = f'''
-                SELECT DISTINCT(mmsi) FROM {dbname}.ais_{month}_dynamic AS d WHERE
-                {sqlfcn_callbacks.in_validmmsi_bbox(alias='d', **boundary)}
-                '''
-                cur.execute(sql)
-                print('.', end='', flush=True)  # first dot
-                mmsis = cur.fetchall()
+            # check unique mmsis
+            sql = (
+                'SELECT DISTINCT(mmsi) '
+                f'FROM {dbname}.ais_{month}_dynamic AS d WHERE '
+                f'{sqlfcn_callbacks.in_validmmsi_bbox(alias="d", **boundary)}')
+            mmsis = self.dbconn.execute(sql).fetchall()
+            print('.', end='', flush=True)  # first dot
+            #mmsis = cur.fetchall()
 
-                # retrieve vessel metadata
-                if len(mmsis) > 0:  # pragma: no cover
-                    # not covered; will be cached for testing
-                    vinfo.vessel_info_callback(mmsis=np.array(mmsis),
-                                               data_dir=data_dir,
-                                               retry_404=retry_404,
-                                               infotxt=f'{month} ')
+            # retrieve vessel metadata
+            if len(mmsis) > 0:  # pragma: no cover
+                # not covered; will be cached for testing
+                vinfo.vessel_info_callback(mmsis=np.array(mmsis),
+                                           retry_404=retry_404,
+                                           infotxt=f'{month} ')
 
     def gen_qry(self,
-                dbpath,
                 fcn=sqlfcn.crawl_dynamic,
                 printqry=False,
                 force_reaggregate_static=False):
@@ -164,98 +184,126 @@ class DBQuery(UserDict):
                 arrays are sorted by MMSI
                 rows are sorted by time
         '''
-        dbname = get_dbname(dbpath)
-        if 'dbpath' not in self.data.keys():
-            self.data['dbpath'] = dbpath
 
-        # initialize db, run query
-        self.db.attach(dbpath)
-        qry = fcn(**self.data)
+        # initialize dbconn, run query
+        assert 'dbpath' not in self.data.keys()
 
-        if printqry:
-            print(qry)
+        #dbpath = self.data['dbpath']
 
-        for month in self.data['months']:
-            # create static tables if necessary
-            self.db.cur.execute(
-                f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
-                [f'ais_{month}_static'])
-            if len(self.db.cur.fetchall()) == 0:
-                sqlite_createtable_staticreport(self.db, month, dbpath=dbpath)
+        #dbname = get_dbname(dbpath)
+        #for month in self.data['months']:
+        """
+        # create static tables if necessary
+        self.dbconn.execute(
+            f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
+            [f'ais_{month}_static'])
+        if len(self.dbconn.cursor().fetchall()) == 0:
+            sqlite_createtable_staticreport(self.dbconn,
+                                            month,
+                                            dbpath=dbpath)
 
-            # create aggregate tables if necessary
-            self.db.cur.execute(
-                f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
-                [f'static_{month}_aggregate'])
+        # create aggregate tables if necessary
+        self.dbconn.execute((f'SELECT * FROM {dbname}.sqlite_master '
+                             'WHERE type="table" and name=?'),
+                            [f'static_{month}_aggregate'])
 
-            if len(self.db.cur.fetchall()) == 0 or force_reaggregate_static:
-                print(f'building static index for month {month}...',
-                      flush=True)
-                aggregate_static_msgs(self.db, [month])
+        if len(self.dbconn.cursor().fetchall()
+               ) == 0 or force_reaggregate_static:
+            print(f'building static index for month {month}...',
+                  flush=True)
+            aggregate_static_msgs(self.dbconn, [month])
 
-            # create dynamic tables if necessary
-            self.db.cur.execute(
-                f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
-                [f'ais_{month}_dynamic'])
-            if len(self.db.cur.fetchall()) == 0:  # pragma: no cover
-                sqlite_createtable_dynamicreport(self.db, month, dbpath=dbpath)
+        # create dynamic tables if necessary
+        self.dbconn.execute(
+            f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
+            [f'ais_{month}_dynamic'])
+        if len(self.dbconn.cursor().fetchall()) == 0:  # pragma: no cover
+            sqlite_createtable_dynamicreport(self.dbconn,
+                                             month,
+                                             dbpath=dbpath)
+        """
+        for dbpath in self.dbconn.dbpaths:
+            qry = fcn(dbpath=dbpath, **self.data)
+            if printqry:
+                print(qry)
 
-        dt = datetime.now()
-        self.db.cur.execute(qry)
-        delta = datetime.now() - dt
-        if printqry:
-            print(
-                f'query time: {delta.total_seconds():.2f}s\nfetching rows...')
+            dt = datetime.now()
+            res = self.dbconn.execute(qry).fetchmany(10**5)
+            delta = datetime.now() - dt
+            if printqry:
+                print(
+                    f'query time: {delta.total_seconds():.2f}s\nfetching rows...'
+                )
 
-        # get 500k rows at a time, yield sets of rows for each unique MMSI
-        mmsi_rows = []
-        res = self.db.cur.fetchmany(10**5)
+            # get 500k rows at a time, yield sets of rows for each unique MMSI
+            mmsi_rows = []
+            #res = self.dbconn.fetchmany(10**5)
 
-        if res == []:  # pragma: no cover
-            raise SyntaxError(f'no results for query!\n{qry}')
+            if res == []:  # pragma: no cover
+                raise SyntaxError(f'no results for query!\n{qry}')
 
-        while len(res) > 0:
-            mmsi_rows += res
-            ummsi_idx = np.where(
-                np.array(mmsi_rows)[:-1, 0] != np.array(mmsi_rows)[1:,
-                                                                   0])[0] + 1
-            ummsi_idx = reduce(np.append, ([0], ummsi_idx, [len(mmsi_rows)]))
-            for i in range(len(ummsi_idx) - 2):
-                yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
-            if len(ummsi_idx) > 2:
-                mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
+            while len(res) > 0:
+                mmsi_rows += res
+                ummsi_idx = np.where(
+                    np.array(mmsi_rows)[:-1, 0] != np.array(mmsi_rows)[1:, 0]
+                )[0] + 1
+                ummsi_idx = reduce(np.append,
+                                   ([0], ummsi_idx, [len(mmsi_rows)]))
+                for i in range(len(ummsi_idx) - 2):
+                    yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
+                if len(ummsi_idx) > 2:
+                    mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
 
-            res = self.db.cur.fetchmany(10**5)
-        yield mmsi_rows
+                res = self.dbconn.cursor().fetchmany(10**5)
+            yield mmsi_rows
 
 
 class DBQuery_async(DBQuery):
 
-    def __init__(self, *, db, **kwargs):
+    async def create_table_coarsetype(self):
+        ''' create a table to describe integer vessel type as a human-readable string
+            included here instead of create_tables.py to prevent circular import error
+        '''
+
+        _ = await self.dbconn.execute(_create_coarsetype_table)
+
+        _ = await self.dbconn.execute(_create_coarsetype_index)
+
+        _ = await self.dbconn.executemany((
+            'INSERT OR IGNORE INTO coarsetype_ref (coarse_type, coarse_type_txt) '
+            'VALUES (?,?) '), _coarsetype_rows)
+
+    def __init__(self, *, dbpath, **kwargs):
 
         self.data = kwargs
-        self.db = db
+        self.dbpath = dbpath
         self.create_qry_params()
 
     async def gen_qry(self,
-                      dbpath,
                       fcn=sqlfcn.crawl_dynamic,
                       force_reaggregate_static=False):
 
+        if not hasattr(self, 'dbconn'):
+            self.dbconn = await aiosqlite.connect(self.dbpath)
+            self.dbconn.row_factory = sqlite3.Row
+
+        for p in pragmas:
+            _ = await self.dbconn.execute(p)
+
+        _ = await self.create_table_coarsetype()
+
         for month in self.data['months']:
-            res = await self.db.conn.execute_fetchall(
+            res = await self.dbconn.execute_fetchall(
                 ('SELECT * FROM main.sqlite_master '
                  'WHERE type="table" and name=?'),
                 [f'static_{month}_aggregate'])
             if res == []:  # pragma: no cover
                 with DBConn() as syncdb:
-                    print('Aggregating static messages synchronously... '
-                          'This should only happen once!')
+                    print('Aggregating static messages synchronously... ')
                     aggregate_static_msgs(syncdb, [month])
 
-        self.data['dbpath'] = 'main'
-        qry = fcn(**self)
-        cursor = await self.db.conn.execute(qry)
+        qry = fcn(dbpath='main', **self)
+        cursor = await self.dbconn.execute(qry)
         mmsi_rows = []
         res = await cursor.fetchmany(10**5)
         while len(res) > 0:
@@ -266,11 +314,10 @@ class DBQuery_async(DBQuery):
             ummsi_idx = reduce(np.append, ([0], ummsi_idx, [len(mmsi_rows)]))
             for i in range(len(ummsi_idx) - 2):
                 yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
-            #if len(ummsi_idx) > 2:
-            #    mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
             assert len(ummsi_idx) > 2
             mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
 
             res = await cursor.fetchmany(10**5)
         yield mmsi_rows
         await cursor.close()
+        await self.dbconn.close()

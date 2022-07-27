@@ -26,8 +26,10 @@ def decode_msgs(filepaths,
             filepaths (list)
                 absolute filepath locations for AIS message files to be
                 ingested into the database
-            db (:class:`aisdb.database.dbconn.DBConn`)
+            dbconn (:class:`aisdb.database.dbconn.DBConn`)
                 database connection object
+            dbpath (string)
+                database filepath to store results in
             source (string)
                 data source name or description. will be used as a primary key
                 column, so duplicate messages from different sources will not be
@@ -42,10 +44,11 @@ def decode_msgs(filepaths,
 
         example:
 
-            >>> from aisdb import dbpath, decode_msgs
+        >>> from aisdb import dbpath, decode_msgs, DBConn
         >>> filepaths = ['~/ais/rawdata_dir/20220101.nm4',
-                ...              '~/ais/rawdata_dir/20220102.nm4']
-        >>> decode_msgs(filepaths, dbpath)
+        ...              '~/ais/rawdata_dir/20220102.nm4']
+        >>> with DBConn() as dbconn:
+        >>>     decode_msgs(filepaths, dbconn, dbpath, source='TESTING')
     '''
     if not isinstance(dbconn, DBConn):  # pragma: no cover
         if isinstance(dbconn):

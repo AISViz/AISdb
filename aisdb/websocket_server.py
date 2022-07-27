@@ -5,16 +5,17 @@ import websockets
 import calendar
 from datetime import datetime, timedelta
 
-import orjson as json
+import aiosqlite
 import numpy as np
+import orjson as json
 
 from aisdb import (
     sqlfcn,
     sqlfcn_callbacks,
 )
-from aisdb.database.dbconn import DBConn_async
+from aisdb.database.dbconn import DBConn
 from aisdb.database.dbqry import DBQuery_async
-from aisdb.webdata.marinetraffic import _metadict, _nullinfo
+from aisdb.webdata.marinetraffic import vessel_info, _nullinfo
 from aisdb.track_gen import (
     TrackGen_async,
     encode_greatcircledistance_async,
@@ -35,7 +36,8 @@ class SocketServ():
         port = os.environ.get('AISDBPORT', 9924)
         self.port = int(port)
         self.domain = domain
-        self.vesselinfo = _metadict(trafficDBpath)
+        with DBConn() as dbconn_sync:
+            self.vesselinfo = vessel_info(dbconn_sync, trafficDBpath)
 
         # let nginx in docker manage SSL by default
         if enable_ssl:  # pragma: no cover
@@ -52,6 +54,7 @@ class SocketServ():
 
     async def handler(self, websocket):
         ''' handle messages received by the websocket '''
+        self.dbconn = await aiosqlite.connect(self.dbpath)
         async for clientmsg in websocket:
             print(f'{datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} '
                   f'{websocket.remote_address} {str(clientmsg)}')
@@ -97,11 +100,11 @@ class SocketServ():
             raise RuntimeWarning(f'Unhandled client message: {response}')
         return 0
 
-    def _create_dbqry(self, req, db):
+    def _create_dbqry(self, req, dbpath):
         start = datetime(*map(int, req['start'].split('-')))
         end = datetime(*map(int, req['end'].split('-')))
         qry = DBQuery_async(
-            db=db,
+            dbpath=dbpath,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
@@ -119,12 +122,12 @@ class SocketServ():
                 {"type" : "validrange"}
 
         '''
-        async with DBConn_async(dbpath=self.dbpath) as db:
-            res1 = await db.conn.execute_fetchall(
-                "SELECT name FROM main.sqlite_master "
-                "WHERE type='table' AND name LIKE '%_dynamic'")
-            dynamic_months = sorted(
-                [s.split('_')[1] for line in res1 for s in line])
+        #async with DBConn_async(dbpath=self.dbpath) as db:
+        res1 = await self.dbconn.execute_fetchall(
+            "SELECT name FROM main.sqlite_master "
+            "WHERE type='table' AND name LIKE '%_dynamic'")
+        dynamic_months = sorted(
+            [s.split('_')[1] for line in res1 for s in line])
         startyear = max(int(dynamic_months[0][:4]), 2012)
         start_month_range = calendar.monthrange(startyear,
                                                 int(dynamic_months[0][4:]))[-1]
@@ -182,54 +185,52 @@ class SocketServ():
                 }
 
         '''
-        async with DBConn_async(dbpath=self.dbpath) as db:
-            qry = self._create_dbqry(req, db)
-            qrygen = encode_greatcircledistance_async(
-                TrackGen_async(
-                    qry.gen_qry(self.dbpath, fcn=sqlfcn.crawl_dynamic_static)),
-                distance_threshold=250000,
-                minscore=0,
-                speed_threshold=50,
-            )
-            #with self.trafficDB as conn:
-            count = 0
-            async for track in qrygen:
-                #_vinfo(track, conn)
-                if track['mmsi'] in self.vesselinfo.keys():
-                    track['marinetraffic_info'] = self.vesselinfo[
-                        track['mmsi']]
-                else:
-                    track['marinetraffic_info'] = _nullinfo(track)
-                event = {
-                    'msgtype': 'track_vector',
-                    'x': track['lon'],
-                    'y': track['lat'],
-                    't': track['time'],
-                    'meta': {
-                        str(k): str(v)
-                        for k, v in dict(
-                            **track['marinetraffic_info']).items()
-                    },
-                }
-                await websocket.send(
-                    json.dumps(event, option=json.OPT_SERIALIZE_NUMPY))
-                count += 1
-
-                if await self.await_response(websocket) == 'HALT':
-                    return
-
-            if count > 0:
-                await websocket.send(
-                    json.dumps({
-                        'type': 'done',
-                        'status': f'Done. Count: {count}'
-                    }))
+        #async with DBConn_async(dbpath=self.dbpath) as db:
+        qry = self._create_dbqry(req, db)
+        qrygen = encode_greatcircledistance_async(
+            TrackGen_async(
+                qry.gen_qry(self.dbpath, fcn=sqlfcn.crawl_dynamic_static)),
+            distance_threshold=250000,
+            minscore=0,
+            speed_threshold=50,
+        )
+        #with self.trafficDB as conn:
+        count = 0
+        async for track in qrygen:
+            #_vinfo(track, conn)
+            if track['mmsi'] in self.vesselinfo.keys():
+                track['marinetraffic_info'] = self.vesselinfo[track['mmsi']]
             else:
-                await websocket.send(
-                    json.dumps({
-                        'type': 'done',
-                        'status': 'No data for selection'
-                    }))
+                track['marinetraffic_info'] = _nullinfo(track)
+            event = {
+                'msgtype': 'track_vector',
+                'x': track['lon'],
+                'y': track['lat'],
+                't': track['time'],
+                'meta': {
+                    str(k): str(v)
+                    for k, v in dict(**track['marinetraffic_info']).items()
+                },
+            }
+            await websocket.send(
+                json.dumps(event, option=json.OPT_SERIALIZE_NUMPY))
+            count += 1
+
+            if await self.await_response(websocket) == 'HALT':
+                return
+
+        if count > 0:
+            await websocket.send(
+                json.dumps({
+                    'type': 'done',
+                    'status': f'Done. Count: {count}'
+                }))
+        else:
+            await websocket.send(
+                json.dumps({
+                    'type': 'done',
+                    'status': 'No data for selection'
+                }))
 
     async def req_heatmap(self, req, websocket):
         ''' create database query, generate track vectors from rows,

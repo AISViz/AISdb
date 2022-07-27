@@ -12,11 +12,9 @@ from webdriver_manager.firefox import GeckoDriverManager
 # from webdriver_manager.chrome import ChromeDriverManager
 
 
-def _scraper(data_dir, proxyhost=None, proxyport=None):
+def _scraper(proxyhost=None, proxyport=None):
     '''
         args:
-            data_dir (string)
-                direcotory path to store webdrivers and logs
             proxy (string):
                 Optional. String addressing IP and port, e.g.
                 "127.0.0.1:8080"
@@ -54,10 +52,9 @@ def _scraper(data_dir, proxyhost=None, proxyport=None):
     """
 
     driver = webdriver.Firefox(
-        service=Service(
-            executable_path=GeckoDriverManager().install(),
-            log_path=os.path.join(data_dir, 'geckodriver.log'),
-        ),
+        service=Service(executable_path=GeckoDriverManager().install(),
+                        #log_path=os.path.join(data_dir, 'geckodriver.log'),
+                        ),
         options=opt,
     )
 

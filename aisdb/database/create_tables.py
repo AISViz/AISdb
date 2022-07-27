@@ -8,25 +8,27 @@ from aisdb.database.dbconn import DBConn, get_dbname
 from aisdb import sqlpath
 
 
-def sqlite_createtable_dynamicreport(db, month, dbpath):
-    assert isinstance(db, (DBConn)), f'not a DBConn object {db}'
+def sqlite_createtable_dynamicreport(dbconn, month, dbpath):
+    assert isinstance(dbconn, (DBConn)), f'not a DBConn object {dbconn}'
+    dbconn.attach(dbpath)
     with open(os.path.join(sqlpath, 'createtable_dynamic_clustered.sql'),
               'r') as f:
         sql = f.read().format(month).replace(
             f'ais_{month}', f'{get_dbname(dbpath)}.ais_{month}')
     print(sql)
-    db.cur.execute(sql)
+    dbconn.execute(sql)
 
 
-def sqlite_createtable_staticreport(db, month, dbpath):
-    assert isinstance(db, (DBConn)), f'not a DBConn object {db}'
+def sqlite_createtable_staticreport(dbconn, month, dbpath):
+    assert isinstance(dbconn, (DBConn)), f'not a DBConn object {dbconn}'
+    dbconn.attach(dbpath)
     with open(os.path.join(sqlpath, 'createtable_static.sql'), 'r') as f:
         sql = f.read().format(month).replace(
             f'ais_{month}', f'{get_dbname(dbpath)}.ais_{month}')
-    db.cur.execute(sql)
+    dbconn.execute(sql)
 
 
-def aggregate_static_msgs(db, months_str):
+def aggregate_static_msgs(dbconn, months_str):
     ''' collect an aggregate of static vessel reports for each unique MMSI
         identifier. The most frequently repeated values for each MMSI will
         be kept when multiple different reports appear for the same MMSI
@@ -34,23 +36,22 @@ def aggregate_static_msgs(db, months_str):
         this function should be called every time data is added to the database
 
         args:
-            db (:class:`aisdb.database.dbconn.DBConn`)
+            dbconn (:class:`aisdb.database.dbconn.DBConn`)
                 database connection object
 
             months_str (array)
                 array of strings with format: YYYYmm
     '''
-    if not isinstance(db, DBConn):  # pragma: no cover
+    if not isinstance(dbconn, DBConn):  # pragma: no cover
         raise ValueError('db argument must be a DBConn database connection')
 
-    conn, cur = db.conn, db.cur
-
-    for dbpath in db.dbpaths:
+    for dbpath in dbconn.dbpaths:
         assert 'checksums' not in dbpath
         dbname = get_dbname(dbpath)
+        cur = dbconn.cursor()
 
         for month in months_str:
-            #dbpath = [p for p in db.dbpaths if month[0:4] in p][0]
+            #dbpath = [p for p in dbconn.dbpaths if month[0:4] in p][0]
             # check for monthly tables in dbfiles containing static reports
             cur.execute(
                 f'SELECT name FROM {dbname}.sqlite_master WHERE type="table" AND name=?',
@@ -58,15 +59,15 @@ def aggregate_static_msgs(db, months_str):
             if cur.fetchall() == []:
                 continue
 
-        sqlite_createtable_staticreport(db, month, dbpath)
-        print(
-            f'aggregating static reports into {dbname}.static_{month}_aggregate...'
-        )
-        cur.execute(
-            f'SELECT DISTINCT s.mmsi FROM {dbname}.ais_{month}_static AS s')
+        sqlite_createtable_staticreport(dbconn, month, dbpath)
+        print('aggregating static reports into '
+              f'{dbname}.static_{month}_aggregate...')
+        cur.execute('SELECT DISTINCT s.mmsi FROM '
+                    f'{dbname}.ais_{month}_static AS s')
         mmsis = np.array(cur.fetchall(), dtype=int).flatten()
 
-        cur.execute(f'DROP TABLE IF EXISTS {dbname}.static_{month}_aggregate')
+        cur.execute('DROP TABLE IF EXISTS '
+                    f'{dbname}.static_{month}_aggregate')
 
         with open(os.path.join(sqlpath, 'select_columns_static.sql'),
                   'r') as f:
@@ -121,8 +122,8 @@ def aggregate_static_msgs(db, months_str):
                     VALUES ({','.join(['?' for _ in range(skip_nommsi.shape[1])])}) ''',
             skip_nommsi)
 
-        conn.commit()
-        # db.cur.execute('DETACH DATABASE ?', [dbname])
+        dbconn.commit()
+        # dbconn.dbconn.execute('DETACH DATABASE ?', [dbname])
 
 
 createfcns = {

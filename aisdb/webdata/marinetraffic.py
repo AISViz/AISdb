@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
 from aisdb import sqlpath
+from aisdb.database.dbconn import DBConn, get_dbname
 from aisdb.webdata._scraper import _scraper
 import sqlite3
 
@@ -126,16 +127,6 @@ def _insertvesselrow(elem, mmsi, trafficDB):  # pragma: no cover
         conn.execute(_insert_sql, insertrow).fetchall()
 
 
-def _metadict(trafficDBpath):
-    trafficDB = sqlite3.connect(trafficDBpath)
-    trafficDB.row_factory = sqlite3.Row
-    with trafficDB as conn:
-        res = conn.execute(
-            'select * from webdata_marinetraffic where error404 != 1',
-        ).fetchall()
-    return {r['mmsi']: dict(r) for r in res}
-
-
 def vessel_info(tracks, trafficDBpath):
     ''' append metadata scraped from marinetraffic.com to track dictionaries.
 
@@ -150,7 +141,13 @@ def vessel_info(tracks, trafficDBpath):
                 collection of track dictionaries
 
     '''
-    meta = _metadict(trafficDBpath)
+    with DBConn() as dbconn:
+        dbconn.attach(trafficDBpath)
+        dbname = get_dbname(trafficDBpath)
+        res = dbconn.execute(f'SELECT * FROM {dbname}.webdata_marinetraffic '
+                             'WHERE error404 != 1').fetchall()
+
+        meta = {r['mmsi']: r for r in res}
     for track in tracks:
         assert isinstance(track, dict)
         track['static'] = set(track['static']).union({'marinetraffic_info'})
@@ -176,7 +173,6 @@ class VesselInfo():  # pragma: no cover
     '''
 
     def __init__(self, trafficDBpath, proxyhost=None, proxyport=None):
-        #self.filename = 'marinetraffic.db'
         self.driver = None
         self.proxy = [proxyhost, proxyport]
         self.trafficDB = sqlite3.Connection(trafficDBpath)
@@ -191,13 +187,11 @@ class VesselInfo():  # pragma: no cover
 
     def __exit__(self, exc_type, exc_value, tb):
         if self.driver is not None:
-            #self.driver.close()
             self.driver.quit()
 
-    def _getinfo(self, *, url, searchmmsi, data_dir, infotxt=''):
+    def _getinfo(self, *, url, searchmmsi, infotxt=''):
         if self.driver is None:
-            self.driver = _scraper(data_dir=data_dir,
-                                   proxyhost=self.proxy[0],
+            self.driver = _scraper(proxyhost=self.proxy[0],
                                    proxyport=self.proxy[1])
 
         print(infotxt + url, end='\t')
@@ -228,9 +222,7 @@ class VesselInfo():  # pragma: no cover
                 urls.append(elem.get_attribute('href'))
 
             for url in urls:
-                self._getinfo(url=url,
-                              searchmmsi=searchmmsi,
-                              data_dir=data_dir)
+                self._getinfo(url=url, searchmmsi=searchmmsi)
 
             with self.trafficDB as conn:
                 insert404 = conn.execute(
@@ -251,18 +243,12 @@ class VesselInfo():  # pragma: no cover
         for elem in self.driver.find_elements(value=value):
             _ = _insertvesselrow(elem, searchmmsi, self.trafficDB)
 
-    def vessel_info_callback(self,
-                             mmsis,
-                             data_dir,
-                             retry_404=False,
-                             infotxt=''):
+    def vessel_info_callback(self, mmsis, retry_404=False, infotxt=''):
         ''' search for metadata for given mmsis
 
             args:
                 mmsis (list)
                     list of MMSI identifiers (integers)
-                data_dir (string)
-                    path to download and initialize web scraping drivers
         '''
         # only check unique mmsis
         mmsis = np.unique(mmsis).astype(int)
@@ -289,10 +275,7 @@ class VesselInfo():  # pragma: no cover
             if not 200000000 <= mmsi <= 780000000:
                 continue
             url = f'{baseurl}en/ais/details/ships/mmsi:{mmsi}'
-            self._getinfo(url=url,
-                          searchmmsi=mmsi,
-                          data_dir=data_dir,
-                          infotxt=infotxt)
+            self._getinfo(url=url, searchmmsi=mmsi, infotxt=infotxt)
 
         return
 

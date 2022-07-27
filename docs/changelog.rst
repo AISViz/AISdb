@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.97
+-------
+
+clean up DBConn() API #13
+
+
 v1.3.96
 -------
 
