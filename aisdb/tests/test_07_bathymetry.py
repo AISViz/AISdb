@@ -15,12 +15,14 @@ y1, x1 = 48.271185186388735, -61.10595523571155
 lon1M = (np.random.random(1000000) * 90) - 90
 lat1M = (np.random.random(1000000) * 90) + 0
 
-tracks_single = [dict(
-    lon=[x1],
-    lat=[y1],
-    time=[0],
-    dynamic=set(['time']),
-)]
+tracks_single = [
+    dict(
+        lon=np.array([x1]),
+        lat=np.array([y1]),
+        time=[0],
+        dynamic=set(['time']),
+    )
+]
 track1K = [
     dict(
         lon=lon1M[:1000],
@@ -49,6 +51,7 @@ def test_bathymetry_single_pillow():
     with Gebco(data_dir=data_dir) as bathy:
         test = list(bathy.merge_tracks(tracks_single))
         assert 'depth_metres' in test[0].keys()
+        assert 'depth_metres' in test[0]['dynamic']
         print(test[0]['depth_metres'])
 
 
@@ -56,6 +59,7 @@ def test_bathymetry_single_rasterio():
     with Gebco_Rasterio(data_dir=data_dir) as bathy:
         test = list(bathy.merge_tracks(tracks_single))
         assert 'depth_metres' in test[0].keys()
+        assert 'depth_metres' in test[0]['dynamic']
         print(test[0]['depth_metres'])
 
 
@@ -72,11 +76,12 @@ def test_timing_bathymetry_1M_rasterio():
 
 
 def test_bathy_pillow_equals_rasterio():
-    with Gebco_Rasterio(data_dir=data_dir) as rasterio, Gebco(
-            data_dir=data_dir) as pillow:
-        bathy_a = next(rasterio.merge_tracks(track1K))
-        bathy_b = next(pillow.merge_tracks(track1K))
-        avg_diff = np.average(
-            np.abs(bathy_a['depth_metres'] - bathy_b['depth_metres']))
-        print(f'{avg_diff = }')
-        assert avg_diff == 0
+    with Gebco_Rasterio(data_dir=data_dir) as rasterio:
+        bathy_a = next(rasterio.merge_tracks(track1K)).copy()
+    with Gebco(data_dir=data_dir) as pillow:
+        bathy_b = next(pillow.merge_tracks(track1K)).copy()
+    avg_diff = np.average(
+        np.abs(bathy_a['depth_metres'] - bathy_b['depth_metres']))
+    print(avg_diff)
+    assert sum(bathy_a['depth_metres'] == bathy_b['depth_metres']) == len(
+        bathy_a['depth_metres'])

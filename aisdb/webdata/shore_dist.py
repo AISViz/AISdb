@@ -16,10 +16,10 @@ from aisdb.webdata.load_raster import RasterFile
 class ShoreDist(RasterFile):
 
     def get_distance(self, tracks):
-        return self._merge_tracks(tracks, new_track_key='km_from_shore')
+        return self.merge_tracks(tracks, new_track_key='km_from_shore')
 
 
 class PortDist(RasterFile):
 
     def get_distance(self, tracks):
-        return self._merge_tracks(tracks, new_track_key='km_from_port')
+        return self.merge_tracks(tracks, new_track_key='km_from_port')

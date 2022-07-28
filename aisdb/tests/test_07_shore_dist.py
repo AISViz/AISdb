@@ -1,4 +1,7 @@
 import os
+
+import numpy as np
+
 from aisdb.webdata.shore_dist import ShoreDist, PortDist
 
 data_dir = os.environ.get(
@@ -11,12 +14,14 @@ data_dir = os.environ.get(
 
 y1, x1 = 48.271185186388735, -61.10595523571155
 
-tracks_short = [dict(
-    lon=[x1],
-    lat=[y1],
-    time=[0],
-    dynamic=set(['time']),
-)]
+tracks_short = [
+    dict(
+        lon=np.array([x1]),
+        lat=np.array([y1]),
+        time=[0],
+        dynamic=set(['time']),
+    )
+]
 
 
 def test_ShoreDist():
@@ -24,6 +29,7 @@ def test_ShoreDist():
     with ShoreDist(imgpath=imgpath) as sdist:
         for track in sdist.get_distance(tracks_short):
             assert 'km_from_shore' in track.keys()
+            assert 'km_from_shore' in track['dynamic']
 
 
 def test_PortDist():
@@ -32,3 +38,4 @@ def test_PortDist():
         #assert hasattr(portdist, 'get_distance')
         for track in portdist.get_distance(tracks_short):
             assert 'km_from_port' in track.keys()
+            assert 'km_from_port' in track['dynamic']

@@ -2,12 +2,13 @@
 
 import os
 import zipfile
-import time
 import hashlib
+from functools import reduce
 
 import numpy as np
 
 from aisdb.webdata.load_raster import RasterFile_Rasterio, RasterFile
+from aisdb.aisdb import binarysearch_vector
 
 from tqdm import tqdm
 import requests
@@ -112,20 +113,22 @@ class Gebco():
     def merge_tracks(self, tracks):
         ''' append `depth_metres` column  to track dictionaries '''
         for track in tracks:
-            track['dynamic'] = set(track['dynamic']).union(
-                set(['depth_metres']))
-
             raster_keys = np.array(list(self._check_in_bounds(track)),
                                    dtype=object)
-            assert len(raster_keys) == len(track['time'])
-            track['depth_metres'] = np.array([
+            bathy_segments = np.append(
+                np.append([0],
+                          np.where(raster_keys[:-1] != raster_keys[:1])[0]),
+                [len(raster_keys)],
+            )
+            track['depth_metres'] = reduce(np.append, [
                 self.rasterfiles[raster_keys[i]]
-                ['raster'].get_coordinate_value(
-                    track['lon'][i],
-                    track['lat'][i],
-                ) for i in range(len(track['time']))
+                ['raster']._track_coordinate_values(
+                    track, rng=range(bathy_segments[i], bathy_segments[i + 1]))
+                for i in range(len(bathy_segments) - 1)
             ])
 
+            track['dynamic'] = set(track['dynamic']).union(
+                set(['depth_metres']))
             yield track
         self._close_all()
 

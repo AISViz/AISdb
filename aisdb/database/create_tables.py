@@ -108,7 +108,7 @@ def aggregate_static_msgs(dbconn, months_str):
                 f'{dbname}.static_{month}_aggregate')
         cur.execute(sql_aggregate)
 
-        if len(agg_rows) == 0:
+        if len(agg_rows) == 0:  # pragma: no cover
             warnings.warn('no rows to aggregate! '
                           f'table: {dbname}.static_{month}_aggregate')
             continue
@@ -117,13 +117,12 @@ def aggregate_static_msgs(dbconn, months_str):
         assert len(skip_nommsi.shape) == 2
         skip_nommsi = skip_nommsi[skip_nommsi[:, 0] != None]
         assert len(skip_nommsi) > 1
-        cur.executemany(
-            f''' INSERT INTO {dbname}.static_{month}_aggregate
-                    VALUES ({','.join(['?' for _ in range(skip_nommsi.shape[1])])}) ''',
-            skip_nommsi)
+        cur.executemany((
+            f'INSERT INTO {dbname}.static_{month}_aggregate '
+            f"VALUES ({','.join(['?' for _ in range(skip_nommsi.shape[1])])}) "
+        ), skip_nommsi)
 
         dbconn.commit()
-        # dbconn.dbconn.execute('DETACH DATABASE ?', [dbname])
 
 
 createfcns = {

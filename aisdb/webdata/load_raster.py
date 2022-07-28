@@ -5,6 +5,7 @@ from PIL import Image
 import rasterio
 
 from aisdb.proc_util import binarysearch
+from aisdb.aisdb import binarysearch_vector
 
 Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError warning
 
@@ -19,14 +20,11 @@ class _RasterFile_generic():
         ''' close raster files upon exit from context '''
         self.img.close()
 
-    def _merge_tracks(self, tracks, new_track_key: str):
+    def merge_tracks(self, tracks, new_track_key: str):
         for track in tracks:
-            track[new_track_key] = np.array([
-                self.get_coordinate_value(x, y)
-                for x, y in zip(track['lon'], track['lat'])
-            ])
             track['dynamic'] = set(track['dynamic']).union(set([new_track_key
                                                                 ]))
+            track[new_track_key] = self._track_coordinate_values(track)
             yield track
 
 
@@ -37,19 +35,19 @@ class RasterFile(_RasterFile_generic):
         if 33922 in im.tag.tagdata.keys():
             i, j, k, x, y, z = im.tag_v2[33922]  # ModelTiepointTag
             dx, dy, dz = im.tag_v2[33550]  # ModelPixelScaleTag
-            lat = np.arange(y, y + (dy * im.size[1]), dy)[::-1] - 90
+            lat = np.arange(y + dy, y + (dy * im.size[1]) + dy, dy)[::-1] - 90
             if np.sum(lat > 91):
                 lat -= 90
         # NASA JPL tags
         elif 34264 in im.tag.tagdata.keys():  # pragma: no cover
             dx, _, _, x, _, dy, _, y, _, _, dz, z, _, _, _, _ = im.tag_v2[
                 34264]  # ModelTransformationTag
-            lat = np.arange(y, y + (dy * im.size[1]), dy)
+            lat = np.arange(y + dy, y + (dy * im.size[1]) + dy, dy)
 
         else:
             raise ValueError('error: unknown metadata tag encoding')
 
-        lon = np.arange(x, x + (dx * im.size[0]), dx)
+        lon = np.arange(x + dx, x + (dx * im.size[0]) + dx, dx)
 
         return lon, lat
 
@@ -61,34 +59,18 @@ class RasterFile(_RasterFile_generic):
         self.img = Image.open(self.imgpath)
         self.xy = self._get_img_grids(self.img)
 
-    def _pixelindex(self, x1, y1, lon, lat):
-        ''' convert WGS84 coordinates to raster grid index
+    def _get_coordinate_values(self, track, rng=None):
+        if rng is None:
+            rng = range(len(track['time']))
+        idx_lons = np.array(binarysearch_vector(self.xy[0], track['lon'][rng]))
+        idx_lats = np.array(binarysearch_vector(self.xy[1], track['lat'][rng]))
+        return np.array(list(map(
+            self.img.getpixel,
+            zip(idx_lons, idx_lats),
+        )))
 
-            image tag spec:
-            http://duff.ess.washington.edu/data/raster/drg/docs/geotiff.txt
-
-            args:
-                x1 (float)
-                    longitude coordinate
-                y1 (float)
-                    latitude coordinate
-                lon (np.ndarray)
-                    coordinate grid X values
-                lat (np.ndarray)
-                    coordinate grid Y values
-
-            returns:
-                (x, y) array indices
-        '''
-
-        idx_lon = binarysearch(lon, x1)
-        idx_lat = binarysearch(lat, y1)
-
-        return idx_lon, idx_lat
-
-    def get_coordinate_value(self, lon, lat):
-        ''' retrieve value of the specified coordinates '''
-        return self.img.getpixel(self._pixelindex(lon, lat, *self.xy))
+    def _track_coordinate_values(self, track, *, rng: range = None):
+        return self._get_coordinate_values(track, rng=rng)
 
 
 class RasterFile_Rasterio(_RasterFile_generic):
@@ -101,7 +83,16 @@ class RasterFile_Rasterio(_RasterFile_generic):
         self.img = rasterio.open(self.imgpath)
         self.band1 = self.img.read(1)
 
-    def get_coordinate_value(self, lon, lat):
+    def _get_coordinate_value(self, lon, lat):
         ''' retrieve value of the specified coordinates '''
         x, y = self.img.index(lon, lat)
         return self.band1[x, y]
+
+    def _track_coordinate_values(self, track, *, rng: range = None):
+        if rng is None:  # pragma: no cover
+            rng = range(len(track['time']))
+
+        return np.array([
+            self._get_coordinate_value(x, y)
+            for x, y in zip(track['lon'][rng], track['lat'][rng])
+        ])

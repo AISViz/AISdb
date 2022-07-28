@@ -84,7 +84,7 @@ class DBQuery(UserDict):
         if dbpaths == [] and dbpath is None:
             raise ValueError(
                 'must supply either dbpaths list or dbpath string value')
-        elif dbpaths == []:
+        elif dbpaths == []:  # pragma: no cover
             dbpaths = [dbpath]
 
         for dbpath in dbpaths:

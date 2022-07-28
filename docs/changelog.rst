@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.101
+--------
+
+accelerate rasters loading using vectorized binary search from rust module
+
+
 v1.3.100
 --------
 

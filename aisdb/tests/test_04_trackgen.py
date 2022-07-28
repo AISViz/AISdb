@@ -1,6 +1,8 @@
 import os
 from datetime import datetime, timedelta
+
 import pytest
+import numpy as np
 
 from aisdb import track_gen, sqlfcn, sqlfcn_callbacks
 from aisdb.database.dbconn import DBConn
@@ -35,6 +37,9 @@ def test_TrackGen(tmpdir):
             assert 'time' in track.keys()
             if len(track['time']) >= 3:
                 print(track)
+            assert isinstance(track['lon'], np.ndarray)
+            assert isinstance(track['lat'], np.ndarray)
+            assert isinstance(track['time'], np.ndarray)
 
 
 def test_min_speed_filter(tmpdir):
