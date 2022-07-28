@@ -9,21 +9,22 @@ from functools import partial
 
 from shapely.geometry import Polygon
 import numpy as np
-import warnings
 
-from aisdb.database.dbqry import DBQuery, DBConn
 from aisdb.database import sqlfcn, sqlfcn_callbacks
+from aisdb.database.dbqry import DBQuery, DBConn
 from aisdb.gis import Domain
+from aisdb.network_graph import graph, _pipeline
 from aisdb.track_gen import (
     fence_tracks,
     encode_greatcircledistance,
     TrackGen,
 )
-from aisdb.network_graph import graph, _pipeline
 from aisdb.tests.create_testing_data import (
     sample_database_file,
     sample_gulfstlawrence_bbox,
 )
+from aisdb.webdata.marinetraffic import vessel_info
+from aisdb.wsa import wetted_surface_area
 
 trafficDBpath = os.environ.get(
     'AISDBMARINETRAFFIC',
@@ -87,11 +88,25 @@ def test_geofencing(tmpdir):
         _test = next(geofenced(distsplit(TrackGen(rowgen.gen_qry()))))
 
 
-'''
-trafficDBpath = '/RAID0/ais/marinetraffic_V2.db'
-import cProfile
-cProfile.run('test_graph_CSV_single_marinetraffic(tmpdir)', sort='tottime')
-'''
+def test_graph_pipeline_timing_marinetraffic(tmpdir):
+    count = 10000
+    track = dict(
+        lon=(np.random.random(count) * 90) - 90,
+        lat=(np.random.random(count) * 90) + 0,
+        time=np.array(range(count)),
+        dynamic=set(['time', 'lon', 'lat']),
+        static=set(['mmsi', 'ship_type']),
+        mmsi=316000000,
+        ship_type='test',
+    )
+    track = next(wetted_surface_area(vessel_info([track], trafficDBpath)))
+    _pipeline(track,
+              domain=domain,
+              tmp_dir=tmpdir,
+              maxdelta=timedelta(weeks=1),
+              distance_threshold=250000,
+              speed_threshold=50,
+              minscore=0)
 
 
 def test_graph_CSV_single_marinetraffic(tmpdir):
@@ -118,8 +133,6 @@ def test_graph_CSV_single_marinetraffic(tmpdir):
             fcn=sqlfcn.crawl_dynamic_static,
         )
 
-        #test = next(qry.gen_qry())
-
         graph(
             qry,
             domain=domain,
@@ -132,47 +145,6 @@ def test_graph_CSV_single_marinetraffic(tmpdir):
     assert os.path.isfile(outpath)
     with open(outpath, 'r') as out:
         print(out.read())
-
-
-def test_graph_pipeline_timing_marinetraffic(tmpdir):
-    count = 100
-    track = dict(
-        lon=(np.random.random(count) * 90) - 90,
-        lat=(np.random.random(count) * 90) + 0,
-        time=np.array(range(count)),
-        dynamic=set(['time', 'lon', 'lat']),
-        static=set(['mmsi', 'ship_type']),
-        mmsi=316000000,
-        ship_type='test',
-    )
-
-    _pipeline(track,
-              domain=domain,
-              trafficDBpath=trafficDBpath,
-              tmp_dir=tmpdir,
-              maxdelta=timedelta(weeks=1),
-              distance_threshold=250000,
-              speed_threshold=50,
-              minscore=0)
-
-    count = 5000
-    track = dict(
-        lon=(np.random.random(count) * 90) - 90,
-        lat=(np.random.random(count) * 90) + 0,
-        time=np.array(range(count)),
-        dynamic=set(['time', 'lon', 'lat']),
-        static=set(['mmsi', 'ship_type']),
-        mmsi=316000000,
-        ship_type='test',
-    )
-    _pipeline(track,
-              domain=domain,
-              trafficDBpath=trafficDBpath,
-              tmp_dir=tmpdir,
-              maxdelta=timedelta(weeks=1),
-              distance_threshold=250000,
-              speed_threshold=50,
-              minscore=0)
 
 
 def test_graph_CSV_parallel_marinetraffic(tmpdir):

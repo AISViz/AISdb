@@ -7,8 +7,12 @@ import tempfile
 import types
 from datetime import timedelta
 from functools import partial, reduce
-from hashlib import sha256
 from multiprocessing import Pool
+import sqlite3
+if (sqlite3.sqlite_version_info[0] < 3
+        or (sqlite3.sqlite_version_info[0] <= 3
+            and sqlite3.sqlite_version_info[1] < 35)):  # pragma: no cover
+    import pysqlite3 as sqlite3
 
 import numpy as np
 import warnings
@@ -261,8 +265,17 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
             os.remove(picklefile)
 
 
-def _pipeline(track, *, domain, trafficDBpath, tmp_dir, maxdelta,
-              distance_threshold, speed_threshold, minscore):
+def _pipeline(
+    track,
+    *,
+    domain,
+    #trafficDBpath,
+    tmp_dir,
+    maxdelta,
+    distance_threshold,
+    speed_threshold,
+    minscore,
+):
     geofence = partial(fence_tracks, domain=domain)
     track_encode = partial(encode_greatcircledistance,
                            distance_threshold=distance_threshold,
@@ -273,17 +286,19 @@ def _pipeline(track, *, domain, trafficDBpath, tmp_dir, maxdelta,
                         tmp_dir=tmp_dir)
     for x in serialize(
             # merge_tracks_shoredist(merge_tracks_bathymetry(
+            #wetted_surface_area(
+            #    vessel_info(
             geofence(
                 track_encode(
                     #split_timedelta(
-                    wetted_surface_area(
-                        vessel_info(
-                            [track],
-                            trafficDBpath=trafficDBpath,
-                        ), ),
-                    #    maxdelta=maxdelta,
-                    #),
-                ), ), ):
+                    [track], ),
+                #    maxdelta=maxdelta,
+                #),
+            ),
+            #        trafficDBpath=trafficDBpath,
+            #    ),
+            #),
+    ):
         assert x is None
 
 
@@ -390,17 +405,21 @@ def graph(qry,
             f'Not a DBQuery object! Got {qry}'
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        fcn = partial(_pipeline,
-                      domain=domain,
-                      trafficDBpath=trafficDBpath,
-                      tmp_dir=tmp_dir,
-                      speed_threshold=speed_threshold,
-                      distance_threshold=distance_threshold,
-                      minscore=minscore,
-                      maxdelta=maxdelta)
+        fcn = partial(
+            _pipeline,
+            domain=domain,
+            #trafficDBpath=trafficDBpath,
+            tmp_dir=tmp_dir,
+            speed_threshold=speed_threshold,
+            distance_threshold=distance_threshold,
+            minscore=minscore,
+            maxdelta=maxdelta,
+        )
 
-        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)
-        tracks = TrackGen(rowgen)
+        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static,
+                             serialize_safe=True)
+        tracks = wetted_surface_area(
+            vessel_info(TrackGen(rowgen), trafficDBpath=trafficDBpath))
 
         if not processes or processes == 1:
             for track in tracks:
@@ -409,9 +428,15 @@ def graph(qry,
                 _ = fcn(track)
 
         else:
+
+            #def rowfactory(cursor, row):
+            #    keys = [d[0] for d in cursor.description]
+            #    return dict(zip(keys, row))
+
+            #qry.dbconn.row_factory = sqlite3.Connection.row_factory
             with Pool(processes=processes) as p:
                 #p.imap_unordered(fcn, tracks)
-                p.map_async(fcn, tracks)
+                p.map(fcn, tracks)
                 p.close()
                 p.join()
 

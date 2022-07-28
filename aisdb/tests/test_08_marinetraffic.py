@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 from aisdb import track_gen, decode_msgs, DBQuery, sqlfcn_callbacks
-from aisdb.webdata.marinetraffic import vessel_info
+from aisdb.webdata.marinetraffic import vessel_info, _vessel_info_dict
 from aisdb.tests.create_testing_data import random_polygons_domain
 from aisdb import DBConn
 
@@ -65,5 +65,4 @@ def test_retrieve_marinetraffic_data(tmpdir):
 
 def test_marinetraffic_metadict():
     #trafficDBpath = '/RAID0/ais/marinetraffic_V2.db'
-    with DBConn() as dbconn:
-        vessel_info(dbconn, trafficDBpath)
+    meta = _vessel_info_dict(trafficDBpath)
