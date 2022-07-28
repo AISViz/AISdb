@@ -88,7 +88,7 @@ def test_geofencing(tmpdir):
         _test = next(geofenced(distsplit(TrackGen(rowgen.gen_qry()))))
 
 
-def test_graph_pipeline_timing_marinetraffic(tmpdir):
+def test_graph_pipeline_timing(tmpdir):
     count = 10000
     track = dict(
         lon=(np.random.random(count) * 90) - 90,
@@ -109,7 +109,7 @@ def test_graph_pipeline_timing_marinetraffic(tmpdir):
               minscore=0)
 
 
-def test_graph_CSV_single_marinetraffic(tmpdir):
+def test_graph_CSV_single(tmpdir):
 
     testdbpath = os.path.join(
         tmpdir, 'test_network_graph_CSV_single_marinetraffic.db')
@@ -147,7 +147,7 @@ def test_graph_CSV_single_marinetraffic(tmpdir):
         print(out.read())
 
 
-def test_graph_CSV_parallel_marinetraffic(tmpdir):
+def test_graph_CSV_parallel(tmpdir):
     testdbpath = os.path.join(
         tmpdir, 'test_network_graph_CSV_parallel_marinetraffic.db')
     outpath = os.path.join(tmpdir, 'output.csv')
