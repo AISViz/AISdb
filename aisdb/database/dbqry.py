@@ -22,10 +22,7 @@ from aisdb.database.dbconn import (
 from aisdb.database import sqlfcn
 from aisdb.database.sqlfcn_callbacks import dt2monthstr
 from aisdb.database.create_tables import (
-    aggregate_static_msgs,
-    sqlite_createtable_dynamicreport,
-    sqlite_createtable_staticreport,
-)
+    aggregate_static_msgs, )
 from aisdb.webdata.marinetraffic import VesselInfo
 
 
@@ -143,7 +140,6 @@ class DBQuery(UserDict):
                 (f'SELECT * FROM {dbname}.sqlite_master '
                  'WHERE type="table" and name=?'),
                 [f'ais_{month}_dynamic']).fetchall() == 0:  # pragma: no cover
-                #if len(cur.fetchall()) == 0:  # pragma: no cover
                 continue
 
             # check unique mmsis
@@ -188,45 +184,13 @@ class DBQuery(UserDict):
         # initialize dbconn, run query
         assert 'dbpath' not in self.data.keys()
 
-        #dbpath = self.data['dbpath']
-
-        #dbname = get_dbname(dbpath)
-        #for month in self.data['months']:
-        """
-        # create static tables if necessary
-        self.dbconn.execute(
-            f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
-            [f'ais_{month}_static'])
-        if len(self.dbconn.cursor().fetchall()) == 0:
-            sqlite_createtable_staticreport(self.dbconn,
-                                            month,
-                                            dbpath=dbpath)
-
-        # create aggregate tables if necessary
-        self.dbconn.execute((f'SELECT * FROM {dbname}.sqlite_master '
-                             'WHERE type="table" and name=?'),
-                            [f'static_{month}_aggregate'])
-
-        if len(self.dbconn.cursor().fetchall()
-               ) == 0 or force_reaggregate_static:
-            print(f'building static index for month {month}...',
-                  flush=True)
-            aggregate_static_msgs(self.dbconn, [month])
-
-        # create dynamic tables if necessary
-        self.dbconn.execute(
-            f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
-            [f'ais_{month}_dynamic'])
-        if len(self.dbconn.cursor().fetchall()) == 0:  # pragma: no cover
-            sqlite_createtable_dynamicreport(self.dbconn,
-                                             month,
-                                             dbpath=dbpath)
-        """
         for dbpath in self.dbconn.dbpaths:
             qry = fcn(dbpath=dbpath, **self.data)
             if printqry:
                 print(qry)
 
+            # get 500k rows at a time, yield sets of rows for each unique MMSI
+            mmsi_rows = []
             dt = datetime.now()
             res = self.dbconn.execute(qry).fetchmany(10**5)
             delta = datetime.now() - dt
@@ -234,12 +198,7 @@ class DBQuery(UserDict):
                 print(
                     f'query time: {delta.total_seconds():.2f}s\nfetching rows...'
                 )
-
-            # get 500k rows at a time, yield sets of rows for each unique MMSI
-            mmsi_rows = []
-            #res = self.dbconn.fetchmany(10**5)
-
-            if res == []:  # pragma: no cover
+            if res == []:
                 raise SyntaxError(f'no results for query!\n{qry}')
 
             while len(res) > 0:
