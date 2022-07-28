@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.100
+--------
+
+fast array indexing with rust: vectorized binary search implementation
+
+
 v1.3.99
 -------
 

@@ -188,6 +188,43 @@ pub fn encoder_score_fcn(
     }
 }
 
+#[pyfunction]
+pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
+    let descending;
+    if arr[0] > arr[arr.len() - 1] {
+        descending = true;
+        arr.reverse();
+    } else {
+        descending = false;
+    }
+
+    search
+        .into_iter()
+        .map(|s| arr.binary_search_by(|v| v.partial_cmp(&s).expect("Couldn't compare values")))
+        .map(|idx| match idx {
+            Ok(i) => i as i32,
+            Err(i) => {
+                if (i as i32) < 0 {
+                    //println!("out of range! below 0: {}", i);
+                    0 as i32
+                } else if i >= (arr.len()) {
+                    //println!("out of range! above maxlen: {}", i);
+                    (arr.len() - 1) as i32
+                } else {
+                    i as i32
+                }
+            }
+        })
+        .map(|idx| {
+            if !descending {
+                idx
+            } else {
+                (arr.len() - 1) as i32 - idx
+            }
+        })
+        .collect::<Vec<i32>>()
+}
+
 /// Functions imported from Rust
 #[pymodule]
 #[allow(unused_variables)]
@@ -196,6 +233,7 @@ pub fn aisdb(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(decoder))?;
     module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
     module.add_wrapped(wrap_pyfunction!(encoder_score_fcn))?;
+    module.add_wrapped(wrap_pyfunction!(binarysearch_vector))?;
     //module.add_wrapped(wrap_pyfunction!(load_geotiff_pixel))?;
     Ok(())
 }
