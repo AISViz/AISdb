@@ -15,7 +15,7 @@ from aisdb import (
 )
 from aisdb.database.dbconn import DBConn
 from aisdb.database.dbqry import DBQuery_async
-from aisdb.webdata.marinetraffic import vessel_info, _nullinfo
+from aisdb.webdata.marinetraffic import _vessel_info_dict, _nullinfo
 from aisdb.track_gen import (
     TrackGen_async,
     encode_greatcircledistance_async,
@@ -36,8 +36,7 @@ class SocketServ():
         port = os.environ.get('AISDBPORT', 9924)
         self.port = int(port)
         self.domain = domain
-        with DBConn() as dbconn_sync:
-            self.vesselinfo = vessel_info(dbconn_sync, trafficDBpath)
+        self.vesselinfo = _vessel_info_dict(trafficDBpath)
 
         # let nginx in docker manage SSL by default
         if enable_ssl:  # pragma: no cover
@@ -100,11 +99,11 @@ class SocketServ():
             raise RuntimeWarning(f'Unhandled client message: {response}')
         return 0
 
-    def _create_dbqry(self, req, dbpath):
+    def _create_dbqry(self, req):
         start = datetime(*map(int, req['start'].split('-')))
         end = datetime(*map(int, req['end'].split('-')))
         qry = DBQuery_async(
-            dbpath=dbpath,
+            dbpath=self.dbpath,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_bbox_time_validmmsi,
@@ -186,10 +185,9 @@ class SocketServ():
 
         '''
         #async with DBConn_async(dbpath=self.dbpath) as db:
-        qry = self._create_dbqry(req, db)
+        qry = self._create_dbqry(req)
         qrygen = encode_greatcircledistance_async(
-            TrackGen_async(
-                qry.gen_qry(self.dbpath, fcn=sqlfcn.crawl_dynamic_static)),
+            TrackGen_async(qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)),
             distance_threshold=250000,
             minscore=0,
             speed_threshold=50,

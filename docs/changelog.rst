@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.99
+-------
+
+Update websocket_server.py for changes to database connection API (#13)
+
+
 v1.3.98
 -------
 

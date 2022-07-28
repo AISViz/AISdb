@@ -102,12 +102,11 @@ CREATE TABLE IF NOT EXISTS coarsetype_ref (
     coarse_type_txt character varying(75)
 );'''
 
-_create_coarsetype_index = 'CREATE UNIQUE INDEX idx_coarsetype ON coarsetype_ref(coarse_type)'
+_create_coarsetype_index = ('CREATE UNIQUE INDEX IF NOT EXISTS '
+                            'idx_coarsetype ON coarsetype_ref(coarse_type)')
 
 
 def get_dbname(dbpath):
-    if dbpath is None:  # pragma: no cover
-        raise ValueError('dbpath cannot be None')
     name_ext = os.path.split(dbpath)[1]
     name = name_ext.split('.')[0]
     return name

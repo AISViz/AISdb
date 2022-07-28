@@ -127,6 +127,15 @@ def _insertvesselrow(elem, mmsi, trafficDB):  # pragma: no cover
         conn.execute(_insert_sql, insertrow).fetchall()
 
 
+def _vessel_info_dict(trafficDBpath):
+    with DBConn() as dbconn:
+        dbconn.attach(trafficDBpath)
+        dbname = get_dbname(trafficDBpath)
+        res = dbconn.execute(f'SELECT * FROM {dbname}.webdata_marinetraffic '
+                             'WHERE error404 != 1').fetchall()
+        return {r['mmsi']: r for r in res}
+
+
 def vessel_info(tracks, trafficDBpath):
     ''' append metadata scraped from marinetraffic.com to track dictionaries.
 
@@ -141,13 +150,7 @@ def vessel_info(tracks, trafficDBpath):
                 collection of track dictionaries
 
     '''
-    with DBConn() as dbconn:
-        dbconn.attach(trafficDBpath)
-        dbname = get_dbname(trafficDBpath)
-        res = dbconn.execute(f'SELECT * FROM {dbname}.webdata_marinetraffic '
-                             'WHERE error404 != 1').fetchall()
-
-        meta = {r['mmsi']: r for r in res}
+    meta = _vessel_info_dict(trafficDBpath)
     for track in tracks:
         assert isinstance(track, dict)
         track['static'] = set(track['static']).union({'marinetraffic_info'})
