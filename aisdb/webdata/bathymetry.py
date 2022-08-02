@@ -1,17 +1,17 @@
 ''' load bathymetry data from GEBCO raster files '''
 
+import hashlib
 import os
 import zipfile
-import hashlib
 from functools import reduce
 
 import numpy as np
-
-from aisdb.webdata.load_raster import RasterFile_Rasterio, RasterFile
-from aisdb.aisdb import binarysearch_vector
-
-from tqdm import tqdm
 import requests
+import warnings
+from tqdm import tqdm
+
+from aisdb.gis import shiftcoord
+from aisdb.webdata.load_raster import RasterFile_Rasterio, RasterFile
 
 url = 'https://www.bodc.ac.uk/data/open_download/gebco/gebco_2022/geotiff/'
 
@@ -33,7 +33,6 @@ class Gebco():
                     folder where rasters should be stored
         '''
         self.data_dir = data_dir
-        # self.griddata = os.path.join(self.data_dir, 'griddata.db')
         assert os.path.isdir(data_dir)
         self.__enter__()
 
@@ -93,6 +92,13 @@ class Gebco():
 
     def _check_in_bounds(self, track):
         for lon, lat in zip(track['lon'], track['lat']):
+            if not (-180 <= lon <= 180) or not (-90 <= lat <= 90):
+                warnings.warn(
+                    f'coordinates out of range! {lon=},{lat=}\t{track["mmsi"]=}'
+                )
+                lon = shiftcoord([lon])[0]
+                lat = shiftcoord([lat], rng=90)[0]
+
             tracer = False
             for key, bounds in self.rasterfiles.items():  # pragma: no cover
                 if (bounds['w'] <= lon <= bounds['e']
@@ -102,7 +108,10 @@ class Gebco():
                         self._load_raster(key)
                     yield key
                     break
-            assert tracer
+            # assert tracer
+            if not tracer:
+                print(f'{lon = } {lat = }')
+                breakpoint()
         return
 
     def _close_all(self):
@@ -111,7 +120,7 @@ class Gebco():
                 bounds['raster'].img.close()
 
     def merge_tracks(self, tracks):
-        ''' append `depth_metres` column  to track dictionaries '''
+        ''' append `depth_metres` column to track dictionaries '''
         for track in tracks:
             raster_keys = np.array(list(self._check_in_bounds(track)),
                                    dtype=object)
@@ -125,7 +134,7 @@ class Gebco():
                 ['raster']._track_coordinate_values(
                     track, rng=range(bathy_segments[i], bathy_segments[i + 1]))
                 for i in range(len(bathy_segments) - 1)
-            ])
+            ]) * -1
 
             track['dynamic'] = set(track['dynamic']).union(
                 set(['depth_metres']))

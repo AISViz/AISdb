@@ -2,6 +2,43 @@
 Changelog
 =========
 
+v1.3.106
+--------
+
+improved warnings for bathymetry coordinates outside of longitude range (-180,180). bathymetry module now returns positive depth value instead of negative elevation value
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Date:      Tue Aug 2 18:56:29 2022 -0300
+#
+# On branch master
+# Your branch is ahead of 'origin/master' by 2 commits.
+#   (use "git push" to publish your local commits)
+#
+# Changes to be committed:
+#	modified:   Cargo.toml
+#	modified:   aisdb/webdata/bathymetry.py
+#	modified:   aisdb_wasm/Cargo.toml
+#	modified:   docs/changelog.rst
+#	modified:   pyproject.toml
+#
+# Changes not staged for commit:
+#	modified:   aisdb/database/dbconn.py
+#	modified:   aisdb/gis.py
+#	modified:   aisdb/network_graph.py
+#	modified:   aisdb/tests/test_09_network_graph.py
+#	modified:   aisdb/track_gen.py
+#	modified:   docker-compose.yml
+#
+
+
+v1.3.105
+--------
+
+improved warnings for bathymetry coordinates outside of longitude range (-180,180). bathymetry module now returns positive depth value instead of negative elevation value
+
+
 v1.3.104
 --------
 
