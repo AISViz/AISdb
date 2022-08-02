@@ -42,6 +42,7 @@ build
 docker/tag_img.sh
 docs/html
 docs/source/api
+info.sh
 prof
 profile
 release

@@ -53,9 +53,18 @@ def in_bbox(*, alias, xmin, xmax, ymin, ymax, **_):
         return query_args
 
     else:
-        x0 = shiftcoord([xmin])[0]
-        x1 = shiftcoord([xmax])[0]
+        if xmin < -180:
+            x0 = shiftcoord([xmin])[0]
+        else:
+            x0 = xmin
+
+        if xmax > 180:
+            x1 = shiftcoord([xmax])[0]
+        else:
+            x1 = xmax
+
         assert x0 < x1
+
         return f'''({alias}.longitude >= {x0} OR {alias}.longitude <= {x1}) AND
     {alias}.latitude >= {ymin} AND
     {alias}.latitude <= {ymax}'''

@@ -57,10 +57,7 @@ def test_prepare_qry_domain(tmpdir):
             dbpath=testdbpath,
             start=start,
             end=end,
-            xmin=domain.minX,
-            xmax=domain.maxX,
-            ymin=domain.minY,
-            ymax=domain.maxY,
+            **domain.boundary,
             callback=sqlfcn_callbacks.in_timerange,
         ).gen_qry()
         try:
@@ -90,10 +87,7 @@ def test_sql_query_strings(tmpdir):
                 dbpath=testdbpath,
                 start=start,
                 end=end,
-                xmin=domain.maxX,
-                xmax=domain.minX,
-                ymin=domain.minY,
-                ymax=domain.maxY,
+                **domain.boundary,
                 callback=callback,
                 mmsi=316000000,
                 mmsis=[316000000, 316000001],
