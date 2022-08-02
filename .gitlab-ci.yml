@@ -7,10 +7,10 @@ workflow:
     - when: always
 
 stages:
-  - pkgbuild
   - rust-test
-  - python-test
   - build-website
+  - python-test
+  - pkgbuild
   - publish
 
 pkgbuild:
