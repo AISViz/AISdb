@@ -7,6 +7,7 @@ import types
 
 import numpy as np
 import warnings
+import orjson
 
 from aisdb.aisdb import simplify_linestring_idx, encoder_score_fcn
 from aisdb.gis import delta_knots, delta_meters
@@ -67,8 +68,8 @@ def _yieldsegments(rows, staticcols, dynamiccols):
         lon=lon[idx].astype(np.float32),
         lat=lat[idx].astype(np.float32),
         time=time[idx],
-        sog=np.array([r['sog'] for r in rows], dtype=np.float16)[idx],
-        cog=np.array([r['cog'] for r in rows], dtype=np.uint16)[idx],
+        sog=np.array([r['sog'] for r in rows], dtype=np.float32)[idx],
+        cog=np.array([r['cog'] for r in rows], dtype=np.uint32)[idx],
         static=staticcols,
         dynamic=dynamiccols,
     )
@@ -115,7 +116,7 @@ def TrackGen(rowgen: iter) -> dict:
     assert isinstance(rowgen, types.GeneratorType)
     for rows in rowgen:
         assert not (rows is None or len(rows) == 0), 'rows cannot be empty'
-        assert isinstance(rows[0], sqlite3.Row)
+        assert isinstance(rows[0], (sqlite3.Row, dict))
         if firstrow:
             staticcols = set(rows[0].keys()) & _statcols
             dynamiccols = set(rows[0].keys()) ^ staticcols
@@ -216,23 +217,19 @@ def _segments_idx(track, distance_threshold, speed_threshold, **_):
 
 def _scoresarray(track, *, pathways, i, segments_idx, distance_threshold,
                  speed_threshold, minscore):
-    scores = np.array(
-        [
-            #_score_fcn(
-            encoder_score_fcn(
-                #xy1=(pathway['lon'][-1], pathway['lat'][-1]),
-                x1=pathway['lon'][-1],
-                y1=pathway['lat'][-1],
-                #xy2=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]),
-                t1=pathway['time'][-1],
-                x2=track['lon'][segments_idx[i]],
-                y2=track['lat'][segments_idx[i]],
-                t2=track['time'][segments_idx[i]],
-                dist_thresh=distance_threshold,
-                speed_thresh=speed_threshold,
-            ) for pathway in pathways
-        ],
-        dtype=np.float16)
+    scores = np.array([
+        encoder_score_fcn(
+            x1=pathway['lon'][-1],
+            y1=pathway['lat'][-1],
+            t1=pathway['time'][-1],
+            x2=track['lon'][segments_idx[i]],
+            y2=track['lat'][segments_idx[i]],
+            t2=track['time'][segments_idx[i]],
+            dist_thresh=distance_threshold,
+            speed_thresh=speed_threshold,
+        ) for pathway in pathways
+    ],
+                      dtype=np.float16)
     highscore = (scores[np.where(
         scores == np.max(scores))[0][0]] if scores.size > 0 else minscore)
     return scores, highscore
@@ -356,6 +353,7 @@ def encode_greatcircledistance(
         ...     print(f'keys: {track.keys()}')
     '''
     for track in tracks:
+        assert isinstance(track, dict)
         for path in _score_encode(track, distance_threshold, speed_threshold,
                                   minscore):
             yield path
@@ -448,6 +446,7 @@ def fence_tracks(tracks, domain):
         Also see zone_mask()
     '''
     for track in tracks:
+        assert isinstance(track, dict)
         if 'in_zone' not in track.keys():
             track['in_zone'] = np.array(
                 [
@@ -514,3 +513,24 @@ async def min_speed_filter_async(tracks, minspeed):
             static=track['static'],
             dynamic=track['dynamic'],
         )
+
+
+def serialize_tracks(tracks):
+    for track in tracks:
+        track['static'] = tuple(track['static'])
+        track['dynamic'] = tuple(track['dynamic'])
+        if 'marinetraffic_info' in track.keys():
+            track['marinetraffic_info'] = dict(track['marinetraffic_info'])
+        yield orjson.dumps(track, option=orjson.OPT_SERIALIZE_NUMPY)
+
+
+def _deser(track_serialized):
+    track = orjson.loads(track_serialized)
+    for key in track['dynamic']:
+        track[key] = np.array(track[key])
+    return track
+
+
+def deserialize_tracks(tracks):
+    for track in tracks:
+        yield _deser(track)
