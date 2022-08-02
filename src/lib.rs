@@ -188,6 +188,20 @@ pub fn encoder_score_fcn(
     }
 }
 
+/// Vectorized implementation of binary search for fast array indexing.
+/// In out-of-bounds or missing value cases, the nearest search index
+/// will be returned
+///
+/// args:
+///     arr (Vec<f64>)
+///         sorted array of values to be indexed. values can be sorted
+///         either by ascending or descending
+///     search (Vec<f64>)
+///         values to be searched within ``arr``
+///
+/// returns:
+///     indexes (Vec<i32>)
+///
 #[pyfunction]
 pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
     let descending;
@@ -205,10 +219,8 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
             Ok(i) => i as i32,
             Err(i) => {
                 if (i as i32) < 0 {
-                    //println!("out of range! below 0: {}", i);
                     0 as i32
                 } else if i >= (arr.len()) {
-                    //println!("out of range! above maxlen: {}", i);
                     (arr.len() - 1) as i32
                 } else {
                     i as i32

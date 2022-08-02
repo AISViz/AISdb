@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.103
+--------
+
+docstrings for binarysearch_vector() function #nopupdate
+
+
 v1.3.102
 --------
 
