@@ -25,14 +25,31 @@ def in_bbox(*, alias, xmin, xmax, ymin, ymax, **_):
     {alias}.latitude >= {ymin} AND
     {alias}.latitude <= {ymax}'''
 
-    x0 = shiftcoord([xmin])[0]
-    x1 = shiftcoord([xmax])[0]
-    if x0 < x1:
-        return f'''{alias}.longitude >= {x0} AND
-    {alias}.longitude <= {x1} AND
+    if xmin < xmax:
+        if xmin < -180 and xmax > 180:
+            raise ValueError(
+                f'xmin, xmax are out of bounds! {xmin=} < -180,{xmax=} > 180')
+        elif xmin < -180:
+            s = f'''(
+        ({alias}.longitude >= -180 AND {alias}.longitude <= {xmax}) OR
+        ({alias}.longitude <= 180 AND {alias}.longitude >= {shiftcoord([xmin])[0]})
+    ) AND '''
+        elif xmax > 180:
+            s = f'''(
+        ({alias}.longitude <= 180 AND {alias}.longitude >= {shiftcoord([xmax])[0]}) OR
+        ({alias}.longitude >= -180 AND {alias}.longitude <= {xmin})
+    ) AND '''
+        else:
+            assert False
+
+        query_args = f'''{s}
     {alias}.latitude >= {ymin} AND
     {alias}.latitude <= {ymax}'''
+        return query_args
     else:
+        x0 = shiftcoord([xmin])[0]
+        x1 = shiftcoord([xmax])[0]
+        assert x0 < x1
         return f'''({alias}.longitude >= {x0} OR {alias}.longitude <= {x1}) AND
     {alias}.latitude >= {ymin} AND
     {alias}.latitude <= {ymax}'''

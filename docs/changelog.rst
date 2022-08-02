@@ -2,10 +2,16 @@
 Changelog
 =========
 
+v1.3.104
+--------
+
+fix bug causing additional rows to be returned when querying boundaries exceeding longitude range (-180, 180). possibly related to issue #14
+
+
 v1.3.103
 --------
 
-docstrings for binarysearch_vector() function #nopupdate
+Docstrings for binarysearch_vector() function
 
 
 v1.3.102
