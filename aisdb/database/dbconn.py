@@ -161,6 +161,7 @@ class DBConn(sqlite3.Connection):
             self.execute('DETACH DATABASE ?', [get_dbname(dbpath)])
         self.commit()
         self.close()
+        self = None
 
     def attach(self, dbpath):
         ''' connect to an additional database file '''

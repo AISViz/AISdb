@@ -85,6 +85,9 @@ def delta_seconds(track, rng=None):
             rng (range)
                 optionally restrict computed values to given index range
     '''
+    if isinstance(track['time'], list):
+        track['time'] = np.array(track['time'])
+    assert isinstance(track['time'], np.ndarray), f'got {track["time"] = }'
     rng = range(len(track['time'])) if rng is None else rng
     return np.array(list((track['time'][rng][1:] - track['time'][rng][:-1])))
 

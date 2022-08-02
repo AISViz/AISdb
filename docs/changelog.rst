@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.107
+--------
+
+add raster data to network graph pipeline
+
+
 v1.3.106
 --------
 

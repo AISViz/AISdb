@@ -1,4 +1,7 @@
-''' collect vessel transits between zones (nodes), and aggregate various trajectory statistics '''
+'''
+    collect vessel transits between domain zones (graph nodes), and aggregate
+    trajectory statistics within the overall domain
+'''
 
 import os
 import pickle
@@ -26,19 +29,20 @@ from aisdb.gis import (
 )
 from aisdb.track_gen import (
     TrackGen,
-    #TrackGen_async,
+    deserialize_tracks,
     encode_greatcircledistance,
-    #encode_greatcircledistance_async,
     fence_tracks,
-    #fence_tracks_async,
-    split_timedelta,
-    #split_timedelta_async,
+    serialize_tracks,
 )
-from aisdb.webdata.marinetraffic import vessel_info
-#from aisdb.webdata.bathymetry import Gebco
+from aisdb.interp import interp_time
 from aisdb.proc_util import _sanitize
+from aisdb.proc_util import _segment_rng
+from aisdb.webdata.bathymetry import Gebco
+from aisdb.webdata.shore_dist import ShoreDist, PortDist
+from aisdb.webdata.marinetraffic import vessel_info
 from aisdb.wsa import wetted_surface_area
-"""
+
+
 def _depth_nonnegative(track, zoneset):
     ''' returns absolute value of bathymetric depths with topographic heights
         converted to 0
@@ -60,7 +64,6 @@ def _time_in_shoredist_rng(track, subset, dist0=0.01, dist1=5):
             maxdelta=timedelta(minutes=1),
             key='time'),
     ))
-"""
 
 
 def _staticinfo(track, domain):
@@ -94,6 +97,7 @@ _fstr = lambda s: f'{float(s):.2f}'
 # collect aggregated statistics on vessel positional data
 def _transitinfo(track, zoneset):
     ''' aggregate statistics on vessel network graph connectivity '''
+    #track = next(interp_time([track], step=timedelta(minutes=30)))
     return dict(
 
         # geofencing
@@ -118,26 +122,26 @@ def _transitinfo(track, zoneset):
         cumulative_distance_meters=np.sum(delta_meters(track,
                                                        zoneset)).astype(int),
         # shore dist
-        #min_shore_dist=f"{np.min(track['km_from_shore'][zoneset]):.2f}",
-        #avg_shore_dist=f"{np.average(track['km_from_shore'][zoneset]):.2f}"
-        #if 'km_from_shore' in track.keys() else None,
-        #max_shore_dist=f"{np.max(track['km_from_shore'][zoneset]):.2f}"
-        #if 'km_from_shore' in track.keys() else None,
+        min_shore_dist=f"{np.min(track['km_from_shore'][zoneset]):.2f}",
+        avg_shore_dist=f"{np.average(track['km_from_shore'][zoneset]):.2f}"
+        if 'km_from_shore' in track.keys() else None,
+        max_shore_dist=f"{np.max(track['km_from_shore'][zoneset]):.2f}"
+        if 'km_from_shore' in track.keys() else None,
 
         # port dist
-        #min_port_dist=_fstr(np.min(track['km_from_port'][zoneset])),
-        #avg_port_dist=_fstr(np.average(track['km_from_port'][zoneset]))
-        #if 'km_from_port' in track.keys() else None,
-        #max_port_dist=_fstr(np.max(track['km_from_port'][zoneset]))
-        #if 'km_from_port' in track.keys() else None,
+        min_port_dist=_fstr(np.min(track['km_from_port'][zoneset])),
+        avg_port_dist=_fstr(np.average(track['km_from_port'][zoneset]))
+        if 'km_from_port' in track.keys() else None,
+        max_port_dist=_fstr(np.max(track['km_from_port'][zoneset]))
+        if 'km_from_port' in track.keys() else None,
 
         # depth charts
-        #min_depth=_fstr(np.min(_depth_nonnegative(track, zoneset)))
-        #if 'depth_metres' in track.keys() else None,
-        #avg_depth=_fstr(np.average(_depth_nonnegative(track, zoneset)))
-        #if 'depth_metres' in track.keys() else None,
-        #max_depth=_fstr(np.max(_depth_nonnegative(track, zoneset)))
-        #if 'depth_metres' in track.keys() else None,
+        min_depth=_fstr(np.min(_depth_nonnegative(track, zoneset)))
+        if 'depth_metres' in track.keys() else None,
+        avg_depth=_fstr(np.average(_depth_nonnegative(track, zoneset)))
+        if 'depth_metres' in track.keys() else None,
+        max_depth=_fstr(np.max(_depth_nonnegative(track, zoneset)))
+        if 'depth_metres' in track.keys() else None,
         #avg_avg_depth_border_cells=_fstr(
         #    np.average(track['depth_border_cells_average'][zoneset]))
         #if 'depth_border_cells_average' in track.keys() else None,
@@ -157,12 +161,12 @@ def _transitinfo(track, zoneset):
             60) if len(zoneset) > 1 else 'NULL',
 
         # elapsed time in distance from shore
-        #minutes_within_10m_5km_shoredist=_time_in_shoredist_rng(
-        #    track, zoneset, 0.01, 5),
-        #minutes_within_30m_20km_shoredist=_time_in_shoredist_rng(
-        #    track, zoneset, 0.03, 20),
-        #minutes_within_100m_50km_shoredist=_time_in_shoredist_rng(
-        #    track, zoneset, 0.1, 50),
+        minutes_within_10m_5km_shoredist=_time_in_shoredist_rng(
+            track, zoneset, 0.01, 5),
+        minutes_within_30m_20km_shoredist=_time_in_shoredist_rng(
+            track, zoneset, 0.03, 20),
+        minutes_within_100m_50km_shoredist=_time_in_shoredist_rng(
+            track, zoneset, 0.1, 50),
     )
 
 
@@ -230,6 +234,7 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
         ...     lambda r: r['src_zone'] == '0' and r['rcv_zone'] == 'NULL'
         ...     ]
     '''
+    assert os.path.isdir(os.path.dirname(outputfile))
 
     picklefiles = [
         os.path.join(tmp_dir, fname) for fname in sorted(os.listdir(tmp_dir))
@@ -269,43 +274,43 @@ def _pipeline(
     track,
     *,
     domain,
-    #trafficDBpath,
     tmp_dir,
+    #bathy,
+    #sdist,
+    #pdist,
     maxdelta,
     distance_threshold,
     speed_threshold,
     minscore,
+    deserialize=False,
 ):
     geofence = partial(fence_tracks, domain=domain)
-    track_encode = partial(encode_greatcircledistance,
+    encode_track = partial(encode_greatcircledistance,
                            distance_threshold=distance_threshold,
                            minscore=minscore,
                            speed_threshold=speed_threshold)
-    serialize = partial(_serialize_network_edge,
-                        domain=domain,
-                        tmp_dir=tmp_dir)
-    for x in serialize(
-            # merge_tracks_shoredist(merge_tracks_bathymetry(
-            #wetted_surface_area(
-            #    vessel_info(
-            geofence(
-                track_encode(
-                    #split_timedelta(
-                    [track], ),
-                #    maxdelta=maxdelta,
-                #),
-            ),
-            #        trafficDBpath=trafficDBpath,
-            #    ),
-            #),
-    ):
-        assert x is None
+    serialize_CSV = partial(_serialize_network_edge,
+                            domain=domain,
+                            tmp_dir=tmp_dir)
+
+    if not deserialize:
+        #getdepth = partial(bathy.merge_tracks)
+        #getsdist = partial(sdist.get_distance)
+        #getpdist = partial(pdist.get_distance)
+        #graph_pipeline = getsdist( getpdist(getdepth(serialize_CSV(geofence(encode_track([track]))))))
+        graph_pipeline = serialize_CSV(geofence(encode_track([track])))
+    else:
+        graph_pipeline = serialize_CSV(
+            geofence(encode_track(deserialize_tracks([track]))))
+    for p in graph_pipeline:
+        pass
 
 
 def graph(qry,
           *,
           domain,
           dbpath,
+          data_dir,
           trafficDBpath,
           processes=0,
           outputfile='output.csv',
@@ -323,6 +328,12 @@ def graph(qry,
             domain (:py:class:`aisdb.gis.Domain`)
                 collection of zones defined as polygons, these will
                 be used as nodes in the network graph
+            dbpath (string)
+                database filepath
+            data_dir (string)
+                location of raster data
+            trafficDBpath (string)
+                path to marinetraffic database file
             processes (integer)
                 number of processes to compute geofencing in parallel.
                 if set to 0 or False, no parallelization will be used
@@ -403,42 +414,65 @@ def graph(qry,
 
     assert isinstance(qry, aisdb.database.dbqry.DBQuery),\
             f'Not a DBQuery object! Got {qry}'
+    shoredist_raster = os.path.join(data_dir, 'distance-from-shore.tif')
+    portdist_raster = os.path.join(data_dir,
+                                   'distance-from-port-v20201104.tiff')
+    assert os.path.isfile(shoredist_raster)
+    assert os.path.isfile(portdist_raster)
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
+    bathy = Gebco(data_dir=data_dir)
+    sdist = ShoreDist(shoredist_raster)
+    pdist = PortDist(portdist_raster)
+
+    serialize = not (not processes or processes == 1)
+
+    with tempfile.TemporaryDirectory() as tmp_dir, bathy, sdist, pdist:
+        if os.environ.get('DEBUG'):
+            print(f'network graph {tmp_dir = }')
+
         fcn = partial(
             _pipeline,
             domain=domain,
-            #trafficDBpath=trafficDBpath,
             tmp_dir=tmp_dir,
             speed_threshold=speed_threshold,
             distance_threshold=distance_threshold,
             minscore=minscore,
             maxdelta=maxdelta,
+            deserialize=serialize,
         )
 
-        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static,
-                             serialize_safe=True)
-        tracks = wetted_surface_area(
-            vessel_info(TrackGen(rowgen), trafficDBpath=trafficDBpath))
+        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, printqry=True)
+        print(f'\n{domain.name=} {domain.boundary=}')
+        if not serialize:
 
-        if not processes or processes == 1:
+            tracks = sdist.get_distance(
+                pdist.get_distance(
+                    bathy.merge_tracks(
+                        wetted_surface_area(
+                            vessel_info(TrackGen(rowgen),
+                                        trafficDBpath=trafficDBpath)))))
             for track in tracks:
-                assert isinstance(track, dict)
+                assert isinstance(track, dict), f'got {track = }'
                 assert isinstance(track['time'], np.ndarray)
                 _ = fcn(track)
 
         else:
 
-            #def rowfactory(cursor, row):
-            #    keys = [d[0] for d in cursor.description]
-            #    return dict(zip(keys, row))
+            tracks = serialize_tracks(
+                sdist.get_distance(
+                    pdist.get_distance(
+                        bathy.merge_tracks(
+                            wetted_surface_area(
+                                vessel_info(TrackGen(rowgen),
+                                            trafficDBpath=trafficDBpath))))))
 
-            #qry.dbconn.row_factory = sqlite3.Connection.row_factory
-            with Pool(processes=processes) as p:
-                #p.imap_unordered(fcn, tracks)
-                p.map(fcn, tracks)
-                p.close()
-                p.join()
+            #with Pool(processes=processes) as p:
+            #    p.imap_unordered(fcn, tracks, chunksize=1)
+            warnings.warn(
+                'parallelization temporarily disabled. '
+                'network graph results will be processed in sequence')
+            for track in tracks:
+                _ = fcn(track)
 
         if os.listdir(tmp_dir) == []:
             warnings.warn(f'no data for {outputfile}, skipping...\n')

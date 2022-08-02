@@ -15,9 +15,11 @@ from aisdb.database.dbqry import DBQuery, DBConn
 from aisdb.gis import Domain
 from aisdb.network_graph import graph, _pipeline
 from aisdb.track_gen import (
-    fence_tracks,
-    encode_greatcircledistance,
     TrackGen,
+    deserialize_tracks,
+    encode_greatcircledistance,
+    fence_tracks,
+    serialize_tracks,
 )
 from aisdb.tests.create_testing_data import (
     sample_database_file,
@@ -33,6 +35,13 @@ trafficDBpath = os.environ.get(
         'testdata',
         'marinetraffic_test.db',
     ))
+data_dir = os.environ.get(
+    'AISDBDATADIR',
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        'testdata',
+    ),
+)
 
 lon, lat = sample_gulfstlawrence_bbox()
 z1 = Polygon(zip(lon, lat))
@@ -88,6 +97,97 @@ def test_geofencing(tmpdir):
         _test = next(geofenced(distsplit(TrackGen(rowgen.gen_qry()))))
 
 
+def test_graph_CSV_single(tmpdir):
+
+    testdbpath = os.path.join(
+        tmpdir, 'test_network_graph_CSV_single_marinetraffic.db')
+    outpath = os.path.join(tmpdir, 'output.csv')
+
+    months = sample_database_file(testdbpath)
+    start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
+    end = start + timedelta(weeks=4)
+
+    with DBConn() as aisdatabase:
+        qry = DBQuery(
+            dbconn=aisdatabase,
+            dbpath=testdbpath,
+            start=start,
+            end=end,
+            xmin=-180,
+            xmax=180,
+            ymin=-90,
+            ymax=90,
+            callback=sqlfcn_callbacks.in_bbox,
+            fcn=sqlfcn.crawl_dynamic_static,
+        )
+
+        graph(
+            qry,
+            data_dir=data_dir,
+            domain=domain,
+            dbpath=testdbpath,
+            trafficDBpath=trafficDBpath,
+            processes=0,
+            outputfile=outpath,
+            maxdelta=timedelta(weeks=1),
+        )
+        assert os.path.isfile(outpath)
+    with open(outpath, 'r') as out:
+        print(out.read())
+
+
+def test_graph_CSV_parallel(tmpdir):
+    testdbpath = os.path.join(tmpdir, 'test_network_graph_CSV_parallel.db')
+    outpath = os.path.join(tmpdir, 'output.csv')
+
+    months = sample_database_file(testdbpath)
+    start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
+    end = start + timedelta(weeks=4)
+    with DBConn() as dbconn:
+        qry = DBQuery(
+            dbconn=dbconn,
+            dbpath=testdbpath,
+            start=start,
+            end=end,
+            xmin=-180,
+            xmax=180,
+            ymin=-90,
+            ymax=90,
+            callback=sqlfcn_callbacks.in_bbox,
+            fcn=sqlfcn.crawl_dynamic_static,
+        )
+        test = next(qry.gen_qry())
+        assert test
+
+        _ = graph(
+            qry,
+            domain=domain,
+            data_dir=data_dir,
+            dbpath=testdbpath,
+            trafficDBpath=trafficDBpath,
+            processes=6,
+            outputfile=outpath,
+            maxdelta=timedelta(weeks=1),
+        )
+        assert os.path.isfile(outpath)
+    with open(outpath, 'r') as out:
+        print(out.read())
+
+
+def test_serialize_deserialize_tracks():
+    track = dict(
+        lon=(np.random.random(10) * 90) - 90,
+        lat=(np.random.random(10) * 90) + 0,
+        time=np.array(range(10)),
+        dynamic=set(['time', 'lon', 'lat']),
+        static=set(['mmsi', 'ship_type']),
+        mmsi=316000000,
+        ship_type='test',
+    )
+    for track in deserialize_tracks(serialize_tracks([track])):
+        assert isinstance(track, dict)
+
+
 def test_graph_pipeline_timing(tmpdir):
     count = 10000
     track = dict(
@@ -109,76 +209,14 @@ def test_graph_pipeline_timing(tmpdir):
               minscore=0)
 
 
-def test_graph_CSV_single(tmpdir):
+'''
+    import tempfile
+    import cProfile
 
-    testdbpath = os.path.join(
-        tmpdir, 'test_network_graph_CSV_single_marinetraffic.db')
-    outpath = os.path.join(tmpdir, 'output.csv')
+    data_dir = '/RAID0/ais/'
+    trafficDBpath = './testdata/marinetraffic_test.db'
 
-    months = sample_database_file(testdbpath)
-    start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
-    end = start + timedelta(weeks=4)
-
-    with DBConn() as aisdatabase:
-        qry = DBQuery(
-            dbconn=aisdatabase,
-            dbpath=testdbpath,
-            start=start,
-            end=end,
-            xmin=-180,  #domain.minX,
-            xmax=180,  #domain.maxX,
-            ymin=-90,  #domain.minY,
-            ymax=90,  #domain.maxY,
-            callback=sqlfcn_callbacks.in_bbox,
-            fcn=sqlfcn.crawl_dynamic_static,
-        )
-
-        graph(
-            qry,
-            domain=domain,
-            dbpath=testdbpath,
-            trafficDBpath=trafficDBpath,
-            processes=0,
-            outputfile=outpath,
-            maxdelta=timedelta(weeks=1),
-        )
-    assert os.path.isfile(outpath)
-    with open(outpath, 'r') as out:
-        print(out.read())
-
-
-def test_graph_CSV_parallel(tmpdir):
-    testdbpath = os.path.join(
-        tmpdir, 'test_network_graph_CSV_parallel_marinetraffic.db')
-    outpath = os.path.join(tmpdir, 'output.csv')
-
-    months = sample_database_file(testdbpath)
-    start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
-    end = start + timedelta(weeks=4)
-    with DBConn() as dbconn:
-        qry = DBQuery(
-            dbconn=dbconn,
-            dbpath=testdbpath,
-            start=start,
-            end=end,
-            xmin=-180,  #domain.minX,
-            xmax=180,  #domain.maxX,
-            ymin=-90,  #domain.minY,
-            ymax=90,  #domain.maxY,
-            callback=sqlfcn_callbacks.in_bbox,
-            fcn=sqlfcn.crawl_dynamic_static,
-        )
-        test = next(qry.gen_qry())
-
-        _ = graph(
-            qry,
-            domain=domain,
-            dbpath=testdbpath,
-            trafficDBpath=trafficDBpath,
-            processes=6,
-            outputfile=outpath,
-            maxdelta=timedelta(weeks=1),
-        )
-    assert os.path.isfile(outpath)
-    with open(outpath, 'r') as out:
-        print(out.read())
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cProfile.run("test_graph_CSV_single(tmpdir)", sort="tottime")
+        cProfile.run("test_graph_CSV_parallel(tmpdir)", sort="tottime")
+'''

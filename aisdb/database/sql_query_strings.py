@@ -29,6 +29,9 @@ def in_bbox(*, alias, xmin, xmax, ymin, ymax, **_):
         if xmin < -180 and xmax > 180:
             raise ValueError(
                 f'xmin, xmax are out of bounds! {xmin=} < -180,{xmax=} > 180')
+        elif -180 <= xmin <= 180 and -180 <= xmax <= 180:
+            s = f'''{alias}.longitude >= {xmin} AND
+    {alias}.longitude <= {xmax} AND '''
         elif xmin < -180:
             s = f'''(
         ({alias}.longitude >= -180 AND {alias}.longitude <= {xmax}) OR
@@ -40,12 +43,15 @@ def in_bbox(*, alias, xmin, xmax, ymin, ymax, **_):
         ({alias}.longitude >= -180 AND {alias}.longitude <= {xmin})
     ) AND '''
         else:
-            assert False
+            raise ValueError(
+                f'Error creating SQL query in longitude bounds {xmin=} {xmax=}'
+            )
 
         query_args = f'''{s}
     {alias}.latitude >= {ymin} AND
     {alias}.latitude <= {ymax}'''
         return query_args
+
     else:
         x0 = shiftcoord([xmin])[0]
         x1 = shiftcoord([xmax])[0]
