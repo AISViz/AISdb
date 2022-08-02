@@ -126,7 +126,6 @@ class DBQuery(UserDict):
 
         '''
         self.dbconn.attach(dbpath)
-        #cur = self.dbconn.cursor()
         vinfo = VesselInfo(trafficDBpath)
         # TODO: determine which attached db to query
 
@@ -149,11 +148,10 @@ class DBQuery(UserDict):
                 f'{sqlfcn_callbacks.in_validmmsi_bbox(alias="d", **boundary)}')
             mmsis = self.dbconn.execute(sql).fetchall()
             print('.', end='', flush=True)  # first dot
-            #mmsis = cur.fetchall()
 
             # retrieve vessel metadata
             if len(mmsis) > 0:  # pragma: no cover
-                # not covered; will be cached for testing
+                # not covered due to caching used for testing
                 vinfo.vessel_info_callback(mmsis=np.array(mmsis),
                                            retry_404=retry_404,
                                            infotxt=f'{month} ')
@@ -192,7 +190,9 @@ class DBQuery(UserDict):
             # get 500k rows at a time, yield sets of rows for each unique MMSI
             mmsi_rows = []
             dt = datetime.now()
-            res = self.dbconn.execute(qry).fetchmany(10**5)
+            cur = self.dbconn.cursor()
+            _ = cur.execute(qry)
+            res = cur.fetchmany(10**5)
             delta = datetime.now() - dt
             if printqry:
                 print(
@@ -213,7 +213,7 @@ class DBQuery(UserDict):
                 if len(ummsi_idx) > 2:
                     mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
 
-                res = self.dbconn.cursor().fetchmany(10**5)
+                res = cur.fetchmany(10**5)
             yield mmsi_rows
 
 

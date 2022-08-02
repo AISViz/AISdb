@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.102
+--------
+
+fix DBQuery truncating results from large queries (#17)
+
+
 v1.3.101
 --------
 
