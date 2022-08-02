@@ -1,10 +1,12 @@
 image: meridiancfi/aisdb:latest
 
+
 workflow:
   rules:
     - if: $CI_COMMIT_TAG
       when: never
     - when: always
+
 
 stages:
   - rust-test
@@ -13,16 +15,6 @@ stages:
   - pkgbuild
   - publish
 
-pkgbuild:
-  image: 
-    name: ghcr.io/pyo3/maturin:main
-    entrypoint: [""]
-  stage: pkgbuild
-  script:
-    - maturin build --release --manylinux 2014 --strip --interpreter 3.8 3.9 3.10
-  artifacts:
-    paths:
-      - ./target/wheels/
 
 rust-test:
   stage: rust-test
@@ -32,6 +24,32 @@ rust-test:
   artifacts:
     paths:
       - ./testdata/*
+      - ./target/release/
+
+
+build-website:
+  stage: build-website
+  only: 
+    - master
+  dependencies:
+    - rust-test
+  script:
+    - python -m venv env
+    - source env/bin/activate && python -m pip install --upgrade pip maturin sphinx sphinx-rtd-theme
+    - source env/bin/activate && maturin develop --release --extras=test,docs
+    - cd aisdb_web && npm install
+    - source ../env/bin/activate && /bin/bash ./build_website.sh
+    - cd ..
+  cache:
+    key: persistent_000
+    paths:
+      - ./env
+      - ./data_dir
+      - ./aisdb_web/node_modules/
+  artifacts:
+    paths:
+      - ./aisdb_web/
+
 
 python-test:
   stage: python-test
@@ -55,28 +73,21 @@ python-test:
       - ./aisdb_web/dist_coverage/
       - .coverage
 
-build-website:
-  stage: build-website
-  only: 
-    - master
+
+pkgbuild:
+  image: 
+    name: ghcr.io/pyo3/maturin:main
+    entrypoint: [""]
+  stage: pkgbuild
   dependencies:
+    - rust-test
     - python-test
   script:
-    - python -m venv env
-    - source env/bin/activate && python -m pip install --upgrade pip maturin sphinx sphinx-rtd-theme
-    - source env/bin/activate && maturin develop --release --extras=test,docs
-    - cd aisdb_web && npm install
-    - source ../env/bin/activate && /bin/bash ./build_website.sh
-    - cd ..
-  cache:
-    key: persistent_000
-    paths:
-      - ./env
-      - ./data_dir
-      - ./aisdb_web/node_modules/
+    - maturin build --release --manylinux 2014 --strip --interpreter 3.8 3.9 3.10
   artifacts:
     paths:
-      - ./aisdb_web/
+      - ./target/wheels/
+
 
 tag:
   stage: publish
