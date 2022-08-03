@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.108
+--------
+
+fix interpolation range bug #20
+
+
 v1.3.107
 --------
 

@@ -31,20 +31,16 @@ def interp_time(tracks, step=timedelta(minutes=10)):
         returns:
             dictionary of interpolated tracks
     '''
-    stepcount = int(step.total_seconds())
     for track in tracks:
 
         if track['time'].size <= 1:
             yield track
             continue
 
-        stop = track['time'][-1] + (
-            stepcount if track['time'][-1] - track['time'][0] < stepcount else
-            track['time'][-1]) + 1
         intervals = np.arange(
             start=track['time'][0],
-            stop=stop,
-            step=stepcount,
+            stop=track['time'][-1] + int(step.total_seconds()),
+            step=int(step.total_seconds()),
         ).astype(int)
 
         assert len(intervals) >= 2
