@@ -82,7 +82,7 @@ async def interp_time_async(tracks, step=timedelta(minutes=10)):
 
         intervals = np.arange(
             start=track['time'][0],
-            stop=track['time'][-1],
+            stop=track['time'][-1] + int(step.total_seconds()),
             step=int(step.total_seconds()),
         ).astype(int)
 
