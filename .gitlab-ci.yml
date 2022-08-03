@@ -83,7 +83,7 @@ pkgbuild:
     - rust-test
     - python-test
   script:
-    - maturin build --release --manylinux 2014 --strip --interpreter 3.8 3.9 3.10
+    - maturin build --release --manylinux 2014 --strip --interpreter 3.10
   artifacts:
     paths:
       - ./target/wheels/
