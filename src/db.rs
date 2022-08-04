@@ -1,7 +1,7 @@
 //use std::env::current_exe;
 use include_dir::{include_dir, Dir};
 
-use chrono::MIN_DATETIME;
+use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection, Result, Transaction};
 
 use crate::util::epoch_2_dt;
@@ -83,7 +83,7 @@ pub fn sqlite_insert_static(
     for msg in msgs {
         let (p, e) = msg.staticdata();
 
-        let eta = p.eta.unwrap_or(MIN_DATETIME);
+        let eta = p.eta.unwrap_or(DateTime::<Utc>::MIN_UTC);
         stmt.execute(params![
             p.mmsi,
             e,

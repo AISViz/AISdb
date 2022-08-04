@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.109
+--------
+
+fix rust Chrono deprecation warning; remove rustdoc and rust binary target
+
+
 v1.3.108
 --------
 

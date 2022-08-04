@@ -12,13 +12,13 @@ WASMDIR="${ROOTDIR}/aisdb_wasm"
 set -e
 
 # cargo docs site build
-cd "${ROOTDIR}"
-cargo doc \
-  --document-private-items \
-  --no-deps \
-  --package=aisdb \
-  --release \
-  --target-dir="${CARGODIR}"
+#cd "${ROOTDIR}"
+#cargo doc \
+#  --document-private-items \
+#  --no-deps \
+#  --package=aisdb \
+#  --release \
+#  --target-dir="${CARGODIR}"
 
 
 # sphinx docs site build

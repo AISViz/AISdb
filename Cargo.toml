@@ -1,12 +1,5 @@
-[[bin]]
-name = "aisdb"
-path = "src/bin.rs"
-doc = true
-test = true
-doctest = false
-
 [package]
-version = "1.3.108"
+version = "1.3.109"
 name = "aisdb"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"
