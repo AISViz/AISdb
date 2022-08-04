@@ -77,10 +77,7 @@ def test_geofencing(tmpdir):
             dbpath=testdbpath,
             start=start,
             end=end,
-            xmin=-180,  #domain.minX,
-            xmax=180,  #domain.maxX,
-            ymin=-90,  #domain.minY,
-            ymax=90,  #domain.maxY,
+            **domain.boundary,
             callback=sqlfcn_callbacks.in_bbox,
         )
 
@@ -113,10 +110,7 @@ def test_graph_CSV_single(tmpdir):
             dbpath=testdbpath,
             start=start,
             end=end,
-            xmin=-180,
-            xmax=180,
-            ymin=-90,
-            ymax=90,
+            **domain.boundary,
             callback=sqlfcn_callbacks.in_bbox,
             fcn=sqlfcn.crawl_dynamic_static,
         )

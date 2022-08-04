@@ -441,10 +441,9 @@ def graph(qry,
             deserialize=serialize,
         )
 
-        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, printqry=True)
+        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)
         print(f'\n{domain.name=} {domain.boundary=}')
         if not serialize:
-
             tracks = sdist.get_distance(
                 pdist.get_distance(
                     bathy.merge_tracks(
@@ -457,7 +456,6 @@ def graph(qry,
                 _ = fcn(track)
 
         else:
-
             tracks = serialize_tracks(
                 sdist.get_distance(
                     pdist.get_distance(
