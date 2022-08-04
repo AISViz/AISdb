@@ -17,9 +17,6 @@ pub mod db;
 #[path = "decode.rs"]
 pub mod decode;
 
-#[path = "load_geotiff.rs"]
-pub mod load_geotiff;
-
 #[path = "util.rs"]
 pub mod util;
 
