@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.110
+--------
+
+enable extrapolation when interpolating outside single time step range #22
+
+
 v1.3.109
 --------
 

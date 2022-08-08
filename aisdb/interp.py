@@ -12,9 +12,9 @@ def np_interp_linear(track, key, intervals):
         x=intervals.astype(int),
         xp=track['time'].astype(int),
         fp=track[key].astype(float),
-        left=np.nan,
-        right=np.nan,
-        period=None,
+        # left=np.nan,
+        # right=np.nan,
+        # period=None,
     )
 
 
