@@ -195,12 +195,13 @@ class DBQuery(UserDict):
 
                 '''
                 # create aggregate tables if necessary
-                self.dbconn.execute(
+                cur = self.dbconn.cursor()
+                cur.execute(
                     (f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master '
                      'WHERE type="table" and name=?'),
                     [f'static_{month}_aggregate'])
-                if len(self.dbconn.cursor().fetchall()
-                       ) == 0 or force_reaggregate_static:
+                res = cur.fetchall()
+                if len(res) == 0 or force_reaggregate_static:
                     print(f'building static index for month {month}...',
                           flush=True)
                     aggregate_static_msgs(self.dbconn, [month])

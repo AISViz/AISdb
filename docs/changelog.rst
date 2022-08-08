@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.111
+--------
+
+fix DBQuery missing aggregate table when using alternate sql query function
+
+
 v1.3.110
 --------
 
