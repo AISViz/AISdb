@@ -19,7 +19,6 @@ AISDB Docs: Index
    :titlesonly:
 
    api/aisdb
-   rust
    changelog
 
 

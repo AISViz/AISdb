@@ -3,22 +3,19 @@
 import os
 import shutil
 
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
-from webdriver_manager.firefox import GeckoDriverManager
-# from selenium.webdriver.chrome.options import Options
-# from selenium.webdriver.chrome.service import Service
-# from webdriver_manager.chrome import ChromeDriverManager
 
+def _scraper():
+    ''' selenium web scraper ``selenium.webdriver``
 
-def _scraper(proxyhost=None, proxyport=None):
+        to open a browser window while debugging, export DEBUG=1
     '''
-        args:
-            proxy (string):
-                Optional. String addressing IP and port, e.g.
-                "127.0.0.1:8080"
-    '''
+    from selenium import webdriver
+    from selenium.webdriver.firefox.options import Options
+    from selenium.webdriver.firefox.service import Service
+    from webdriver_manager.firefox import GeckoDriverManager
+    # from selenium.webdriver.chrome.options import Options
+    # from selenium.webdriver.chrome.service import Service
+    # from webdriver_manager.chrome import ChromeDriverManager
     assert shutil.which('firefox'), 'Firefox is required for this feature'
 
     # configs

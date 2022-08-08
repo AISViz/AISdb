@@ -24,7 +24,7 @@ trafficDBpath = os.path.join(testdir, 'marinetraffic_test.db')
 
 def test_init_scraper():
     from aisdb.webdata._scraper import _scraper
-    _driver = _scraper(testdir)
+    _driver = _scraper()
     _driver.close()
 
 

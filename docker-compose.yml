@@ -63,8 +63,6 @@ services:
         BINGMAPSKEY: ${BINGMAPSKEY:-"Your Bing Maps Key from https://www.bingmapsportal.com/ here"}
         AISDBHOST: ${AISDBHOST:-127.0.0.1}
         AISDBPORT: ${AISDBPORT:-9924}
-    depends_on:
-      - python-test  # for test coverage report
     command:
       ['npm', '--prefix', 'aisdb_web/', 'start']
     networks:

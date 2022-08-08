@@ -13,7 +13,6 @@ from aisdb import (
     sqlfcn,
     sqlfcn_callbacks,
 )
-from aisdb.database.dbconn import DBConn
 from aisdb.database.dbqry import DBQuery_async
 from aisdb.webdata.marinetraffic import _vessel_info_dict, _nullinfo
 from aisdb.track_gen import (

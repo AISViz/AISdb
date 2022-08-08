@@ -20,9 +20,8 @@ from aisdb.database.dbconn import (
     pragmas,
 )
 from aisdb.database import sqlfcn
+from aisdb.database.create_tables import aggregate_static_msgs
 from aisdb.database.sqlfcn_callbacks import dt2monthstr
-from aisdb.database.create_tables import (
-    aggregate_static_msgs, )
 from aisdb.webdata.marinetraffic import VesselInfo
 
 
@@ -183,6 +182,39 @@ class DBQuery(UserDict):
         assert 'dbpath' not in self.data.keys()
 
         for dbpath in self.dbconn.dbpaths:
+            # create static tables if necessary
+            for month in self.data['months']:
+                '''
+                self.dbconn.execute(
+                    f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master WHERE type="table" and name=?',
+                    [f'ais_{month}_static'])
+                if len(self.dbconn.cursor().fetchall()) == 0:
+                    sqlite_createtable_staticreport(self.dbconn,
+                                                    month,
+                                                    dbpath=dbpath)
+
+                '''
+                # create aggregate tables if necessary
+                self.dbconn.execute(
+                    (f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master '
+                     'WHERE type="table" and name=?'),
+                    [f'static_{month}_aggregate'])
+                if len(self.dbconn.cursor().fetchall()
+                       ) == 0 or force_reaggregate_static:
+                    print(f'building static index for month {month}...',
+                          flush=True)
+                    aggregate_static_msgs(self.dbconn, [month])
+                '''
+                # create dynamic tables if necessary
+                self.dbconn.execute(
+                    f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
+                    [f'ais_{month}_dynamic'])
+                if len(self.dbconn.cursor().fetchall()) == 0:  # pragma: no cover
+                    sqlite_createtable_dynamicreport(self.dbconn,
+                                                     month,
+                                                     dbpath=dbpath)
+                '''
+
             qry = fcn(dbpath=dbpath, **self.data)
             if printqry:
                 print(qry)

@@ -6,6 +6,7 @@ RUN pacman -Syyuu --noconfirm \
     firefox \
     gcc \
     git \
+    glibc \
     nodejs \
     npm \
     python \

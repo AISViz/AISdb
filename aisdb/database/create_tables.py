@@ -123,15 +123,3 @@ def aggregate_static_msgs(dbconn, months_str):
         ), skip_nommsi)
 
         dbconn.commit()
-
-
-createfcns = {
-    'msg1': sqlite_createtable_dynamicreport,
-    'msg2': sqlite_createtable_dynamicreport,
-    'msg3': sqlite_createtable_dynamicreport,
-    'msg5': sqlite_createtable_staticreport,
-    'msg18': sqlite_createtable_dynamicreport,
-    'msg19': sqlite_createtable_dynamicreport,
-    'msg24': sqlite_createtable_staticreport,
-    'msg27': sqlite_createtable_dynamicreport,
-}

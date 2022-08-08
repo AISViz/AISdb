@@ -150,9 +150,6 @@ def test_graph_CSV_parallel(tmpdir):
             callback=sqlfcn_callbacks.in_bbox,
             fcn=sqlfcn.crawl_dynamic_static,
         )
-        test = next(qry.gen_qry())
-        assert test
-
         _ = graph(
             qry,
             domain=domain,
