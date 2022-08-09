@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.113
+--------
+
+update CSV output columns ordering
+
+
 v1.3.112
 --------
 

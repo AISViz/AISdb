@@ -111,12 +111,22 @@ def write_csv_rows(rows,
 
 def _datetime_column(tracks):
     for track in tracks:
+        assert isinstance(track, dict), f'got {track=}'
         track['datetime'] = np.array(
             _epoch_2_dt(track['time'].astype(int)),
             dtype=object,
         )
         track['dynamic'] = track['dynamic'].union(set(['datetime']))
         yield track
+
+
+_columns_order = [
+    'mmsi', 'imo', 'vessel_name', 'name', 'datetime', 'time', 'lon', 'lat',
+    'cog', 'sog', 'dim_bow', 'dim_stern', 'dim_star', 'dim_port',
+    'coarse_type_txt', 'vesseltype_generic', 'vesseltype_detailed', 'callsign',
+    'flag', 'gross_tonnage', 'summer_dwt', 'length_breadth', 'year_built',
+    'home_port', 'error404'
+]
 
 
 def write_csv(
@@ -137,7 +147,10 @@ def write_csv(
     '''
     tracks_dt = _datetime_column(tracks)
     tr1 = next(tracks_dt)
-    colnames = list(tr1['dynamic']) + list(tr1['static'])
+    colnames = [
+        c for c in _columns_order
+        if c in list(tr1['static']) + list(tr1['dynamic'])
+    ]
 
     if 'marinetraffic_info' in tr1.keys():
         colnames += tuple(tr1['marinetraffic_info'].keys())
@@ -180,7 +193,8 @@ def write_csv(
             writer.writerow(row)
 
     with open(fpath, 'w', newline='') as f:
-        f.write(','.join(colnames) + '\n')
+        f.write(','.join(colnames).replace('coarse_type_txt', 'ship_type') +
+                '\n')
         writer = csv.writer(f,
                             delimiter=',',
                             quotechar="'",

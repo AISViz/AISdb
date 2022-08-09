@@ -11,7 +11,7 @@ SELECT
     static_{}.dim_stern,
     static_{}.dim_port,
     static_{}.dim_star,
-    static_{}.ship_type,
+    --static_{}.ship_type,
     ref.coarse_type_txt
   FROM dynamic_{}
   LEFT JOIN static_{} ON 
