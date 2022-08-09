@@ -152,7 +152,7 @@ def distance3D(x1, y1, x2, y2, depth_metres):
     return np.sqrt(c2)
 
 
-def vesseltrack_3D_dist(tracks, x1, y1, z1):
+def vesseltrack_3D_dist(tracks, x1, y1, z1, colname='distance_metres'):
     ''' appends approximate distance to point at every position
 
         x1 (float)
@@ -161,15 +161,19 @@ def vesseltrack_3D_dist(tracks, x1, y1, z1):
             point latitude
         z1 (float)
             point depth (metres)
+        colname (string)
+            track dictionary key for which depth values will be set.
+            by default, distances are appended to the 'distance_metres'
+            key
 
     '''
     for track in tracks:
-        track['dynamic'] = track['dynamic'].union(set(['distance_metres']))
+        track['dynamic'] = track['dynamic'].union(set([colname]))
         dists = [
             distance3D(x1=x1, y1=y1, x2=x, y2=y, depth_metres=z1)
             for x, y in zip(track['lon'], track['lat'])
         ]
-        track['distance_metres'] = np.array(dists, dtype=object)
+        track[colname] = np.array(dists, dtype=object)
         yield track
 
 

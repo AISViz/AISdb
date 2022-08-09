@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.112
+--------
+
+add variable column name when setting vesseltrack_3D_distance, closes #23
+
+
 v1.3.111
 --------
 
