@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.114
+--------
+
+fix bathymetry rasters from being closed too early when using .merge_tracks() repeatedly (closes #24)
+
+
 v1.3.113
 --------
 

@@ -139,7 +139,6 @@ class Gebco():
             track['dynamic'] = set(track['dynamic']).union(
                 set(['depth_metres']))
             yield track
-        self._close_all()
 
 
 class Gebco_Rasterio(Gebco):
