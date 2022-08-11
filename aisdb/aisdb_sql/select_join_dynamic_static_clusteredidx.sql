@@ -12,7 +12,7 @@ SELECT
     static_{}.dim_port,
     static_{}.dim_star,
     --static_{}.ship_type,
-    ref.coarse_type_txt
+    ref.coarse_type_txt AS ship_type
   FROM dynamic_{}
   LEFT JOIN static_{} ON 
     dynamic_{}.mmsi = static_{}.mmsi

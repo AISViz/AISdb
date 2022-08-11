@@ -190,14 +190,24 @@ def test_graph_pipeline_timing(tmpdir):
         mmsi=316000000,
         ship_type='test',
     )
-    track = next(wetted_surface_area(vessel_info([track], trafficDBpath)))
-    _pipeline(track,
-              domain=domain,
-              tmp_dir=tmpdir,
-              maxdelta=timedelta(weeks=1),
-              distance_threshold=250000,
-              speed_threshold=50,
-              minscore=0)
+
+    bathy = Gebco(data_dir=data_dir)
+    sdist = ShoreDist(shoredist_raster)
+    pdist = PortDist(portdist_raster)
+    with bathy, sdist, pdist:
+        track = next(
+            sdist.get_distance(
+                pdist.get_distance(
+                    bathy.merge_tracks(
+                        wetted_surface_area(vessel_info([track],
+                                                        trafficDBpath))))))
+        _pipeline(track,
+                  domain=domain,
+                  tmp_dir=tmpdir,
+                  maxdelta=timedelta(weeks=1),
+                  distance_threshold=250000,
+                  speed_threshold=50,
+                  minscore=0)
 
 
 '''
