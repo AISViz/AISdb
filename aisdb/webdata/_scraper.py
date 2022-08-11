@@ -49,11 +49,8 @@ def _scraper():
     """
 
     driver = webdriver.Firefox(
-        service=Service(executable_path=GeckoDriverManager().install(),
-                        #log_path=os.path.join(data_dir, 'geckodriver.log'),
-                        ),
-        options=opt,
-    )
+        service=Service(executable_path=GeckoDriverManager().install()),
+        options=opt)
 
     if os.environ.get('DEBUG'):
         driver.maximize_window()

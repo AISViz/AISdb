@@ -175,9 +175,8 @@ class VesselInfo():  # pragma: no cover
         for scraping metadata for a given list of MMSIs
     '''
 
-    def __init__(self, trafficDBpath, proxyhost=None, proxyport=None):
+    def __init__(self, trafficDBpath):
         self.driver = None
-        self.proxy = [proxyhost, proxyport]
         self.trafficDB = sqlite3.Connection(trafficDBpath)
         self.trafficDB.row_factory = sqlite3.Row
 
@@ -194,8 +193,7 @@ class VesselInfo():  # pragma: no cover
 
     def _getinfo(self, *, url, searchmmsi, infotxt=''):
         if self.driver is None:
-            self.driver = _scraper(proxyhost=self.proxy[0],
-                                   proxyport=self.proxy[1])
+            self.driver = _scraper()
 
         print(infotxt + url, end='\t')
         try:
