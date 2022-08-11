@@ -177,6 +177,33 @@ def vesseltrack_3D_dist(tracks, x1, y1, z1, colname='distance_metres'):
         yield track
 
 
+def mask_in_radius_2D(tracks, xy, distance_meters):
+    ''' radial filtering using great circle distance at surface level
+
+        tracks (:class:`aisdb.track_gen.TrackGen`)
+            track dictionary iterator
+        xy (tuple of floats)
+            target longitude and latitude coordinate pair
+        distance_meters (int)
+            maximum distance in meters
+    '''
+    for track in tracks:
+        mask = [
+            haversine(track['lon'][i], track['lat'][i], xy[0], xy[1]) <
+            distance_meters for i in range(len(track['time']))
+        ]
+        if sum(mask) == 0:
+            continue
+        yield dict(
+            **{k: track[k]
+               for k in track['static']},
+            **{k: track[k][mask]
+               for k in track['dynamic']},
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )
+
+
 class Domain():
     ''' collection of zone geometry dictionaries, with additional
         statistics such as hull bounding box

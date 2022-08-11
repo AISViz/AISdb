@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.116
+--------
+
+tracks radial filtering
+
+
 v1.3.115
 --------
 
