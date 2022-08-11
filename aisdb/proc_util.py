@@ -148,13 +148,14 @@ def write_csv(
     tracks_dt = _datetime_column(tracks)
     tr1 = next(tracks_dt)
     colnames = [
-        c for c in _columns_order
+        c for c in _columns_order + list(
+            set(tr1['static'].union(tr1['dynamic'])) -
+            set(_columns_order).union(set(['marinetraffic_info'])))
         if c in list(tr1['static']) + list(tr1['dynamic'])
     ]
 
     if 'marinetraffic_info' in tr1.keys():
         colnames += tuple(tr1['marinetraffic_info'].keys())
-        colnames.remove('marinetraffic_info')
         colnames.remove('error404')
         colnames.remove('dim_bow')
         colnames.remove('dim_stern')
@@ -188,13 +189,12 @@ def write_csv(
                    for c in colnames]
             for ci, r in zip(range(len(colnames)), row):
                 if colnames[ci] in decimals.keys() and r != '':
-                    row[ci] = f'{r:.{decimals[colnames[ci]]}f}'
+                    row[ci] = f'{float(r):.{decimals[colnames[ci]]}f}'
 
             writer.writerow(row)
 
     with open(fpath, 'w', newline='') as f:
-        f.write(','.join(colnames).replace('coarse_type_txt', 'ship_type') +
-                '\n')
+        f.write(','.join(colnames) + '\n')
         writer = csv.writer(f,
                             delimiter=',',
                             quotechar="'",
