@@ -6,16 +6,10 @@ import numpy as np
 
 
 def np_interp_linear(track, key, intervals):
-    #assert len(track[key]) > 1
     assert len(track['time']) == len(track[key])
-    return np.interp(
-        x=intervals.astype(int),
-        xp=track['time'].astype(int),
-        fp=track[key].astype(float),
-        # left=np.nan,
-        # right=np.nan,
-        # period=None,
-    )
+    return np.interp(x=intervals.astype(int),
+                     xp=track['time'].astype(int),
+                     fp=track[key].astype(float))
 
 
 def interp_time(tracks, step=timedelta(minutes=10)):

@@ -35,11 +35,11 @@ cp "${RSTSOURCEDIR}/scriptoutput.png" "$SPHINXDIR/_images/"
 
 
 # jsdocs site build
-cd "${SCRIPTPATH}"
-npx jsdoc \
-  --recurse "${MAPDIR}" \
-  --package "${ROOTDIR}/aisdb_web/package.json" \
-  --destination "${JSDOCDIR}"
+#cd "${SCRIPTPATH}"
+#npx jsdoc \
+#  --recurse "${MAPDIR}" \
+#  --package "${ROOTDIR}/aisdb_web/package.json" \
+#  --destination "${JSDOCDIR}"
 
 
 # webassembly components build for map

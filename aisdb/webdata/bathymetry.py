@@ -92,15 +92,16 @@ class Gebco():
 
     def _check_in_bounds(self, track):
         for lon, lat in zip(track['lon'], track['lat']):
-            if not (-180 <= lon <= 180) or not (-90 <= lat <= 90):
-                warnings.warn(
-                    f'coordinates out of range! {lon=},{lat=}\t{track["mmsi"]=}'
-                )
+            if not (-180 <= lon <= 180) or not (-90 <= lat <=
+                                                90):  # pragma: no cover
+                warnings.warn('coordinates out of range! '
+                              f'{lon=},{lat=}\t{track["mmsi"]=}')
                 lon = shiftcoord([lon])[0]
                 lat = shiftcoord([lat], rng=90)[0]
 
-            tracer = False
-            for key, bounds in self.rasterfiles.items():  # pragma: no cover
+            if os.environ.get('DEBUG'):
+                tracer = False
+            for key, bounds in self.rasterfiles.items():
                 if (bounds['w'] <= lon <= bounds['e']
                         and bounds['s'] <= lat <= bounds['n']):
                     tracer = True
@@ -108,10 +109,9 @@ class Gebco():
                         self._load_raster(key)
                     yield key
                     break
-            # assert tracer
-            if not tracer:
+            if os.environ.get('DEBUG') and not tracer:
                 print(f'{lon = } {lat = }')
-                breakpoint()
+                assert tracer
         return
 
     def _close_all(self):
