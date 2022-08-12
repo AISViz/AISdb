@@ -74,19 +74,19 @@ python-test:
       - .coverage
 
 
-pkgbuild:
-  image: 
-    name: ghcr.io/pyo3/maturin:main
-    entrypoint: [""]
-  #stage: pkgbuild
-  #dependencies:
-    #- rust-test
-    #- python-test
-  script:
-    - maturin build --release --manylinux 2014 --strip --interpreter 3.8 3.9 3.10
-  artifacts:
-    paths:
-      - ./target/wheels/
+#pkgbuild:
+#  image: 
+#    name: ghcr.io/pyo3/maturin:main
+#    entrypoint: [""]
+#  #stage: pkgbuild
+#  #dependencies:
+#    #- rust-test
+#    #- python-test
+#  script:
+#    - maturin build --release --manylinux 2014 --strip --interpreter 3.8 3.9 3.10
+#  artifacts:
+#    paths:
+#      - ./target/wheels/
 
 
 tag:
@@ -94,7 +94,7 @@ tag:
   only:
     - master
   dependencies:
-    - pkgbuild
+    #- pkgbuild
     - build-website
   script: 
     - zip aisdb_web.zip aisdb_web/*
