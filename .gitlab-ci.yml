@@ -78,7 +78,7 @@ pkgbuild:
   image: 
     name: ghcr.io/pyo3/maturin:main
     entrypoint: [""]
-  stage: pkgbuild
+  #stage: pkgbuild
   #dependencies:
     #- rust-test
     #- python-test
