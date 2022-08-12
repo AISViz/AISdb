@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.117
+--------
+
+fix zone containment bug in aisdb.gis.Domain.point_in_polygon. resolves #19
+
+
 v1.3.116
 --------
 

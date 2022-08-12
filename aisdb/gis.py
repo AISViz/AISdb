@@ -236,7 +236,7 @@ class Domain():
             raise ValueError(
                 'domain needs to have atleast one polygon geometry')
         self.name = name
-        self.zones = zones
+        self.zones = {z.pop('name'): z for z in zones}
         for zone in zones:
             x, y = zone['geometry'].boundary.coords.xy
             if 'setattrs' not in kw.keys() or kw['setattrs'] is True:
@@ -266,10 +266,13 @@ class Domain():
             returns all zones with distances less than zero meters, sorted by
             nearest first
         '''
+        assert float(x), f'{type(x)} {x=}'
+        assert float(y), f'{type(y)} {y=}'
+        assert isinstance(self.zones, dict)
         dist_to_centroids = {}
-        for z in self.zones:
+        for name, z in self.zones.items():
             dist_to_centroids.update({
-                z['name']:
+                name:
                 haversine(
                     x,
                     y,
@@ -280,16 +283,29 @@ class Domain():
         return dist_to_centroids
 
     def point_in_polygon(self, x, y):
-        ''' returns the first polygon that contains the given point.
-            uses coarse filtering by precomputing distance to centroids
+        ''' returns the first domain zone containing the given coordinates
+
+            args:
+                x (float)
+                    longitude value
+                y (float)
+                    latitude value
         '''
-        nearest = self.nearest_polygons_to_point(x, y)
+        assert float(x), f'{type(x)} {x=}'
+        assert float(y), f'{type(y)} {y=}'
         assert len(self.zones) > 0
-        assert self.zones[0]['name'] in nearest.keys()
-        if self.zones[0]['geometry'].contains(Point(x, y)):
-            return self.zones[0]['name']
-        else:
-            return 'Z0'
+        # first pass filter using distance to centroid, subtracting max radius.
+        # discard all geometry with a distance over zero
+        nearest = {
+            k: v
+            for k, v in sorted(self.nearest_polygons_to_point(x, y).items(),
+                               key=lambda item: item[1]) if v < 0
+        }
+        # check for zone containment, starting with the nearest centroid
+        for key, value in nearest.items():
+            if self.zones[key]['geometry'].contains(Point(x, y)):
+                return key
+        return 'Z0'
 
 
 class DomainFromTxts(Domain):
