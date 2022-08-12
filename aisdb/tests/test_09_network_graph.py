@@ -5,7 +5,7 @@ from multiprocessing import Pool, Queue
 '''
 import os
 from datetime import datetime, timedelta
-from functools import partial
+from functools import partial, reduce
 
 from shapely.geometry import Polygon
 import numpy as np
@@ -13,7 +13,7 @@ import numpy as np
 from aisdb.database import sqlfcn, sqlfcn_callbacks
 from aisdb.database.dbqry import DBQuery, DBConn
 from aisdb.gis import Domain
-from aisdb.network_graph import graph, _pipeline
+from aisdb.network_graph import graph, _pipeline, _serialize_network_edge
 from aisdb.track_gen import (
     TrackGen,
     deserialize_tracks,
@@ -64,8 +64,26 @@ domain = Domain('gulf domain',
                 ])
 
 
-def test_geofencing(tmpdir):
-    testdbpath = os.path.join(tmpdir, 'test_geofencing.db')
+def test_fence_tracks(tmpdir):
+    tracks = [
+        {
+            'mmsi': -1,
+            'lon': np.array([z1.centroid.x, z2.centroid.x, z3.centroid.x]),
+            'lat': np.array([z1.centroid.y, z2.centroid.y, z3.centroid.y]),
+            'time': np.array(list(range(0, 3 * 1000, 1000))),
+            'dynamic': set(['lon', 'lat', 'time']),
+            'static': {'mmsi'},
+        },
+    ]
+    tracks_fenced = fence_tracks(tracks, domain)
+    test = next(tracks_fenced)['in_zone']
+    assert test[0] == 'z1'
+    assert test[1] == 'z2'
+    assert test[2] == 'z3'
+
+
+def test_fence_tracks_realdata(tmpdir):
+    testdbpath = os.path.join(tmpdir, 'test_fence_tracks_realdata.db')
     months = sample_database_file(testdbpath)
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
@@ -91,10 +109,14 @@ def test_geofencing(tmpdir):
         geofenced = partial(fence_tracks, domain=domain)
 
         # query db for points in domain bounding box
-        _test = next(geofenced(distsplit(TrackGen(rowgen.gen_qry()))))
+        _test = np.array(list(geofenced(distsplit(TrackGen(
+            rowgen.gen_qry())))))
+        zoneset = reduce(set.union, (set(track['in_zone']) for track in _test))
+        assert zoneset != {'Z0'}
+        zonemask = [set(track['in_zone']) != {'Z0'} for track in _test]
 
 
-def test_graph_CSV_single(tmpdir):
+def test_graph_CSV_single_longtest(tmpdir):
 
     testdbpath = os.path.join(
         tmpdir, 'test_network_graph_CSV_single_marinetraffic.db')
@@ -130,7 +152,7 @@ def test_graph_CSV_single(tmpdir):
         print(out.read())
 
 
-def test_graph_CSV_parallel(tmpdir):
+def test_graph_CSV_parallel_longtest(tmpdir):
     testdbpath = os.path.join(tmpdir, 'test_network_graph_CSV_parallel.db')
     outpath = os.path.join(tmpdir, 'output.csv')
 
@@ -156,7 +178,7 @@ def test_graph_CSV_parallel(tmpdir):
             data_dir=data_dir,
             dbpath=testdbpath,
             trafficDBpath=trafficDBpath,
-            processes=6,
+            processes=3,
             outputfile=outpath,
             maxdelta=timedelta(weeks=1),
         )

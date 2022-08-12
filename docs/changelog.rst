@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.118
+--------
+
+add multiprocessing queue for parallelized network graphs. resolves #15
+
+
 v1.3.117
 --------
 

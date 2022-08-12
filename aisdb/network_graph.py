@@ -10,7 +10,7 @@ import tempfile
 import types
 from datetime import timedelta
 from functools import partial, reduce
-from multiprocessing import Pool
+from multiprocessing import Pool, Queue
 import sqlite3
 if (sqlite3.sqlite_version_info[0] < 3
         or (sqlite3.sqlite_version_info[0] <= 3
@@ -34,7 +34,6 @@ from aisdb.track_gen import (
     fence_tracks,
     serialize_tracks,
 )
-from aisdb.interp import interp_time
 from aisdb.proc_util import _sanitize
 from aisdb.proc_util import _segment_rng
 from aisdb.webdata.bathymetry import Gebco
@@ -93,11 +92,17 @@ def _staticinfo(track, domain):
 
 _fstr = lambda s: f'{float(s):.2f}'
 
+from aisdb.interp import np_interp_linear
+
 
 # collect aggregated statistics on vessel positional data
-def _transitinfo(track, zoneset):
+def _transitinfo(track, zoneset, interp_resolution=timedelta(hours=1)):
     ''' aggregate statistics on vessel network graph connectivity '''
-    #track = next(interp_time([track], step=timedelta(minutes=30)))
+
+    # interp_intervals = np.arange(track['time'][0],
+    #                             track['time'][-1],
+    #                             step=int(interp_resolution.total_seconds()))
+
     return dict(
 
         # geofencing
@@ -187,6 +192,7 @@ def _serialize_network_edge(tracks, domain, tmp_dir):
         returns: None
     '''
     for track in tracks:
+        assert isinstance(track, dict)
         filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
         assert 'in_zone' in track.keys(
         ), 'need to append zone info from fence_tracks'
@@ -270,20 +276,8 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
             os.remove(picklefile)
 
 
-def _pipeline(
-    track,
-    *,
-    domain,
-    tmp_dir,
-    #bathy,
-    #sdist,
-    #pdist,
-    maxdelta,
-    distance_threshold,
-    speed_threshold,
-    minscore,
-    deserialize=False,
-):
+def _pipeline(track, *, domain, tmp_dir, maxdelta, distance_threshold,
+              speed_threshold, minscore):
     geofence = partial(fence_tracks, domain=domain)
     encode_track = partial(encode_greatcircledistance,
                            distance_threshold=distance_threshold,
@@ -293,17 +287,19 @@ def _pipeline(
                             domain=domain,
                             tmp_dir=tmp_dir)
 
-    if not deserialize:
-        #getdepth = partial(bathy.merge_tracks)
-        #getsdist = partial(sdist.get_distance)
-        #getpdist = partial(pdist.get_distance)
-        #graph_pipeline = getsdist( getpdist(getdepth(serialize_CSV(geofence(encode_track([track]))))))
-        graph_pipeline = serialize_CSV(geofence(encode_track([track])))
-    else:
-        graph_pipeline = serialize_CSV(
-            geofence(encode_track(deserialize_tracks([track]))))
-    for p in graph_pipeline:
-        pass
+    graph_pipeline = serialize_CSV(
+        geofence(encode_track(deserialize_tracks([track]))))
+
+    for track in graph_pipeline:
+        if track is None:
+            continue
+        else:
+            raise ValueError
+
+
+def _parallel_worker(q: Queue, **args):
+    while (t := q.get()) is not False:
+        _pipeline(t, **args)
 
 
 def graph(qry,
@@ -430,47 +426,39 @@ def graph(qry,
         if os.environ.get('DEBUG'):
             print(f'network graph {tmp_dir = }')
 
+        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)
+        print(f'\n{domain.name=} {domain.boundary=}')
+        tracks = serialize_tracks(
+            sdist.get_distance(
+                pdist.get_distance(
+                    bathy.merge_tracks(
+                        wetted_surface_area(
+                            vessel_info(TrackGen(rowgen),
+                                        trafficDBpath=trafficDBpath))))))
         fcn = partial(
-            _pipeline,
+            _parallel_worker if serialize else _pipeline,
             domain=domain,
             tmp_dir=tmp_dir,
             speed_threshold=speed_threshold,
             distance_threshold=distance_threshold,
             minscore=minscore,
             maxdelta=maxdelta,
-            deserialize=serialize,
         )
-
-        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)
-        print(f'\n{domain.name=} {domain.boundary=}')
         if not serialize:
-            tracks = sdist.get_distance(
-                pdist.get_distance(
-                    bathy.merge_tracks(
-                        wetted_surface_area(
-                            vessel_info(TrackGen(rowgen),
-                                        trafficDBpath=trafficDBpath)))))
             for track in tracks:
-                assert isinstance(track, dict), f'got {track = }'
-                assert isinstance(track['time'], np.ndarray)
+                assert isinstance(track, bytes), f'got {track = }'
                 _ = fcn(track)
 
         else:
-            tracks = serialize_tracks(
-                sdist.get_distance(
-                    pdist.get_distance(
-                        bathy.merge_tracks(
-                            wetted_surface_area(
-                                vessel_info(TrackGen(rowgen),
-                                            trafficDBpath=trafficDBpath))))))
-
-            #with Pool(processes=processes) as p:
-            #    p.imap_unordered(fcn, tracks, chunksize=1)
-            warnings.warn(
-                'parallelization temporarily disabled. '
-                'network graph results will be processed in sequence')
-            for track in tracks:
-                _ = fcn(track)
+            q = Queue()
+            with Pool(processes, fcn, [q]) as p:
+                for track in tracks:
+                    q.put(track)
+                for _ in range(processes):
+                    q.put(False)
+                q.close()
+                p.close()
+                p.join()
 
         if os.listdir(tmp_dir) == []:
             warnings.warn(f'no data for {outputfile}, skipping...\n')
