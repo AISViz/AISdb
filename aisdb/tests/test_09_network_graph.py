@@ -6,6 +6,7 @@ from multiprocessing import Pool, Queue
 import os
 from datetime import datetime, timedelta
 from functools import partial, reduce
+from multiprocessing import Queue
 
 from shapely.geometry import Polygon
 import numpy as np
@@ -13,7 +14,10 @@ import numpy as np
 from aisdb.database import sqlfcn, sqlfcn_callbacks
 from aisdb.database.dbqry import DBQuery, DBConn
 from aisdb.gis import Domain
-from aisdb.network_graph import graph, _pipeline, _serialize_network_edge
+from aisdb.network_graph import (
+    graph,
+    _processing_pipeline,
+)
 from aisdb.track_gen import (
     TrackGen,
     deserialize_tracks,
@@ -25,8 +29,6 @@ from aisdb.tests.create_testing_data import (
     sample_database_file,
     sample_gulfstlawrence_bbox,
 )
-from aisdb.webdata.marinetraffic import vessel_info
-from aisdb.wsa import wetted_surface_area
 
 trafficDBpath = os.environ.get(
     'AISDBMARINETRAFFIC',
@@ -116,10 +118,23 @@ def test_fence_tracks_realdata(tmpdir):
         zonemask = [set(track['in_zone']) != {'Z0'} for track in _test]
 
 
-def test_graph_CSV_single_longtest(tmpdir):
+def test_serialize_deserialize_tracks():
+    track = dict(
+        lon=(np.random.random(10) * 90) - 90,
+        lat=(np.random.random(10) * 90) + 0,
+        time=np.array(range(10)),
+        dynamic=set(['time', 'lon', 'lat']),
+        static=set(['mmsi', 'ship_type']),
+        mmsi=316000000,
+        ship_type='test',
+    )
+    for track in deserialize_tracks(serialize_tracks([track])):
+        assert isinstance(track, dict)
 
-    testdbpath = os.path.join(
-        tmpdir, 'test_network_graph_CSV_single_marinetraffic.db')
+
+def test_network_graph_CSV(tmpdir):
+
+    testdbpath = os.path.join(tmpdir, 'test_network_graph_CSV.db')
     outpath = os.path.join(tmpdir, 'output.csv')
 
     months = sample_database_file(testdbpath)
@@ -143,67 +158,18 @@ def test_graph_CSV_single_longtest(tmpdir):
             domain=domain,
             dbpath=testdbpath,
             trafficDBpath=trafficDBpath,
-            processes=0,
+            processes=1,
             outputfile=outpath,
             maxdelta=timedelta(weeks=1),
         )
         assert os.path.isfile(outpath)
     with open(outpath, 'r') as out:
         print(out.read())
-
-
-def test_graph_CSV_parallel_longtest(tmpdir):
-    testdbpath = os.path.join(tmpdir, 'test_network_graph_CSV_parallel.db')
-    outpath = os.path.join(tmpdir, 'output.csv')
-
-    months = sample_database_file(testdbpath)
-    start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
-    end = start + timedelta(weeks=4)
-    with DBConn() as dbconn:
-        qry = DBQuery(
-            dbconn=dbconn,
-            dbpath=testdbpath,
-            start=start,
-            end=end,
-            xmin=-180,
-            xmax=180,
-            ymin=-90,
-            ymax=90,
-            callback=sqlfcn_callbacks.in_bbox,
-            fcn=sqlfcn.crawl_dynamic_static,
-        )
-        _ = graph(
-            qry,
-            domain=domain,
-            data_dir=data_dir,
-            dbpath=testdbpath,
-            trafficDBpath=trafficDBpath,
-            processes=3,
-            outputfile=outpath,
-            maxdelta=timedelta(weeks=1),
-        )
-        assert os.path.isfile(outpath)
-    with open(outpath, 'r') as out:
-        print(out.read())
-
-
-def test_serialize_deserialize_tracks():
-    track = dict(
-        lon=(np.random.random(10) * 90) - 90,
-        lat=(np.random.random(10) * 90) + 0,
-        time=np.array(range(10)),
-        dynamic=set(['time', 'lon', 'lat']),
-        static=set(['mmsi', 'ship_type']),
-        mmsi=316000000,
-        ship_type='test',
-    )
-    for track in deserialize_tracks(serialize_tracks([track])):
-        assert isinstance(track, dict)
 
 
 def test_graph_pipeline_timing(tmpdir):
-    count = 10000
-    track = dict(
+    count = 50
+    track = lambda: dict(
         lon=(np.random.random(count) * 90) - 90,
         lat=(np.random.random(count) * 90) + 0,
         time=np.array(range(count)),
@@ -212,24 +178,27 @@ def test_graph_pipeline_timing(tmpdir):
         mmsi=316000000,
         ship_type='test',
     )
+    serialized = serialize_tracks([track() for _ in range(count)])
+    q = Queue()
+    for track_bytes in serialized:
+        q.put(track_bytes)
+    q.put(False)
 
-    bathy = Gebco(data_dir=data_dir)
-    sdist = ShoreDist(shoredist_raster)
-    pdist = PortDist(portdist_raster)
-    with bathy, sdist, pdist:
-        track = next(
-            sdist.get_distance(
-                pdist.get_distance(
-                    bathy.merge_tracks(
-                        wetted_surface_area(vessel_info([track],
-                                                        trafficDBpath))))))
-        _pipeline(track,
-                  domain=domain,
-                  tmp_dir=tmpdir,
-                  maxdelta=timedelta(weeks=1),
-                  distance_threshold=250000,
-                  speed_threshold=50,
-                  minscore=0)
+    _processing_pipeline(
+        q,
+        domain=domain,
+        tmp_dir=tmpdir,
+        maxdelta=timedelta(weeks=1),
+        distance_threshold=250000,
+        speed_threshold=50,
+        minscore=0,
+        data_dir=data_dir,
+        trafficDBpath=trafficDBpath,
+        shoredist_raster=os.path.join(data_dir, 'distance-from-shore.tif'),
+        portdist_raster=os.path.join(data_dir,
+                                     'distance-from-port-v20201104.tiff'),
+    )
+    q.close()
 
 
 '''
