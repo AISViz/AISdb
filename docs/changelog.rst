@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.120
+--------
+
+update docstrings
+
+
 v1.3.119
 --------
 

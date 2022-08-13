@@ -37,46 +37,56 @@ class DBQuery(UserDict):
             dbpaths (list)
                 optionally pass a list of filepaths instead of a single dbpath
             callback (function)
-                anonymous function yielding SQL code specifying "WHERE" clauses.
-                common queries are included in :mod:`aisdb.database.sqlfcn_callbacks.py`,
-                e.g.
+                anonymous function yielding SQL code specifying "WHERE"
+                clauses. common queries are included in
+                :mod:`aisdb.database.sqlfcn_callbacks.py`, e.g.
 
+                >>> import os
+                >>> dbpath = os.environ.get('AISDBPATH',
+                ...             os.path.join('testdata', 'doctest.db'))
                 >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
+                >>> from aisdb import DBConn, DBQuery
 
-                this generates SQL code to apply filtering on columns (mmsi, time),
-                and requires (start, end) as arguments in datetime format.
+                this generates SQL code to apply filtering on columns (mmsi,
+                time), and requires (start, end) as arguments in datetime
+                format.
 
                 >>> start, end = datetime(2022, 1, 1), datetime(2022, 1, 7)
-                >>> q = DBQuery(callback=in_timerange_validmmsi, start=start, end=end)
+                >>> with DBConn() as dbconn:
+                ...     q = DBQuery(dbconn=dbconn, dbpath=dbpath,
+                ...     callback=in_timerange_validmmsi, start=start, end=end)
 
-                Resulting SQL is then passed to the query function as an argument.
+                Resulting SQL is then passed to the query function
 
             **kwargs (dict)
                 more arguments that will be supplied to the query function
                 and callback function
 
 
-        Custom SQL queries are supported by modifying the fcn supplied to .gen_qry()
-        and .async_qry(), or by supplying a custom callback function.
+        Custom SQL queries are supported by modifying the fcn supplied to
+        .gen_qry() and .async_qry(), or by supplying a callback function.
         Alternatively, the database can also be queried directly, see
         DBConn.py for more info
 
         complete example:
 
+        >>> import os
         >>> from datetime import datetime
         >>> from aisdb import DBQuery
         >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 
-        >>> dbpath = '~/ais/ais.db'
-        >>> start, end = datetime(2022, 1, 1), datetime(2022, 1, 7)
+        >>> dbpath = os.environ.get('AISDBPATH', './testdata/test.db')
+        >>> start, end = datetime(2021, 7, 1), datetime(2021, 7, 7)
         >>> with DBConn() as dbconn:
-        >>>     q = DBQuery(dbconn=dbconn,
-        >>>                 dbpath=dbpath,
-        >>>                 callback=in_timerange_validmmsi,
-        >>>                 start=start,
-        >>>                 end=end)
-        >>>     for rows in q.gen_qry():
-        ...         print(rows)
+        ...     q = DBQuery(dbconn=dbconn,
+        ...                 dbpath=dbpath,
+        ...                 callback=in_timerange_validmmsi,
+        ...                 start=start,
+        ...                 end=end)
+        ...     for rows in q.gen_qry():
+        ...         print(str(dict(rows[0])))
+        ...         break
+        {'mmsi': 204242000, 'time': 1625176725, 'longitude': -8.93166666667, 'latitude': 41.45, 'sog': 4.0, 'cog': 176.0}
     '''
 
     def __init__(self, *, dbconn, dbpath=None, dbpaths=[], **kwargs):
@@ -85,6 +95,8 @@ class DBQuery(UserDict):
                 'must supply either dbpaths list or dbpath string value')
         elif dbpaths == []:  # pragma: no cover
             dbpaths = [dbpath]
+        else:
+            assert dbpath is None
 
         for dbpath in dbpaths:
             dbconn.attach(dbpath)

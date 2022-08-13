@@ -28,9 +28,13 @@ exclude_lines =
     
     # dont test backup imports
     pysqlite3
+    sqlite3
     
     # dont test exceptions
     Exception
+
+    # dont test for convenience type checks
+    isinstance
 
 ignore_errors = True
 

@@ -15,7 +15,8 @@ def decode_msgs(filepaths,
                 dbpath,
                 source,
                 vacuum=False,
-                skip_checksum=False):
+                skip_checksum=False,
+                quiet=False):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
@@ -44,11 +45,14 @@ def decode_msgs(filepaths,
 
         example:
 
-        >>> from aisdb import dbpath, decode_msgs, DBConn
-        >>> filepaths = ['~/ais/rawdata_dir/20220101.nm4',
-        ...              '~/ais/rawdata_dir/20220102.nm4']
+        >>> import os
+        >>> from aisdb import decode_msgs, DBConn
+
+        >>> dbpath = os.path.join('testdata', 'doctest.db')
+        >>> filepaths = ['aisdb/tests/test_data_20210701.csv', 'aisdb/tests/test_data_20211101.nm4']
+
         >>> with DBConn() as dbconn:
-        >>>     decode_msgs(filepaths, dbconn, dbpath, source='TESTING')
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath, source='TESTING', quiet=True)
     '''
     if not isinstance(dbconn, DBConn):  # pragma: no cover
         if isinstance(dbconn):
@@ -66,7 +70,6 @@ def decode_msgs(filepaths,
     with index(bins=False, storagedir=hashmap_dbdir,
                filename=hashmap_dbname) as dbindex:
         for file in filepaths:
-            # fdate = getfiledate(file)
             if not skip_checksum:
                 with open(os.path.abspath(file), 'rb') as f:
                     signature = md5(f.read(1000)).hexdigest()
@@ -74,7 +77,8 @@ def decode_msgs(filepaths,
                         _ = f.read(600)
                         signature = md5(f.read(1000)).hexdigest()
                 if dbindex.serialized(seed=signature):
-                    print(f'found matching checksum, skipping {file}')
+                    if not quiet:
+                        print(f'found matching checksum, skipping {file}')
                     continue
             decoder(dbpath=dbpath, files=[file], source=source)
             if not skip_checksum:

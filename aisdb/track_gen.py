@@ -97,20 +97,28 @@ def TrackGen(rowgen: iter) -> dict:
             static data (e.g. mmsi, name, geometry) will be stored as
             scalar values
 
+        >>> import os
+        >>> import numpy as np
+        >>> import json
         >>> from datetime import datetime
-        >>> from aisdb import DBQuery, sqlfcn_callbacks, TrackGen
 
-        >>> dbpath = '~/ais/ais.db'
-        >>> q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
-        ...             start=datetime(2022, 1, 1),
-        ...             end=datetime(2022, 1, 7))
-        >>> rowgen = q.gen_qry()
+        >>> from aisdb import DBConn, DBQuery, sqlfcn_callbacks, TrackGen
+        >>> from aisdb.tests.create_testing_data import sample_database_file
 
-        >>> print(f'iterating over rows returned from {dbpath}')
-        >>> for track in TrackGen(rowgen):
-        ...     print(track['mmsi'])
-        ...     print(f'messages in track segment: {track["time"].size}')
-        ...     print(f'keys: {track.keys()}')
+        >>> dbpath = os.environ.get('AISDBPATH', os.path.join('testdata', 'doctest.db'))
+        >>> with DBConn() as dbconn:
+        ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
+        ...             dbconn=dbconn,
+        ...             dbpath=dbpath,
+        ...             start=datetime(2021, 7, 1),
+        ...             end=datetime(2021, 7, 7))
+        ...     rowgen = q.gen_qry()
+        ...     for track in TrackGen(rowgen):
+        ...         print(track['mmsi'], track['lon'], track['lat'], track['time'])
+        ...         break
+        204242000 [-8.931666] [41.45] [1625176725]
+
+
     '''
     firstrow = True
     assert isinstance(rowgen, types.GeneratorType)
@@ -334,26 +342,35 @@ def encode_greatcircledistance(
                 minimum score threshold at which to allow track
                 segments to be linked
 
+        >>> import os
         >>> from datetime import datetime, timedelta
-        >>> from aisdb import dbpath, DBQuery, sqlfcn_callbacks
+        >>> from aisdb import DBConn, DBQuery, sqlfcn_callbacks
         >>> from aisdb import TrackGen, encode_greatcircledistance
 
-        >>> q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
-        ...             start=datetime(2022, 1, 1),
-        ...             end=datetime(2022, 1, 7))
-        >>> rowgen = q.gen_qry()
+        >>> data_dir = os.environ.get('AISDBDATADIR', '/tmp/ais/')
+        >>> dbpath = os.environ.get('AISDBPATH', os.path.join(os.path.expanduser('~'), 'ais.db'))
 
-        >>> for track in encode_greatcircledistance(
-        ...         TrackGen(rowgen),
-        ...         distance_threshold=250000, # metres
-        ...         time_threshold=timedelta(hours=24),
-        ...         minscore=0):
-        ...     print(track['mmsi'])
-        ...     print(f'messages in track segment: {track["time"].size}')
-        ...     print(f'keys: {track.keys()}')
+        >>> with DBConn() as dbconn:
+        ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
+        ...             dbconn=dbconn,
+        ...             dbpath=dbpath,
+        ...             start=datetime(2021, 7, 1),
+        ...             end=datetime(2021, 7, 7))
+        ...     tracks = TrackGen(q.gen_qry())
+        ...     for track in encode_greatcircledistance(
+        ...             tracks,
+        ...             distance_threshold=250000,  # metres
+        ...             speed_threshold=50,  # knots
+        ...             minscore=0):
+        ...         print(track['mmsi'])
+        ...         print(track['lon'], track['lat'])
+        ...         break
+        204242000
+        [-8.931666] [41.45]
+
     '''
     for track in tracks:
-        assert isinstance(track, dict)
+        assert isinstance(track, dict), f'got {type(track)} {track}'
         for path in _score_encode(track, distance_threshold, speed_threshold,
                                   minscore):
             yield path

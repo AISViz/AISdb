@@ -280,7 +280,7 @@ class index():
             ...     'south': 43.21, 'north': 46.54,
             ...     'west': -123.45, 'east': -110.01,
             ...     'top': 0, 'bottom': 5000,
-            ...     'start': datetime(2000, 1, 1), 'end': datetime(2000, 1, 2)
+            ...     'start': datetime(2000, 1, 1), 'end': datetime(2000, 1, 2),
             ... }
 
             yields:
