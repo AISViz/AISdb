@@ -30,10 +30,6 @@ app.use('/doc', express.static(`${__dirname }/dist_sphinx`));
 // app.use('/js', express.static(`${__dirname }/dist_jsdoc/${process.env.npm_package_name}/${process.env.npm_package_version}/`));
 app.use('/coverage', express.static(`${__dirname }/dist_coverage`));
 app.use('/', express.static(`${__dirname }/dist_map`));
-app.use('/favicon.svg', express.static(`${__dirname }/public/favicon.svg`));
-app.use('/favicon.png', express.static(`${__dirname }/public/favicon.png`));
-app.use('/robots.txt', express.static(`${__dirname }/public/robots.txt`));
-
 
 app.listen(port, '::', () => {
   loop1: for (let key of Object.keys(networkInterfaces()).reverse()) {

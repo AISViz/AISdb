@@ -83,12 +83,11 @@ async function waitForSearchState() {
 
 /** cancel button action */
 async function cancelSearch() {
-  searchbtn.disabled = true;
   searchbtn.textContent = 'Search';
-  statusdiv.textContent = 'Cancelling...';
+  statusdiv.textContent = 'Cancelled search';
   window.statusmsg = statusdiv.textContent;
+  await resetSearchState();
   await socket.send(JSON.stringify({ type: 'stop' }));
-  await waitForSearchState();
 }
 
 
@@ -114,7 +113,6 @@ async function newSearch(start, end) {
     area: window.searcharea,
   }));
   window.searcharea = null;
-  await waitForSearchState();
 }
 
 
@@ -254,14 +252,12 @@ async function setSearchRange(start, end) {
  * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
  */
 async function setSearchValue(start, end) {
-  /*
-  timeselectstart.value = start;
-  timeselectend.value = end;
-  */
   timeselectstart_fp.set('defaultDate', start);
   timeselectstart_fp.jumpToDate(start, true);
+  timeselectstart.value = start;
   timeselectend_fp.set('defaultDate', end);
   timeselectend_fp.jumpToDate(end, true);
+  timeselectend.value = end;
 }
 
 

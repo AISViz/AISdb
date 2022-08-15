@@ -1,18 +1,16 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
-//import { VitePWA } from 'vite-plugin-pwa';
-
-const root = resolve(__dirname);
-const outDir = resolve(__dirname, '..', 'dist_map');
+// import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  root: root,
+  root: resolve(__dirname),
+  publicDir: resolve(__dirname, 'public'),
   build: {
-    outDir: outDir,
+    outDir: resolve(__dirname, '..', 'dist_map'),
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: resolve(root, 'index.html'),
+        main: resolve(__dirname, 'index.html'),
       }
     }
   },

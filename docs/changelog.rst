@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.121
+--------
+
+fix web client query from hanging unexpectedly and reorganizing
+
+
 v1.3.120
 --------
 

@@ -1,6 +1,4 @@
 /** @module map */
-
-
 window.searcharea = null;
 
 

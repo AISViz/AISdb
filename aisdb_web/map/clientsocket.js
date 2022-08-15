@@ -169,7 +169,6 @@ socket.onmessage = async function(event) {
   } else if (response.type === 'done') {
     document.getElementById('status-div').textContent = response.status;
     window.statusmsg = response.status;
-    searchbtn.disabled = false;
     searchbtn.textContent = 'Search';
     await resetSearchState();
   } else if (response.type === 'doneZones') {

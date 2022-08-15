@@ -5,8 +5,8 @@ PKGDIR="${ROOTDIR}/aisdb"
 RSTSOURCEDIR="${ROOTDIR}/docs/source"
 MAPDIR="${ROOTDIR}/aisdb_web/map"
 SPHINXDIR="${ROOTDIR}/aisdb_web/dist_sphinx"
-CARGODIR="${ROOTDIR}/aisdb_web/dist_cargodoc"
-JSDOCDIR="${ROOTDIR}/aisdb_web/dist_jsdoc"
+#CARGODIR="${ROOTDIR}/aisdb_web/dist_cargodoc"
+#JSDOCDIR="${ROOTDIR}/aisdb_web/dist_jsdoc"
 WASMDIR="${ROOTDIR}/aisdb_wasm"
 
 set -e
@@ -22,16 +22,16 @@ set -e
 
 
 # sphinx docs site build
-cd "${ROOTDIR}"
-rm -rf "$SPHINXDIR"
-[[ ! -z `ls -A "${RSTSOURCEDIR}/api"` ]] && rm ${RSTSOURCEDIR}/api/*
-mkdir -p "${RSTSOURCEDIR}/api"
-mkdir -p "${SPHINXDIR}/_images"
-cp "$ROOTDIR/readme.rst" "${RSTSOURCEDIR}/readme.rst"
-cp "$ROOTDIR/docs/changelog.rst" "${RSTSOURCEDIR}/changelog.rst"
-export SPHINXDOC=1 && sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o "${RSTSOURCEDIR}/api" "${PKGDIR}" ${PKGDIR}/tests/*
-python -m sphinx -a -j auto -q -b=html "${RSTSOURCEDIR}" "${SPHINXDIR}"
-cp "${RSTSOURCEDIR}/scriptoutput.png" "$SPHINXDIR/_images/"
+#cd "${ROOTDIR}"
+#rm -rf "$SPHINXDIR"
+#[[ ! -z `ls -A "${RSTSOURCEDIR}/api"` ]] && rm ${RSTSOURCEDIR}/api/*
+#mkdir -p "${RSTSOURCEDIR}/api"
+#mkdir -p "${SPHINXDIR}/_images"
+#cp "$ROOTDIR/readme.rst" "${RSTSOURCEDIR}/readme.rst"
+#cp "$ROOTDIR/docs/changelog.rst" "${RSTSOURCEDIR}/changelog.rst"
+#export SPHINXDOC=1 && sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o "${RSTSOURCEDIR}/api" "${PKGDIR}" ${PKGDIR}/tests/*
+#python -m sphinx -a -j auto -q -b=html "${RSTSOURCEDIR}" "${SPHINXDIR}"
+#cp "${RSTSOURCEDIR}/scriptoutput.png" "$SPHINXDIR/_images/"
 
 
 # jsdocs site build
