@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.122
+--------
+
+fix ship_type error in asynchronous DB query
+
+
 v1.3.121
 --------
 

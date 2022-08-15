@@ -264,20 +264,20 @@ class DBQuery(UserDict):
 
 class DBQuery_async(DBQuery):
 
-    async def create_table_coarsetype(self):
-        ''' create a table to describe integer vessel type as a human-readable string
-            included here instead of create_tables.py to prevent circular import error
-        '''
-
-        _ = await self.dbconn.execute(_create_coarsetype_table)
-
-        _ = await self.dbconn.execute(_create_coarsetype_index)
-
-        _ = await self.dbconn.executemany((
-            'INSERT OR IGNORE INTO coarsetype_ref (coarse_type, coarse_type_txt) '
-            'VALUES (?,?) '), _coarsetype_rows)
-
     def __init__(self, *, dbpath, **kwargs):
+        dbconn = sqlite3.Connection(dbpath)
+        cur = dbconn.cursor()
+        cur.execute(
+            'SELECT * FROM sqlite_master WHERE type="table" AND name=?',
+            ['coarsetype_ref'])
+        if cur.fetchall() == []:
+            cur.execute(_create_coarsetype_table)
+            cur.execute(_create_coarsetype_index)
+            cur.executemany((
+                'INSERT OR IGNORE INTO coarsetype_ref (coarse_type, coarse_type_txt) '
+                'VALUES (?,?) '), _coarsetype_rows)
+            dbconn.commit()
+        dbconn.close()
 
         self.data = kwargs
         self.dbpath = dbpath
@@ -285,6 +285,7 @@ class DBQuery_async(DBQuery):
 
     async def gen_qry(self,
                       fcn=sqlfcn.crawl_dynamic,
+                      printqry=False,
                       force_reaggregate_static=False):
 
         if not hasattr(self, 'dbconn'):
@@ -294,19 +295,19 @@ class DBQuery_async(DBQuery):
         for p in pragmas:
             _ = await self.dbconn.execute(p)
 
-        _ = await self.create_table_coarsetype()
-
         for month in self.data['months']:
             res = await self.dbconn.execute_fetchall(
                 ('SELECT * FROM main.sqlite_master '
                  'WHERE type="table" and name=?'),
                 [f'static_{month}_aggregate'])
-            if res == []:  # pragma: no cover
+            if res == []:
                 with DBConn() as syncdb:
                     print('Aggregating static messages synchronously... ')
                     aggregate_static_msgs(syncdb, [month])
 
         qry = fcn(dbpath='main', **self)
+        if printqry:
+            print(qry)
         cursor = await self.dbconn.execute(qry)
         mmsi_rows = []
         res = await cursor.fetchmany(10**5)
