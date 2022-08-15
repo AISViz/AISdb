@@ -20,11 +20,6 @@ testdir = os.environ.get(
                  'testdata'))
 trafficDBpath = os.path.join(testdir, 'marinetraffic_test.db')
 
-serv = SocketServ(dbpath=dbpath,
-                  domain=domain,
-                  trafficDBpath=trafficDBpath,
-                  enable_ssl=False)
-
 
 class FakeWebSocketClient(list):
     remote_address = '\nFakeWebSocketClient@localhost'
@@ -96,4 +91,8 @@ def websocket():
 
 @pytest.mark.asyncio
 async def test_clientsocket_handler(websocket):
+    serv = SocketServ(dbpath=dbpath,
+                      domain=domain,
+                      trafficDBpath=trafficDBpath,
+                      enable_ssl=False)
     await serv.handler(websocket)
