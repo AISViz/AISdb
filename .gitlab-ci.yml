@@ -41,7 +41,7 @@ build-website:
     - source ../env/bin/activate && /bin/bash ./build_website.sh
     - cd ..
   cache:
-    key: persistent_000
+    key: persistent_001
     paths:
       - ./env
       - ./data_dir
@@ -63,7 +63,7 @@ python-test:
   dependencies:
     - rust-test
   cache:
-    key: persistent_000
+    key: persistent_001
     paths:
       - ./env
       - ./data_dir

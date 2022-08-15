@@ -120,7 +120,6 @@ class DBQuery(UserDict):
                             dbpath,
                             trafficDBpath,
                             boundary,
-                            data_dir,
                             retry_404=False):
         ''' scrape metadata for vessels in domain from marinetraffic
 
@@ -132,7 +131,7 @@ class DBQuery(UserDict):
                 boundary (dict)
                     uses keys xmin, xmax, ymin, and ymax to denote the region
                     of vessels that should be checked.
-                    if using aisdb.gis.Domain, the Domain.boundary attribute
+                    if using :class:`aisdb.gis.Domain`, the `Domain.boundary` attribute
                     can be supplied here
 
         '''

@@ -22,7 +22,7 @@ trafficDBpath = os.path.join(testdir, 'marinetraffic_test.db')
 
 
 class FakeWebSocketClient(list):
-    remote_address = '\nFakeWebSocketClient@localhost'
+    remote_address = 'FakeWebSocketClient@localhost'
 
     ack = {'type': 'ack'}
 
@@ -56,13 +56,13 @@ class FakeWebSocketClient(list):
         }
     }
 
-    def _reset_responses(self, responses=[ack, ack, stop]):
-        self.responses = list(map(orjson.dumps, responses))
-
     def __init__(self, requests=[validrange, zones, track_vectors, heatmap]):
         super().__init__(map(orjson.dumps, requests))
         self.values = []
         self._reset_responses()
+
+    def _reset_responses(self, responses=[ack, ack, stop]):
+        self.responses = list(map(orjson.dumps, responses))
 
     async def __aiter__(self):
         self._reset_responses()

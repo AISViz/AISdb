@@ -89,6 +89,14 @@ def test_write_csv_fromdict_marinetraffic(tmpdir):
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
+        qry.check_marinetraffic(dbpath,
+                                trafficDBpath,
+                                boundary={
+                                    'xmin': -90,
+                                    'xmax': 0,
+                                    'ymin': 0,
+                                    'ymax': 90
+                                })
 
         rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, printqry=True)
         tracks = vessel_info(track_gen.TrackGen(rowgen), trafficDBpath)
@@ -98,7 +106,7 @@ def test_write_csv_fromdict_marinetraffic(tmpdir):
 
 
 def test_glob_files():
-    dbs = aisdb.proc_util.glob_files(os.path.dirname(__file__), '.nm4')
+    aisdb.proc_util.glob_files(os.path.dirname(__file__), '.nm4')
 
 
 def test_getfiledate():
