@@ -47,7 +47,6 @@ def test_retrieve_marinetraffic_data(tmpdir):
                       callback=sqlfcn_callbacks.in_timerange_validmmsi)
         qry.check_marinetraffic(dbpath=dbpath,
                                 trafficDBpath=trafficDBpath,
-                                data_dir=testdir,
                                 boundary=domain.boundary,
                                 retry_404=False)
         rowgen = qry.gen_qry(printqry=True)
@@ -64,5 +63,4 @@ def test_retrieve_marinetraffic_data(tmpdir):
 
 
 def test_marinetraffic_metadict():
-    #trafficDBpath = '/RAID0/ais/marinetraffic_V2.db'
     meta = _vessel_info_dict(trafficDBpath)
