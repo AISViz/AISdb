@@ -1,6 +1,8 @@
-from shapely.geometry import Polygon
 import os
+
+from shapely.geometry import Polygon
 import numpy as np
+import zipfile
 
 from aisdb.gis import Domain, DomainFromTxts, DomainFromPoints, shiftcoord, distance3D
 from aisdb.tests.create_testing_data import random_polygons_domain
@@ -27,16 +29,23 @@ def test_domain():
 
 
 def test_DomainFromTxts():
+    folder = os.path.join(os.path.dirname(__file__), 'test_zones')
+    zipf = os.path.join(folder, 'test_zones.zip')
 
-    domain = DomainFromTxts(domainName='test',
-                            folder=os.path.join(os.path.dirname(__file__),
-                                                'test_zones'))
+    with zipfile.ZipFile(zipf, 'r') as zip_ref:
+        members = list(
+            set(zip_ref.namelist()) - set(sorted(os.listdir(folder))))
+        zip_ref.extractall(path=folder, members=members)
+
+    domain = DomainFromTxts(domainName='test', folder=folder)
+    assert domain
 
 
 def test_DomainFromPoints():
 
     domain = DomainFromPoints([(-45, 50), (-50, 35), (-40, 55)],
                               [10000, 1000, 100000])
+    assert domain
 
 
 def test_domain_points_in_polygon():

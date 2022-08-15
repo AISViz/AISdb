@@ -23,6 +23,7 @@
 .rustup
 ais/webdata/webdriver*
 aisdb.egg-info
+aisdb/tests/test_zones/*.txt
 aisdb_wasm/release
 aisdb_wasm/target
 aisdb_web/dist**

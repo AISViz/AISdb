@@ -50,8 +50,6 @@ def binarysearch(arr, search):
     assert isinstance(arr, np.ndarray)
     low, high = 0, arr.size - 1
 
-    #if descending:
-    #    arr = arr[::-1]
     if arr[0] > arr[1]:
         descending = True
         arr = arr[::-1]

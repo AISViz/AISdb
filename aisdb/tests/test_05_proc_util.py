@@ -92,10 +92,10 @@ def test_write_csv_fromdict_marinetraffic(tmpdir):
         qry.check_marinetraffic(dbpath,
                                 trafficDBpath,
                                 boundary={
-                                    'xmin': -90,
-                                    'xmax': 0,
-                                    'ymin': 0,
-                                    'ymax': 90
+                                    'xmin': -45,
+                                    'xmax': -25,
+                                    'ymin': 30,
+                                    'ymax': 50,
                                 })
 
         rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, printqry=True)

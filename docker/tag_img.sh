@@ -22,6 +22,6 @@ read -p "Are you sure? [y/n]" -r
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
   docker build --target aisdb --tag meridiancfi/aisdb:$TAG --compress --file ./Dockerfile .. 
-  sudo docker push meridiancfi/aisdb:latest
+  sudo docker push meridiancfi/aisdb:$TAG
 fi
 
