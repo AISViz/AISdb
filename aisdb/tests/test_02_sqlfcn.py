@@ -1,6 +1,8 @@
 import os
 from datetime import datetime, timedelta
 
+import numpy as np
+
 from aisdb import sqlfcn, sqlfcn_callbacks
 
 y, x = 44., -63.
@@ -73,6 +75,16 @@ def test_callbacks(tmpdir):
             sqlfcn_callbacks.in_timerange_inmmsi,
             sqlfcn_callbacks.in_timerange_validmmsi,
     ]:
+        box_x = np.random.random(2) * 360 - 180
+        box_y = np.random.random(2) * 180 - 90
+        kwargs = dict(
+            start=start,
+            end=start + timedelta(days=7),
+            xmin=box_x[0],
+            xmax=box_x[1],
+            ymin=min(box_y),
+            ymax=max(box_y),
+        )
         txt = sqlfcn.crawl_dynamic_static(dbpath=dbpath,
                                           months=months,
                                           callback=callback,

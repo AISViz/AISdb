@@ -51,7 +51,6 @@ def aggregate_static_msgs(dbconn, months_str):
         cur = dbconn.cursor()
 
         for month in months_str:
-            #dbpath = [p for p in dbconn.dbpaths if month[0:4] in p][0]
             # check for monthly tables in dbfiles containing static reports
             cur.execute(
                 f'SELECT name FROM {dbname}.sqlite_master WHERE type="table" AND name=?',

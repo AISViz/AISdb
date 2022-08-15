@@ -8,14 +8,9 @@ from shapely.geometry import Polygon
 from aisdb import DBConn, DBQuery, sqlfcn_callbacks, Domain, sqlfcn
 from aisdb.database.dbqry import DBQuery_async
 
-from aisdb.database.create_tables import (
-    aggregate_static_msgs,
-    sqlite_createtable_dynamicreport,
-    sqlite_createtable_staticreport,
-)
+from aisdb.database.create_tables import sqlite_createtable_dynamicreport
 from aisdb.tests.create_testing_data import (
     sample_database_file,
-    sample_dynamictable_insertdata,
     sample_gulfstlawrence_bbox,
 )
 
@@ -77,10 +72,13 @@ def test_sql_query_strings(tmpdir):
     domain = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
     with DBConn() as aisdatabase:
         for callback in [
+                sqlfcn_callbacks.in_bbox,
+                sqlfcn_callbacks.in_bbox_time,
+                sqlfcn_callbacks.in_bbox_time_validmmsi,
+                sqlfcn_callbacks.in_time_bbox_inmmsi,
                 sqlfcn_callbacks.in_timerange,
-                sqlfcn_callbacks.in_timerange_validmmsi,
                 sqlfcn_callbacks.in_timerange_hasmmsi,
-                sqlfcn_callbacks.in_time_bbox_inmmsi
+                sqlfcn_callbacks.in_timerange_validmmsi,
         ]:
             rowgen = DBQuery(
                 dbconn=aisdatabase,
