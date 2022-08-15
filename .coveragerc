@@ -28,10 +28,10 @@ exclude_lines =
     
     # dont test backup imports
     pysqlite3
-    sqlite3
     
     # dont test exceptions
     Exception
+    websockets.exceptions
 
     # dont test for convenience type checks
     isinstance

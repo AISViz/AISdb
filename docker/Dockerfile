@@ -45,6 +45,7 @@ ARG BINGMAPSKEY
 ARG AISDBHOST
 ARG AISDBPORT
 COPY --chown=ais_env docs/ docs/
-COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 COPY --chown=ais_env aisdb_web/ aisdb_web/
+RUN /bin/bash ./aisdb_web/build_docs.sh
+COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 RUN /bin/bash ./aisdb_web/build_website.sh
