@@ -147,45 +147,48 @@ def test_network_graph_CSV(tmpdir):
             dbpath=testdbpath,
             start=start,
             end=end,
-            **domain.boundary,
             callback=sqlfcn_callbacks.in_bbox,
             fcn=sqlfcn.crawl_dynamic_static,
+            **domain.boundary,
         )
 
-        graph(
-            qry,
-            data_dir=data_dir,
-            domain=domain,
-            dbpath=testdbpath,
-            trafficDBpath=trafficDBpath,
-            processes=1,
-            outputfile=outpath,
-            maxdelta=timedelta(weeks=1),
-        )
-        assert os.path.isfile(outpath)
-    with open(outpath, 'r') as out:
-        print(out.read())
+        for processes in (1, 2):
+            graph(
+                qry,
+                data_dir=data_dir,
+                domain=domain,
+                dbpath=testdbpath,
+                trafficDBpath=trafficDBpath,
+                processes=processes,
+                outputfile=outpath,
+                maxdelta=timedelta(weeks=1),
+            )
+            assert os.path.isfile(outpath)
+            with open(outpath, 'r') as out:
+                print(out.read())
 
 
 def test_graph_pipeline_timing(tmpdir):
-    count = 50
+    count = 1000
     track = lambda: dict(
-        lon=(np.random.random(count) * 90) - 90,
-        lat=(np.random.random(count) * 90) + 0,
-        time=np.array(range(count)),
+        #lon=(np.random.random(count) * 90) - 90,
+        #lat=(np.random.random(count) * 90) + 0,
+        lon=(np.random.random(count) * .25) - 45,
+        lat=(np.random.random(count) * .25) + 45,
+        time=np.array(range(count, count * 30, 30)),
         dynamic=set(['time', 'lon', 'lat']),
         static=set(['mmsi', 'ship_type']),
         mmsi=316000000,
         ship_type='test',
     )
-    serialized = serialize_tracks([track() for _ in range(count)])
-    q = Queue()
-    for track_bytes in serialized:
-        q.put(track_bytes)
-    q.put(False)
+    serialized = serialize_tracks([track() for _ in range(10)])
+    #q = Queue()
+    #for track_bytes in serialized:
+    #    q.put(track_bytes)
+    #q.put(False)
 
     _processing_pipeline(
-        q,
+        serialized,
         domain=domain,
         tmp_dir=tmpdir,
         maxdelta=timedelta(weeks=1),
@@ -197,8 +200,9 @@ def test_graph_pipeline_timing(tmpdir):
         shoredist_raster=os.path.join(data_dir, 'distance-from-shore.tif'),
         portdist_raster=os.path.join(data_dir,
                                      'distance-from-port-v20201104.tiff'),
+        interp_delta=timedelta(seconds=1),
     )
-    q.close()
+    #q.close()
 
 
 '''
@@ -209,6 +213,6 @@ def test_graph_pipeline_timing(tmpdir):
     trafficDBpath = './testdata/marinetraffic_test.db'
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        cProfile.run("test_graph_CSV_single(tmpdir)", sort="tottime")
-        cProfile.run("test_graph_CSV_parallel(tmpdir)", sort="tottime")
+        cProfile.run("test_graph_pipeline_timing(tmpdir)", sort="tottime")
+        #cProfile.run("test_network_graph_CSV(tmpdir)", sort="tottime")
 '''

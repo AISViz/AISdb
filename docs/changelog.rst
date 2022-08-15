@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.125
+--------
+
+refactor network graph and improved test coverage
+
+
 v1.3.124
 --------
 

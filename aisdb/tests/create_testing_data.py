@@ -28,14 +28,27 @@ def sample_dynamictable_insertdata(*, dbconn, dbpath):
     dbconn.commit()
 
 
-def sample_random_polygon(xscale=20, yscale=20):
+def sample_random_polygon(xscale=10, yscale=10):
     vertices = 6
 
     x, y = [0, 0, 0], [0, 0, 0]
     while not Polygon(zip(x, y)).is_valid:
-        x = (np.random.random(vertices) * xscale) + (350 *
+        x = (np.random.random(vertices) * xscale) + (180 *
                                                      (np.random.random() - .5))
-        y = (np.random.random(vertices) * yscale) + (170 *
+        y = (np.random.random(vertices) * yscale) + (90 *
+                                                     (np.random.random() - .5))
+
+    return x, y
+
+
+def sample_invalid_polygon(xscale=10, yscale=10):
+    vertices = 6
+
+    x, y = [0, 0, 0], [0, 0, 0]
+    while not Polygon(zip(x, y)).is_valid:
+        x = (np.random.random(vertices) * xscale) + (3600 *
+                                                     (np.random.random() - .5))
+        y = (np.random.random(vertices) * yscale) + (1800 *
                                                      (np.random.random() - .5))
 
     return x, y
@@ -55,9 +68,9 @@ def sample_gulfstlawrence_bbox():
 def random_polygons_domain(count=10):
     return Domain('testdomain',
                   [{
-                      'name': 'random',
+                      'name': f'random_{i:03}',
                       'geometry': Polygon(zip(*sample_random_polygon()))
-                  } for _ in range(count)])
+                  } for i in range(count)])
 
 
 def sample_database_file(dbpath):

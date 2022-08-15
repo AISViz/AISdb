@@ -3,10 +3,10 @@
     trajectory statistics within the overall domain
 '''
 
-import multiprocessing
+import multiprocessing.queues
 from multiprocessing import Pool, Queue
-if __name__ == '__main__':
-    multiprocessing.set_start_method('forkserver')
+# if __name__ == '__main__':
+#    multiprocessing.set_start_method('forkserver')
 import os
 import pickle
 import re
@@ -37,6 +37,7 @@ from aisdb.track_gen import (
     encode_greatcircledistance,
     fence_tracks,
     serialize_tracks,
+    split_timedelta,
 )
 from aisdb.interp import interp_time
 from aisdb.proc_util import _sanitize
@@ -45,7 +46,6 @@ from aisdb.webdata.bathymetry import Gebco
 from aisdb.webdata.shore_dist import ShoreDist, PortDist
 from aisdb.webdata.marinetraffic import vessel_info
 from aisdb.wsa import wetted_surface_area
-from aisdb.tests.create_testing_data import sample_database_file
 
 
 def _fstr(s):
@@ -263,7 +263,9 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
                         break
                     except Exception as e:
                         raise e
-                    if not reduce(np.logical_or, [f(getrow) for f in filters]):
+                    if not reduce(np.logical_or,
+                                  [f(getrow)
+                                   for f in filters]):  # pragma: no cover
                         results.append(','.join(map(str, getrow.values())))
 
             if len(results) == 0:
@@ -278,34 +280,66 @@ def _processing_pipeline(q: Queue, *, domain, tmp_dir, data_dir, trafficDBpath,
                          shoredist_raster, portdist_raster, maxdelta,
                          distance_threshold, speed_threshold, minscore,
                          interp_delta):
-    assert isinstance(q, multiprocessing.queues.Queue)
 
+    # pipeline configuration from arguments
+    serialize_CSV = partial(_serialize_network_edge,
+                            domain=domain,
+                            tmp_dir=tmp_dir)
     geofence = partial(fence_tracks, domain=domain)
+    interp = partial(interp_time, step=interp_delta)
     encode_tracks = partial(encode_greatcircledistance,
                             distance_threshold=distance_threshold,
                             minscore=minscore,
                             speed_threshold=speed_threshold)
-    serialize_CSV = partial(_serialize_network_edge,
-                            domain=domain,
-                            tmp_dir=tmp_dir)
-    bathy, sdist, pdist = Gebco(data_dir=data_dir), ShoreDist(
-        shoredist_raster), PortDist(portdist_raster)
+    timesplit = partial(split_timedelta, maxdelta=maxdelta)
+    vinfo = partial(vessel_info, trafficDBpath=trafficDBpath)
 
-    with bathy, sdist, pdist:
-        while (t0 := q.get(block=True, timeout=30)) is not False:
-            pipeline = serialize_CSV(
-                geofence(
-                    sdist.get_distance(
-                        pdist.get_distance(
-                            bathy.merge_tracks(
-                                interp_time(encode_tracks(
+    # arrange pipeline processing steps in sequence
+    '''
+    pipeline = lambda tracks: serialize_CSV(
+        geofence(
+            sdist.get_distance(
+                pdist.get_distance(
+                    bathy.merge_tracks(
+                        interp(
+                            encode_tracks(
+                                timesplit(
                                     wetted_surface_area(
-                                        vessel_info(
-                                            deserialize_tracks([t0]),
-                                            trafficDBpath=trafficDBpath))),
-                                            step=interp_delta))))))
-            for track in pipeline:
+                                        vinfo(deserialize_tracks(tracks))))))))
+            )))
+    '''
+    pipeline = lambda tracks: serialize_CSV(
+        geofence(
+            interp(
+                encode_tracks(
+                    timesplit(
+                        wetted_surface_area(
+                            vinfo(
+                                sdist.get_distance(
+                                    pdist.get_distance(
+                                        bathy.merge_tracks(
+                                            deserialize_tracks(tracks))))))))))
+    )
+
+    # initialize raster data sources
+    sdist = ShoreDist(shoredist_raster)
+    pdist = PortDist(portdist_raster)
+    bathy = Gebco(data_dir=data_dir)
+    with bathy, sdist, pdist:
+
+        # if tracks are an iterable type, process them in sequence
+        if isinstance(q, (types.GeneratorType, list)):
+            for track in pipeline(q):
                 assert track is None
+
+        # if tracks are a multiprocessing queue, process tracks from queue
+        elif isinstance(q, multiprocessing.queues.Queue):
+            while (t0 := q.get(block=True, timeout=30)) is not False:
+                for track in pipeline([t0]):
+                    assert track is None
+
+        else:
+            raise ValueError(f'unexpected tracks type: {type(q)}')
 
 
 def graph(qry,
@@ -354,6 +388,8 @@ def graph(qry,
                 maximum distance in meters for encoder segmentation. See
                 :func:`aisdb.track_gen.encode_greatcircledistance` for
                 more info
+            interp_delta (timedelta)
+                track positions will be interpolated to the given sample rate
             minscore (float)
                 minimum score for segments to be considered sequential. See
                 :func:`aisdb.track_gen.encode_greatcircledistance` for
@@ -381,10 +417,11 @@ def graph(qry,
 
         Example usage:
 
+        >>> import shapely
         >>> from datetime import datetime
         >>> from aisdb import DBConn, DBQuery, Domain, graph
         >>> from aisdb.database.sqlfcn_callbacks import in_bbox_time
-        >>> import shapely
+        >>> from aisdb.tests.create_testing_data import sample_database_file
 
         configure query area using Domain to compute region boundary
 
@@ -398,7 +435,7 @@ def graph(qry,
         >>> domain = Domain(name='new_domain', zones=zones)
         >>> trafficDBpath = './testdata/marinetraffic_test.db'
         >>> data_dir = os.environ.get('AISDBDATADIR', '/tmp/ais/')
-        >>> dbpath = os.environ.get('AISDBPATH', os.path.join(os.path.expanduser('~'), 'ais.db'))
+        >>> dbpath = 'testdata/doctest.db'
         >>> sample_database_file(dbpath)
         aggregating static reports into test.static_202107_aggregate...
         <BLANKLINE>
@@ -456,17 +493,20 @@ def graph(qry,
             tmp_dir=tmp_dir,
             trafficDBpath=trafficDBpath,
         )
-        q = Queue()
-        with Pool(processes, fcn, [q]) as p:
-            for track in tracks:
-                while q.qsize() > processes * 2:
-                    sleep(0.001)
-                q.put(track)
-            for _ in range(processes):
-                q.put(False)
-            q.close()
-            p.close()
-            p.join()
+        if processes > 1:
+            q = Queue()
+            with Pool(processes, fcn, [q]) as p:
+                for track in tracks:
+                    while q.qsize() > processes * 2:
+                        sleep(0.001)
+                    q.put(track)
+                for _ in range(processes):
+                    q.put(False)
+                q.close()
+                p.close()
+                p.join()
+        else:
+            fcn(tracks)
 
         if os.listdir(tmp_dir) == []:
             warnings.warn(f'no data for {outputfile}, skipping...\n')
