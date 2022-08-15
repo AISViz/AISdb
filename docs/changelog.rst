@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.124
+--------
+
+minor fixes and updated testing for gis.py and track_gen.py
+
+
 v1.3.123
 --------
 

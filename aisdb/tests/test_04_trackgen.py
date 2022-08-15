@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 
 from aisdb import track_gen, sqlfcn, sqlfcn_callbacks
+from aisdb.gis import vesseltrack_3D_dist, mask_in_radius_2D
 from aisdb.database.dbconn import DBConn
 from aisdb.database.dbqry import DBQuery, DBQuery_async
 from aisdb.track_gen import (
@@ -48,6 +49,8 @@ def test_min_speed_filter(tmpdir):
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
 
+    target_xy = [44.51204273779117, -63.47468122107318][::-1]
+
     with DBConn() as dbconn:
         qry = DBQuery(
             dbconn=dbconn,
@@ -57,11 +60,14 @@ def test_min_speed_filter(tmpdir):
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
         rowgen = qry.gen_qry(printqry=True)
-        tracks = min_speed_filter(encode_greatcircledistance(
-            track_gen.TrackGen(rowgen),
-            distance_threshold=250000,
-        ),
-                                  minspeed=5)
+        tracks = vesseltrack_3D_dist(
+            mask_in_radius_2D(min_speed_filter(encode_greatcircledistance(
+                track_gen.TrackGen(rowgen),
+                distance_threshold=250000,
+            ),
+                                               minspeed=5),
+                              target_xy,
+                              distance_meters=100000), *target_xy, 0)
         for track in tracks:
             assert 'time' in track.keys()
 

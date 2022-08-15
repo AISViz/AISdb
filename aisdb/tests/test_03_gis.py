@@ -1,6 +1,8 @@
 from shapely.geometry import Polygon
+import os
+import numpy as np
 
-from aisdb.gis import Domain, DomainFromPoints
+from aisdb.gis import Domain, DomainFromTxts, DomainFromPoints, shiftcoord, distance3D
 from aisdb.tests.create_testing_data import random_polygons_domain
 from aisdb.tests.create_testing_data import sample_gulfstlawrence_bbox
 
@@ -22,6 +24,13 @@ def test_domain():
     print(f'{zoneID = }')
 
     print(f'{domain.minX=}\n{domain.maxX=}\n{domain.minY=}\n{domain.maxY=}')
+
+
+def test_DomainFromTxts():
+
+    domain = DomainFromTxts(domainName='test',
+                            folder=os.path.join(os.path.dirname(__file__),
+                                                'test_zones'))
 
 
 def test_DomainFromPoints():
@@ -57,3 +66,16 @@ def test_domain_points_in_polygon():
     assert test[0] == 'z1'
     assert test[1] == 'z2'
     assert test[2] == 'z3'
+
+
+def test_shiftcoord():
+    x = np.array([-360, -270, -180, -90, 0, 90, 180, 270, 360])
+    xshift = shiftcoord(x)
+    assert sum(xshift == np.array([0, 90, 180, -90, 0, 90, -180, -90, 0])) == 9
+
+
+def test_distance3D():
+    x1, y1 = -45, 50
+    x2, y2 = -40, 50
+    depth_metres = -500
+    dist = distance3D(x1, y1, x2, y2, depth_metres)

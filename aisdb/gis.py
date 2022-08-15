@@ -147,7 +147,7 @@ def distance3D(x1, y1, x2, y2, depth_metres):
         point at given depth
     '''
     a2 = haversine(x1=x1, y1=y1, x2=x2, y2=y2)**2
-    b2 = depth_metres**2
+    b2 = abs(depth_metres)**2
     c2 = a2 + b2
     return np.sqrt(c2)
 

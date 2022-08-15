@@ -36,8 +36,6 @@ from .gis import (
     vesseltrack_3D_dist,
 )
 
-from .index import index
-
 from .interp import (
     interp_time, )
 
@@ -52,7 +50,6 @@ from .track_gen import (
     TrackGen,
     split_timedelta,
     fence_tracks,
-    max_tracklength,
     encode_greatcircledistance,
 )
 

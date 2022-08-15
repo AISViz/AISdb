@@ -392,69 +392,6 @@ async def encode_greatcircledistance_async(
 encode_greatcircledistance_async.__doc__ = encode_greatcircledistance.__doc__
 
 
-def max_tracklength(tracks, max_length=100000):
-    ''' applies a maximum track length to track vectors.
-        can be used to avoid excess memory consumption
-
-        args:
-            tracks: generator
-                yields track dictionaries
-            max_track_length: int
-                tracks exceeding this number of datapoints will be segmented
-
-        yields track dictionaries
-    '''
-
-    for track in tracks:
-        while (track['time'].size > max_length):
-            yield dict(
-                **{k: track[k]
-                   for k in track['static']},
-                **{k: track[k][:max_length]
-                   for k in track['dynamic']},
-                static=track['static'],
-                dynamic=set(track['dynamic']),
-            )
-            track = dict(
-                **{k: track[k]
-                   for k in track['static']},
-                **{k: track[k][max_length:]
-                   for k in track['dynamic']},
-                static=track['static'],
-                dynamic=set(track['dynamic']),
-            )
-        yield track
-
-
-def concat_realisticspeed(tracks, knots_threshold=50):
-    ''' if two consecutive tracks are within a realistic speed threshold, they
-        will be concatenated
-    '''
-    segment = next(tracks)
-    for track in tracks:
-        deltas = {
-            'time': np.append(segment['time'][-1], track['time'][0]),
-            'lon': np.append(segment['lon'][-1], track['lon'][0]),
-            'lat': np.append(segment['lat'][-1], track['lat'][0]),
-        }
-        if segment['mmsi'] == track['mmsi'] and delta_knots(
-                deltas, range(2))[0] < knots_threshold:
-            segment = dict(
-                **{k: segment[k]
-                   for k in segment['static']},
-                **{
-                    k: np.append(segment[k], track[k])
-                    for k in track['dynamic']
-                },
-                static=track['static'],
-                dynamic=set(track['dynamic']),
-            )
-        else:
-            yield segment
-            segment = track
-    yield segment
-
-
 def fence_tracks(tracks, domain):
     ''' compute points-in-polygons for vessel positions within domain polygons
 
@@ -536,7 +473,7 @@ def serialize_tracks(tracks):
     for track in tracks:
         track['static'] = tuple(track['static'])
         track['dynamic'] = tuple(track['dynamic'])
-        if 'marinetraffic_info' in track.keys():
+        if 'marinetraffic_info' in track.keys():  # pragma: no cover
             track['marinetraffic_info'] = dict(track['marinetraffic_info'])
         yield orjson.dumps(track, option=orjson.OPT_SERIALIZE_NUMPY)
 
