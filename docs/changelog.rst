@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.126
+--------
+
+fix bug causing websocket server to hang after completing or halting database queries
+
+
 v1.3.125
 --------
 

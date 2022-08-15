@@ -1,6 +1,6 @@
 import asyncio
-
 from os import environ
+
 from aisdb.websocket_server import SocketServ
 from aisdb import DomainFromTxts
 

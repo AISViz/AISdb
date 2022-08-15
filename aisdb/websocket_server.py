@@ -1,8 +1,10 @@
 import asyncio
+import calendar
 import os
 import ssl
+import warnings
 import websockets
-import calendar
+import websockets.exceptions
 from datetime import datetime, timedelta
 
 import aiosqlite
@@ -14,14 +16,13 @@ from aisdb import (
     sqlfcn_callbacks,
 )
 from aisdb.database.dbqry import DBQuery_async
-from aisdb.webdata.marinetraffic import _vessel_info_dict, _nullinfo
+from aisdb.interp import interp_time_async
 from aisdb.track_gen import (
     TrackGen_async,
     encode_greatcircledistance_async,
-    min_speed_filter_async,
     split_timedelta_async,
 )
-from aisdb.interp import interp_time_async
+from aisdb.webdata.marinetraffic import _vessel_info_dict, _nullinfo
 
 
 class SocketServ():
@@ -35,6 +36,7 @@ class SocketServ():
         port = os.environ.get('AISDBPORT', 9924)
         self.port = int(port)
         self.domain = domain
+        assert self.domain.zones != []
         self.vesselinfo = _vessel_info_dict(trafficDBpath)
 
         # let nginx in docker manage SSL by default
@@ -53,50 +55,63 @@ class SocketServ():
     async def handler(self, websocket):
         ''' handle messages received by the websocket '''
         self.dbconn = await aiosqlite.connect(self.dbpath)
+
         async for clientmsg in websocket:
             print(f'{datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} '
                   f'{websocket.remote_address} {str(clientmsg)}')
 
             req = json.loads(clientmsg)
 
-            if req['type'] == 'zones':
-                await self.req_zones(req, websocket)
+            try:
+                if req['type'] == 'zones':
+                    await self.req_zones(req, websocket)
 
-            elif req['type'] == 'track_vectors':
-                await self.req_tracks_raw(req, websocket)
+                elif req['type'] == 'track_vectors':
+                    await self.req_tracks_raw(req, websocket)
 
-            elif req['type'] == 'validrange':
-                await self.req_valid_range(req, websocket)
+                elif req['type'] == 'validrange':
+                    await self.req_valid_range(req, websocket)
 
-            elif req['type'] == 'heatmap':
-                await self.req_heatmap(req, websocket)
+                elif req['type'] == 'heatmap':
+                    await self.req_heatmap(req, websocket)
 
-            elif req['type'] == 'ack':
-                pass
+                elif req['type'] == 'ack':  # pragma: no cover
+                    warnings.warn(
+                        f'received unknown ack from {websocket.remote_address}'
+                    )
+            except websockets.exceptions.ConnectionClosedOK:
+                print(f'disconnected client {websocket.remote_address}')
+            except websockets.exceptions.ConnectionClosedError:
+                print(f'terminated client {websocket.remote_address}')
+            except Exception as err:
+                raise err
+        await self.dbconn.close()
 
     async def await_response(self, websocket):
         ''' await the client response and react accordingly '''
         clientresponse = await websocket.recv()
         response = json.loads(clientresponse)
+
         if 'type' not in response.keys():
             raise RuntimeWarning(f'Unhandled client message: {response}')
-        elif response['type'] == 'ack':
-            pass
-        elif response['type'] == 'stop':
-            await websocket.send(
-                json.dumps({
-                    'type': 'done',
-                    'status': 'Halted search'
-                }))
-            return 'HALT'
-        elif response['type'] == 'zones':
-            await self.req_zones(response, websocket)
 
-        elif response['type'] == 'track_vectors':
-            await self.req_tracks_raw(response, websocket)
+        elif response['type'] == 'ack':
+            return 0
+
+        elif response['type'] == 'stop':
+            # await websocket.send(json.dumps({'type': 'done', 'status': 'Halted search'}))
+            return 'HALT'
+
         else:
             raise RuntimeWarning(f'Unhandled client message: {response}')
-        return 0
+
+    async def _send_and_await(self, event, websocket, qry):
+        await websocket.send(json.dumps(event,
+                                        option=json.OPT_SERIALIZE_NUMPY))
+        response = await self.await_response(websocket)
+        if qry is not None and response == 'HALT':
+            await qry.dbconn.close()
+        return response
 
     def _create_dbqry(self, req):
         start = datetime(*map(int, req['start'].split('-')))
@@ -120,7 +135,6 @@ class SocketServ():
                 {"type" : "validrange"}
 
         '''
-        #async with DBConn_async(dbpath=self.dbpath) as db:
         res1 = await self.dbconn.execute_fetchall(
             "SELECT name FROM main.sqlite_master "
             "WHERE type='table' AND name LIKE '%_dynamic'")
@@ -146,7 +160,8 @@ class SocketServ():
                 {"type" : "zones"}
 
         '''
-        for zone in self.domain.zones:
+        for key in self.domain.zones.keys():
+            zone = self.domain.zones[key]
             x, y = zone['geometry'].boundary.coords.xy
             event = {
                 'msgtype': 'zone',
@@ -154,15 +169,14 @@ class SocketServ():
                 'y': np.array(y, dtype=np.float32),
                 't': [],
                 'meta': {
-                    'name': zone['name'],
+                    'name': key,
                     'maxradius': str(zone['maxradius']),
                 },
             }
-            await websocket.send(
-                json.dumps(event, option=json.OPT_SERIALIZE_NUMPY))
-            if await self.await_response(websocket) == 'HALT':
+            if await self._send_and_await(event, websocket, None) == 'HALT':
                 return
-        await websocket.send(json.dumps({'type': 'doneZones'}))
+        await websocket.send(json.dumps({'type':
+                                         'doneZones'}))  # pragma: no cover
 
     async def req_tracks_raw(self, req, websocket):
         ''' create database query, generate track vectors from rows,
@@ -183,19 +197,16 @@ class SocketServ():
                 }
 
         '''
-        #async with DBConn_async(dbpath=self.dbpath) as db:
         qry = self._create_dbqry(req)
-        qrygen = encode_greatcircledistance_async(
+        trackgen = encode_greatcircledistance_async(
             TrackGen_async(qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)),
             distance_threshold=250000,
             minscore=0,
             speed_threshold=50,
         )
-        #with self.trafficDB as conn:
         count = 0
-        async for track in qrygen:
-            #_vinfo(track, conn)
-            if track['mmsi'] in self.vesselinfo.keys():
+        async for track in trackgen:
+            if track['mmsi'] in self.vesselinfo.keys():  # pragma: no cover
                 track['marinetraffic_info'] = self.vesselinfo[track['mmsi']]
             else:
                 track['marinetraffic_info'] = _nullinfo(track)
@@ -209,25 +220,18 @@ class SocketServ():
                     for k, v in dict(**track['marinetraffic_info']).items()
                 },
             }
-            await websocket.send(
-                json.dumps(event, option=json.OPT_SERIALIZE_NUMPY))
-            count += 1
-
-            if await self.await_response(websocket) == 'HALT':
+            if await self._send_and_await(event, websocket, qry) == 'HALT':
+                await trackgen.aclose()
                 return
 
-        if count > 0:
-            await websocket.send(
-                json.dumps({
-                    'type': 'done',
-                    'status': f'Done. Count: {count}'
-                }))
-        else:
-            await websocket.send(
-                json.dumps({
-                    'type': 'done',
-                    'status': 'No data for selection'
-                }))
+        await websocket.send(
+            json.dumps({
+                'type':
+                'done',
+                'status':
+                f'Done. Count: {count}'
+                if count > 0 else 'No data for selection'  # pragma: no cover
+            }))
 
     async def req_heatmap(self, req, websocket):
         ''' create database query, generate track vectors from rows,
@@ -238,7 +242,7 @@ class SocketServ():
             client. sample request JSON::
 
                 {
-                    "type": "track_vectors",
+                    "type": "heatmap",
                     "start": "2021-07-01",
                     "end": "2021-07-14",
                     "area": {
@@ -251,46 +255,33 @@ class SocketServ():
 
         '''
         qry = self._create_dbqry(req)
-        subqry = qry.copy()
-        count = 0
-        for day in np.arange(
-                qry['start'],
-                qry['end'],
-                timedelta(days=1),
-        ).astype(datetime):
-            subqry['start'] = day
-            subqry['end'] = day + timedelta(days=1)
-            interps = interp_time_async(
-                min_speed_filter_async(
-                    encode_greatcircledistance_async(
-                        split_timedelta_async(TrackGen_async(
-                            subqry.async_qry(self.dbpath,
-                                             fcn=sqlfcn.crawl_dynamic)),
-                                              maxdelta=timedelta(hours=2)),
-                        distance_threshold=250000,
-                        minscore=0,
-                        speed_threshold=50,
-                    ),
-                    minspeed=1,
-                ),
-                step=timedelta(minutes=60),
-            )
-            async for itr in interps:
-                response = {
-                    'type': 'heatmap',
-                    'xy': list(zip(itr['lon'], itr['lat']))
-                }
-                await websocket.send(
-                    json.dumps(response, option=json.OPT_SERIALIZE_NUMPY))
-            count += 1
-            json.dumps({
-                'type':
-                'done',
-                'status':
-                f'Searching... Heatmap Days Processed: {count}'
-            })
+        interps = interp_time_async(
+            encode_greatcircledistance_async(
+                split_timedelta_async(TrackGen_async(qry.gen_qry()),
+                                      maxdelta=timedelta(hours=2)),
+                distance_threshold=250000,
+                minscore=0,
+                speed_threshold=50,
+            ),
+            step=timedelta(minutes=60),
+        )
+        async for itr in interps:
+            response = {
+                'type': 'heatmap',
+                'mmsi': itr['mmsi'],
+                'xy': np.array(list(zip(itr['lon'], itr['lat'])))
+            }
+            if await self._send_and_await(response, websocket, qry) == 'HALT':
+                await interps.aclose()
+                return
 
-    async def main(self):
+        await websocket.send(  # pragma: no cover
+            json.dumps({
+                'type': 'done',
+                'status': 'done loading heatmap'
+            }))
+
+    async def main(self):  # pragma: no cover
         ''' run the server main loop asynchronously. should be called with
             :func:`asyncio.run`
         '''
