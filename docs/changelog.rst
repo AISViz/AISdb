@@ -2,10 +2,16 @@
 Changelog
 =========
 
+v1.3.127
+--------
+
+fix CSS overflow error
+
+
 v1.3.126
 --------
 
-fix bug causing websocket server to hang after completing or halting database queries
+fix bug causing websocket server to hang when making database queries
 
 
 v1.3.125
@@ -35,7 +41,7 @@ fix ship_type error in asynchronous DB query
 v1.3.121
 --------
 
-fix web client query from hanging unexpectedly and reorganizing
+fix web client query from hanging unexpectedly; reorganizing files
 
 
 v1.3.120

@@ -152,7 +152,7 @@ def test_network_graph_CSV(tmpdir):
             **domain.boundary,
         )
 
-        for processes in (1, 2):
+        for processes in (1, 4):
             graph(
                 qry,
                 data_dir=data_dir,

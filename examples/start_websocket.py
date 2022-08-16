@@ -4,6 +4,10 @@ from os import environ
 from aisdb.websocket_server import SocketServ
 from aisdb import DomainFromTxts
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 dbpath = environ.get('AISDBPATH', '/home/ais_env/ais/ais.db')
 zones_dir = environ.get('AISDBZONES', '/home/ais_env/ais/zones/')
 trafficDBpath = environ.get('AISDBMARINETRAFFIC',

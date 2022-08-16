@@ -295,18 +295,17 @@ def _processing_pipeline(q: Queue, *, domain, tmp_dir, data_dir, trafficDBpath,
     vinfo = partial(vessel_info, trafficDBpath=trafficDBpath)
 
     # arrange pipeline processing steps in sequence
-    '''
     pipeline = lambda tracks: serialize_CSV(
         geofence(
             sdist.get_distance(
-                pdist.get_distance(
-                    bathy.merge_tracks(
-                        interp(
-                            encode_tracks(
-                                timesplit(
-                                    wetted_surface_area(
-                                        vinfo(deserialize_tracks(tracks))))))))
-            )))
+                #pdist.get_distance(
+                #bathy.merge_tracks(
+                interp(
+                    encode_tracks(
+                        timesplit(
+                            wetted_surface_area(
+                                vinfo(deserialize_tracks(tracks)))))))))
+    #))
     '''
     pipeline = lambda tracks: serialize_CSV(
         geofence(
@@ -316,16 +315,17 @@ def _processing_pipeline(q: Queue, *, domain, tmp_dir, data_dir, trafficDBpath,
                         wetted_surface_area(
                             vinfo(
                                 sdist.get_distance(
-                                    pdist.get_distance(
-                                        bathy.merge_tracks(
-                                            deserialize_tracks(tracks))))))))))
-    )
+                                    #pdist.get_distance(
+                                    #bathy.merge_tracks(
+                                    deserialize_tracks(tracks)))))))))
+    #))
+    '''
 
     # initialize raster data sources
     sdist = ShoreDist(shoredist_raster)
-    pdist = PortDist(portdist_raster)
-    bathy = Gebco(data_dir=data_dir)
-    with bathy, sdist, pdist:
+    #pdist = PortDist(portdist_raster)
+    #bathy = Gebco(data_dir=data_dir)
+    with sdist:
 
         # if tracks are an iterable type, process them in sequence
         if isinstance(q, (types.GeneratorType, list)):
@@ -472,13 +472,19 @@ def graph(qry,
     assert os.path.isfile(shoredist_raster)
     assert os.path.isfile(portdist_raster)
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
+    # initialize raster data sources
+    #sdist = ShoreDist(shoredist_raster)
+    pdist = PortDist(portdist_raster)
+    bathy = Gebco(data_dir=data_dir)
+    #with bathy, sdist, pdist:
+    with tempfile.TemporaryDirectory() as tmp_dir, bathy, pdist:
         if os.environ.get('DEBUG'):
             print(f'network graph {tmp_dir = }')
             print(f'\n{domain.name=} {domain.boundary=}')
 
         rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)
-        tracks = serialize_tracks(TrackGen(rowgen))
+        tracks = serialize_tracks(
+            bathy.merge_tracks(pdist.get_distance(TrackGen(rowgen))))
         fcn = partial(
             _processing_pipeline,
             data_dir=data_dir,

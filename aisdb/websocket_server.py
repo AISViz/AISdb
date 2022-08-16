@@ -268,7 +268,7 @@ class SocketServ():
         async for itr in interps:
             response = {
                 'type': 'heatmap',
-                'mmsi': itr['mmsi'],
+                #'mmsi': itr['mmsi'],
                 'xy': np.array(list(zip(itr['lon'], itr['lat'])))
             }
             if await self._send_and_await(response, websocket, qry) == 'HALT':

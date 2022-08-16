@@ -1,3 +1,7 @@
+import 'ol/ol.css';
+import BingMaps from 'ol/source/BingMaps';
+
+
 /** @module map */
 window.searcharea = null;
 
@@ -63,7 +67,8 @@ async function setSearchAreaFromSelected() {
 /** initialize map layer and associated imports dynamically */
 async function init_maplayers() {
   let [
-    _css,
+    // _css,
+    // { default: BingMaps },
     { set_track_style },
     Feature,
     _Map,
@@ -78,9 +83,10 @@ async function init_maplayers() {
     { default: VectorLayer },
     proj,
     { default: VectorSource },
-    { default: BingMaps },
+
   ] = await Promise.all([
-    import('ol/ol.css'),
+    // import('ol/ol.css'),
+    // import('ol/source/BingMaps'),
     import('./selectform'),
     import('ol/Feature'),
     import('ol/Map'),
@@ -95,7 +101,6 @@ async function init_maplayers() {
     import('ol/layer/Vector'),
     import('ol/proj'),
     import('ol/source/Vector'),
-    import('ol/source/BingMaps'),
   ]);
 
   let {
@@ -150,6 +155,8 @@ async function init_maplayers() {
     zoom: 7,
   });
 
+  /*
+  */
   let mapSource = new BingMaps({
     key: import.meta.env.VITE_BINGMAPSKEY,
     imagerySet: 'Aerial',
@@ -167,7 +174,7 @@ async function init_maplayers() {
     // visible: true,
     // preload: Infinity,
     source: mapSource,
-    // zIndex: 0,
+    zIndex: 0,
   });
   /*
   import OSM from 'ol/source/OSM';
