@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.128
+--------
+
+reduce memory leaks in websocket_server.py, and added 10s timeout before dropping client connection
+
+
 v1.3.127
 --------
 

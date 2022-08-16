@@ -1,6 +1,5 @@
-import 'ol/ol.css';
-import BingMaps from 'ol/source/BingMaps';
-
+// import 'ol/ol.css';
+// import BingMaps from 'ol/source/BingMaps';
 
 /** @module map */
 window.searcharea = null;
@@ -67,26 +66,26 @@ async function setSearchAreaFromSelected() {
 /** initialize map layer and associated imports dynamically */
 async function init_maplayers() {
   let [
-    // _css,
-    // { default: BingMaps },
+    _css,
+    { default: BingMaps },
     { set_track_style },
     Feature,
     _Map,
     { default: View },
     GeoJSON,
-    Point,
+    { default: Point },
     { defaults },
     DragBox,
     Draw,
-    { default: Heatmap },
+    // { default: Heatmap },
     { default: TileLayer },
     { default: VectorLayer },
     proj,
     { default: VectorSource },
 
   ] = await Promise.all([
-    // import('ol/ol.css'),
-    // import('ol/source/BingMaps'),
+    import('ol/ol.css'),
+    import('ol/source/BingMaps'),
     import('./selectform'),
     import('ol/Feature'),
     import('ol/Map'),
@@ -96,7 +95,7 @@ async function init_maplayers() {
     import('ol/interaction'),
     import('ol/interaction/DragBox'),
     import('ol/interaction/Draw'),
-    import('ol/layer/Heatmap'),
+    // import('ol/layer/Heatmap'),
     import('ol/layer/Tile'),
     import('ol/layer/Vector'),
     import('ol/proj'),
@@ -137,12 +136,15 @@ async function init_maplayers() {
   /** map heatmap source */
   heatSource = new VectorSource({ });
   /** map heatmap layer */
-  heatLayer = new Heatmap({
-    source: heatSource,
-    blur: 30,
-    radius: 3,
-    zIndex: 2,
-  });
+  if (typeof Heatmap === 'undefined') {
+    let { default: Heatmap } = await import('ol/layer/Heatmap');
+    heatLayer = new Heatmap({
+      source: heatSource,
+      blur: 30,
+      radius: 3,
+      zIndex: 2,
+    });
+  }
 
 
   /** default map position

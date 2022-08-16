@@ -154,8 +154,8 @@ socket.onmessage = async function(event) {
       rawdata:convert_js_utf8(response)
     }));
     // console.log(JSON.stringify(response['meta']['vesseltype_generic']));
-    newTrackFeature(processed, response.meta);
     await socket.send(JSON.stringify({ type: 'ack' }));
+    newTrackFeature(processed, response.meta);
   } else if (response.msgtype === 'zone') {
     let processed = convert_utf8_js(_process_response({
       rawdata:convert_js_utf8(response)
@@ -165,6 +165,7 @@ socket.onmessage = async function(event) {
     newPolygonFeature(processed, response.meta);
     await socket.send(JSON.stringify({ type: 'ack' }));
   } else if (response.type === 'heatmap') {
+    await socket.send(JSON.stringify({ type: 'ack' }));
     newHeatmapFeatures(response.xy);
   } else if (response.type === 'done') {
     document.getElementById('status-div').textContent = response.status;

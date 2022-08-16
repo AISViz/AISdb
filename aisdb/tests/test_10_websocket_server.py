@@ -82,6 +82,9 @@ class FakeWebSocketClient(list):
             self._reset_responses()
         return response
 
+    async def close(self):
+        pass
+
 
 @pytest.fixture
 def websocket():

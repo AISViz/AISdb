@@ -78,6 +78,10 @@ async function parseUrl() {
       await screenshot();
     }
   }
+  if (urlParams.get('debugopts') !== null) {
+    console.log('enabling heatmap testing... (DEBUGOPTS=1)');
+    window.heatmaptest = true;
+  }
 }
 
 export default parseUrl;

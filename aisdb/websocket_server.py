@@ -79,17 +79,26 @@ class SocketServ():
                     warnings.warn(
                         f'received unknown ack from {websocket.remote_address}'
                     )
+            except (asyncio.exceptions.CancelledError,
+                    asyncio.exceptions.TimeoutError):
+                print(f'client timed out {websocket.remote_address}')
+                break
             except websockets.exceptions.ConnectionClosedOK:
                 print(f'disconnected client {websocket.remote_address}')
+                break
             except websockets.exceptions.ConnectionClosedError:
                 print(f'terminated client {websocket.remote_address}')
+                break
             except Exception as err:
+                await websocket.close()
+                await self.dbconn.close()
                 raise err
         await self.dbconn.close()
+        await websocket.close()
 
     async def await_response(self, websocket):
         ''' await the client response and react accordingly '''
-        clientresponse = await websocket.recv()
+        clientresponse = await asyncio.wait_for(websocket.recv(), timeout=10)
         response = json.loads(clientresponse)
 
         if 'type' not in response.keys():
@@ -99,7 +108,6 @@ class SocketServ():
             return 0
 
         elif response['type'] == 'stop':
-            # await websocket.send(json.dumps({'type': 'done', 'status': 'Halted search'}))
             return 'HALT'
 
         else:
@@ -222,7 +230,10 @@ class SocketServ():
             }
             if await self._send_and_await(event, websocket, qry) == 'HALT':
                 await trackgen.aclose()
+                await qry.dbconn.close()
                 return
+            else:
+                count += 1
 
         await websocket.send(
             json.dumps({
@@ -255,16 +266,15 @@ class SocketServ():
 
         '''
         qry = self._create_dbqry(req)
-        interps = interp_time_async(
-            encode_greatcircledistance_async(
-                split_timedelta_async(TrackGen_async(qry.gen_qry()),
-                                      maxdelta=timedelta(hours=2)),
-                distance_threshold=250000,
-                minscore=0,
-                speed_threshold=50,
-            ),
-            step=timedelta(minutes=60),
-        )
+        interps = interp_time_async(encode_greatcircledistance_async(
+            split_timedelta_async(TrackGen_async(qry.gen_qry()),
+                                  maxdelta=timedelta(hours=12)),
+            distance_threshold=250000,
+            minscore=0,
+            speed_threshold=50,
+        ),
+                                    step=timedelta(minutes=60))
+        count = 0
         async for itr in interps:
             response = {
                 'type': 'heatmap',
@@ -273,12 +283,14 @@ class SocketServ():
             }
             if await self._send_and_await(response, websocket, qry) == 'HALT':
                 await interps.aclose()
+                await qry.dbconn.close()
                 return
+            count += 1
 
         await websocket.send(  # pragma: no cover
             json.dumps({
                 'type': 'done',
-                'status': 'done loading heatmap'
+                'status': f'done loading heatmap. vessel count: {count}'
             }))
 
     async def main(self):  # pragma: no cover

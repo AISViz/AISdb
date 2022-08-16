@@ -104,13 +104,15 @@ label {
   flex-grow: 100;
 }
 
+.map {
+  background-color: #282c34;
+  overflow: auto;
+  width: 100vw;
+}
 
 @media screen and (min-width: 10px) {
   .map {
     height: calc(100vh - 8em);
-    width: 100vw;
-    background-color: #282c34;
-    overflow: auto;
   }
   .liquidlayout {
     height: 8em;
@@ -133,9 +135,6 @@ label {
 @media screen and (min-width: 800px) {
   .map {
     height: calc(100vh - 4.5em);
-    width: 100vw;
-    background-color: #282c34;
-    overflow: auto;
   }
   .liquidlayout {
     height: 4.5em;
@@ -158,9 +157,6 @@ label {
 @media screen and (min-width: 1800px) {
   .map {
     height: calc(100vh - 2.25em);
-    width: 100vw;
-    background-color: #282c34;
-    overflow: auto;
   }
   .liquidlayout {
     height: 2.25em;

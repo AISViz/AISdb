@@ -23,5 +23,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]
 then
   docker build --target aisdb --tag meridiancfi/aisdb:$TAG --compress --file ./Dockerfile .. 
   sudo docker push meridiancfi/aisdb:$TAG
+  docker build --target aisdb --tag meridiancfi/aisdb:latest --compress --file ./Dockerfile .. 
+  sudo docker push meridiancfi/aisdb:latest
 fi
 
