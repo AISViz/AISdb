@@ -42,12 +42,10 @@ services:
       - AISDBDATADIR=/home/ais_env/ais
       - AISDBTESTDIR=/home/ais_env/testdata
     volumes:
-      #- ${AISDBDATADIR:-/home/$USER/ais/}:/home/ais_env/ais/
+      - ${AISDBDATADIR:-/home/$USER/ais/}:/home/ais_env/ais/
       - ./aisdb_web/dist_coverage/:/home/ais_env/aisdb_web/dist_coverage/
       - ./target/:/home/ais_env/target
       - ./testdata:/home/ais_env/testdata
-    #depends_on:
-    #  - rust-test  # for testingdata
     init: true
     command: 
       ["python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not timing"]
