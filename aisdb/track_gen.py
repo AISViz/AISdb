@@ -98,15 +98,18 @@ def TrackGen(rowgen: iter) -> dict:
             scalar values
 
         >>> import os
-        >>> import numpy as np
-        >>> import json
         >>> from datetime import datetime
+        >>> from aisdb import DBConn, DBQuery, TrackGen, decode_msgs
+        >>> from aisdb.database import sqlfcn_callbacks
 
-        >>> from aisdb import DBConn, DBQuery, sqlfcn_callbacks, TrackGen
-        >>> from aisdb.tests.create_testing_data import sample_database_file
+        >>> # create example database file
+        >>> dbpath = './testdata/test.db'
+        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
+        ...              'aisdb/tests/test_data_20211101.nm4']
 
-        >>> dbpath = os.environ.get('AISDBPATH', os.path.join('testdata', 'doctest.db'))
         >>> with DBConn() as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
+        ...     source='TESTING')
         ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
         ...             dbconn=dbconn,
         ...             dbpath=dbpath,
@@ -117,8 +120,7 @@ def TrackGen(rowgen: iter) -> dict:
         ...         print(track['mmsi'], track['lon'], track['lat'], track['time'])
         ...         break
         204242000 [-8.931666] [41.45] [1625176725]
-
-
+        >>> os.remove(dbpath)
     '''
     firstrow = True
     assert isinstance(rowgen, types.GeneratorType)
@@ -344,11 +346,16 @@ def encode_greatcircledistance(
 
         >>> import os
         >>> from datetime import datetime, timedelta
-        >>> from aisdb import DBConn, DBQuery, sqlfcn_callbacks
-        >>> from aisdb import TrackGen, encode_greatcircledistance
+        >>> from aisdb import DBConn, DBQuery, TrackGen
+        >>> from aisdb import decode_msgs, encode_greatcircledistance, sqlfcn_callbacks
 
-        >>> data_dir = os.environ.get('AISDBDATADIR', '/tmp/ais/')
-        >>> dbpath = os.environ.get('AISDBPATH', os.path.join(os.path.expanduser('~'), 'ais.db'))
+        >>> # create example database file
+        >>> dbpath = './testdata/test.db'
+        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
+        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> with DBConn() as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn,
+        ...     dbpath=dbpath, source='TESTING')
 
         >>> with DBConn() as dbconn:
         ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
@@ -367,6 +374,7 @@ def encode_greatcircledistance(
         ...         break
         204242000
         [-8.931666] [41.45]
+        >>> os.remove(dbpath)
 
     '''
     for track in tracks:

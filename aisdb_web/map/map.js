@@ -140,8 +140,8 @@ async function init_maplayers() {
     let { default: Heatmap } = await import('ol/layer/Heatmap');
     heatLayer = new Heatmap({
       source: heatSource,
-      blur: 30,
-      radius: 3,
+      blur: 33,
+      radius: 2.5,
       zIndex: 2,
     });
   }

@@ -42,8 +42,7 @@ class DBQuery(UserDict):
                 :mod:`aisdb.database.sqlfcn_callbacks.py`, e.g.
 
                 >>> import os
-                >>> dbpath = os.environ.get('AISDBPATH',
-                ...             os.path.join('testdata', 'doctest.db'))
+                >>> dbpath = './testdata/test.db'
                 >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
                 >>> from aisdb import DBConn, DBQuery
 
@@ -72,10 +71,15 @@ class DBQuery(UserDict):
 
         >>> import os
         >>> from datetime import datetime
-        >>> from aisdb import DBQuery
+        >>> from aisdb import DBQuery, decode_msgs
         >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 
-        >>> dbpath = os.environ.get('AISDBPATH', './testdata/test.db')
+        >>> dbpath = './testdata/test.db'
+        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
+        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> with DBConn() as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
+        ...     source='TESTING')
         >>> start, end = datetime(2021, 7, 1), datetime(2021, 7, 7)
         >>> with DBConn() as dbconn:
         ...     q = DBQuery(dbconn=dbconn,
@@ -169,7 +173,8 @@ class DBQuery(UserDict):
     def gen_qry(self,
                 fcn=sqlfcn.crawl_dynamic,
                 printqry=False,
-                force_reaggregate_static=False):
+                force_reaggregate_static=False,
+                verbose=False):
         ''' queries the database using the supplied SQL function and dbpath.
             generator only stores one item at at time before yielding
 
@@ -182,6 +187,8 @@ class DBQuery(UserDict):
                 fcn (function)
                     callback function that will generate SQL code using
                     the args stored in self
+                verbose (bool)
+                    log info to stdout
 
             yields:
                 numpy array of rows for each unique MMSI
@@ -213,9 +220,11 @@ class DBQuery(UserDict):
                     [f'static_{month}_aggregate'])
                 res = cur.fetchall()
                 if len(res) == 0 or force_reaggregate_static:
-                    print(f'building static index for month {month}...',
-                          flush=True)
-                    aggregate_static_msgs(self.dbconn, [month])
+                    if verbose:
+                        print(f'building static index for month {month}...',
+                              flush=True)
+                    aggregate_static_msgs(self.dbconn, [month],
+                                          verbose=verbose)
                 '''
                 # create dynamic tables if necessary
                 self.dbconn.execute(
@@ -301,6 +310,7 @@ class DBQuery_async(DBQuery):
                 [f'static_{month}_aggregate'])
             if res == []:
                 with DBConn() as syncdb:
+                    syncdb.dbpath = self.dbpath
                     print('Aggregating static messages synchronously... ')
                     aggregate_static_msgs(syncdb, [month])
 

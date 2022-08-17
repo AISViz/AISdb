@@ -395,7 +395,8 @@ class DomainFromTxts(Domain):
 
 class DomainFromPoints(Domain):
     ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
-        zone geometry from .txt files directly
+        zone geometry from longitude and latitude pairs with a bounding-box
+        maximum radial distance.
     '''
 
     def __init__(self,

@@ -111,6 +111,9 @@ class SocketServ():
             return 'HALT'
 
         if response['type'] == 'zones':
+            warnings.warn(
+                f'client creating branching request! {websocket.remote_address}'
+            )
             await self.req_zones(response, websocket)
 
         else:

@@ -170,6 +170,7 @@ pub fn decode_insert_msgs(
     filename: &std::path::Path,
     source: &str,
     mut parser: NmeaParser,
+    verbose: bool,
 ) -> Result<NmeaParser, Error> {
     //) -> Result<(), Error> {
     //let fstr = &filename.to_str().unwrap();
@@ -210,11 +211,11 @@ pub fn decode_insert_msgs(
 
         /*
         if is_dynamic {
-            positions.push(message);
-            count += 1;
+        positions.push(message);
+        count += 1;
         } else {
-            stat_msgs.push(message);
-            count += 1;
+        stat_msgs.push(message);
+        count += 1;
         }
         */
 
@@ -267,10 +268,12 @@ pub fn decode_insert_msgs(
         8
     );
 
-    println!(
-        "{} count:{: >8}    {}    {}",
-        fname1, count, elapsed1, rate1,
-    );
+    if verbose {
+        println!(
+            "{} count:{: >8}    {}    {}",
+            fname1, count, elapsed1, rate1,
+        );
+    }
 
     Ok(parser)
 }
@@ -359,6 +362,7 @@ pub mod tests {
                 &std::path::Path::new(&filepath).to_path_buf(),
                 "TESTING",
                 parser,
+                true,
             )
             .expect("test decode and insert");
         }

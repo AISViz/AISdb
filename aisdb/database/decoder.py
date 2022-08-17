@@ -62,7 +62,7 @@ def decode_msgs(filepaths,
                 source,
                 vacuum=False,
                 skip_checksum=False,
-                quiet=False):
+                verbose=False):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
@@ -99,7 +99,8 @@ def decode_msgs(filepaths,
         ...              'aisdb/tests/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
-        ...     source='TESTING', quiet=True)
+        ...     source='TESTING')
+        >>> os.remove(dbpath)
     '''
     if not isinstance(dbconn, DBConn):  # pragma: no cover
         if isinstance(dbconn):
@@ -120,10 +121,10 @@ def decode_msgs(filepaths,
                     _ = f.read(600)
                     signature = md5(f.read(1000)).hexdigest()
             if dbindex._checksum_exists(dbpath, signature):
-                if not quiet:  # pragma: no cover
+                if verbose:  # pragma: no cover
                     print(f'found matching checksum, skipping {file}')
                 continue
-        decoder(dbpath=dbpath, files=[file], source=source)
+        decoder(dbpath=dbpath, files=[file], source=source, verbose=verbose)
         if not skip_checksum:
             dbindex._insert_checksum(dbpath, signature)
 

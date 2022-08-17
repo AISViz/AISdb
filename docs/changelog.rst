@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.129
+--------
+
+optionally increase logging verbosity and improve doctests
+
+
 v1.3.128
 --------
 

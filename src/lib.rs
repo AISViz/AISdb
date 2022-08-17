@@ -65,11 +65,13 @@ pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 ///         array of .nm4 raw data filepath strings
 ///     source (&str)
 ///         data source text. Will be used as a primary key index in database
+///     verbose (bool)
+///         enables logging
 ///
 /// returns:
 ///     None
 ///
-pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str) {
+pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str, verbose: bool) {
     // array tuples containing (dbpath, filepath)
     let mut path_arr = vec![];
     for file in files {
@@ -89,9 +91,9 @@ pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str) {
             || f.to_str().unwrap().contains(&".TXT")
             || f.to_str().unwrap().contains(&".txt")
         {
-            parser = decode_insert_msgs(&d, &f, &source, parser).expect("decoding NM4");
+            parser = decode_insert_msgs(&d, &f, &source, parser, verbose).expect("decoding NM4");
         } else if f.to_str().unwrap().contains(&".csv") || f.to_str().unwrap().contains(&".CSV") {
-            decodemsgs_ee_csv(&d, &f, &source).expect("decoding CSV");
+            decodemsgs_ee_csv(&d, &f, &source, verbose).expect("decoding CSV");
         } else {
             panic!("unknown file extension {:?}", &d);
         }

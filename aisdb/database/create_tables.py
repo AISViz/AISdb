@@ -28,7 +28,7 @@ def sqlite_createtable_staticreport(dbconn, month, dbpath):
     dbconn.execute(sql)
 
 
-def aggregate_static_msgs(dbconn, months_str):
+def aggregate_static_msgs(dbconn, months_str, verbose=False):
     ''' collect an aggregate of static vessel reports for each unique MMSI
         identifier. The most frequently repeated values for each MMSI will
         be kept when multiple different reports appear for the same MMSI
@@ -38,12 +38,18 @@ def aggregate_static_msgs(dbconn, months_str):
         args:
             dbconn (:class:`aisdb.database.dbconn.DBConn`)
                 database connection object
-
             months_str (array)
                 array of strings with format: YYYYmm
+            verbose (bool)
+                logs messages to stdout
     '''
+
     if not isinstance(dbconn, DBConn):  # pragma: no cover
         raise ValueError('db argument must be a DBConn database connection')
+
+    assert not hasattr(dbconn, 'dbpath')
+    assert hasattr(dbconn, 'dbpaths')
+    assert 'main' not in dbconn.dbpaths
 
     for dbpath in dbconn.dbpaths:
         assert 'checksums' not in dbpath
@@ -59,8 +65,9 @@ def aggregate_static_msgs(dbconn, months_str):
                 continue
 
         sqlite_createtable_staticreport(dbconn, month, dbpath)
-        print('aggregating static reports into '
-              f'{dbname}.static_{month}_aggregate...')
+        if verbose:
+            print('aggregating static reports into '
+                  f'{dbname}.static_{month}_aggregate...')
         cur.execute('SELECT DISTINCT s.mmsi FROM '
                     f'{dbname}.ais_{month}_static AS s')
         mmsis = np.array(cur.fetchall(), dtype=int).flatten()
@@ -97,8 +104,6 @@ def aggregate_static_msgs(dbconn, months_str):
             ]
 
             agg_rows.append(aggregated)
-
-        print()
 
         with open(os.path.join(sqlpath, 'createtable_static_aggregate.sql'),
                   'r') as f:

@@ -417,11 +417,19 @@ def graph(qry,
 
         Example usage:
 
+        >>> import os
         >>> import shapely
         >>> from datetime import datetime
-        >>> from aisdb import DBConn, DBQuery, Domain, graph
+        >>> from aisdb import DBConn, DBQuery, Domain, graph, decode_msgs
         >>> from aisdb.database.sqlfcn_callbacks import in_bbox_time
-        >>> from aisdb.tests.create_testing_data import sample_database_file
+
+        >>> # create example database file
+        >>> dbpath = './testdata/test.db'
+        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
+        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> with DBConn() as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
+        ...     source='TESTING')
 
         configure query area using Domain to compute region boundary
 
@@ -435,11 +443,6 @@ def graph(qry,
         >>> domain = Domain(name='new_domain', zones=zones)
         >>> trafficDBpath = './testdata/marinetraffic_test.db'
         >>> data_dir = os.environ.get('AISDBDATADIR', '/tmp/ais/')
-        >>> dbpath = 'testdata/doctest.db'
-        >>> sample_database_file(dbpath)
-        aggregating static reports into test.static_202107_aggregate...
-        <BLANKLINE>
-        ['202107', '202111']
 
         query db for points in domain
 
@@ -456,6 +459,7 @@ def graph(qry,
         ...           outputfile=os.path.join('testdata', 'test_graph.csv'),
         ...           dbpath=dbpath, data_dir=data_dir, domain=domain,
         ...           trafficDBpath=trafficDBpath, processes=3)
+        >>> os.remove(dbpath)
 
         process the vessel movement graph edges using 3 processes in parallel.
         caution: this may consume a large amount of memory
