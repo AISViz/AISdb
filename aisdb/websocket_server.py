@@ -110,6 +110,9 @@ class SocketServ():
         elif response['type'] == 'stop':
             return 'HALT'
 
+        if response['type'] == 'zones':
+            await self.req_zones(response, websocket)
+
         else:
             raise RuntimeWarning(f'Unhandled client message: {response}')
 
@@ -230,7 +233,6 @@ class SocketServ():
             }
             if await self._send_and_await(event, websocket, qry) == 'HALT':
                 await trackgen.aclose()
-                await qry.dbconn.close()
                 return
             else:
                 count += 1
@@ -283,7 +285,6 @@ class SocketServ():
             }
             if await self._send_and_await(response, websocket, qry) == 'HALT':
                 await interps.aclose()
-                await qry.dbconn.close()
                 return
             count += 1
 
