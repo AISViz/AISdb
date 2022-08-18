@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 import aiosqlite
 import numpy as np
-import orjson as json
+import orjson
 
 from aisdb import (
     sqlfcn,
@@ -60,7 +60,7 @@ class SocketServ():
             print(f'{datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} '
                   f'{websocket.remote_address} {str(clientmsg)}')
 
-            req = json.loads(clientmsg)
+            req = orjson.loads(clientmsg)
 
             try:
                 if req['type'] == 'zones':
@@ -95,11 +95,12 @@ class SocketServ():
                 raise err
         await self.dbconn.close()
         await websocket.close()
+        print(f'closed client: ended socket loop {websocket.remote_address}')
 
     async def await_response(self, websocket):
         ''' await the client response and react accordingly '''
         clientresponse = await asyncio.wait_for(websocket.recv(), timeout=10)
-        response = json.loads(clientresponse)
+        response = orjson.loads(clientresponse)
 
         if 'type' not in response.keys():
             raise RuntimeWarning(f'Unhandled client message: {response}')
@@ -120,8 +121,8 @@ class SocketServ():
             raise RuntimeWarning(f'Unhandled client message: {response}')
 
     async def _send_and_await(self, event, websocket, qry):
-        await websocket.send(json.dumps(event,
-                                        option=json.OPT_SERIALIZE_NUMPY))
+        await websocket.send(
+            orjson.dumps(event, option=orjson.OPT_SERIALIZE_NUMPY))
         response = await self.await_response(websocket)
         if qry is not None and response == 'HALT':
             await qry.dbconn.close()
@@ -162,7 +163,7 @@ class SocketServ():
         startval = f'{startyear}-{dynamic_months[0][4:]}-{start_month_range}'
         endval = f'{dynamic_months[-1][:4]}-{dynamic_months[-1][4:]}-{end_month_range}'
         await websocket.send(
-            json.dumps({
+            orjson.dumps({
                 'type': 'validrange',
                 'start': startval,
                 'end': endval,
@@ -189,8 +190,8 @@ class SocketServ():
             }
             if await self._send_and_await(event, websocket, None) == 'HALT':
                 return
-        await websocket.send(json.dumps({'type':
-                                         'doneZones'}))  # pragma: no cover
+        await websocket.send(orjson.dumps({'type':
+                                           'doneZones'}))  # pragma: no cover
 
     async def req_tracks_raw(self, req, websocket):
         ''' create database query, generate track vectors from rows,
@@ -241,7 +242,7 @@ class SocketServ():
                 count += 1
 
         await websocket.send(
-            json.dumps({
+            orjson.dumps({
                 'type':
                 'done',
                 'status':
@@ -283,7 +284,6 @@ class SocketServ():
         async for itr in interps:
             response = {
                 'type': 'heatmap',
-                #'mmsi': itr['mmsi'],
                 'xy': np.array(list(zip(itr['lon'], itr['lat'])))
             }
             if await self._send_and_await(response, websocket, qry) == 'HALT':
@@ -292,9 +292,11 @@ class SocketServ():
             count += 1
 
         await websocket.send(  # pragma: no cover
-            json.dumps({
-                'type': 'done',
-                'status': f'done loading heatmap. vessel count: {count}'
+            orjson.dumps({
+                'type':
+                'done',
+                'status':
+                f'done loading heatmap. vessel count: {count}'
             }))
 
     async def main(self):  # pragma: no cover

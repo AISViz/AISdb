@@ -1,5 +1,9 @@
 // import 'ol/ol.css';
 // import BingMaps from 'ol/source/BingMaps';
+import './clientsocket.js';
+import './url.js';
+import { set_track_style } from './selectform.js';
+import { default as _Map } from 'ol/Map';
 
 /** @module map */
 window.searcharea = null;
@@ -68,38 +72,42 @@ async function init_maplayers() {
   let [
     _css,
     { default: BingMaps },
-    { set_track_style },
-    Feature,
-    _Map,
+    { default: Feature },
+    // { default: _Map },
     { default: View },
-    GeoJSON,
+    { default: GeoJSON },
     { default: Point },
     { defaults },
-    DragBox,
-    Draw,
-    // { default: Heatmap },
+    { default: DragBox },
+    { default: Draw },
+    { default: Heatmap },
     { default: TileLayer },
     { default: VectorLayer },
     proj,
     { default: VectorSource },
+    { default : MousePosition },
+    { createStringXY },
+    { defaults: defaultControls },
 
   ] = await Promise.all([
     import('ol/ol.css'),
     import('ol/source/BingMaps'),
-    import('./selectform'),
     import('ol/Feature'),
-    import('ol/Map'),
+    // import('ol/Map'),
     import('ol/View'),
     import('ol/format/GeoJSON'),
     import('ol/geom/Point'),
     import('ol/interaction'),
     import('ol/interaction/DragBox'),
     import('ol/interaction/Draw'),
-    // import('ol/layer/Heatmap'),
+    import('ol/layer/Heatmap'),
     import('ol/layer/Tile'),
     import('ol/layer/Vector'),
     import('ol/proj'),
     import('ol/source/Vector'),
+    import('ol/control/MousePosition'),
+    import('ol/coordinate'),
+    import('ol/control'),
   ]);
 
   let {
@@ -136,15 +144,12 @@ async function init_maplayers() {
   /** map heatmap source */
   heatSource = new VectorSource({ });
   /** map heatmap layer */
-  if (typeof Heatmap === 'undefined') {
-    let { default: Heatmap } = await import('ol/layer/Heatmap');
-    heatLayer = new Heatmap({
-      source: heatSource,
-      blur: 33,
-      radius: 2.5,
-      zIndex: 2,
-    });
-  }
+  heatLayer = new Heatmap({
+    source: heatSource,
+    blur: 33,
+    radius: 2.5,
+    zIndex: 2,
+  });
 
 
   /** default map position
@@ -186,28 +191,35 @@ async function init_maplayers() {
   });
   */
 
-  let mapInteractions = defaults({ doubleClickZoom:false });
-  map = new _Map.default({
+  /* map interactions */
+
+  const mousePositionControl = new MousePosition({
+    coordinateFormat: createStringXY(4),
+    projection: 'EPSG:4326',
+    // className: 'mouse-pos',
+    // target: document.getElementById('mouse-position'),
+  });
+
+  map = new _Map({
     target: 'mapDiv', // div item in index.html
     layers: [ mapLayer, polyLayer, lineLayer, heatLayer, drawLayer ],
     view: mapview,
-    interactions: mapInteractions,
+    interactions: defaults({ doubleClickZoom:false }),
+    controls: defaultControls().extend([ mousePositionControl ]),
   });
 
 
-  /* map interactions */
-
   /* cursor styling: indicate to the user that we are selecting an area */
   // let draw = new Draw({
-  draw = new Draw.default({
+  draw = new Draw({
     type: 'Point',
   });
 
   // const Feature = await import('ol/Feature');
-  dragBox = new DragBox.default({});
+  dragBox = new DragBox({});
   dragBox.on('boxend', () => {
     window.geom = dragBox.getGeometry();
-    let selectFeature = new Feature.default({
+    let selectFeature = new Feature({
       geometry: dragBox.getGeometry(),
       name: 'selectionArea',
     });
@@ -259,8 +271,8 @@ async function init_maplayers() {
    * @param {Object} geojs GeoJSON Polygon object
    * @param {Object} meta geometry metadata
    */
-  newPolygonFeature = function(geojs, meta) {
-    const format = new GeoJSON.default();
+  newPolygonFeature = async function(geojs, meta) {
+    const format = new GeoJSON();
     const feature = format.readFeature(geojs, {
       dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
@@ -272,9 +284,9 @@ async function init_maplayers() {
   /** add vessel points to overall heatmap
    * @param {Array} xy Coordinate tuples
    */
-  newHeatmapFeatures = function(xy) {
+  newHeatmapFeatures = async function(xy) {
     xy.forEach(async (p) => {
-      let pt = new Feature.default({
+      let pt = new Feature({
         geometry: new Point(proj.fromLonLat(p)),
       });
       heatSource.addFeature(pt);
@@ -286,7 +298,7 @@ async function init_maplayers() {
    * @param {Object} meta geometry metadata
    */
   newTrackFeature = async function(geojs, meta) {
-    const format = new GeoJSON.default();
+    const format = new GeoJSON();
     const feature = format.readFeature(geojs, {
       dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
@@ -317,7 +329,7 @@ async function init_maplayers() {
       meta: meta,
       meta_str: meta_str.replace(' ', '&nbsp;'),
     });
-    await set_track_style(feature);
+    set_track_style(feature);
     feature.set('COLOR', vesseltypes[meta.vesseltype_generic]);
     lineSource.addFeature(feature);
   };
@@ -396,6 +408,7 @@ async function init_maplayers() {
   });
   */
 }
+
 
 (async () => {
   await init_maplayers();

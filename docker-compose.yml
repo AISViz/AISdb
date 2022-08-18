@@ -86,7 +86,7 @@ services:
       #AISDBTESTDIR: '/home/ais_env/testdata'
     init: true
     command: 
-      ["python", "-Ou", "examples/start_websocket.py"]
+      ["python", "-u", "examples/start_websocket.py"]
     networks: 
       ipv6_private:
         ipv6_address: "fc00::6"

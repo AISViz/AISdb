@@ -13,7 +13,7 @@ from .database.dbconn import DBConn
 
 from .database.decoder import decode_msgs
 
-from .database.dbqry import DBQuery
+from .database.dbqry import DBQuery, DBQuery_async
 
 from .database import sqlfcn
 
@@ -48,9 +48,11 @@ from .proc_util import (
 
 from .track_gen import (
     TrackGen,
+    TrackGen_async,
     split_timedelta,
     fence_tracks,
     encode_greatcircledistance,
+    encode_greatcircledistance_async,
 )
 
 import sqlite3

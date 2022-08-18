@@ -1,4 +1,3 @@
-import aiosqlite
 import orjson
 import os
 import pytest
@@ -88,12 +87,15 @@ class FakeWebSocketClient(list):
 
 @pytest.fixture
 def websocket():
+    if os.path.isfile(dbpath):
+        os.remove(dbpath)
     sample_database_file(dbpath)
     return FakeWebSocketClient()
 
 
 @pytest.mark.asyncio
 async def test_clientsocket_handler(websocket):
+
     serv = SocketServ(dbpath=dbpath,
                       domain=domain,
                       trafficDBpath=trafficDBpath,

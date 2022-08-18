@@ -224,7 +224,7 @@ clearbtn.onclick = async function() {
  * 2021-01-01
  * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
  */
-async function setSearchRange(start, end) {
+function setSearchRange(start, end) {
   timeselectstart_fp.set('minDate', start);
   timeselectend_fp.set('minDate', start);
   timeselectstart_fp.set('maxDate', end);
@@ -251,7 +251,7 @@ async function setSearchRange(start, end) {
  * 2021-01-01
  * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
  */
-async function setSearchValue(start, end) {
+function setSearchValue(start, end) {
   timeselectstart_fp.set('defaultDate', start);
   timeselectstart_fp.jumpToDate(start, true);
   timeselectstart.value = start;
@@ -272,7 +272,7 @@ let selectedType = 'All';
  * current selectedType
  * @see selectedType
  */
-async function set_track_style(ft) {
+function set_track_style(ft) {
   if (selectedType === 'All') {
     ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
   } else if (ft.get('meta').vesseltype_generic.includes(selectedType)) {

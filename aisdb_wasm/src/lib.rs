@@ -10,11 +10,11 @@ use wasm_bindgen::prelude::*;
 //use wasm_bindgen::JsCast;
 //use web_sys::{console, ErrorEvent, MessageEvent, WebSocket};
 
-//#[cfg(debug_assertions)]
-//use std::panic;
+#[cfg(debug_assertions)]
+use std::panic;
 
-//#[cfg(debug_assertions)]
-//extern crate console_error_panic_hook;
+#[cfg(debug_assertions)]
+extern crate console_error_panic_hook;
 
 #[derive(Serialize, Deserialize)]
 //#[wasm_bindgen]
@@ -60,8 +60,8 @@ macro_rules! zip {
 
 #[wasm_bindgen]
 pub fn process_response(txt: JsValue) -> JsValue {
-    //#[cfg(debug_assertions)]
-    //panic::set_hook(Box::new(console_error_panic_hook::hook));
+    #[cfg(debug_assertions)]
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
 
     let raw: Geojs = JsValue::into_serde(&txt).expect("this");
     let response_chars = std::str::from_utf8(&raw.rawdata).unwrap();

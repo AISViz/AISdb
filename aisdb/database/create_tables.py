@@ -52,8 +52,8 @@ def aggregate_static_msgs(dbconn, months_str, verbose=False):
     assert 'main' not in dbconn.dbpaths
 
     for dbpath in dbconn.dbpaths:
-        assert 'checksums' not in dbpath
         dbname = get_dbname(dbpath)
+        assert dbname != 'main'
         cur = dbconn.cursor()
 
         for month in months_str:

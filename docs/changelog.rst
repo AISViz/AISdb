@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.130
+--------
+
+webapp cursor position coordinates display
+
+
 v1.3.129
 --------
 

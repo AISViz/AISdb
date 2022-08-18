@@ -139,6 +139,52 @@ def TrackGen(rowgen: iter) -> dict:
 
 
 async def TrackGen_async(rowgen: iter) -> dict:
+    ''' generator converting sets of rows sorted by MMSI to a
+        dictionary containing track column vectors.
+        each row contains columns from database: mmsi time lon lat name ...
+        rows must be sorted by first by mmsi, then time
+
+        args:
+            rowgen (aisdb.database.dbqry.DBQuery.gen_qry())
+                DBQuery rows generator. Yields rows returned
+                by a database query
+
+        yields:
+            dictionary containing track column vectors.
+            static data (e.g. mmsi, name, geometry) will be stored as
+            scalar values
+
+        >>> import os
+        >>> import asyncio
+        >>> from datetime import datetime
+        >>> from aisdb import DBConn, DBQuery_async, TrackGen_async, decode_msgs
+        >>> from aisdb.database import sqlfcn_callbacks
+
+        >>> # create example database file
+        >>> dbpath = './testdata/test.db'
+        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
+        ...              'aisdb/tests/test_data_20211101.nm4']
+
+        >>> with DBConn() as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
+        ...     source='TESTING')
+        >>> async def get_tracks():
+        ...     qry = DBQuery_async(
+        ...             dbpath=dbpath,
+        ...             start=datetime(2021, 7, 1),
+        ...             end=datetime(2021, 7, 7),
+        ...             callback=sqlfcn_callbacks.in_timerange_validmmsi)
+        ...     tracks = TrackGen_async(qry.gen_qry())
+        ...     async for track in tracks:
+        ...         print(track['mmsi'], track['lon'], track['lat'], track['time'])
+        ...         break
+        ...     # since loop is exited early, need to clean up resources
+        ...     await qry.dbconn.close()  # close async database connection
+        ...     await tracks.aclose()  # close async event loop
+        >>> asyncio.run(get_tracks())
+        204242000 [-8.931666] [41.45] [1625176725]
+        >>> os.remove(dbpath)
+    '''
     firstrow = True
     async for rows in rowgen:
         assert not (rows is None or len(rows) == 0), 'rows cannot be empty'
@@ -152,9 +198,6 @@ async def TrackGen_async(rowgen: iter) -> dict:
             firstrow = False
         for track in _yieldsegments(rows, staticcols, dynamiccols):
             yield track
-
-
-TrackGen_async.__doc__ = TrackGen.__doc__
 
 
 def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):

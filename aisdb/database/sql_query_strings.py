@@ -22,10 +22,12 @@ def in_bbox(*, alias, xmin, xmax, ymin, ymax, **_):
         returns:
             SQL code (string)
     '''
-    assert -180 <= xmin <= 180
-    assert -180 <= xmax <= 180, f'got {xmax}'
-    #assert -90 <= ymin <= 90, f'got {ymin=}'
-    #assert -90 <= ymax <= 90, f'got {ymax=}'
+    if not -180 <= xmin <= 180:
+        warnings.warn(f'got {xmin}')
+        xmin = shiftcoord([xmin])[0]
+    if not -180 <= xmax <= 180:
+        warnings.warn(f'got {xmax}')
+        xmax = shiftcoord([xmax])[0]
     if not -90 <= ymin <= 90:
         warnings.warn(f'got {ymin=}')
     if not -90 <= ymax <= 90:

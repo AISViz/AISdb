@@ -45,7 +45,7 @@ async function parseUrl() {
   if (Date.parse(urlParams.get('start')) > 0 &&
     Date.parse(urlParams.get('end')) > 0) {
     await waitForTimerange();
-    await setSearchValue(urlParams.get('start'), urlParams.get('end'));
+    setSearchValue(urlParams.get('start'), urlParams.get('end'));
   }
 
   if (isNumeric(urlParams.get('xmin')) &&

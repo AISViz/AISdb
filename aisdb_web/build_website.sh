@@ -46,6 +46,7 @@ set -e
 cd "${WASMDIR}"
 wasm-pack build --target web --out-dir "${MAPDIR}/pkg" --release
 wasm-opt -O3 -o "${MAPDIR}/pkg/client_bg.wasm" "${MAPDIR}/pkg/client_bg.wasm"
+#wasm-pack build --target web --out-dir "${MAPDIR}/pkg" --dev
 
 
 # build map webapp

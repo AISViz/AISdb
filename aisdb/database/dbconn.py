@@ -165,6 +165,7 @@ class DBConn(sqlite3.Connection):
 
     def attach(self, dbpath):
         ''' connect to an additional database file '''
+        assert get_dbname(dbpath) != 'main'
         if dbpath not in self.dbpaths:
             self.execute('ATTACH DATABASE ? AS ?',
                          [dbpath, get_dbname(dbpath)])

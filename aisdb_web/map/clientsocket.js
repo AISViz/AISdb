@@ -1,9 +1,10 @@
 /** @module clientsocket */
 import { newHeatmapFeatures, newPolygonFeature, newTrackFeature } from './map';
-// import { process_response } from './pkg/client';
 import { searchbtn, resetSearchState, setSearchRange } from './selectform';
 import parseUrl from './url';
+import init, { process_response } from './pkg/client';
 
+window.statusmsg = null;
 
 /** socket server hostname as read from $VITE_AISDBHOST env variable
  * @constant {string} hostname
@@ -20,23 +21,6 @@ let port = import.meta.env.VITE_AISDBPORT;
 if (port === undefined) {
   port = '9924';
 }
-
-/**
-  for local testing, do:
-  export VITE_DISABLE_SSL=1
-  npx vite ./aisdb_web/map/
-  */
-let socketHost = null;
-if (import.meta.env.VITE_DISABLE_SSL !== null &&
-  import.meta.env.VITE_DISABLE_SSL !== undefined) {
-  console.log('CAUTION: connecting to websocket over unencrypted connection!');
-  socketHost = `ws://${hostname}:9924`;
-} else {
-  /** @constant {string} socketHost socket host address */
-  socketHost = `wss://${hostname}/ws`;
-}
-/** @constant {WebSocket} socket database websocket */
-let socket = new WebSocket(socketHost);
 
 
 let doneLoadingRange = false;
@@ -84,19 +68,45 @@ let utf8decode = new TextDecoder();
 function convert_utf8_js(arr) {
   return JSON.parse(utf8decode.decode(new Uint8Array(arr)));
 }
+/**
+  for local testing, do:
+  export VITE_DISABLE_SSL=1
+  npx vite ./aisdb_web/map/
+  */
+let socketHost = null;
+if (import.meta.env.VITE_DISABLE_SSL !== null &&
+  import.meta.env.VITE_DISABLE_SSL !== undefined) {
+  console.log('CAUTION: connecting to websocket over unencrypted connection!');
+  socketHost = `ws://${hostname}:9924`;
+} else {
+  /** @constant {string} socketHost socket host address */
+  socketHost = `wss://${hostname}/ws`;
+}
 
-window.statusmsg = null;
+/** @constant {WebSocket} socket database websocket */
+let socket = new WebSocket(socketHost);
+
+/** closes connection to the server before exiting browser window
+ * @callback window_onbeforeunload
+ *
+ */
+window.onbefureunload = async function() {
+  // socket.onclose = function() {};
+  await socket.close();
+};
+
+
 /** socket open event.
  * establishes connection with server and requests valid time ranges in database
  * @callback socket_onclose
  * @function
  * @param {Object} event onopen event
  */
-socket.onopen = async function(event) {
-  let msg = `Established connection to ${socketHost}`;
-  console.log(msg);
+socket.onopen = async function() {
+  // let msg = `Established connection to ${socketHost}`;
+  await init();
   await socket.send(JSON.stringify({ type: 'validrange' }));
-  await waitForTimerange();
+  // await waitForTimerange();  // will be awaited in parseUrl()
   await parseUrl();
 };
 
@@ -132,7 +142,6 @@ socket.onerror = function(event) {
   socket.close();
 };
 
-let _process_response = null;
 
 /** socket message event.
  * handles messages from server according to response type
@@ -141,32 +150,26 @@ let _process_response = null;
  * @param {Object} event onmessage event
  */
 socket.onmessage = async function(event) {
-  if (_process_response === null) {
-    let { default:init, process_response } = await import ('./pkg/client');
-    init();
-    _process_response = process_response;
-  }
-
   let txt = await event.data.text();
   let response = JSON.parse(txt);
   if (response.msgtype === 'track_vector') {
-    let processed = convert_utf8_js(_process_response({
+    let processed = convert_utf8_js(process_response({
       rawdata:convert_js_utf8(response)
     }));
     // console.log(JSON.stringify(response['meta']['vesseltype_generic']));
+    await newTrackFeature(processed, response.meta);
     await socket.send(JSON.stringify({ type: 'ack' }));
-    newTrackFeature(processed, response.meta);
   } else if (response.msgtype === 'zone') {
-    let processed = convert_utf8_js(_process_response({
+    let processed = convert_utf8_js(process_response({
       rawdata:convert_js_utf8(response)
     }));
     processed.type = 'Polygon';
     processed.coordinates = [ processed.coordinates ];
-    newPolygonFeature(processed, response.meta);
+    await newPolygonFeature(processed, response.meta);
     await socket.send(JSON.stringify({ type: 'ack' }));
   } else if (response.type === 'heatmap') {
+    await newHeatmapFeatures(response.xy);
     await socket.send(JSON.stringify({ type: 'ack' }));
-    newHeatmapFeatures(response.xy);
   } else if (response.type === 'done') {
     document.getElementById('status-div').textContent = response.status;
     window.statusmsg = response.status;
@@ -175,7 +178,7 @@ socket.onmessage = async function(event) {
   } else if (response.type === 'doneZones') {
     doneLoadingZones = true;
   } else if (response.type === 'validrange'){
-    await setSearchRange(response.start, response.end);
+    setSearchRange(response.start, response.end);
     doneLoadingRange = true;
   } else {
     let msg = 'Unknown response from server';
@@ -183,20 +186,6 @@ socket.onmessage = async function(event) {
     window.statusmsg = msg;
   }
 };
-
-/** closes connection to the server before exiting browser window
- * @callback window_onbeforeunload
- *
- */
-window.onbefureunload = async function() {
-  // socket.onclose = function() {};
-  await socket.close();
-};
-
-
-// window.show_zones = function() {
-//  socket.send(JSON.stringify({ type: 'zones' }));
-// };
 
 export {
   resetLoadingZones,

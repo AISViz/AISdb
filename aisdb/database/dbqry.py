@@ -294,7 +294,8 @@ class DBQuery_async(DBQuery):
     async def gen_qry(self,
                       fcn=sqlfcn.crawl_dynamic,
                       printqry=False,
-                      force_reaggregate_static=False):
+                      force_reaggregate_static=False,
+                      verbose=False):
 
         if not hasattr(self, 'dbconn'):
             self.dbconn = await aiosqlite.connect(self.dbpath)
@@ -310,9 +311,11 @@ class DBQuery_async(DBQuery):
                 [f'static_{month}_aggregate'])
             if res == []:
                 with DBConn() as syncdb:
-                    syncdb.dbpath = self.dbpath
-                    print('Aggregating static messages synchronously... ')
-                    aggregate_static_msgs(syncdb, [month])
+                    syncdb.attach(self.dbpath)
+                    assert 'main' not in syncdb.dbpaths
+                    if verbose:
+                        print('Aggregating static messages synchronously... ')
+                    aggregate_static_msgs(syncdb, [month], verbose=verbose)
 
         qry = fcn(dbpath='main', **self)
         if printqry:

@@ -104,6 +104,12 @@ label {
   flex-grow: 100;
 }
 
+.ol-mouse-position {
+  color: yellow;
+  font-family: system-ui, monospace;
+  background: rgba(100,100,100,0.3);
+}
+
 .map {
   background-color: #282c34;
   overflow: auto;
