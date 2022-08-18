@@ -52,48 +52,51 @@ class SocketServ():
         else:
             self.ssl_args = {}
 
+    async def _handle_client(self, clientmsg, websocket):
+        print(f'{datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} '
+              f'{websocket.remote_address} {str(clientmsg)}')
+
+        req = orjson.loads(clientmsg)
+
+        try:
+            if req['type'] == 'zones':
+                await self.req_zones(req, websocket)
+
+            elif req['type'] == 'track_vectors':
+                await self.req_tracks_raw(req, websocket)
+
+            elif req['type'] == 'validrange':
+                await self.req_valid_range(req, websocket)
+
+            elif req['type'] == 'heatmap':
+                await self.req_heatmap(req, websocket)
+
+            elif req['type'] == 'ack':  # pragma: no cover
+                warnings.warn(
+                    f'received unknown ack from {websocket.remote_address}')
+        except (asyncio.exceptions.CancelledError,
+                asyncio.exceptions.TimeoutError):
+            print(f'client timed out {websocket.remote_address}')
+            return
+        except websockets.exceptions.ConnectionClosedOK:
+            print(f'disconnected client {websocket.remote_address}')
+            return
+        except websockets.exceptions.ConnectionClosedError:
+            print(f'terminated client {websocket.remote_address}')
+            return
+        except Exception as err:
+            await websocket.close()
+            raise err
+
     async def handler(self, websocket):
         ''' handle messages received by the websocket '''
-        self.dbconn = await aiosqlite.connect(self.dbpath)
+
+        if not hasattr(self, 'dbconn'):
+            self.dbconn = await aiosqlite.connect(self.dbpath)
 
         async for clientmsg in websocket:
-            print(f'{datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} '
-                  f'{websocket.remote_address} {str(clientmsg)}')
-
-            req = orjson.loads(clientmsg)
-
-            try:
-                if req['type'] == 'zones':
-                    await self.req_zones(req, websocket)
-
-                elif req['type'] == 'track_vectors':
-                    await self.req_tracks_raw(req, websocket)
-
-                elif req['type'] == 'validrange':
-                    await self.req_valid_range(req, websocket)
-
-                elif req['type'] == 'heatmap':
-                    await self.req_heatmap(req, websocket)
-
-                elif req['type'] == 'ack':  # pragma: no cover
-                    warnings.warn(
-                        f'received unknown ack from {websocket.remote_address}'
-                    )
-            except (asyncio.exceptions.CancelledError,
-                    asyncio.exceptions.TimeoutError):
-                print(f'client timed out {websocket.remote_address}')
-                break
-            except websockets.exceptions.ConnectionClosedOK:
-                print(f'disconnected client {websocket.remote_address}')
-                break
-            except websockets.exceptions.ConnectionClosedError:
-                print(f'terminated client {websocket.remote_address}')
-                break
-            except Exception as err:
-                await websocket.close()
-                await self.dbconn.close()
-                raise err
-        await self.dbconn.close()
+            await asyncio.wait_for(self._handle_client(clientmsg, websocket),
+                                   180)
         await websocket.close()
         print(f'closed client: ended socket loop {websocket.remote_address}')
 
@@ -247,7 +250,7 @@ class SocketServ():
                 'done',
                 'status':
                 f'Done. Count: {count}'
-                if count > 0 else 'No data for selection'  # pragma: no cover
+                if count > 0 else 'No data for selection'
             }))
 
     async def req_heatmap(self, req, websocket):
@@ -272,14 +275,16 @@ class SocketServ():
 
         '''
         qry = self._create_dbqry(req)
-        interps = interp_time_async(encode_greatcircledistance_async(
-            split_timedelta_async(TrackGen_async(qry.gen_qry()),
-                                  maxdelta=timedelta(hours=12)),
-            distance_threshold=250000,
-            minscore=0,
-            speed_threshold=50,
-        ),
-                                    step=timedelta(minutes=60))
+        interps = interp_time_async(
+            encode_greatcircledistance_async(
+                split_timedelta_async(TrackGen_async(qry.gen_qry()),
+                                      maxdelta=timedelta(hours=2)),
+                distance_threshold=250000,
+                minscore=0,
+                speed_threshold=50,
+            ),
+            step=timedelta(hours=3),
+        )
         count = 0
         async for itr in interps:
             response = {
@@ -291,7 +296,7 @@ class SocketServ():
                 return
             count += 1
 
-        await websocket.send(  # pragma: no cover
+        await websocket.send(
             orjson.dumps({
                 'type':
                 'done',
@@ -299,7 +304,7 @@ class SocketServ():
                 f'done loading heatmap. vessel count: {count}'
             }))
 
-    async def main(self):  # pragma: no cover
+    async def main(self):
         ''' run the server main loop asynchronously. should be called with
             :func:`asyncio.run`
         '''
@@ -316,4 +321,7 @@ class SocketServ():
 if __name__ == '__main__':
     # by default let nginx handle SSL
     serv = SocketServ(enable_ssl=False)
-    asyncio.run(serv.main())
+    try:
+        asyncio.run(serv.main())
+    finally:
+        asyncio.run(serv.dbconn.close())

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.131
+--------
+
+websocket client requests will now time out after 3 minutes
+
+
 v1.3.130
 --------
 
