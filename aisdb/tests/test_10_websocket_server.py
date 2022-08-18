@@ -101,3 +101,4 @@ async def test_clientsocket_handler(websocket):
                       trafficDBpath=trafficDBpath,
                       enable_ssl=False)
     await serv.handler(websocket)
+    await serv.dbconn.close()
