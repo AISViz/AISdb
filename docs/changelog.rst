@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.132
+--------
+
+update docstring for tracks cropping and cleaning with encode_greatcircledistance_async
+
+
 v1.3.131
 --------
 
