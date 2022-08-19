@@ -3,18 +3,20 @@
   "version": "0.1.0",
   "description": "AIS database and processing utils",
   "main": "server.js",
+  "type": "module",
   "author": "MERIDIAN / Matt Smith",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite map",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "doc": "node docserver.js"
   },
   "dependencies": {
-    "express": "^4.14.1",
-    "flatpickr": "^4.6.13",
-    "html2canvas": "^1.4.1",
-    "ol": "^6.14.1",
-    "vite": "^2.9.0"
+    "express": ">=4.18.1",
+    "flatpickr": ">=4.6.13",
+    "html2canvas": ">=1.4.1",
+    "ol": ">=6.15.1",
+    "vite": ">=2.9.15"
   },
   "devDependencies": {
     "jsdoc": "^3.6.10"

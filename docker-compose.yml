@@ -67,6 +67,19 @@ services:
       ipv6_private:
         ipv6_address: "fc00::3"
 
+  # nodejs docs server
+  docserver:
+    container_name: docserver
+    build:
+      target: docserv
+      context: .
+      dockerfile: ./docker/Dockerfile
+    command:
+      ['npm', '--prefix', 'aisdb_web/', 'run', 'doc']
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::4"
+
   # database server
   websocket:
     container_name: websocket
@@ -112,9 +125,6 @@ services:
     init: true
     command:
       ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
-    depends_on:
-      - webserver
-      - websocket
 
   # https://eff-certbot.readthedocs.io/en/stable/using.html#where-are-my-certificates
   certbot:
@@ -125,7 +135,7 @@ services:
     #  - ~/cert/conf:/etc/letsencrypt
     networks:
       ipv6_private:
-        ipv6_address: "fc00::7"
+        ipv6_address: "fc00::5"
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     depends_on:
       - nginx

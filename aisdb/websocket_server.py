@@ -84,6 +84,15 @@ class SocketServ():
         except websockets.exceptions.ConnectionClosedError:
             print(f'terminated client {websocket.remote_address}')
             return
+        except AssertionError as err:
+            if str(err) == 'rows cannot be empty':
+                await websocket.send(
+                    orjson.dumps({
+                        'type': 'done',
+                        'status': 'No results for area/time selected'
+                    }))
+            else:
+                raise err
         except Exception as err:
             await websocket.close()
             raise err
@@ -95,8 +104,16 @@ class SocketServ():
             self.dbconn = await aiosqlite.connect(self.dbpath)
 
         async for clientmsg in websocket:
+            t0 = datetime.now()
             await asyncio.wait_for(self._handle_client(clientmsg, websocket),
-                                   180)
+                                   1200)
+            delta = (datetime.now() - t0).total_seconds()
+            if delta > 1200:
+                await websocket.send(
+                    orjson.dumps({
+                        'type': 'done',
+                        'status': 'Request timed out!'
+                    }))
         await websocket.close()
         print(f'closed client: ended socket loop {websocket.remote_address}')
 
@@ -213,7 +230,6 @@ class SocketServ():
                           "maxY": 45.413175940838045
                         }
                 }
-
         '''
         qry = self._create_dbqry(req)
         trackgen = encode_greatcircledistance_async(
@@ -224,7 +240,7 @@ class SocketServ():
         )
         count = 0
         async for track in trackgen:
-            if track['mmsi'] in self.vesselinfo.keys():  # pragma: no cover
+            if track['mmsi'] in self.vesselinfo.keys():
                 track['marinetraffic_info'] = self.vesselinfo[track['mmsi']]
             else:
                 track['marinetraffic_info'] = _nullinfo(track)

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.133
+--------
+
+refactor docs server into a new docker-service, separated from webapp server
+
+
 v1.3.132
 --------
 
