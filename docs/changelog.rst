@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.136
+--------
+
+prevent CI from recreating old tags
+
+
 v1.3.135
 --------
 
