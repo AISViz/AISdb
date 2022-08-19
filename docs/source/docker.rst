@@ -47,9 +47,9 @@ Instead of using the default command, consider writing a script similar to examp
 Compose Services
 ----------------
 
-Run tests, build documentation, and start the webapp with ``docker-compose up --build pkgbuild && docker-compose up --build nginx websocket webserver``. 
-Services can also be run individually: ``pkgbuild``, ``python-test``, ``rust-test``, ``webserver``, ``websocket``, ``nginx``, and ``certbot``.
-Note that the ``pkgbuild`` service must be run before running any dependant services. 
+Run tests, build documentation, and start the webapp with ``docker-compose up --build python-test && docker-compose up --build nginx websocket webserver docserver``. 
+Services can also be run individually: ``pkgbuild``, ``python-test``, ``rust-test``, ``webserver``, ``docserver``, ``websocket``, ``nginx``, and ``certbot``.
+Note that the ``python-test`` service must be run before starting ``docserver`` for test coverage results (will be output to ``aisdb_web/dist_coverage`` from the project root). 
 For SSL configuration with nginx and certbot, mount certificates to ``/etc/letsencrypt/live/$HOSTNAME/fullchain.pem`` and ``/etc/letsencrypt/live/$HOSTNAME/privkey.pem``
 
 .. code-block:: sh

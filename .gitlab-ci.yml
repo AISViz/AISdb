@@ -58,7 +58,7 @@ python-test:
     - source env/bin/activate && python -m pip install --upgrade pip maturin
     - source env/bin/activate && maturin develop --release --extras=test,docs
     - mkdir -p data_dir
-    - source env/bin/activate && AISDBDATADIR=data_dir python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster'
+    - source env/bin/activate && AISDBDATADIR=data_dir python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
   coverage: '/TOTAL.*\s+(\d+\%)/'
   dependencies:
     - rust-test

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.134
+--------
+
+update docker docs for starting docserver container
+
+
 v1.3.133
 --------
 
