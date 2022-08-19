@@ -50,7 +50,7 @@ services:
     command: 
       ["python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not timing"]
 
-  # nodeJS docs server + webapp
+  # webapp
   webserver:
     container_name: webserver
     build: 

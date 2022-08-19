@@ -3,8 +3,7 @@ import { fileURLToPath } from 'url';
 import { networkInterfaces } from 'os';
 
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const currentdir = dirname(fileURLToPath(import.meta.url));
 
 function start_interface(app, port) {
   app.listen(port, '::', () => {
@@ -32,7 +31,7 @@ function start_interface(app, port) {
 }
 
 export {
-  __dirname,
+  currentdir,
   start_interface,
 };
 
