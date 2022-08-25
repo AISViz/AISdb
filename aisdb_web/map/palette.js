@@ -2,29 +2,64 @@
  * map styling and colorschemes
  * @module palette
  */
-import { Fill, Stroke, Style } from 'ol/style';
+import { Fill, Stroke, Style, Text } from 'ol/style';
+
+
+/*
+ * polygon text styles
+ */
+
+let polygonText = function(feature) {
+  return new Text({
+    stroke: new Stroke({ color: 'white', width: 3 }),
+    align: 'center',
+    text: feature.get('meta_str'),
+    // font: '3 12 / 12 12', // weight size / height dom.font.value
+    overflow: true,
+    fill: new Fill({ color: 'black' }),
+  });
+};
 
 /** default zone polygon map style */
-const polyStyle = new Style({
-  stroke: new Stroke({
-    color: '#000000',
-  }),
-  fill: new Fill({
-    color: 'rgba(255,255,255,0.3)',
-  }),
-});
+const polyStyle = function(feature) {
+  return new Style({
+    stroke: new Stroke({
+      color: '#000000',
+    }),
+    fill: new Fill({
+      color: 'rgba(255,255,255,0.3)',
+    }),
+    text: polygonText(feature),
+  });
+};
+const polySelectStyle = function(feature) {
+  return new Style({
+    fill: new Fill({
+      // color: '#eeeeee',
+      color: 'rgba(255, 255, 255, 0.4)',
+    }),
+    stroke: new Stroke({
+      color: 'rgba(255, 255, 255, 0.7)',
+      width: 4,
+    }),
+    text: polygonText(feature),
+  });
+};
 
 /** on mousever feature style */
-const selectStyle = new Style({
-  fill: new Fill({
-    // color: '#eeeeee',
-    color: 'rgba(255, 255, 255, 0.4)',
-  }),
-  stroke: new Stroke({
-    color: 'rgba(255, 255, 255, 0.7)',
-    width: 4,
-  }),
-});
+const selectStyle = function(feature) {
+  return new Style({
+    fill: new Fill({
+      // color: '#eeeeee',
+      color: 'rgba(255, 255, 255, 0.4)',
+    }),
+    stroke: new Stroke({
+      color: 'rgba(255, 255, 255, 0.7)',
+      width: 4,
+    }),
+  });
+};
+
 
 /** hidden feature style */
 const hiddenStyle = new Style({
@@ -206,6 +241,7 @@ export {
   dragBoxStyle,
   hiddenStyle,
   polyStyle,
+  polySelectStyle,
   selectStyle,
   vesselStyles,
   vessellabels,

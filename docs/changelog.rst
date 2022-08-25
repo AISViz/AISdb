@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.141
+--------
+
+add polygon text labels to web app
+
+
 v1.3.140
 --------
 
