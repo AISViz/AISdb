@@ -30,7 +30,7 @@ class SocketServ():
         to client data requests
     '''
 
-    def __init__(self, dbpath, domain, trafficDBpath, enable_ssl=True):
+    def __init__(self, dbpath, domain, trafficDBpath):
         self.dbpath = dbpath
         self.host = os.environ.get('AISDBHOSTALLOW', '*')
         port = os.environ.get('AISDBPORT', 9924)
@@ -38,19 +38,6 @@ class SocketServ():
         self.domain = domain
         assert self.domain.zones != []
         self.vesselinfo = _vessel_info_dict(trafficDBpath)
-
-        # let nginx in docker manage SSL by default
-        if enable_ssl:  # pragma: no cover
-            sslpath = os.path.join('/etc/letsencrypt/live/',
-                                   os.environ.get('AISDBHOST', '127.0.0.1'))
-            CRT = os.path.join(sslpath, 'fullchain.pem')
-            KEY = os.path.join(sslpath, 'privkey.pem')
-            print(f'loading SSL context: {CRT} {KEY}')
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            ssl_context.load_cert_chain(CRT, KEY)
-            self.ssl_args = {'ssl': ssl_context}
-        else:
-            self.ssl_args = {}
 
     async def _handle_client(self, clientmsg, websocket):
         print(f'{datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} '
@@ -106,7 +93,7 @@ class SocketServ():
         async for clientmsg in websocket:
             t0 = datetime.now()
             await asyncio.wait_for(self._handle_client(clientmsg, websocket),
-                                   1200)
+                                   timeout=2400)
             delta = (datetime.now() - t0).total_seconds()
             if delta > 1200:
                 await websocket.send(
@@ -233,13 +220,17 @@ class SocketServ():
         '''
         qry = self._create_dbqry(req)
         trackgen = encode_greatcircledistance_async(
-            TrackGen_async(qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)),
+            split_timedelta_async(TrackGen_async(
+                qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)),
+                                  maxdelta=timedelta(days=14)),
             distance_threshold=250000,
             minscore=0,
             speed_threshold=50,
         )
         count = 0
         async for track in trackgen:
+            if len(track['time']) == 1:
+                continue
             if track['mmsi'] in self.vesselinfo.keys():
                 track['marinetraffic_info'] = self.vesselinfo[track['mmsi']]
             else:
@@ -294,9 +285,9 @@ class SocketServ():
         interps = interp_time_async(
             encode_greatcircledistance_async(
                 split_timedelta_async(TrackGen_async(qry.gen_qry()),
-                                      maxdelta=timedelta(hours=2)),
+                                      maxdelta=timedelta(days=7)),
                 distance_threshold=250000,
-                minscore=0,
+                minscore=1e-05,
                 speed_threshold=50,
             ),
             step=timedelta(hours=3),
@@ -324,19 +315,14 @@ class SocketServ():
         ''' run the server main loop asynchronously. should be called with
             :func:`asyncio.run`
         '''
-        async with websockets.serve(
-                self.handler,
-                host=self.host,
-                port=self.port,
-                **self.ssl_args,
-                ping_timeout=120,
-        ):
+        async with websockets.serve(self.handler,
+                                    host=self.host,
+                                    port=self.port):
             await asyncio.Future()
 
 
 if __name__ == '__main__':
-    # by default let nginx handle SSL
-    serv = SocketServ(enable_ssl=False)
+    serv = SocketServ()
     try:
         asyncio.run(serv.main())
     finally:

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.138
+--------
+
+defer SSL to nginx
+
+
 v1.3.137
 --------
 
