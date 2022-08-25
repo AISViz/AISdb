@@ -15,17 +15,10 @@ trafficDBpath = environ.get('AISDBMARINETRAFFIC',
 
 print(f'starting websocket\n{dbpath = }\n{zones_dir = }\n{trafficDBpath = }\n')
 
-domain = DomainFromTxts(
-    domainName='example',
-    folder=zones_dir,
-    correct_coordinate_range=False,
-)
+domain = DomainFromTxts(domainName='example',
+                        folder=zones_dir,
+                        correct_coordinate_range=False)
 
-serv = SocketServ(
-    dbpath=dbpath,
-    domain=domain,
-    trafficDBpath=trafficDBpath,
-    enable_ssl=False,
-)
+serv = SocketServ(dbpath=dbpath, domain=domain, trafficDBpath=trafficDBpath)
 
 asyncio.run(serv.main())

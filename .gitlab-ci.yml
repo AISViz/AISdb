@@ -1,11 +1,11 @@
 image: meridiancfi/aisdb:latest
 
 
-workflow:
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: always
+#workflow:
+#  rules:
+#    - if: $CI_COMMIT_TAG
+#      when: never
+#    - when: always
 
 
 stages:
@@ -93,19 +93,19 @@ tag:
   stage: publish
   only:
     - master
-  dependencies:
-    - build-website
-  script: 
-    - zip aisdb_web.zip aisdb_web/*
-    - git config --global --add safe.directory `pwd`
-    - git config --global user.name "${GITLAB_USER_NAME}"
-    - git config --global user.email "${GITLAB_USER_EMAIL}"
-    - git tag -l | xargs git tag -d || echo 'error deleting tags!'
-    - git fetch --tags || echo 'error fetching tags!'
-    - TAG=`cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"`
-    - git tag "$TAG" || echo "was tagged already!"
+  #dependencies:
+  #  - build-website
+  #script: 
+    #- zip aisdb_web.zip aisdb_web/*
+    #- git config --global --add safe.directory `pwd`
+    #- git config --global user.name "${GITLAB_USER_NAME}"
+    #- git config --global user.email "${GITLAB_USER_EMAIL}"
+    #- git tag -l | xargs git tag -d || echo 'error deleting tags!'
+    #- git fetch --tags || echo 'error fetching tags!'
+    #- TAG=`cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"`
+    #- git tag "$TAG" || echo "was tagged already!"
     #- git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git || echo "was tagged already!"
-    - git push --tags root:$ACCESS_TOKEN@$CI_SERVER_URL/$CI_PROJECT_PATH.git || echo "was tagged already!"
+    #- git push --tags $ACCESS_TOKEN@$CI_SERVER_URL/$CI_PROJECT_PATH.git || echo "was tagged already!"
     #- source env/bin/activate && maturin upload --repository --username "$MATURIN_USERNAME" --password "$MATURIN_PASSWORD"
   only:
     changes:
@@ -113,11 +113,10 @@ tag:
       - ".gitlab-ci.yml"
   release:
     tag_name: $(cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+")
-    description: $(cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+")
+    description: $(cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+") $(cat .git/COMMIT_EDITMSG)
 
 variables:
   ACCESS_TOKEN: $ACCESS_TOKEN
-  #CI_SERVER_HOST: $CI_SERVER_HOST
   CI_SERVER_URL: $CI_SERVER_URL
   CI_PROJECT_PATH: $CI_PROJECT_PATH
   GITLAB_USER_NAME: $GITLAB_USER_NAME
