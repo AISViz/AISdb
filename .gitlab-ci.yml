@@ -104,7 +104,8 @@ tag:
     - git fetch --tags || echo 'error fetching tags!'
     - TAG=`cat pyproject.toml | grep version | grep -Eo --color=no "[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"`
     - git tag "$TAG" || echo "was tagged already!"
-    - git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git || echo "was tagged already!"
+    #- git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git || echo "was tagged already!"
+    - git push --tags root:$ACCESS_TOKEN@$CI_SERVER_URL/$CI_PROJECT_PATH.git || echo "was tagged already!"
     #- source env/bin/activate && maturin upload --repository --username "$MATURIN_USERNAME" --password "$MATURIN_PASSWORD"
   only:
     changes:
@@ -116,7 +117,8 @@ tag:
 
 variables:
   ACCESS_TOKEN: $ACCESS_TOKEN
-  CI_SERVER_HOST: $CI_SERVER_HOST
+  #CI_SERVER_HOST: $CI_SERVER_HOST
+  CI_SERVER_URL: $CI_SERVER_URL
   CI_PROJECT_PATH: $CI_PROJECT_PATH
   GITLAB_USER_NAME: $GITLAB_USER_NAME
   GITLAB_USER_EMAIL: $GITLAB_USER_EMAIL
