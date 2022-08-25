@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.140
+--------
+
+intercept tileserver requests and cache tiles with nginx. fall back to openstreetmaps if missing bing maps API token
+
+
 v1.3.139
 --------
 

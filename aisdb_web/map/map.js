@@ -1,10 +1,3 @@
-// import 'ol/ol.css';
-// import BingMaps from 'ol/source/BingMaps';
-import './clientsocket.js';
-import './url.js';
-import { set_track_style } from './selectform.js';
-import { default as _Map } from 'ol/Map';
-
 /** @module map */
 window.searcharea = null;
 
@@ -70,10 +63,12 @@ async function setSearchAreaFromSelected() {
 /** initialize map layer and associated imports dynamically */
 async function init_maplayers() {
   let [
+    { hostname },
+    { set_track_style },
+    { default: _Map },
     _css,
     { default: BingMaps },
     { default: Feature },
-    // { default: _Map },
     { default: View },
     { default: GeoJSON },
     { default: Point },
@@ -83,17 +78,18 @@ async function init_maplayers() {
     { default: Heatmap },
     { default: TileLayer },
     { default: VectorLayer },
-    proj,
+    { fromLonLat },
     { default: VectorSource },
     { default : MousePosition },
     { createStringXY },
     { defaults: defaultControls },
-
   ] = await Promise.all([
+    import('./clientsocket.js'),
+    import('./selectform.js'),
+    import('ol/Map'),
     import('ol/ol.css'),
     import('ol/source/BingMaps'),
     import('ol/Feature'),
-    // import('ol/Map'),
     import('ol/View'),
     import('ol/format/GeoJSON'),
     import('ol/geom/Point'),
@@ -113,6 +109,7 @@ async function init_maplayers() {
   let {
     dragBoxStyle,
     polyStyle,
+    polySelectStyle,
     selectStyle,
     vesselStyles,
     vesseltypes,
@@ -156,48 +153,60 @@ async function init_maplayers() {
    * @see module:url
    */
   mapview = new View({
-    center: proj.fromLonLat([ -63.6, 44.0 ]), // east
+    center: fromLonLat([ -63.6, 44.0 ]), // east
     // center: proj.fromLonLat([-123.0, 49.2]), //west
     // center: proj.fromLonLat([ -100, 57 ]), // canada
     zoom: 7,
   });
 
-  /*
-  */
-  let mapSource = new BingMaps({
-    key: import.meta.env.VITE_BINGMAPSKEY,
-    imagerySet: 'Aerial',
-    // use maxZoom 19 to see stretched tiles instead of the BingMaps
-    // "no photos at this zoom level" tiles
-    // maxZoom: 19
-  });
+  function tileLoadCallback(imageTile, src) {
+    // imageTile.getImage().src = src;
+    if (src.includes('openstreetmap')) {
+      let [ target, a, b, jpeg ] = src.replace('https://', '').split(/[/?]+/);
+      src = `https://${hostname}/${a}/${b}/${jpeg}`;
+      imageTile.src_ = src;
+      imageTile.getImage().src = src;
+    } else if (src.includes('virtualearth')) {
+      let [ target, tiles, jpeg, req ] = src.replace('https://', '').split(/[/?]+/);
+      src = `https://${hostname}/${tiles}/${jpeg}?${req}`;
+      imageTile.src_ = src;
+      imageTile.getImage().src = src;
+    }
+  }
+
   /** map window
    * @param {string} target target HTML item by ID
    * @param {Array} layers map layers to display
    * @param {ol/View) view default map view positioning
    */
   /** ol map TileLayer */
-  mapLayer = new TileLayer({
-    // visible: true,
-    // preload: Infinity,
-    source: mapSource,
-    zIndex: 0,
-  });
-  /*
-  import OSM from 'ol/source/OSM';
-  let mapLayer = new TileLayer({
-    visible: true,
-    source: new OSM(),
-  });
-  */
+  if (import.meta.env.VITE_BINGMAPSKEY) {
+    mapLayer = new TileLayer({
+      // visible: true,
+      // preload: Infinity,
+      source: new BingMaps({
+        key: import.meta.env.VITE_BINGMAPSKEY,
+        imagerySet: 'Aerial',
+        reprojectionErrorThreshold: 1,
+        tileLoadFunction: tileLoadCallback,
+      }),
+      zIndex: 0,
+    });
+  } else {
+    // fall back to OSM if missing API token
+    let { default: OSM } = await import('ol/source/OSM');
+    mapLayer = new TileLayer({
+      source: new OSM({
+        tileLoadFunction: tileLoadCallback,
+      }),
+    });
+  }
 
   /* map interactions */
 
   const mousePositionControl = new MousePosition({
     coordinateFormat: createStringXY(4),
     projection: 'EPSG:4326',
-    // className: 'mouse-pos',
-    // target: document.getElementById('mouse-position'),
   });
 
   map = new _Map({
@@ -210,12 +219,10 @@ async function init_maplayers() {
 
 
   /* cursor styling: indicate to the user that we are selecting an area */
-  // let draw = new Draw({
   draw = new Draw({
     type: 'Point',
   });
 
-  // const Feature = await import('ol/Feature');
   dragBox = new DragBox({});
   dragBox.on('boxend', () => {
     window.geom = dragBox.getGeometry();
@@ -287,7 +294,7 @@ async function init_maplayers() {
   newHeatmapFeatures = async function(xy) {
     xy.forEach(async (p) => {
       let pt = new Feature({
-        geometry: new Point(proj.fromLonLat(p)),
+        geometry: new Point(fromLonLat(p)),
       });
       heatSource.addFeature(pt);
     });
@@ -356,8 +363,16 @@ async function init_maplayers() {
     // highlight feature at cursor
     map.forEachFeatureAtPixel(e.pixel, (f) => {
       selected = f;
+      let geomtype = f.getGeometry().getType();
       if (f.get('selected') !== true) {
-        f.setStyle(selectStyle);
+        // console.log(f.getProperties());
+        if (geomtype === 'Polygon') {
+          f.setStyle(polySelectStyle(f));
+        } else if (geomtype === 'LineString') {
+          f.setStyle(selectStyle(f));
+        } else {
+          console.log(`unexpected feature ${geomtype}`);
+        }
       }
 
       // keep track of last feature so that styles can be reset after moving mouse
@@ -379,10 +394,10 @@ async function init_maplayers() {
   map.on('click', async (e) => {
     map.forEachFeatureAtPixel(e.pixel, async (f) => {
       if (f.get('selected') !== true) {
-        f.setStyle(selectStyle);
+        f.setStyle(polySelectStyle(f));
         f.set('selected', true);
       } else {
-        f.setStyle(polyStyle);
+        f.setStyle(polyStyle(f));
         f.set('selected', false);
       }
       window.searcharea = null;
@@ -391,36 +406,14 @@ async function init_maplayers() {
     }, { layerFilter: clickLayerFilterCallback }
     );
   });
-  /*
-  map.on('prerender', async(e) => {
-    mapLayer = new TileLayer({
-      // visible: true,
-      // preload: Infinity,
-      source: new BingMaps({
-        key: import.meta.env.VITE_BINGMAPSKEY,
-        imagerySet: 'Aerial',
-        // use maxZoom 19 to see stretched tiles instead of the BingMaps
-        // "no photos at this zoom level" tiles
-        // maxZoom: 19
-      }),
-      // zIndex: 0,
-    });
-  });
-  */
 }
 
 
-(async () => {
-  await init_maplayers();
-})();
-
-
 export {
-  // addInteraction,
-  // clearFeatures,
   dragBox,
   draw,
   drawSource,
+  init_maplayers,
   lineSource,
   map,
   mapview,

@@ -114,11 +114,13 @@ services:
     ports:
      - "80:80"
      - "443:443"
+     - "8082:8082"
      - "${AISDBPORT:-9924}:${AISDBPORT:-9924}"
     networks:
       ipv6_private:
         ipv6_address: "fc00::2"
     volumes:
+      - ${HOME}/www/aisdb_cache:/var/www/cache
       - ./docker/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
     # add something like the following to docker-compose.override.yml for SSL
     #  - ~/cert/conf:/etc/letsencrypt
