@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.137
+--------
+
+allow defining the network graph processing pipeline at runtime
+
+
 v1.3.136
 --------
 

@@ -132,8 +132,7 @@ def test_serialize_deserialize_tracks():
         assert isinstance(track, dict)
 
 
-def test_network_graph_CSV(tmpdir):
-
+def setup_network_graph(tmpdir, processes):
     testdbpath = os.path.join(tmpdir, 'test_network_graph_CSV.db')
     outpath = os.path.join(tmpdir, 'output.csv')
 
@@ -152,20 +151,28 @@ def test_network_graph_CSV(tmpdir):
             **domain.boundary,
         )
 
-        for processes in (1, 2):
-            graph(
-                qry,
-                data_dir=data_dir,
-                domain=domain,
-                dbpath=testdbpath,
-                trafficDBpath=trafficDBpath,
-                processes=processes,
-                outputfile=outpath,
-                maxdelta=timedelta(weeks=1),
-            )
-            assert os.path.isfile(outpath)
-            with open(outpath, 'r') as out:
-                print(out.read())
+        graph(
+            qry,
+            data_dir=data_dir,
+            domain=domain,
+            dbpath=testdbpath,
+            trafficDBpath=trafficDBpath,
+            processes=processes,
+            outputfile=outpath,
+            maxdelta=timedelta(weeks=1),
+        )
+        assert os.path.isfile(outpath)
+        with open(outpath, 'r') as out:
+            print(out.read())
+    os.remove(outpath)
+
+
+def test_network_graph_CSV_single(tmpdir):
+    setup_network_graph(tmpdir, 1)
+
+
+def test_network_graph_CSV_parallel(tmpdir):
+    setup_network_graph(tmpdir, 2)
 
 
 def test_graph_pipeline_timing(tmpdir):
@@ -195,7 +202,6 @@ def test_graph_pipeline_timing(tmpdir):
         distance_threshold=250000,
         speed_threshold=50,
         minscore=0,
-        data_dir=data_dir,
         trafficDBpath=trafficDBpath,
         shoredist_raster=os.path.join(data_dir, 'distance-from-shore.tif'),
         portdist_raster=os.path.join(data_dir,

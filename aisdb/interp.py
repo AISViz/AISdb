@@ -3,6 +3,7 @@
 from datetime import timedelta
 
 import numpy as np
+import warnings
 
 
 def np_interp_linear(track, key, intervals):
@@ -28,7 +29,8 @@ def interp_time(tracks, step=timedelta(minutes=10)):
     for track in tracks:
 
         if track['time'].size <= 1:
-            yield track
+            # yield track
+            warnings.warn('cannot interpolate track of length 1, skipping...')
             continue
 
         intervals = np.arange(
@@ -71,7 +73,8 @@ async def interp_time_async(tracks, step=timedelta(minutes=10)):
     async for track in tracks:
 
         if track['time'].size <= 1:
-            yield track
+            # yield track
+            warnings.warn('cannot interpolate track of length 1, skipping...')
             continue
 
         intervals = np.arange(
