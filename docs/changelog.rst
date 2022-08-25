@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.139
+--------
+
+refactor javascript modules
+
+
 v1.3.138
 --------
 

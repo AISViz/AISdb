@@ -1,6 +1,8 @@
 /** @module selectform */
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
+// import 'tiny-date-picker/dist/tiny-date-picker.css';
+// import tinyDatePicker from 'tiny-date-picker';
 
 import { socket, waitForTimerange } from './clientsocket';
 import {
@@ -15,9 +17,8 @@ import {
 
 import {
   hiddenStyle,
-  polyStyle,
   vesselStyles,
-  vessellabels,
+  // vessellabels,
   vesseltypes,
 } from './palette';
 
@@ -43,6 +44,10 @@ const vesselmenu = document.getElementById('vesseltype-menu');
 
 
 window.timeselectstart = timeselectstart;
+/*
+tinyDatePicker({ input:document.getElementById('time-select-start') });
+tinyDatePicker({ input:document.getElementById('time-select-end') });
+*/
 const timeselectstart_fp = flatpickr(timeselectstart, {
   onChange: function(selectedDates, dateStr, instance) {
     timeselectstart.value = dateStr;
@@ -75,7 +80,7 @@ async function resetSearchState() {
 async function waitForSearchState() {
   while (searchstate === false) {
     await new Promise((resolve) => {
-      return setTimeout(resolve, 250);
+      return setTimeout(resolve, 10);
     });
   }
 }
@@ -143,7 +148,6 @@ selectmenu.childNodes.forEach((opt) => {
       map.removeInteraction(draw);
       map.removeInteraction(dragBox);
       drawSource.clear();
-      // addInteraction();
       map.addInteraction(draw);
       map.addInteraction(dragBox);
     }
@@ -229,17 +233,29 @@ function setSearchRange(start, end) {
   timeselectend_fp.set('minDate', start);
   timeselectstart_fp.set('maxDate', end);
   timeselectend_fp.set('maxDate', end);
-  let defaultStart = '2021-07-01';
-  let defaultEnd = '2021-07-14';
-  if (timeselectstart.value === '' &&
-    timeselectend.value === '' &&
-    start < defaultStart &&
-    end > defaultEnd) {
+
+  if (timeselectstart.value !== undefined && timeselectstart.value !== null && timeselectstart.value !== '') {
+    // console.log(timeselectstart.value_);
+    return;
+  }
+
+  // halfway point between start and end
+  let defaultStart = new Date(
+    (new Date(start).getTime() + new Date(end).getTime()) / 2)
+    .toISOString().split('T')[0];
+
+  // start point plus two weeks
+  let defaultEnd = new Date(
+    (new Date(start).getTime() + new Date(end).getTime()) / 2 + 12096e5)
+    .toISOString().split('T')[0];
+
+  if (timeselectstart.value === '' && timeselectend.value === '') {
     timeselectstart_fp.set('defaultDate', defaultStart);
-    timeselectstart_fp.jumpToDate(defaultStart, true);
-    timeselectstart.value = defaultStart;
     timeselectend_fp.set('defaultDate', defaultEnd);
+    timeselectstart_fp.jumpToDate(defaultStart, true);
     timeselectend_fp.jumpToDate(defaultEnd, true);
+
+    timeselectstart.value = defaultStart;
     timeselectend.value = defaultEnd;
   }
 }
@@ -252,11 +268,11 @@ function setSearchRange(start, end) {
  * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
  */
 function setSearchValue(start, end) {
-  timeselectstart_fp.set('defaultDate', start);
-  timeselectstart_fp.jumpToDate(start, true);
+  // timeselectstart_fp.set('defaultDate', start);
+  // timeselectstart_fp.jumpToDate(start, true);
   timeselectstart.value = start;
-  timeselectend_fp.set('defaultDate', end);
-  timeselectend_fp.jumpToDate(end, true);
+  // timeselectend_fp.set('defaultDate', end);
+  // timeselectend_fp.jumpToDate(end, true);
   timeselectend.value = end;
 }
 
@@ -330,23 +346,18 @@ function createVesselMenuItem(label, value, symbol) {
   };
   vesselmenu.appendChild(opt);
 }
-createVesselMenuItem('All', 'All', '⋀');
-for (let label of vessellabels) {
-  createVesselMenuItem(label, label);
-}
-createVesselMenuItem('Unknown', 'None', '○');
-vesseltypeselect.onclick = function() {
-  vesselmenu.classList.toggle('show');
-};
 
 
 export {
   clearbtn,
-  searchbtn,
+  createVesselMenuItem,
   resetSearchState,
+  searchbtn,
   setSearchRange,
   setSearchValue,
   set_track_style,
   update_vesseltype_styles,
+  vesselmenu,
+  vesseltypeselect,
   waitForSearchState,
 };
