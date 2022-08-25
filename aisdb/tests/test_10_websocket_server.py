@@ -98,7 +98,6 @@ async def test_clientsocket_handler(websocket):
 
     serv = SocketServ(dbpath=dbpath,
                       domain=domain,
-                      trafficDBpath=trafficDBpath,
-                      enable_ssl=False)
+                      trafficDBpath=trafficDBpath)
     await serv.handler(websocket)
     await serv.dbconn.close()
