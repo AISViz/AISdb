@@ -5,9 +5,10 @@ from datetime import datetime, timedelta
 from functools import partial
 
 import numpy as np
-import shapely.wkb
+#import shapely.wkb
 import shapely.ops
 import shapely.geometry
+import warnings
 from shapely.geometry import Polygon, LineString, Point
 
 from aisdb.aisdb import haversine
@@ -21,10 +22,10 @@ def shiftcoord(x, rng=180):
     assert len(x) > 0, 'x must be array-like'
     if not isinstance(x, np.ndarray):
         x = np.array(x)
-    shift_idx = np.where(np.abs(x) != 180)[0]
+    shift_idx = np.where(np.abs(x) != rng)[0]
     for idx in shift_idx:
         x[idx] = ((x[idx] + rng) % 360) - rng
-    flip_idx = np.where(np.abs(x) == 180)[0]
+    flip_idx = np.where(np.abs(x) == rng)[0]
     for idx in flip_idx:
         x[idx] *= -1
     assert (rng * -1 <= np.all(x) <= rng)
@@ -231,34 +232,72 @@ class Domain():
             self.maxY
     '''
 
+    def zone_max_radius(self, geom, zone_x, zone_y):
+        return np.max([
+            haversine(geom.centroid.x, geom.centroid.y, x2, y2)
+            for x2, y2 in zip(zone_x, zone_y)
+        ])
+
+    def add_zone(self, name, x, y):
+        if not hasattr(self, 'minX') or np.min(x) < self.minX:
+            self.minX = np.min(x)
+        if not hasattr(self, 'maxX') or np.max(x) > self.maxX:
+            self.maxX = np.max(x)
+        if not hasattr(self, 'minY') or np.min(y) < self.minY:
+            self.minY = np.min(y)
+        if not hasattr(self, 'maxY') or np.max(y) > self.maxY:
+            self.maxY = np.max(y)
+        assert -180 <= self.minX <= 180 and -180 <= self.maxX <= 180
+        assert -90 <= self.minY <= 90 and -90 <= self.maxY <= 90
+
+        geom = Polygon(zip(x, y))
+        maxradius = self.zone_max_radius(geom, x, y)
+
+        self.zones.update({name: {'geometry': geom, 'maxradius': maxradius}})
+
+        return
+
     def __init__(self, name, zones=[], **kw):
         if len(zones) == 0:
             raise ValueError(
                 'domain needs to have atleast one polygon geometry')
         self.name = name
-        self.zones = {z.pop('name'): z for z in zones}
+        self.zones = {}
+        self.minX_b = 180
+        self.maxX_c = -180
         for zone in zones:
+            assert 'name' in zone.keys(), f'{zone=}'
+            assert 'geometry' in zone.keys(), f'{zone=}'
             x, y = zone['geometry'].boundary.coords.xy
-            if 'setattrs' not in kw.keys() or kw['setattrs'] is True:
-                if not hasattr(self, 'minX') or np.min(x) < self.minX:
-                    self.minX = np.min(x)
-                if not hasattr(self, 'maxX') or np.max(x) > self.maxX:
-                    self.maxX = np.max(x)
-                if not hasattr(self, 'minY') or np.min(y) < self.minY:
-                    self.minY = np.min(y)
-                if not hasattr(self, 'maxY') or np.max(y) > self.maxY:
-                    self.maxY = np.max(y)
-            zone['maxradius'] = np.max([
-                haversine(zone['geometry'].centroid.x,
-                          zone['geometry'].centroid.y, x2, y2)
-                for x2, y2 in zip(x, y)
-            ])
+            if not (np.min(x) >= -180 and np.max(x) <= 180):
+                warnings.warn(f'dividing geometry... {zone["name"]}')
+                for g in self.split_geom(zone):
+                    if g.centroid.x < -180:
+                        x, y = np.array(g.boundary.coords.xy)
+                        self.add_zone(zone['name'] + '_b', shiftcoord(x), y)
+                        self.minX_b = min(np.min(x), self.minX_b)
+                    elif g.centroid.x > 180:
+                        x, y = np.array(g.boundary.coords.xy)
+                        self.add_zone(zone['name'] + '_c', shiftcoord(x), y)
+                        self.maxX_c = max(np.max(x), self.maxX_c)
+                    else:
+                        x, y = np.array(g.boundary.coords.xy)
+                        self.add_zone(zone['name'] + '_a', x, y)
+            else:
+                self.add_zone(zone['name'], x, y)
+
         self.boundary = {
             'xmin': self.minX,
             'xmax': self.maxX,
             'ymin': self.minY,
             'ymax': self.maxY
         }
+        if self.minX_b != 180:
+            assert self.minX_b >= self.boundary['xmin']
+            self.boundary.update({'xmin': self.minX_b, 'xmin_alt': self.minX})
+        if self.maxX_c != -180:
+            assert self.maxX_c <= self.boundary['xmax']
+            self.boundary.update({'xmax': self.maxX_c, 'xmax_alt': self.maxX})
 
     def nearest_polygons_to_point(self, x, y):
         ''' compute great circle distance for this point to each polygon
@@ -307,37 +346,27 @@ class Domain():
                 return key
         return 'Z0'
 
-
-class DomainFromTxts(Domain):
-    ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
-        zone geometry from .txt files directly
-    '''
     meridian = LineString(
         np.array((
             (-180, -180, 180, 180),
             (-90, 90, 90, -90),
         )).T)
 
-    def adjust_coords(self, longitudes):
-        longitudes[np.where(longitudes >= 180)[0]] = -180
-        longitudes[np.where(longitudes <= -180)[0]] = 180
-        return longitudes
-
-    def split_geom(self, geom):
-        merged = shapely.ops.linemerge([geom.boundary, self.meridian])
+    def split_geom(self, zone):
+        merged = shapely.ops.linemerge(
+            [zone['geometry'].boundary, self.meridian])
         border = shapely.ops.unary_union(merged)
         decomp = shapely.ops.polygonize(border)
         return decomp
 
-    def __init__(self,
-                 domainName,
-                 folder,
-                 ext='txt',
-                 correct_coordinate_range=True):
-        self.minX = None
-        self.maxX = None
-        self.minY = None
-        self.maxY = None
+
+class DomainFromTxts(Domain):
+    ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
+        zone geometry from .txt files directly
+    '''
+
+    def __init__(self, domainName, folder, ext='txt'):
+
         files = glob_files(folder, ext=ext)
         zones = []
         for txt in files:
@@ -349,47 +378,8 @@ class DomainFromTxts(Domain):
                     pts.replace('\n\n', '').replace('\n',
                                                     ',').split(',')[:-1]))
             x, y = np.array(xy[::2]), np.array(xy[1::2])
-            if self.minX is None or np.min(x) < self.minX:
-                self.minX = np.min(x)
-            if self.maxX is None or np.max(x) > self.maxX:
-                self.maxX = np.max(x)
-            if self.minY is None or np.min(y) < self.minY:
-                self.minY = np.min(y)
-            if self.maxY is None or np.max(y) > self.maxY:
-                self.maxY = np.max(y)
             geom = Polygon(zip(x, y))
-            minX, maxX = np.min(x), np.max(x)
-            if not (minX >= -180 and maxX <= 180) and correct_coordinate_range:
-                for g in self.split_geom(geom):
-                    if g.centroid.x < -180:
-                        x, y = np.array(g.boundary.coords.xy)
-                        zones.append({
-                            'name': filename,
-                            'geometry': Polygon(zip(shiftcoord(x), y))
-                        })
-                    elif g.centroid.x > 180:
-                        x, y = np.array(g.boundary.coords.xy)
-                        x[np.where(x <= 180)] = -180.
-                        zones.append({
-                            'name': filename,
-                            'geometry': Polygon(zip(shiftcoord(x), y))
-                        })
-                    else:
-                        zones.append({'name': filename, 'geometry': g})
-            else:
-                zones.append({'name': filename, 'geometry': geom})
-        '''
-        for zone in zones:
-            zone['maxradius'] = np.max([
-                haversine(zone['geometry'].centroid.x,
-                                zone['geometry'].centroid.y,
-                                x2=x,
-                                y2=y)
-                for x, y in zip(*zone['geometry'].boundary.coords.xy)
-            ])
-            assert isinstance(zone['maxradius'], float)
-        '''
-
+            zones.append({'name': filename, 'geometry': geom})
         super().__init__(domainName, zones, setattrs=False)
 
 

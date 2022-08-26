@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.143
+--------
+
+assure domain zones are within (-180, 180) deg longitude, otherwise, intersect and remap zone polygon at the boundary
+
+
 v1.3.142
 --------
 
