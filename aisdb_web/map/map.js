@@ -47,13 +47,16 @@ async function setSearchAreaFromSelected() {
       for (let point of coords) {
         if (ft.get('meta_str').includes('_b') && point[0] < alt_xmin) {
           alt_xmin = point[0];
-        } else if (!ft.get('meta_str').includes('_c') && point[0] < window.searcharea.minX) {
+        } else if (!ft.get('meta_str').includes('_c') &&
+          point[0] < window.searcharea.minX) {
           window.searcharea.minX = point[0];
         }
 
-        if (ft.get('meta_str').includes('_c') && point[0] > alt_xmax) {
+        if (ft.get('meta_str').includes('_c') &&
+          point[0] > alt_xmax) {
           alt_xmax = point[0];
-        } else if (!ft.get('meta_str').includes('_b') && point[0] > window.searcharea.maxX) {
+        } else if (!ft.get('meta_str').includes('_b') &&
+          point[0] > window.searcharea.maxX) {
           window.searcharea.maxX = point[0];
         }
 
