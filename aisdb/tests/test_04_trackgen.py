@@ -31,7 +31,7 @@ def test_TrackGen(tmpdir):
             end=end,
             callback=sqlfcn_callbacks.valid_mmsi,
         )
-        rowgen = qry.gen_qry(printqry=True)
+        rowgen = qry.gen_qry(verbose=True)
         tracks = track_gen.TrackGen(rowgen)
 
         for track in tracks:
@@ -59,7 +59,7 @@ def test_min_speed_filter(tmpdir):
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
-        rowgen = qry.gen_qry(printqry=True)
+        rowgen = qry.gen_qry(verbose=True)
         tracks = vesseltrack_3D_dist(
             mask_in_radius_2D(min_speed_filter(encode_greatcircledistance(
                 track_gen.TrackGen(rowgen),

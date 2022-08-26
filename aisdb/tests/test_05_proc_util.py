@@ -43,7 +43,7 @@ def test_write_csv_rows(tmpdir):
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
-        rowgen = qry.gen_qry(printqry=True)
+        rowgen = qry.gen_qry(verbose=True)
         aisdb.proc_util.write_csv_rows(
             rowgen,
             pathname=os.path.join(
@@ -68,7 +68,7 @@ def test_write_csv_fromdict(tmpdir):
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
 
-        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic, printqry=True)
+        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic, verbose=True)
         tracks = track_gen.TrackGen(rowgen)
         aisdb.proc_util.write_csv(tracks,
                                   fpath=os.path.join(tmpdir,
@@ -98,7 +98,7 @@ def test_write_csv_fromdict_marinetraffic(tmpdir):
                                     'ymax': 50,
                                 })
 
-        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, printqry=True)
+        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, verbose=True)
         tracks = vessel_info(track_gen.TrackGen(rowgen), trafficDBpath)
         aisdb.proc_util.write_csv(tracks,
                                   fpath=os.path.join(tmpdir,

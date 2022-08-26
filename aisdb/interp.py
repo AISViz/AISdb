@@ -39,7 +39,7 @@ def interp_time(tracks, step=timedelta(minutes=10)):
             step=int(step.total_seconds()),
         ).astype(int)
 
-        assert len(intervals) >= 2
+        assert len(intervals) >= 1
 
         itr = dict(
             **{k: track[k]

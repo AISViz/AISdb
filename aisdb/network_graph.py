@@ -289,7 +289,7 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
 
 def pipeline_callback(tracks, *, domain, tmp_dir, trafficDBpath, maxdelta,
                       distance_threshold, speed_threshold, minscore,
-                      interp_delta, shoredist_raster):
+                      interp_delta, shoredist_raster, **kw):
     # pipeline configuration from arguments
     serialize_CSV = partial(_serialize_network_edge,
                             domain=domain,
@@ -354,7 +354,9 @@ def graph(qry,
           distance_threshold=250000,
           interp_delta=timedelta(hours=1),
           minscore=0,
-          pipeline_callback=pipeline_callback):
+          pipeline_callback=pipeline_callback,
+          qryfcn=sqlfcn.crawl_dynamic_static,
+          verbose=False):
     ''' Compute network graph of vessel movements within domain zones.
         Zone polygons will be used as network nodes, with graph edges
         represented by movements between zones.
@@ -484,7 +486,7 @@ def graph(qry,
             print(f'network graph {tmp_dir = }')
             print(f'\n{domain.name=} {domain.boundary=}')
 
-        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)
+        rowgen = qry.gen_qry(fcn=qryfcn, verbose=verbose)
         tracks = serialize_tracks(
             bathy.merge_tracks(pdist.get_distance(TrackGen(rowgen))))
         fcn = partial(

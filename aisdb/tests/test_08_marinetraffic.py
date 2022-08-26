@@ -49,7 +49,7 @@ def test_retrieve_marinetraffic_data(tmpdir):
                                 trafficDBpath=trafficDBpath,
                                 boundary=domain.boundary,
                                 retry_404=False)
-        rowgen = qry.gen_qry(printqry=True)
+        rowgen = qry.gen_qry(verbose=True)
         tracks = track_gen.TrackGen(rowgen)
 
         try:

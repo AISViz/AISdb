@@ -35,6 +35,8 @@ let newTrackFeature = null;
  * of currently selected polygons
  */
 async function setSearchAreaFromSelected() {
+  let alt_xmin = 180;
+  let alt_xmax = -180;
   for (let ft of polySource.getFeatures()) {
     if (ft.get('selected') === true) {
       if (window.searcharea === null) {
@@ -43,12 +45,18 @@ async function setSearchAreaFromSelected() {
       let coords = ft.getGeometry().clone()
         .transform('EPSG:3857', 'EPSG:4326').getCoordinates()[0];
       for (let point of coords) {
-        if (point[0] < window.searcharea.minX) {
+        if (ft.get('meta_str').includes('_b') && point[0] < alt_xmin) {
+          alt_xmin = point[0];
+        } else if (!ft.get('meta_str').includes('_c') && point[0] < window.searcharea.minX) {
           window.searcharea.minX = point[0];
         }
-        if (point[0] > window.searcharea.maxX) {
+
+        if (ft.get('meta_str').includes('_c') && point[0] > alt_xmax) {
+          alt_xmax = point[0];
+        } else if (!ft.get('meta_str').includes('_b') && point[0] > window.searcharea.maxX) {
           window.searcharea.maxX = point[0];
         }
+
         if (point[1] < window.searcharea.minY) {
           window.searcharea.minY = point[1];
         }
@@ -57,6 +65,12 @@ async function setSearchAreaFromSelected() {
         }
       }
     }
+  }
+  if (alt_xmin !== 180) {
+    window.searcharea.minX = alt_xmin;
+  }
+  if (alt_xmax !== -180) {
+    window.searcharea.maxX = alt_xmax;
   }
 }
 

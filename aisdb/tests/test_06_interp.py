@@ -26,7 +26,7 @@ def test_interp(tmpdir):
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
-        rowgen = qry.gen_qry(printqry=True)
+        rowgen = qry.gen_qry(verbose=True)
         tracks = interp_time(
             track_gen.TrackGen(rowgen),
             step=timedelta(hours=0.5),

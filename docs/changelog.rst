@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.144
+--------
+
+improved error handling for websocket client when setting query range
+
+
 v1.3.143
 --------
 

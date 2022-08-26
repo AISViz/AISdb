@@ -82,6 +82,9 @@ def test_shiftcoord():
     xshift = shiftcoord(x)
     assert sum(xshift == np.array([0, 90, 180, -90, 0, 90, -180, -90, 0])) == 9
 
+    x2 = np.array([-200, -190, -181, -180, -179, -170, -160])
+    xshift2 = shiftcoord(x2)
+
 
 def test_distance3D():
     x1, y1 = -45, 50

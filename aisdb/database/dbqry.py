@@ -172,7 +172,6 @@ class DBQuery(UserDict):
 
     def gen_qry(self,
                 fcn=sqlfcn.crawl_dynamic,
-                printqry=False,
                 force_reaggregate_static=False,
                 verbose=False):
         ''' queries the database using the supplied SQL function and dbpath.
@@ -237,7 +236,7 @@ class DBQuery(UserDict):
                 '''
 
             qry = fcn(dbpath=dbpath, **self.data)
-            if printqry:
+            if verbose:
                 print(qry)
 
             # get 500k rows at a time, yield sets of rows for each unique MMSI
@@ -247,7 +246,7 @@ class DBQuery(UserDict):
             _ = cur.execute(qry)
             res = cur.fetchmany(10**5)
             delta = datetime.now() - dt
-            if printqry:
+            if verbose:
                 print(
                     f'query time: {delta.total_seconds():.2f}s\nfetching rows...'
                 )
@@ -293,7 +292,6 @@ class DBQuery_async(DBQuery):
 
     async def gen_qry(self,
                       fcn=sqlfcn.crawl_dynamic,
-                      printqry=False,
                       force_reaggregate_static=False,
                       verbose=False):
 
@@ -318,7 +316,7 @@ class DBQuery_async(DBQuery):
                     aggregate_static_msgs(syncdb, [month], verbose=verbose)
 
         qry = fcn(dbpath='main', **self)
-        if printqry:
+        if verbose:
             print(qry)
         cursor = await self.dbconn.execute(qry)
         mmsi_rows = []

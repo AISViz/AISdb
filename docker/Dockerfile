@@ -53,5 +53,6 @@ COPY --chown=ais_env aisdb_web/build_docs.sh aisdb_web/build_docs.sh
 COPY --chown=ais_env aisdb_web/server_module.js aisdb_web/server_module.js
 COPY --chown=ais_env aisdb_web/docserver.js aisdb_web/docserver.js
 COPY --chown=ais_env docs/ docs/
+COPY --chown=ais_env aisdb_web/dist_coverage aisdb_web/dist_coverage
 #COPY --chown=ais_env aisdb_web/package.json aisdb_web/package.json
 RUN /bin/bash ./aisdb_web/build_docs.sh

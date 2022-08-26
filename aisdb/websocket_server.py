@@ -1,7 +1,6 @@
 import asyncio
 import calendar
 import os
-import ssl
 import warnings
 import websockets
 import websockets.exceptions

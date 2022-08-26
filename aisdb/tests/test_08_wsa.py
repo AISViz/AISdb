@@ -43,7 +43,7 @@ def test_wetted_surface_area_regression_marinetraffic(tmpdir):
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
-        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, printqry=True)
+        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, verbose=True)
         tracks = vessel_info(
             encode_greatcircledistance(
                 track_gen.TrackGen(rowgen),

@@ -94,8 +94,7 @@ class Gebco():
         for lon, lat in zip(track['lon'], track['lat']):
             if not (-180 <= lon <= 180) or not (-90 <= lat <=
                                                 90):  # pragma: no cover
-                warnings.warn('coordinates out of range! '
-                              f'{lon=},{lat=}\t{track["mmsi"]=}')
+                warnings.warn('coordinates out of range!')
                 lon = shiftcoord([lon])[0]
                 lat = shiftcoord([lat], rng=90)[0]
 
