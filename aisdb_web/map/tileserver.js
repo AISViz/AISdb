@@ -3,7 +3,8 @@ import { get as getProjection } from 'ol/proj';
 import BingMaps from 'ol/source/BingMaps';
 import OSM from 'ol/source/OSM';
 
-import { hostname } from './clientsocket.js';
+// import { hostname } from './clientsocket.js';
+let hostname = import.meta.env.VITE_TILESERVER;
 
 class CustomOSM extends OSM {
   /**

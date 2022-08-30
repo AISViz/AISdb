@@ -43,9 +43,10 @@ COPY --chown=ais_env aisdb/ aisdb/
 
 # build sphinx docs and nodejs webapp
 FROM aisdb AS webserv
-ARG VITE_BINGMAPTILES
 ARG AISDBHOST
 ARG AISDBPORT
+ARG VITE_BINGMAPTILES
+ARG VITE_TILESERVER
 RUN /bin/bash ./aisdb_web/build_website.sh
 
 FROM aisdb AS docserv

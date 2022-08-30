@@ -30,6 +30,7 @@ cd "${MAPDIR}"
   VITE_AISDBHOST=$AISDBHOST \
   VITE_AISDBPORT=$AISDBPORT \
   VITE_BINGMAPTILES=$VITE_BINGMAPTILES \
+  VITE_TILESERVER=$VITE_TILESERVER \
   npx vite build --outDir "${MAPDIR}/../dist_map"
   #VITE_BINGMAPTILES="`if [ -z ${BINGMAPSKEY} ]; then echo ''; else echo 1; fi`" \
 

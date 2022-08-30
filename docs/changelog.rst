@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.148
+--------
+
+update tileserver hostname config
+
+
 v1.3.147
 --------
 
