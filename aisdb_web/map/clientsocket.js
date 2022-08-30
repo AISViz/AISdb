@@ -82,7 +82,7 @@ let socketHost = null;
 if (import.meta.env.VITE_DISABLE_SSL !== null &&
   import.meta.env.VITE_DISABLE_SSL !== undefined) {
   console.log('CAUTION: connecting to websocket over unencrypted connection!');
-  socketHost = `ws://${hostname}:9924`;
+  socketHost = `ws://${hostname}:${port}`;
 } else {
   /** @constant {string} socketHost socket host address */
   socketHost = `wss://${hostname}/ws`;

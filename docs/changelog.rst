@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.147
+--------
+
+fix port configuration error
+
+
 v1.3.146
 --------
 
