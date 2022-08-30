@@ -161,13 +161,17 @@ class SocketServ():
             "WHERE type='table' AND name LIKE '%_dynamic'")
         dynamic_months = sorted(
             [s.split('_')[1] for line in res1 for s in line])
-        startyear = max(int(dynamic_months[0][:4]), 2012)
-        start_month_range = calendar.monthrange(startyear,
-                                                int(dynamic_months[0][4:]))[-1]
-        end_month_range = calendar.monthrange(int(dynamic_months[-1][:4]),
-                                              int(dynamic_months[-1][4:]))[-1]
-        startval = f'{startyear}-{dynamic_months[0][4:]}-{start_month_range}'
-        endval = f'{dynamic_months[-1][:4]}-{dynamic_months[-1][4:]}-{end_month_range}'
+        if len(dynamic_months) == 0:
+            startval = '2022-01-01'
+            endval = '2022-01-01'
+        else:
+            startyear = max(int(dynamic_months[0][:4]), 2012)
+            start_month_range = calendar.monthrange(
+                startyear, int(dynamic_months[0][4:]))[-1]
+            end_month_range = calendar.monthrange(int(
+                dynamic_months[-1][:4]), int(dynamic_months[-1][4:]))[-1]
+            startval = f'{startyear}-{dynamic_months[0][4:]}-{start_month_range}'
+            endval = f'{dynamic_months[-1][:4]}-{dynamic_months[-1][4:]}-{end_month_range}'
         await websocket.send(
             orjson.dumps({
                 'type': 'validrange',

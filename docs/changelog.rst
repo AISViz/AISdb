@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.149
+--------
+
+fix websocket returning error when fetching time range for empty database
+
+
 v1.3.148
 --------
 
