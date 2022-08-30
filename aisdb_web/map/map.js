@@ -84,7 +84,8 @@ async function init_maplayers() {
     { set_track_style },
     { default: _Map },
     _css,
-    { default: BingMaps },
+    // { default: BingMaps },
+    { CustomBingMaps },
     { default: Feature },
     { default: View },
     { default: GeoJSON },
@@ -105,7 +106,8 @@ async function init_maplayers() {
     import('./selectform.js'),
     import('ol/Map'),
     import('ol/ol.css'),
-    import('ol/source/BingMaps'),
+    // import('ol/source/BingMaps'),
+    import('./tileserver.js'),
     import('ol/Feature'),
     import('ol/View'),
     import('ol/format/GeoJSON'),
@@ -176,20 +178,6 @@ async function init_maplayers() {
     zoom: 7,
   });
 
-  function tileLoadCallback(imageTile, src) {
-    // imageTile.getImage().src = src;
-    if (src.includes('openstreetmap')) {
-      let [ target, a, b, jpeg ] = src.replace('https://', '').split(/[/?]+/);
-      src = `https://${hostname}/${a}/${b}/${jpeg}`;
-      imageTile.src_ = src;
-      imageTile.getImage().src = src;
-    } else if (src.includes('virtualearth')) {
-      let [ target, tiles, jpeg, req ] = src.replace('https://', '').split(/[/?]+/);
-      src = `https://${hostname}/${tiles}/${jpeg}?${req}`;
-      imageTile.src_ = src;
-      imageTile.getImage().src = src;
-    }
-  }
 
   /** map window
    * @param {string} target target HTML item by ID
@@ -197,30 +185,22 @@ async function init_maplayers() {
    * @param {ol/View) view default map view positioning
    */
   /** ol map TileLayer */
-  if (import.meta.env.VITE_BINGMAPSKEY) {
+  // the following env var will be set to "1" by the build script
+  // if it detects the presence of env var $BINGMAPSKEY at build time
+  if (import.meta.env.VITE_BINGMAPTILES !== undefined &&
+    import.meta.env.VITE_BINGMAPTILES !== '' &&
+    import.meta.env.VITE_BINGMAPTILES !== '0') {
     mapLayer = new TileLayer({
-      // visible: true,
-      // preload: Infinity,
-      source: new BingMaps({
-        key: import.meta.env.VITE_BINGMAPSKEY,
-        imagerySet: 'Aerial',
-        reprojectionErrorThreshold: 1,
-        tileLoadFunction: tileLoadCallback,
-      }),
+      source: new CustomBingMaps({}),
       zIndex: 0,
     });
   } else {
-    // fall back to OSM if missing API token
-    let { default: OSM } = await import('ol/source/OSM');
-    mapLayer = new TileLayer({
-      source: new OSM({
-        tileLoadFunction: tileLoadCallback,
-      }),
-    });
+    // fall back to OSM if no API token was found by the build script
+    let { CustomOSM } = await import ('./tileserver');
+    mapLayer = new TileLayer({ source: new CustomOSM({}) });
   }
 
   /* map interactions */
-
   const mousePositionControl = new MousePosition({
     coordinateFormat: createStringXY(4),
     projection: 'EPSG:4326',

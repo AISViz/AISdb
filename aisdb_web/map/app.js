@@ -17,4 +17,6 @@
   vesseltypeselect.onclick = function() {
     vesselmenu.classList.toggle('show');
   };
+
+  // await import('./public/tileserver');
 })();

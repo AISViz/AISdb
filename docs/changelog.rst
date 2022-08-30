@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.146
+--------
+
+improved web map tile server network routing
+
+
 v1.3.145
 --------
 

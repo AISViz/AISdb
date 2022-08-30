@@ -34,18 +34,18 @@ RUN mkdir src \
   && echo 'fn main(){}' > src/bin.rs \
   && echo 'fn main(){}' > src/lib.rs \
   && cargo check --release
-COPY --chown=ais_env examples/ examples/
 COPY --chown=ais_env src/ src/
 RUN source ./env/bin/activate && maturin develop --release --extras=test,docs
+COPY --chown=ais_env examples/ examples/
+COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
+COPY --chown=ais_env aisdb_web/ aisdb_web/
 COPY --chown=ais_env aisdb/ aisdb/
 
 # build sphinx docs and nodejs webapp
 FROM aisdb AS webserv
-ARG BINGMAPSKEY
+ARG VITE_BINGMAPTILES
 ARG AISDBHOST
 ARG AISDBPORT
-COPY --chown=ais_env aisdb_web/ aisdb_web/
-COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 RUN /bin/bash ./aisdb_web/build_website.sh
 
 FROM aisdb AS docserv
