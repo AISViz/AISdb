@@ -20,7 +20,11 @@ from aisdb.database.dbconn import (
     pragmas,
 )
 from aisdb.database import sqlfcn
-from aisdb.database.create_tables import aggregate_static_msgs
+from aisdb.database.create_tables import (
+    aggregate_static_msgs,
+    sqlite_createtable_dynamicreport,
+    sqlite_createtable_staticreport,
+)
 from aisdb.database.sqlfcn_callbacks import dt2monthstr
 from aisdb.webdata.marinetraffic import VesselInfo
 
@@ -75,13 +79,12 @@ class DBQuery(UserDict):
         >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 
         >>> dbpath = './testdata/test.db'
+        >>> start, end = datetime(2021, 7, 1), datetime(2021, 7, 7)
         >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
         ...              'aisdb/tests/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
         ...     source='TESTING')
-        >>> start, end = datetime(2021, 7, 1), datetime(2021, 7, 7)
-        >>> with DBConn() as dbconn:
         ...     q = DBQuery(dbconn=dbconn,
         ...                 dbpath=dbpath,
         ...                 callback=in_timerange_validmmsi,
@@ -199,18 +202,16 @@ class DBQuery(UserDict):
         assert 'dbpath' not in self.data.keys()
 
         for dbpath in self.dbconn.dbpaths:
-            # create static tables if necessary
             for month in self.data['months']:
-                '''
+                # create static tables if necessary
                 self.dbconn.execute(
-                    f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master WHERE type="table" and name=?',
-                    [f'ais_{month}_static'])
+                    f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master '
+                    'WHERE type="table" and name=?', [f'ais_{month}_static'])
                 if len(self.dbconn.cursor().fetchall()) == 0:
                     sqlite_createtable_staticreport(self.dbconn,
                                                     month,
                                                     dbpath=dbpath)
 
-                '''
                 # create aggregate tables if necessary
                 cur = self.dbconn.cursor()
                 cur.execute(
@@ -224,16 +225,16 @@ class DBQuery(UserDict):
                               flush=True)
                     aggregate_static_msgs(self.dbconn, [month],
                                           verbose=verbose)
-                '''
+
                 # create dynamic tables if necessary
                 self.dbconn.execute(
-                    f'SELECT * FROM {dbname}.sqlite_master WHERE type="table" and name=?',
-                    [f'ais_{month}_dynamic'])
-                if len(self.dbconn.cursor().fetchall()) == 0:  # pragma: no cover
+                    f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master WHERE '
+                    'type="table" and name=?', [f'ais_{month}_dynamic'])
+                if len(self.dbconn.cursor().fetchall()
+                       ) == 0:  # pragma: no cover
                     sqlite_createtable_dynamicreport(self.dbconn,
                                                      month,
                                                      dbpath=dbpath)
-                '''
 
             qry = fcn(dbpath=dbpath, **self.data)
             if verbose:

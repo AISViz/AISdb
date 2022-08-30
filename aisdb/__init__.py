@@ -26,6 +26,7 @@ from .webdata.shore_dist import ShoreDist, PortDist
 from .gis import (
     Domain,
     DomainFromTxts,
+    DomainFromPoints,
     delta_knots,
     delta_meters,
     delta_seconds,

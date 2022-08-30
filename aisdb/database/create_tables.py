@@ -15,7 +15,6 @@ def sqlite_createtable_dynamicreport(dbconn, month, dbpath):
               'r') as f:
         sql = f.read().format(month).replace(
             f'ais_{month}', f'{get_dbname(dbpath)}.ais_{month}')
-    print(sql)
     dbconn.execute(sql)
 
 

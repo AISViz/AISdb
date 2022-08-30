@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.3.145
+--------
+
+database query error handling and improvements
+
+
 v1.3.144
 --------
 
