@@ -2,6 +2,18 @@
 Changelog
 =========
 
+v1.4.0
+------
+
+livestream backend #version:minor
+
+
+v1.3.150
+--------
+
+remove unused code from src/
+
+
 v1.3.149
 --------
 

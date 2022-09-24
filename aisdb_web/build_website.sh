@@ -5,12 +5,12 @@ PKGDIR="${ROOTDIR}/aisdb"
 RSTSOURCEDIR="${ROOTDIR}/docs/source"
 MAPDIR="${ROOTDIR}/aisdb_web/map"
 SPHINXDIR="${ROOTDIR}/aisdb_web/dist_sphinx"
-#JSDOCDIR="${ROOTDIR}/aisdb_web/dist_jsdoc"
-WASMDIR="${ROOTDIR}/aisdb_wasm"
+WASMDIR="${ROOTDIR}/aisdb_web/client_webassembly"
 
 set -e
 
 # jsdocs site build
+#JSDOCDIR="${ROOTDIR}/aisdb_web/dist_jsdoc"
 #cd "${SCRIPTPATH}"
 #npx jsdoc \
 #  --recurse "${MAPDIR}" \

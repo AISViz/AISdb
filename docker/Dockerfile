@@ -37,7 +37,6 @@ RUN mkdir src \
 COPY --chown=ais_env src/ src/
 RUN source ./env/bin/activate && maturin develop --release --extras=test,docs
 COPY --chown=ais_env examples/ examples/
-COPY --chown=ais_env aisdb_wasm/ aisdb_wasm/
 COPY --chown=ais_env aisdb_web/ aisdb_web/
 COPY --chown=ais_env aisdb/ aisdb/
 

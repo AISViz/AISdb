@@ -18,10 +18,12 @@ class CustomOSM extends OSM {
     const crossOrigin =
       options.crossOrigin !== undefined ? options.crossOrigin : 'anonymous';
 
-    const url =
-      options.url !== undefined ?
-        options.url :
-        `https://${hostname}/{z}/{x}/{y}.png`;
+    let url = null;
+    if (hostname.includes('127.0.0.1')) {
+      url = options.url !== undefined ? options.url : '/{z}/{x}/{y}.png';
+    } else {
+      url = options.url !== undefined ? options.url : `https://${hostname}/{z}/{x}/{y}.png`;
+    }
 
     super({
       // attributions: attributions,
@@ -58,7 +60,11 @@ class CustomBingMaps extends BingMaps{
       state: 'loading',
       tileLoadFunction: function (imageTile, src) {
         let [ _target, tiles, jpeg, req ] = src.replace('https://', '').split(/[/?]+/);
-        src = `https://${hostname}/${tiles}/${jpeg}?${req}`;
+        if (hostname.includes('127.0.0.1')) {
+          src = `/${tiles}/${jpeg}?${req}`;
+        } else {
+          src = `https://${hostname}/${tiles}/${jpeg}?${req}`;
+        }
         imageTile.src_ = src;
         imageTile.getImage().src = src;
       },

@@ -225,11 +225,14 @@ class SocketServ():
         trackgen = encode_greatcircledistance_async(
             split_timedelta_async(TrackGen_async(
                 qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)),
-                                  maxdelta=timedelta(days=14)),
+                                  maxdelta=timedelta(days=7)),
             distance_threshold=250000,
-            minscore=0,
+            minscore=1e-05,
             speed_threshold=50,
         )
+        """
+        trackgen = TrackGen_async(qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static))
+        """
         count = 0
         async for track in trackgen:
             if len(track['time']) == 1:

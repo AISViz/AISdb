@@ -232,8 +232,8 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
 
 /// Functions imported from Rust
 #[pymodule]
-#[allow(unused_variables)]
-pub fn aisdb(py: Python, module: &PyModule) -> PyResult<()> {
+//#[allow(unused_variables)]
+pub fn aisdb(_py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(haversine))?;
     module.add_wrapped(wrap_pyfunction!(decoder))?;
     module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;

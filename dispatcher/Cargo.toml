@@ -1,0 +1,31 @@
+[package]
+version = "0.0.1"
+name = "dispatcher"
+authors = [ "Matt Smith matt24smith@gmail.com",]
+edition = "2021"
+description = "Network dispatcher client and logging server"
+
+[[bin]]
+name = "client"
+
+[[bin]]
+name = "server"
+
+[[bin]]
+name = "proxy"
+
+[[bin]]
+name = "reverse_proxy"
+
+
+[dependencies]
+socket2 = { version = "0.4.7", features = ["all"] }
+
+[dependencies.pico-args]
+version = "0.5.0"
+features = [ "eq-separator",]
+
+[profile.release]
+lto = true
+opt-level = "z"
+strip = true

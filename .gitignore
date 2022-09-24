@@ -1,3 +1,4 @@
+**.bin
 **.crt
 **.lock
 **.log
@@ -36,6 +37,9 @@ aisdb_web/map/pkg
 aisdb_web/node_modules
 aisdb_web/pkg
 build
+dispatcher/.git
+dispatcher/.gitignore
+dispatcher/target
 docker-compose.override.yml
 docs/html
 docs/source/api
