@@ -1,0 +1,16 @@
+[package]
+name = "reverse_proxy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+server = {path = "../server"}
+proxy = {path = "../proxy"}
+
+[dependencies.pico-args]
+version = "0.5.0"
+features = [ "eq-separator",]
+
+[dev-dependencies]
+client = {path = "../client"}
+testconfig = {path = "../testconfig"}

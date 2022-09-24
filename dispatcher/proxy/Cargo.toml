@@ -1,0 +1,17 @@
+[package]
+name = "proxy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+client = {path = "../client"}
+server = {path = "../server"}
+
+[dependencies.pico-args]
+version = "0.5.0"
+features = [ "eq-separator",]
+
+[dev-dependencies]
+client = {path = "../client"}
+server = {path = "../server"}
+testconfig = {path = "../testconfig"}

@@ -6,6 +6,10 @@ import OSM from 'ol/source/OSM';
 // import { hostname } from './clientsocket.js';
 let hostname = import.meta.env.VITE_TILESERVER;
 
+if (hostname === undefined) {
+  console.log('hostname undefined');
+}
+
 class CustomOSM extends OSM {
   /**
    * @param {Options} [options] Open Street Map options.
@@ -78,8 +82,8 @@ class CustomBingMaps extends BingMaps{
     // this.culture_ = options.culture !== undefined ? options.culture : 'en-us';
     this.culture_ = 'en-us';
     this.maxZoom_ = -1;
-    // this.imagerySet_ = 'Aerial';
-    this.imagerySet_ = 'AerialWithLabels';
+    this.imagerySet_ = 'Aerial';
+    // this.imagerySet_ = 'AerialWithLabels';
 
 
     // const url = `https://dev.virtualearth.net/REST/v1/Imagery/Metadata/${

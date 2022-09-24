@@ -1,0 +1,24 @@
+[package]
+name = "stream"
+version = "0.0.1"
+edition = "2021"
+authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
+readme = "../../readme.rst"
+description = "AIS Database and Processing Utils - AIS WebSockets Livestream Server"
+homepage = "https://aisdb.meridian.cs.dal.ca/"
+documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
+repository = "https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/"
+license-file = "../../license.txt"
+
+
+[[bin]]
+name = "stream"
+
+[dependencies]
+server = {path = "../../dispatcher/server"}
+proxy= {path = "../../dispatcher/proxy"}
+tungstenite = {version = "0.17.3", features = ["native-tls"]}
+nmea-parser = {version = "0.9"}
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+

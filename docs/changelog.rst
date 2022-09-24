@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.1
+------
+
+overhaul livestream back end; add support for MacOS
+
+
 v1.4.0
 ------
 

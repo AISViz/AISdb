@@ -21,6 +21,7 @@ let polygonText = function(feature) {
 };
 
 /** default zone polygon map style */
+
 const polyStyle = function(feature) {
   return new Style({
     stroke: new Stroke({

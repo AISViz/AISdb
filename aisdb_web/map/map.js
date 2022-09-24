@@ -16,14 +16,16 @@ let mapview = null;
 let drawSource = null;
 let heatSource = null;
 let lineSource = null;
+let pointSource = null;
 let polySource = null;
 
 /* map layers */
 let drawLayer = null;
 let heatLayer = null;
 let lineLayer = null;
-let polyLayer = null;
 let mapLayer = null;
+let pointLayer = null;
+let polyLayer = null;
 
 /* processing functions for incoming websocket data */
 let newHeatmapFeatures = null;
@@ -101,6 +103,7 @@ async function init_maplayers() {
     { default : MousePosition },
     { createStringXY },
     { defaults: defaultControls },
+    // { default: WebGLPointsLayer },
   ] = await Promise.all([
     import('./clientsocket.js'),
     import('./selectform.js'),
@@ -123,6 +126,7 @@ async function init_maplayers() {
     import('ol/control/MousePosition'),
     import('ol/coordinate'),
     import('ol/control'),
+    // import('ol/layer/WebGLPoints'),
   ]);
 
   let {
@@ -137,7 +141,7 @@ async function init_maplayers() {
   /** contains geometry for map selection feature */
   drawSource = new VectorSource({ wrapX: false });
   /** contains drawSource for map selection layer */
-  drawLayer = new VectorLayer({ source: drawSource, zIndex: 4 });
+  drawLayer = new VectorLayer({ source: drawSource, zIndex: 5 });
 
   /** contains geometry for map zone polygons */
   polySource = new VectorSource({});
@@ -156,6 +160,11 @@ async function init_maplayers() {
     zIndex: 3,
   });
 
+  pointSource = new VectorSource({});
+  pointLayer = new VectorLayer({
+    source: pointSource,
+    zIndex: 4,
+  });
 
   /** map heatmap source */
   heatSource = new VectorSource({ });
@@ -208,7 +217,7 @@ async function init_maplayers() {
 
   map = new _Map({
     target: 'mapDiv', // div item in index.html
-    layers: [ mapLayer, polyLayer, lineLayer, heatLayer, drawLayer ],
+    layers: [ mapLayer, polyLayer, lineLayer, heatLayer, pointLayer, drawLayer ],
     view: mapview,
     interactions: defaults({ doubleClickZoom:false }),
     controls: defaultControls().extend([ mousePositionControl ]),
@@ -418,5 +427,6 @@ export {
   newPolygonFeature,
   newTrackFeature,
   polySource,
+  pointSource,
   setSearchAreaFromSelected,
 };

@@ -33,24 +33,24 @@ The `--tee`/`-t` flag may be used to copy input to stdout.
 ### Client
 
 Stream data from the client to logging servers. The `--server_addr` option may 
-be repeated for multiple server hosts.
+be repeated for multiple server hosts. To accept input from stdin, use `--path "-"`
 
 ```
 cargo run --bin client -- \
   --path '/dev/random' \
-  --server_addr '127.0.0.1:9921'
+  --server_addr 'localhost:9921'
 ```
 
 ### Proxy
 
-Forward UDP packets from upstream addresses to downstream addresses. 
+Forward UDP packets from listening port to downstream hosts. 
 Options `--listen_addr` and `--downstream_addr` may be repeated for multiple 
 endpoints.
 
 ```
 cargo run --bin proxy -- \
   --listen_addr '0.0.0.0:9921' \
-  --downstream_addr '[::1]:9922' \
+  --downstream_addr 'localhost:9922'
 ```
 
 ### Reverse-Proxy
@@ -74,8 +74,8 @@ for incoming messages from multiple sockets.
 ```
 cargo run --bin server -- \
   --path logfile.log \
-  --listen_addr '0.0.0.0:9921' \
-  --listen_addr '[::]:9922'
+  --listen_addr '0.0.0.0:9920' \
+  --listen_addr '[::]:9921'
 ```
 
 

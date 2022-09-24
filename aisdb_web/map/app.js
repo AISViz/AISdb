@@ -19,4 +19,5 @@
   };
 
   // await import('./public/tileserver');
+  await import('./livestream.js');
 })();

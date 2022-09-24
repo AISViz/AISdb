@@ -1,0 +1,16 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dispatch = { path = "../dispatch" }
+socket2 = { version = "0.4.7", features = ["all"] }
+
+[dependencies.pico-args]
+version = "0.5.0"
+features = [ "eq-separator",]
+
+[dev-dependencies]
+server = {path = "../server"}
+testconfig = {path = "../testconfig"}
