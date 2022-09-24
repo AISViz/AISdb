@@ -1,3 +1,5 @@
+import warnings
+
 from aisdb.gis import dt_2_epoch, shiftcoord
 
 
@@ -20,20 +22,66 @@ def in_bbox(*, alias, xmin, xmax, ymin, ymax, **_):
         returns:
             SQL code (string)
     '''
+    if not -180 <= xmin <= 180:
+        warnings.warn(f'got {xmin}')
+        xmin = shiftcoord([xmin])[0]
+    if not -180 <= xmax <= 180:
+        warnings.warn(f'got {xmax}')
+        xmax = shiftcoord([xmax])[0]
+    if not -90 <= ymin <= 90:
+        warnings.warn(f'got {ymin=}')
+    if not -90 <= ymax <= 90:
+        warnings.warn(f'got {ymax=}')
+    assert ymin < ymax, f'got {ymin=} {ymax=}'
+
     if xmin == -180 and xmax == 180:
         return f'''({alias}.longitude >= {xmin} AND {alias}.longitude <= {xmax}) AND
     {alias}.latitude >= {ymin} AND
     {alias}.latitude <= {ymax}'''
 
-    x0 = shiftcoord([xmin])[0]
-    x1 = shiftcoord([xmax])[0]
-    if x0 < x1:
-        return f'''{alias}.longitude >= {x0} AND
-    {alias}.longitude <= {x1} AND
+    if xmin < xmax:
+        #if xmin < -180 and xmax > 180:
+        #    raise ValueError(f'xmin, xmax are out of bounds! {xmin=} < -180,{xmax=} > 180')
+        #elif -180 <= xmin <= 180 and -180 <= xmax <= 180:
+        s = f'''{alias}.longitude >= {xmin} AND
+    {alias}.longitude <= {xmax} AND '''
+        """
+        elif xmin < -180:
+            s = f'''(
+        ({alias}.longitude >= -180 AND {alias}.longitude <= {xmax}) OR
+        ({alias}.longitude <= 180 AND {alias}.longitude >= {shiftcoord([xmin])[0]})
+    ) AND '''
+        elif xmax > 180:
+            s = f'''(
+        ({alias}.longitude <= 180 AND {alias}.longitude >= {shiftcoord([xmax])[0]}) OR
+        ({alias}.longitude >= -180 AND {alias}.longitude <= {xmin})
+    ) AND '''
+        else:
+            raise ValueError(
+                f'Error creating SQL query in longitude bounds {xmin=} {xmax=}'
+            )
+        """
+
+        query_args = f'''{s}
     {alias}.latitude >= {ymin} AND
     {alias}.latitude <= {ymax}'''
+        return query_args
+
     else:
-        return f'''({alias}.longitude >= {x0} OR {alias}.longitude <= {x1}) AND
+        '''
+        if xmin < -180:
+            x0 = shiftcoord([xmin])[0]
+        else:
+            x0 = xmin
+        if xmax > 180:
+            x1 = shiftcoord([xmax])[0]
+        else:
+            x1 = xmax
+        '''
+
+        #assert x0 <= x1
+
+        return f'''({alias}.longitude >= {xmin} OR {alias}.longitude <= {xmax}) AND
     {alias}.latitude >= {ymin} AND
     {alias}.latitude <= {ymax}'''
 

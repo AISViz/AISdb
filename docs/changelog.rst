@@ -2,6 +2,444 @@
 Changelog
 =========
 
+v1.4.1
+------
+
+overhaul livestream back end; add support for MacOS
+
+
+v1.4.0
+------
+
+livestream backend #version:minor
+
+
+v1.3.150
+--------
+
+remove unused code from src/
+
+
+v1.3.149
+--------
+
+fix websocket returning error when fetching time range for empty database
+
+
+v1.3.148
+--------
+
+update tileserver hostname config
+
+
+v1.3.147
+--------
+
+fix port configuration error
+
+
+v1.3.146
+--------
+
+improved web map tile server network routing
+
+
+v1.3.145
+--------
+
+database query error handling and improvements
+
+
+v1.3.144
+--------
+
+improved error handling for websocket client when setting query range
+
+
+v1.3.143
+--------
+
+assure domain zones are within (-180, 180) deg longitude, otherwise, intersect and remap zone polygon at the boundary
+
+
+v1.3.142
+--------
+
+update example start_websocket.py
+
+
+v1.3.141
+--------
+
+add polygon text labels to web app
+
+
+v1.3.140
+--------
+
+intercept tileserver requests and cache tiles with nginx. fall back to openstreetmaps if missing bing maps API token
+
+
+v1.3.139
+--------
+
+refactor javascript modules
+
+
+v1.3.138
+--------
+
+defer SSL to nginx
+
+
+v1.3.137
+--------
+
+allow defining the network graph processing pipeline at runtime
+
+
+v1.3.136
+--------
+
+prevent CI from recreating old tags
+
+
+v1.3.135
+--------
+
+fix network routing issue
+
+
+v1.3.134
+--------
+
+update docker docs for starting docserver container
+
+
+v1.3.133
+--------
+
+refactor docs server into a new docker-service, separated from webapp server
+
+
+v1.3.132
+--------
+
+update docstring for tracks cropping and cleaning with encode_greatcircledistance_async
+
+
+v1.3.131
+--------
+
+websocket client requests will now time out after 3 minutes
+
+
+v1.3.130
+--------
+
+webapp cursor position coordinates display
+
+
+v1.3.129
+--------
+
+optionally increase logging verbosity and improve doctests
+
+
+v1.3.128
+--------
+
+reduce memory leaks in websocket_server.py, and added 10s timeout before dropping client connection
+
+
+v1.3.127
+--------
+
+fix CSS overflow error
+
+
+v1.3.126
+--------
+
+fix bug causing websocket server to hang when making database queries
+
+
+v1.3.125
+--------
+
+refactor network graph and improved test coverage
+
+
+v1.3.124
+--------
+
+minor fixes and updated testing for gis.py and track_gen.py
+
+
+v1.3.123
+--------
+
+remove index.py
+
+
+v1.3.122
+--------
+
+fix ship_type error in asynchronous DB query
+
+
+v1.3.121
+--------
+
+fix web client query from hanging unexpectedly; reorganizing files
+
+
+v1.3.120
+--------
+
+update docstrings
+
+
+v1.3.119
+--------
+
+refactor network_graph
+
+
+v1.3.118
+--------
+
+add multiprocessing queue for parallelized network graphs. resolves #15
+
+
+v1.3.117
+--------
+
+fix zone containment bug in aisdb.gis.Domain.point_in_polygon. resolves #19
+
+
+v1.3.116
+--------
+
+tracks radial filtering
+
+
+v1.3.115
+--------
+
+remove unused args from webscraper
+
+
+v1.3.114
+--------
+
+fix bathymetry rasters from being closed too early when using .merge_tracks() repeatedly (closes #24)
+
+
+v1.3.113
+--------
+
+update CSV output columns ordering
+
+
+v1.3.112
+--------
+
+add variable column name when setting vesseltrack_3D_distance, closes #23
+
+
+v1.3.111
+--------
+
+fix DBQuery missing aggregate table when using alternate sql query function
+
+
+v1.3.110
+--------
+
+enable extrapolation when interpolating outside single time step range #22
+
+
+v1.3.109
+--------
+
+fix rust Chrono deprecation warning; remove rustdoc and rust binary target
+
+
+v1.3.108
+--------
+
+fix interpolation range bug #20
+
+
+v1.3.107
+--------
+
+add raster data to network graph pipeline
+
+
+v1.3.106
+--------
+
+add JSON track serialization and deserialization functions to track_gen module
+
+
+v1.3.105
+--------
+
+improved warnings for bathymetry coordinates outside of longitude range (-180,180). bathymetry module now returns positive depth value instead of negative elevation value
+
+
+v1.3.104
+--------
+
+fix bug causing additional rows to be returned when querying boundaries exceeding longitude range (-180, 180). possibly related to issue #14
+
+
+v1.3.103
+--------
+
+Docstrings for binarysearch_vector() function
+
+
+v1.3.102
+--------
+
+fix DBQuery truncating results from large queries (#17)
+
+
+v1.3.101
+--------
+
+accelerate rasters loading using vectorized binary search from rust module
+
+
+v1.3.100
+--------
+
+fast array indexing with rust: vectorized binary search implementation
+
+
+v1.3.99
+-------
+
+Update websocket_server.py for changes to database connection API (#13)
+
+
+v1.3.98
+-------
+
+update testing for DBConn() API  (#13)
+
+
+v1.3.97
+-------
+
+clean up DBConn() API #13
+
+
+v1.3.96
+-------
+
+fix bathymetry assertion error , closes #14
+
+
+v1.3.95
+-------
+
+network graph domain from point radius geometry #12
+
+
+v1.3.94
+-------
+
+optimized trajectory cleaning and network graph processing pipeline: rewrite trajectory encoder in rust
+
+
+v1.3.93
+-------
+
+add alternative modules using rasterio in load_rasters.py and bathymetry.py
+
+
+v1.3.92
+-------
+
+add more testing for rasterio, bathymetry, and network graph pipeline
+
+
+v1.3.91
+-------
+
+refactor raster loading
+
+
+v1.3.90
+-------
+
+remove merge_data and message_logger modules
+
+
+v1.3.89
+-------
+
+add imported rust functions to sphinx docs
+
+
+v1.3.88
+-------
+
+added tests and improved test coverage
+
+
+v1.3.87
+-------
+
+update dotfiles
+
+
+v1.3.86
+-------
+
+remove unused code and add more warnings
+
+
+v1.3.85
+-------
+
+update docker builds and CI pipeline
+
+
+v1.3.84
+-------
+
+update link in readme
+
+
+v1.3.83
+-------
+
+test CI auto-versioning
+
+
+v1.3.82
+-------
+
+update CI
+
+
+v1.3.81
+-------
+
+update dockerfile
+
+
+v1.3.80
+-------
+
+auto versioning for CI
+
+
 v1.3.79
 -------
 
@@ -59,7 +497,7 @@ error handling in interp.py
 v1.3.70
 -------
 
-removed unused utils and fix but in write_csv()
+removed unused utils and fix bug in write_csv()
 
 
 v1.3.69

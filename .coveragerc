@@ -31,6 +31,10 @@ exclude_lines =
     
     # dont test exceptions
     Exception
+    websockets.exceptions
+
+    # dont test for convenience type checks
+    isinstance
 
 ignore_errors = True
 

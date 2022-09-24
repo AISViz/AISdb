@@ -42,39 +42,26 @@ def _epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
         )
 
 
-def _fast_unzip(zipf, dirname='.'):
-    ''' parallel process worker for fast_unzip() '''
-    exists = set(sorted(os.listdir(dirname)))
-    with zipfile.ZipFile(zipf, 'r') as zip_ref:
-        contents = set(zip_ref.namelist())
-        members = list(contents - exists)
-        zip_ref.extractall(path=dirname, members=members)
-
-
-def fast_unzip(zipfilenames, dirname='.', processes=12):
-    ''' unzip many files in parallel
-        any existing unzipped files in the target directory will be skipped
-    '''
-    fcn = partial(_fast_unzip, dirname=dirname)
-    with Pool(processes) as p:
-        p.imap_unordered(fcn, zipfilenames)
-        p.close()
-        p.join()
-
-
-def binarysearch(arr, search, descending=False):
+def binarysearch(arr, search):
     ''' fast indexing of ordered arrays
 
         caution: will return nearest index in out-of-bounds cases
     '''
+    assert isinstance(arr, np.ndarray)
     low, high = 0, arr.size - 1
-    if descending:
+
+    if arr[0] > arr[1]:
+        descending = True
         arr = arr[::-1]
-    if search < arr[0]:  # pragma: no cover
+    else:
+        descending = False
+
+    if search < arr[0]:
         return 0
-    elif search >= arr[-1]:  # pragma: no cover
+    elif search >= arr[-1]:
         return len(arr) - 1
-    while (low <= high):
+
+    while (low <= high):  # pragma: no cover
         mid = (low + high) // 2
         if search >= arr[mid - 1] and search <= arr[mid + 1]:
             break
@@ -82,6 +69,7 @@ def binarysearch(arr, search, descending=False):
             high = mid - 1
         else:
             low = mid + 1
+
     if descending:
         return arr.size - mid - 1
     else:
@@ -90,6 +78,7 @@ def binarysearch(arr, search, descending=False):
 
 def _splits_idx(vector: np.ndarray, d: timedelta) -> np.ndarray:
     assert isinstance(d, timedelta)
+    vector = np.array(vector, dtype=int)
     splits = np.nonzero(vector[1:] - vector[:-1] >= d.total_seconds())[0] + 1
     #else:
     #    splits = np.nonzero(vector[1:] - vector[:-1] >= d)[0] + 1
@@ -120,12 +109,22 @@ def write_csv_rows(rows,
 
 def _datetime_column(tracks):
     for track in tracks:
+        assert isinstance(track, dict), f'got {track=}'
         track['datetime'] = np.array(
             _epoch_2_dt(track['time'].astype(int)),
             dtype=object,
         )
         track['dynamic'] = track['dynamic'].union(set(['datetime']))
         yield track
+
+
+_columns_order = [
+    'mmsi', 'imo', 'vessel_name', 'name', 'datetime', 'time', 'lon', 'lat',
+    'cog', 'sog', 'dim_bow', 'dim_stern', 'dim_star', 'dim_port',
+    'coarse_type_txt', 'vesseltype_generic', 'vesseltype_detailed', 'callsign',
+    'flag', 'gross_tonnage', 'summer_dwt', 'length_breadth', 'year_built',
+    'home_port', 'error404'
+]
 
 
 def write_csv(
@@ -146,19 +145,23 @@ def write_csv(
     '''
     tracks_dt = _datetime_column(tracks)
     tr1 = next(tracks_dt)
-    colnames = list(tr1['dynamic']) + list(tr1['static'])
+    colnames = [
+        c for c in _columns_order + list(
+            set(tr1['static'].union(tr1['dynamic'])) -
+            set(_columns_order).union(set(['marinetraffic_info'])))
+        if c in list(tr1['static']) + list(tr1['dynamic'])
+    ]
 
     if 'marinetraffic_info' in tr1.keys():
         colnames += tuple(tr1['marinetraffic_info'].keys())
-        colnames.remove('marinetraffic_info')
         colnames.remove('error404')
         colnames.remove('dim_bow')
         colnames.remove('dim_stern')
         colnames.remove('dim_star')
         colnames.remove('dim_port')
-        if 'coarse_type_txt' in colnames:
+        if 'coarse_type_txt' in colnames:  # pragma: no cover
             colnames.remove('coarse_type_txt')
-        if 'vessel_name' in colnames:
+        if 'vessel_name' in colnames:  # pragma: no cover
             colnames.remove('vessel_name')
         colnames = list(dict.fromkeys(colnames))
 
@@ -172,7 +175,7 @@ def write_csv(
 
     def _append(track, writer, colnames=colnames, decimals=decimals):
         if 'marinetraffic_info' in track.keys():
-            for key, val in track['marinetraffic_info'].items():
+            for key, val in dict(track['marinetraffic_info']).items():
                 if key in ('error404', 'mmsi', 'imo'):
                     continue
                 track[key] = val
@@ -184,7 +187,7 @@ def write_csv(
                    for c in colnames]
             for ci, r in zip(range(len(colnames)), row):
                 if colnames[ci] in decimals.keys() and r != '':
-                    row[ci] = f'{r:.{decimals[colnames[ci]]}f}'
+                    row[ci] = f'{float(r):.{decimals[colnames[ci]]}f}'
 
             writer.writerow(row)
 
@@ -260,7 +263,7 @@ def getfiledate(filename):
             line = f.readline()
             head = line.rsplit('\\', 1)[0]
             n = 0
-            while 'c:' not in head:
+            while 'c:' not in head:  # pragma: no cover
                 n += 1
                 line = f.readline()
                 head = line.rsplit('\\', 1)[0]

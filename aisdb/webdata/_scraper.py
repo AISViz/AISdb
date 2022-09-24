@@ -3,24 +3,19 @@
 import os
 import shutil
 
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
-from webdriver_manager.firefox import GeckoDriverManager
-# from selenium.webdriver.chrome.options import Options
-# from selenium.webdriver.chrome.service import Service
-# from webdriver_manager.chrome import ChromeDriverManager
 
+def _scraper():
+    ''' selenium web scraper ``selenium.webdriver``
 
-def _scraper(data_dir, proxyhost=None, proxyport=None):
+        to open a browser window while debugging, export DEBUG=1
     '''
-        args:
-            data_dir (string)
-                direcotory path to store webdrivers and logs
-            proxy (string):
-                Optional. String addressing IP and port, e.g.
-                "127.0.0.1:8080"
-    '''
+    from selenium import webdriver
+    from selenium.webdriver.firefox.options import Options
+    from selenium.webdriver.firefox.service import Service
+    from webdriver_manager.firefox import GeckoDriverManager
+    # from selenium.webdriver.chrome.options import Options
+    # from selenium.webdriver.chrome.service import Service
+    # from webdriver_manager.chrome import ChromeDriverManager
     assert shutil.which('firefox'), 'Firefox is required for this feature'
 
     # configs
@@ -54,12 +49,8 @@ def _scraper(data_dir, proxyhost=None, proxyport=None):
     """
 
     driver = webdriver.Firefox(
-        service=Service(
-            executable_path=GeckoDriverManager().install(),
-            log_path=os.path.join(data_dir, 'geckodriver.log'),
-        ),
-        options=opt,
-    )
+        service=Service(executable_path=GeckoDriverManager().install()),
+        options=opt)
 
     if os.environ.get('DEBUG'):
         driver.maximize_window()

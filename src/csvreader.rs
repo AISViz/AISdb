@@ -48,6 +48,7 @@ pub fn decodemsgs_ee_csv(
     dbpath: &std::path::Path,
     filename: &std::path::PathBuf,
     source: &str,
+    verbose: bool,
 ) -> Result<(), Error> {
     assert_eq!(
         &filename.to_str().unwrap()[&filename.to_str().unwrap().len() - 4..],
@@ -171,10 +172,12 @@ pub fn decodemsgs_ee_csv(
         8
     );
 
-    println!(
-        "{} count:{: >8}    {}    {}",
-        fname1, count, elapsed1, rate1,
-    );
+    if verbose {
+        println!(
+            "{} count:{: >8}    {}    {}",
+            fname1, count, elapsed1, rate1,
+        );
+    }
 
     Ok(())
 }
@@ -261,6 +264,7 @@ MMSI,Message_ID,Repeat_indicator,Time,Millisecond,Region,Country,Base_station,On
             &std::path::Path::new("testdata/test.db").to_path_buf(),
             &fpath,
             "TESTDATA",
+            true,
         );
 
         Ok(())

@@ -1,101 +1,98 @@
+import os
+
 import numpy as np
 from PIL import Image
-
-from aisdb.proc_util import binarysearch
-
 import rasterio
 
+from aisdb.proc_util import binarysearch
+from aisdb.aisdb import binarysearch_vector
 
-def pixelindex_rasterio(x1, y1, dataset, band1):
-    x, y = dataset.index(x1, y1)
-    return band1[x, y]
-
-
-def load_raster_pixel_rasterio(x1, y1, filepath):
-    dataset = rasterio.open(filepath)
-    band1 = dataset.read(1)
-    #lon = np.linspace(dataset.bounds.left, dataset.bounds.right, dataset.width, endpoint=True)
-    #lat = np.linspace(dataset.bounds.top, dataset.bounds.bottom, dataset.height, endpoint=True)
-    x, y = dataset.index(x1, y1)
-    return band1[x, y]
+Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError warning
 
 
-def pixelindex(x1, y1, im):
-    ''' convert WGS84 coordinates to raster grid index
+class _RasterFile_generic():
 
-        image tag spec:
-        http://duff.ess.washington.edu/data/raster/drg/docs/geotiff.txt
+    def __enter__(self):
+        assert hasattr(self, 'img')
+        return self
 
-        args:
-            x1: float
-                longitude coordinate
-            y1: float
-                latitude coordinate
-            img: pillow PIL.Image file
-                can be supplied instead of a filepath
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        ''' close raster files upon exit from context '''
+        self.img.close()
 
-        returns:
-            (x, y) array indices
-    '''
-
-    # GDAL tags
-    if 33922 in im.tag.tagdata.keys():
-        i, j, k, x, y, z = im.tag_v2[33922]  # ModelTiepointTag
-        dx, dy, dz = im.tag_v2[33550]  # ModelPixelScaleTag
-        lat = np.arange(y, y + (dy * im.size[1]), dy)[::-1] - 90
-        if np.sum(lat > 91):
-            lat -= 90
-
-    # NASA JPL tags
-    elif 34264 in im.tag.tagdata.keys():
-        dx, _, _, x, _, dy, _, y, _, _, dz, z, _, _, _, _ = im.tag_v2[
-            34264]  # ModelTransformationTag
-        lat = np.arange(y, y + (dy * im.size[1]), dy)
-
-    else:
-        assert False, 'error: unknown metadata tag encoding'
-
-    lon = np.arange(x, x + (dx * im.size[0]), dx)
-
-    idx_lon = binarysearch(lon, x1)
-    idx_lat = binarysearch(lat, y1, descending=True)
-
-    return idx_lon, idx_lat
+    def merge_tracks(self, tracks, new_track_key: str):
+        for track in tracks:
+            track['dynamic'] = set(track['dynamic']).union(set([new_track_key
+                                                                ]))
+            track[new_track_key] = self._track_coordinate_values(track)
+            yield track
 
 
-def load_raster_pixel(x1, y1, filepath=None, img=None):
-    """ load pixel data from raster file
+class RasterFile(_RasterFile_generic):
 
-        args:
-            filepath: string
-                path to rasterfile
-            x1: float
-                longitude coordinate
-            y1: float
-                latitude coordinate
-            filepath: string
-                raster image location
-            img: pillow PIL.Image file
-                can be supplied instead of a filepath.
-                image will not be closed after loading data when
-                using this option
+    def _get_img_grids(self, im):
+        # GDAL tags
+        if 33922 in im.tag.tagdata.keys():
+            i, j, k, x, y, z = im.tag_v2[33922]  # ModelTiepointTag
+            dx, dy, dz = im.tag_v2[33550]  # ModelPixelScaleTag
+            lat = np.arange(y + dy, y + (dy * im.size[1]) + dy, dy)[::-1] - 90
+            if np.sum(lat > 91):
+                lat -= 90
+        # NASA JPL tags
+        elif 34264 in im.tag.tagdata.keys():  # pragma: no cover
+            dx, _, _, x, _, dy, _, y, _, _, dz, z, _, _, _, _ = im.tag_v2[
+                34264]  # ModelTransformationTag
+            lat = np.arange(y + dy, y + (dy * im.size[1]) + dy, dy)
 
-        returns:
-            pixel value
-    """
-    if (not filepath and not img) or (filepath and img):
-        assert False, 'must pass filepath or PIL.Image'
+        else:
+            raise ValueError('error: unknown metadata tag encoding')
 
-    Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError warning
+        lon = np.arange(x + dx, x + (dx * im.size[0]) + dx, dx)
 
-    if filepath:
-        im = Image.open(filepath)
-    else:
-        im = img
+        return lon, lat
 
-    px = im.getpixel(pixelindex(x1, y1, im))
+    def __init__(self, imgpath):
+        self.imgpath = imgpath
+        assert not hasattr(self, 'img')
+        assert os.path.isfile(
+            self.imgpath), f'raster file {self.imgpath} not found!'
+        self.img = Image.open(self.imgpath)
+        self.xy = self._get_img_grids(self.img)
 
-    if filepath:
-        im.close()
+    def _get_coordinate_values(self, track, rng=None):
+        if rng is None:
+            rng = range(len(track['time']))
+        idx_lons = np.array(binarysearch_vector(self.xy[0], track['lon'][rng]))
+        idx_lats = np.array(binarysearch_vector(self.xy[1], track['lat'][rng]))
+        return np.array(list(map(
+            self.img.getpixel,
+            zip(idx_lons, idx_lats),
+        )))
 
-    return px
+    def _track_coordinate_values(self, track, *, rng: range = None):
+        return self._get_coordinate_values(track, rng=rng)
+
+
+class RasterFile_Rasterio(_RasterFile_generic):
+
+    def __init__(self, imgpath):
+        self.imgpath = imgpath
+        assert not hasattr(self, 'img')
+        assert os.path.isfile(
+            self.imgpath), f'raster file {self.imgpath} not found!'
+        self.img = rasterio.open(self.imgpath)
+        self.band1 = self.img.read(1)
+
+    def _get_coordinate_value(self, lon, lat):
+        ''' retrieve value of the specified coordinates '''
+        x, y = self.img.index(lon, lat)
+        return self.band1[x, y]
+
+    def _track_coordinate_values(self, track, *, rng: range = None):
+        if rng is None:  # pragma: no cover
+            rng = range(len(track['time']))
+
+        return np.array([
+            self._get_coordinate_value(x, y)
+            for x, y in zip(track['lon'][rng], track['lat'][rng])
+        ])

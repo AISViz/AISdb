@@ -6,11 +6,12 @@ import sqlite3
 import types
 
 import numpy as np
+import warnings
+import orjson
 
-import aisdb
-from aisdb.database.dbqry import DBQuery
-from .gis import delta_knots, delta_meters
-from .proc_util import _segment_rng
+from aisdb.aisdb import simplify_linestring_idx, encoder_score_fcn
+from aisdb.gis import delta_knots, delta_meters
+from aisdb.proc_util import _segment_rng
 
 staticcols = set([
     'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow',
@@ -60,15 +61,15 @@ def _yieldsegments(rows, staticcols, dynamiccols):
     lon = np.array([r['longitude'] for r in rows], dtype=float)
     lat = np.array([r['latitude'] for r in rows], dtype=float)
     time = np.array([r['time'] for r in rows], dtype=np.uint32)
-    idx = aisdb.simplify_linestring_idx(lon, lat, precision=0.001)
+    idx = simplify_linestring_idx(lon, lat, precision=0.001)
     trackdict = dict(
         **{col: rows[0][col]
            for col in staticcols},
         lon=lon[idx].astype(np.float32),
         lat=lat[idx].astype(np.float32),
         time=time[idx],
-        sog=np.array([r['sog'] for r in rows], dtype=np.float16)[idx],
-        cog=np.array([r['cog'] for r in rows], dtype=np.uint16)[idx],
+        sog=np.array([r['sog'] for r in rows], dtype=np.float32)[idx],
+        cog=np.array([r['cog'] for r in rows], dtype=np.uint32)[idx],
         static=staticcols,
         dynamic=dynamiccols,
     )
@@ -96,26 +97,36 @@ def TrackGen(rowgen: iter) -> dict:
             static data (e.g. mmsi, name, geometry) will be stored as
             scalar values
 
+        >>> import os
         >>> from datetime import datetime
-        >>> from aisdb import DBQuery, sqlfcn_callbacks, TrackGen
+        >>> from aisdb import DBConn, DBQuery, TrackGen, decode_msgs
+        >>> from aisdb.database import sqlfcn_callbacks
 
-        >>> dbpath = '~/ais/ais.db'
-        >>> q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
-        ...             start=datetime(2022, 1, 1),
-        ...             end=datetime(2022, 1, 7))
-        >>> rowgen = q.gen_qry()
+        >>> # create example database file
+        >>> dbpath = './testdata/test.db'
+        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
+        ...              'aisdb/tests/test_data_20211101.nm4']
 
-        >>> print(f'iterating over rows returned from {dbpath}')
-        >>> for track in TrackGen(rowgen):
-        ...     print(track['mmsi'])
-        ...     print(f'messages in track segment: {track["time"].size}')
-        ...     print(f'keys: {track.keys()}')
+        >>> with DBConn() as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
+        ...     source='TESTING')
+        ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
+        ...             dbconn=dbconn,
+        ...             dbpath=dbpath,
+        ...             start=datetime(2021, 7, 1),
+        ...             end=datetime(2021, 7, 7))
+        ...     rowgen = q.gen_qry()
+        ...     for track in TrackGen(rowgen):
+        ...         print(track['mmsi'], track['lon'], track['lat'], track['time'])
+        ...         break
+        204242000 [-8.931666] [41.45] [1625176725]
+        >>> os.remove(dbpath)
     '''
     firstrow = True
     assert isinstance(rowgen, types.GeneratorType)
     for rows in rowgen:
         assert not (rows is None or len(rows) == 0), 'rows cannot be empty'
-        assert isinstance(rows[0], sqlite3.Row)
+        assert isinstance(rows[0], (sqlite3.Row, dict))
         if firstrow:
             staticcols = set(rows[0].keys()) & _statcols
             dynamiccols = set(rows[0].keys()) ^ staticcols
@@ -128,6 +139,52 @@ def TrackGen(rowgen: iter) -> dict:
 
 
 async def TrackGen_async(rowgen: iter) -> dict:
+    ''' generator converting sets of rows sorted by MMSI to a
+        dictionary containing track column vectors.
+        each row contains columns from database: mmsi time lon lat name ...
+        rows must be sorted by first by mmsi, then time
+
+        args:
+            rowgen (aisdb.database.dbqry.DBQuery.gen_qry())
+                DBQuery rows generator. Yields rows returned
+                by a database query
+
+        yields:
+            dictionary containing track column vectors.
+            static data (e.g. mmsi, name, geometry) will be stored as
+            scalar values
+
+        >>> import os
+        >>> import asyncio
+        >>> from datetime import datetime
+        >>> from aisdb import DBConn, DBQuery_async, TrackGen_async, decode_msgs
+        >>> from aisdb.database import sqlfcn_callbacks
+
+        >>> # create example database file
+        >>> dbpath = './testdata/test.db'
+        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
+        ...              'aisdb/tests/test_data_20211101.nm4']
+
+        >>> with DBConn() as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
+        ...     source='TESTING')
+        >>> async def get_tracks():
+        ...     qry = DBQuery_async(
+        ...             dbpath=dbpath,
+        ...             start=datetime(2021, 7, 1),
+        ...             end=datetime(2021, 7, 7),
+        ...             callback=sqlfcn_callbacks.in_timerange_validmmsi)
+        ...     tracks = TrackGen_async(qry.gen_qry())
+        ...     async for track in tracks:
+        ...         print(track['mmsi'], track['lon'], track['lat'], track['time'])
+        ...         break
+        ...     # since loop is exited early, need to clean up resources
+        ...     await qry.dbconn.close()  # close async database connection
+        ...     await tracks.aclose()  # close async event loop
+        >>> asyncio.run(get_tracks())
+        204242000 [-8.931666] [41.45] [1625176725]
+        >>> os.remove(dbpath)
+    '''
     firstrow = True
     async for rows in rowgen:
         assert not (rows is None or len(rows) == 0), 'rows cannot be empty'
@@ -141,9 +198,6 @@ async def TrackGen_async(rowgen: iter) -> dict:
             firstrow = False
         for track in _yieldsegments(rows, staticcols, dynamiccols):
             yield track
-
-
-TrackGen_async.__doc__ = TrackGen.__doc__
 
 
 def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
@@ -162,8 +216,10 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
             yield dict(
                 **{k: track[k]
                    for k in track['static']},
-                **{k: track[k][rng]
-                   for k in track['dynamic']},
+                **{
+                    k: np.array(track[k], dtype=object)[rng]
+                    for k in track['dynamic']
+                },
                 static=track['static'],
                 dynamic=track['dynamic'],
             )
@@ -192,77 +248,6 @@ async def split_timedelta_async(tracks, maxdelta=timedelta(weeks=2)):
             )
 
 
-def _score_fcn(xy1, xy2, t1, t2, *, speed_threshold, distance_threshold):
-    ''' Assigns a score for likelihood of two points being part of a sequential
-        vessel trajectory. A hard cutoff will be applied at distance_threshold,
-        after which all scores will be set to -1.
-
-        args:
-            xy1 (tuple)
-                Float values containing (longitude, latitude) for the first
-                coordinate location
-            xy2 (tuple)
-                Float values containing (longitude, latitude) for the second
-                coordinate location
-            t1 (float)
-                Timestamp for coordinate pair xy1 in epoch seconds
-            t2 (float)
-                Timestamp for coordinate pair xy2 in epoch seconds
-            speed_threshold (float)
-                Tracks will be segmented between points where computed
-                speed values exceed this threshold. Segmented tracks will
-                be scored for reconnection. Measured in knots
-            distance_threshold (float)
-                Used as a numerator when determining score; this value
-                is divided by the distance between xy1 and xy2.
-                If the distance between xy1 and xy2 exceeds this value,
-                the score will be set to -1. Measured in meters
-    '''
-    # great circle distance between coordinate pairs (meters)
-    dm = max(aisdb.haversine(*xy1, *xy2), 1.)
-
-    # elapsed time between coordinate pair timestamps (seconds)
-    assert t2 >= t1
-    dt = max(abs(t2 - t1), 10.)
-    assert dt < 60 * 60 * 24 * 7 * 52 * 1, f'{dt=}'
-
-    # computed speed between coordinate pairs (knots)
-    ds = (dm / dt) * 1.9438444924406
-
-    if ds < speed_threshold and dm < distance_threshold * 2:
-        #if ds < speed_threshold:
-        #score = ((distance_threshold / dm) / dt)
-        score = distance_threshold / ds
-        return score
-    else:
-        return -1
-
-
-'''
-
-# take average of most recent 2 scores
-scores = (
-    np.array([score_fcn(
-            xy1=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]),
-            xy2=(pathway['lon'][
-                    (idx1:=min(2, pathway['time'].size-1)*-1)
-                ], pathway['lat'][idx1]),
-            t1=track['time'][segments_idx[i]],
-            t2=pathway['time'][idx1],
-        ) for pathway in pathways ], dtype=np.float16)
-    +
-    np.array([score_fcn(
-            xy1=(track['lon'][
-                    (idx2:=segments_idx[min(i+1, segments_idx.size-1)])
-                ], track['lat'][segments_idx[i]+1]),
-            xy2=(pathway['lon'][-1], pathway['lat'][-1]),
-            t1=track['time'][idx2],
-            t2=pathway['time'][-1],
-        ) for pathway in pathways ], dtype=np.float16)
-    ) / 2
-'''
-
-
 def _score_idx(scores):
     ''' Returns indices of score array where value at index is equal to the
         highest score. In tie cases, the last index will be selected
@@ -286,13 +271,15 @@ def _segments_idx(track, distance_threshold, speed_threshold, **_):
 def _scoresarray(track, *, pathways, i, segments_idx, distance_threshold,
                  speed_threshold, minscore):
     scores = np.array([
-        _score_fcn(
-            xy1=(pathway['lon'][-1], pathway['lat'][-1]),
-            xy2=(track['lon'][segments_idx[i]], track['lat'][segments_idx[i]]),
+        encoder_score_fcn(
+            x1=pathway['lon'][-1],
+            y1=pathway['lat'][-1],
             t1=pathway['time'][-1],
+            x2=track['lon'][segments_idx[i]],
+            y2=track['lat'][segments_idx[i]],
             t2=track['time'][segments_idx[i]],
-            distance_threshold=distance_threshold,
-            speed_threshold=speed_threshold,
+            dist_thresh=distance_threshold,
+            speed_thresh=speed_threshold,
         ) for pathway in pathways
     ],
                       dtype=np.float16)
@@ -313,16 +300,6 @@ def _append_highscore(track, *, highscoreidx, pathways, i, segments_idx):
         static=track['static'],
         dynamic=track['dynamic'],
     )
-
-
-'''
-def _pop_pathways(highscoreidx, pathways, n):
-    pathways[highscoreidx]['label'] = n
-    pathways[highscoreidx]['static'] = set(
-        pathways[highscoreidx]['static']).union({'label'})
-    path = pathways.pop(highscoreidx)
-    assert 'time' in path.keys()
-'''
 
 
 def _split_pathway(track, *, i, segments_idx):
@@ -347,15 +324,17 @@ def _score_encode(track, distance_threshold, speed_threshold, minscore):
                   minscore=minscore)
     segments_idx = _segments_idx(track, **params)
     pathways = []
+    warned = False
     for i in range(segments_idx.size - 1):
         if len(pathways) == 0:
             path = _split_pathway(track, i=i, segments_idx=segments_idx)
             assert path is not None
             pathways.append(path)
             continue
-        elif len(pathways) > 100:
-            print(f'excessive number of pathways! mmsi={track["mmsi"]}')
-            # yield pathways.pop(0)
+        elif not warned and len(pathways) > 100:
+            warnings.warn(
+                f'excessive number of pathways! mmsi={track["mmsi"]}')
+            warned = True
         assert len(track['time']) > 0, f'{track=}'
 
         scores, highscore = _scoresarray(track,
@@ -408,107 +387,99 @@ def encode_greatcircledistance(
                 minimum score threshold at which to allow track
                 segments to be linked
 
+        >>> import os
         >>> from datetime import datetime, timedelta
-        >>> from aisdb import dbpath, DBQuery, sqlfcn_callbacks
-        >>> from aisdb import TrackGen, encode_greatcircledistance
+        >>> from aisdb import DBConn, DBQuery, TrackGen
+        >>> from aisdb import decode_msgs, encode_greatcircledistance, sqlfcn_callbacks
 
-        >>> q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
-        ...             start=datetime(2022, 1, 1),
-        ...             end=datetime(2022, 1, 7))
-        >>> rowgen = q.gen_qry()
+        >>> # create example database file
+        >>> dbpath = './testdata/test.db'
+        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
+        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> with DBConn() as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn,
+        ...     dbpath=dbpath, source='TESTING')
 
-        >>> for track in encode_greatcircledistance(
-        ...         TrackGen(rowgen),
-        ...         distance_threshold=250000, # metres
-        ...         time_threshold=timedelta(hours=24),
-        ...         minscore=0):
-        ...     print(track['mmsi'])
-        ...     print(f'messages in track segment: {track["time"].size}')
-        ...     print(f'keys: {track.keys()}')
+        >>> with DBConn() as dbconn:
+        ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
+        ...             dbconn=dbconn,
+        ...             dbpath=dbpath,
+        ...             start=datetime(2021, 7, 1),
+        ...             end=datetime(2021, 7, 7))
+        ...     tracks = TrackGen(q.gen_qry())
+        ...     for track in encode_greatcircledistance(
+        ...             tracks,
+        ...             distance_threshold=250000,  # metres
+        ...             speed_threshold=50,  # knots
+        ...             minscore=0):
+        ...         print(track['mmsi'])
+        ...         print(track['lon'], track['lat'])
+        ...         break
+        204242000
+        [-8.931666] [41.45]
+        >>> os.remove(dbpath)
+
     '''
     for track in tracks:
+        assert isinstance(track, dict), f'got {type(track)} {track}'
         for path in _score_encode(track, distance_threshold, speed_threshold,
                                   minscore):
             yield path
 
 
-async def encode_greatcircledistance_async(
-    tracks,
-    *,
-    distance_threshold,
-    speed_threshold=50,
-    minscore=1e-6,
-):
+async def encode_greatcircledistance_async(tracks,
+                                           *,
+                                           distance_threshold,
+                                           speed_threshold=50,
+                                           minscore=1e-6):
+    ''' args:
+            tracks (:func:`aisdb.track_gen.TrackGen_async`)
+                tracks generator return by TrackGen_async
+
+        yields:
+            dictionary containing track column vectors.
+            static data (e.g. mmsi, name, geometry) will be stored as
+            scalar values
+
+        >>> import os
+        >>> import asyncio
+        >>> from datetime import datetime
+        >>> from aisdb import DBConn, DBQuery_async, TrackGen_async, decode_msgs
+        >>> from aisdb.database import sqlfcn_callbacks
+
+        >>> # create example database file
+        >>> dbpath = './testdata/test.db'
+        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
+        ...              'aisdb/tests/test_data_20211101.nm4']
+
+        >>> with DBConn() as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
+        ...     source='TESTING')
+        >>> async def get_tracks():
+        ...     qry = DBQuery_async(
+        ...             dbpath=dbpath,
+        ...             start=datetime(2021, 7, 1),
+        ...             end=datetime(2021, 7, 7),
+        ...             callback=sqlfcn_callbacks.in_timerange_validmmsi)
+        ...     tracks = encode_greatcircledistance_async(TrackGen_async(qry.gen_qry()), distance_threshold=200000)
+        ...     async for track in tracks:
+        ...         print(track['mmsi'], track['lon'], track['lat'], track['time'])
+        ...         break
+        ...     # since loop is exited early, need to clean up resources
+        ...     await qry.dbconn.close()  # close async database connection
+        ...     await tracks.aclose()  # close async event loop
+        >>> asyncio.run(get_tracks())
+        204242000 [-8.931666] [41.45] [1625176725]
+        >>> os.remove(dbpath)
+    '''
     async for track in tracks:
-        for path in _score_encode(track, distance_threshold, speed_threshold,
-                                  minscore):
+        for path in _score_encode(
+                track,
+                distance_threshold,
+                speed_threshold,
+                minscore,
+        ):
             yield path
-
-
-encode_greatcircledistance_async.__doc__ = encode_greatcircledistance.__doc__
-
-
-def max_tracklength(tracks, max_length=100000):
-    ''' applies a maximum track length to track vectors.
-        can be used to avoid excess memory consumption
-
-        args:
-            tracks: generator
-                yields track dictionaries
-            max_track_length: int
-                tracks exceeding this number of datapoints will be segmented
-
-        yields track dictionaries
-    '''
-
-    for track in tracks:
-        while (track['time'].size > max_length):
-            yield dict(
-                **{k: track[k]
-                   for k in track['static']},
-                **{k: track[k][:max_length]
-                   for k in track['dynamic']},
-                static=track['static'],
-                dynamic=set(track['dynamic']),
-            )
-            track = dict(
-                **{k: track[k]
-                   for k in track['static']},
-                **{k: track[k][max_length:]
-                   for k in track['dynamic']},
-                static=track['static'],
-                dynamic=set(track['dynamic']),
-            )
-        yield track
-
-
-def concat_realisticspeed(tracks, knots_threshold=50):
-    ''' if two consecutive tracks are within a realistic speed threshold, they
-        will be concatenated
-    '''
-    segment = next(tracks)
-    for track in tracks:
-        deltas = {
-            'time': np.append(segment['time'][-1], track['time'][0]),
-            'lon': np.append(segment['lon'][-1], track['lon'][0]),
-            'lat': np.append(segment['lat'][-1], track['lat'][0]),
-        }
-        if segment['mmsi'] == track['mmsi'] and delta_knots(
-                deltas, range(2))[0] < knots_threshold:
-            segment = dict(
-                **{k: segment[k]
-                   for k in segment['static']},
-                **{
-                    k: np.append(segment[k], track[k])
-                    for k in track['dynamic']
-                },
-                static=track['static'],
-                dynamic=set(track['dynamic']),
-            )
-        else:
-            yield segment
-            segment = track
-    yield segment
 
 
 def fence_tracks(tracks, domain):
@@ -519,6 +490,7 @@ def fence_tracks(tracks, domain):
         Also see zone_mask()
     '''
     for track in tracks:
+        assert isinstance(track, dict)
         if 'in_zone' not in track.keys():
             track['in_zone'] = np.array(
                 [
@@ -585,3 +557,24 @@ async def min_speed_filter_async(tracks, minspeed):
             static=track['static'],
             dynamic=track['dynamic'],
         )
+
+
+def serialize_tracks(tracks):
+    for track in tracks:
+        track['static'] = tuple(track['static'])
+        track['dynamic'] = tuple(track['dynamic'])
+        if 'marinetraffic_info' in track.keys():  # pragma: no cover
+            track['marinetraffic_info'] = dict(track['marinetraffic_info'])
+        yield orjson.dumps(track, option=orjson.OPT_SERIALIZE_NUMPY)
+
+
+def _deser(track_serialized):
+    track = orjson.loads(track_serialized)
+    for key in track['dynamic']:
+        track[key] = np.array(track[key])
+    return track
+
+
+def deserialize_tracks(tracks):
+    for track in tracks:
+        yield _deser(track)

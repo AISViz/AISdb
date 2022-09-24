@@ -1,17 +1,18 @@
-''' geometry and GIS related utilities '''
+'''Geometry and GIS utilities'''
 
 import os
 from datetime import datetime, timedelta
 from functools import partial
 
 import numpy as np
-import shapely.wkb
+#import shapely.wkb
 import shapely.ops
 import shapely.geometry
+import warnings
 from shapely.geometry import Polygon, LineString, Point
 
+from aisdb.aisdb import haversine
 from aisdb.proc_util import glob_files
-import aisdb
 
 
 def shiftcoord(x, rng=180):
@@ -21,10 +22,10 @@ def shiftcoord(x, rng=180):
     assert len(x) > 0, 'x must be array-like'
     if not isinstance(x, np.ndarray):
         x = np.array(x)
-    shift_idx = np.where(np.abs(x) != 180)[0]
+    shift_idx = np.where(np.abs(x) != rng)[0]
     for idx in shift_idx:
         x[idx] = ((x[idx] + rng) % 360) - rng
-    flip_idx = np.where(np.abs(x) == 180)[0]
+    flip_idx = np.where(np.abs(x) == rng)[0]
     for idx in flip_idx:
         x[idx] *= -1
     assert (rng * -1 <= np.all(x) <= rng)
@@ -50,7 +51,8 @@ def epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
     if isinstance(ep_arr, (list, np.ndarray)):
         return np.array(list(map(partial(delta, unit=unit), map(int, ep_arr))))
 
-    elif isinstance(ep_arr, (float, int, np.uint32)):
+    elif isinstance(ep_arr,
+                    (float, int, np.uint32, np.int32, np.uint64, np.int64)):
         return delta(int(ep_arr), unit=unit)
 
     else:
@@ -71,9 +73,8 @@ def delta_meters(track, rng=None):
     rng = range(len(track['time'])) if rng is None else rng
     return np.array(
         list(
-            map(aisdb.haversine, track['lon'][rng][:-1],
-                track['lat'][rng][:-1], track['lon'][rng][1:],
-                track['lat'][rng][1:])))
+            map(haversine, track['lon'][rng][:-1], track['lat'][rng][:-1],
+                track['lon'][rng][1:], track['lat'][rng][1:])))
 
 
 def delta_seconds(track, rng=None):
@@ -85,6 +86,9 @@ def delta_seconds(track, rng=None):
             rng (range)
                 optionally restrict computed values to given index range
     '''
+    if isinstance(track['time'], list):
+        track['time'] = np.array(track['time'])
+    assert isinstance(track['time'], np.ndarray), f'got {track["time"] = }'
     rng = range(len(track['time'])) if rng is None else rng
     return np.array(list((track['time'][rng][1:] - track['time'][rng][:-1])))
 
@@ -122,13 +126,13 @@ def radial_coordinate_boundary(x, y, radius=100000):
     ymin, ymax = y, y
 
     # TODO: compute precise value instead of approximating
-    while aisdb.haversine(x, y, xmin, y) < radius:
+    while haversine(x, y, xmin, y) < radius:
         xmin -= 0.001
-    while aisdb.haversine(x, y, xmax, y) < radius:
+    while haversine(x, y, xmax, y) < radius:
         xmax += 0.001
-    while aisdb.haversine(x, y, x, ymin) < radius:
+    while haversine(x, y, x, ymin) < radius:
         ymin -= 0.001
-    while aisdb.haversine(x, y, x, ymax) < radius:
+    while haversine(x, y, x, ymax) < radius:
         ymax += 0.001
 
     return {
@@ -143,13 +147,13 @@ def distance3D(x1, y1, x2, y2, depth_metres):
     ''' haversine/pythagoras approximation of vessel distance to
         point at given depth
     '''
-    a2 = aisdb.haversine(x1=x1, y1=y1, x2=x2, y2=y2)**2
-    b2 = depth_metres**2
+    a2 = haversine(x1=x1, y1=y1, x2=x2, y2=y2)**2
+    b2 = abs(depth_metres)**2
     c2 = a2 + b2
     return np.sqrt(c2)
 
 
-def vesseltrack_3D_dist(tracks, x1, y1, z1):
+def vesseltrack_3D_dist(tracks, x1, y1, z1, colname='distance_metres'):
     ''' appends approximate distance to point at every position
 
         x1 (float)
@@ -158,16 +162,47 @@ def vesseltrack_3D_dist(tracks, x1, y1, z1):
             point latitude
         z1 (float)
             point depth (metres)
+        colname (string)
+            track dictionary key for which depth values will be set.
+            by default, distances are appended to the 'distance_metres'
+            key
 
     '''
     for track in tracks:
-        track['dynamic'] = track['dynamic'].union(set(['distance_metres']))
+        track['dynamic'] = track['dynamic'].union(set([colname]))
         dists = [
             distance3D(x1=x1, y1=y1, x2=x, y2=y, depth_metres=z1)
             for x, y in zip(track['lon'], track['lat'])
         ]
-        track['distance_metres'] = np.array(dists, dtype=object)
+        track[colname] = np.array(dists, dtype=object)
         yield track
+
+
+def mask_in_radius_2D(tracks, xy, distance_meters):
+    ''' radial filtering using great circle distance at surface level
+
+        tracks (:class:`aisdb.track_gen.TrackGen`)
+            track dictionary iterator
+        xy (tuple of floats)
+            target longitude and latitude coordinate pair
+        distance_meters (int)
+            maximum distance in meters
+    '''
+    for track in tracks:
+        mask = [
+            haversine(track['lon'][i], track['lat'][i], xy[0], xy[1]) <
+            distance_meters for i in range(len(track['time']))
+        ]
+        if sum(mask) == 0:
+            continue
+        yield dict(
+            **{k: track[k]
+               for k in track['static']},
+            **{k: track[k][mask]
+               for k in track['dynamic']},
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )
 
 
 class Domain():
@@ -197,34 +232,82 @@ class Domain():
             self.maxY
     '''
 
+    def zone_max_radius(self, geom, zone_x, zone_y):
+        return np.max([
+            haversine(geom.centroid.x, geom.centroid.y, x2, y2)
+            for x2, y2 in zip(zone_x, zone_y)
+        ])
+
+    def add_zone(self, name, x, y):
+        if name[-2:] == '_b' and (x0b := np.min(x)) < self.minX_b:
+            self.minX_b = x0b
+        elif name[-2:] != '_c' and (x0c := np.min(x)) > self.minX:
+            self.minX = x0c
+
+        if name[-2:] == '_c' and (x1b := np.max(x)) < self.maxX_c:
+            self.maxX_c = x1b
+        elif name[-2:] != '_b' and (x1c := np.max(x)) > self.maxX:
+            self.maxX = x1c
+
+        if np.min(y) < self.minY:
+            self.minY = np.min(y)
+        if np.max(y) > self.maxY:
+            self.maxY = np.max(y)
+
+        assert -180 <= self.minX <= 180 and -180 <= self.maxX <= 180
+        assert -90 <= self.minY <= 90 and -90 <= self.maxY <= 90
+
+        geom = Polygon(zip(x, y))
+        maxradius = self.zone_max_radius(geom, x, y)
+
+        self.zones.update({name: {'geometry': geom, 'maxradius': maxradius}})
+
+        return
+
     def __init__(self, name, zones=[], **kw):
         if len(zones) == 0:
             raise ValueError(
                 'domain needs to have atleast one polygon geometry')
         self.name = name
-        self.zones = zones
+        self.zones = {}
+        self.minX, self.maxX = 180, -180
+        self.minX_b = 180
+        self.minY, self.maxY = 90, -90
+        self.maxX_c = -180
+
         for zone in zones:
+            assert 'name' in zone.keys(), f'{zone=}'
+            assert 'geometry' in zone.keys(), f'{zone=}'
             x, y = zone['geometry'].boundary.coords.xy
-            if 'setattrs' not in kw.keys() or kw['setattrs'] is True:
-                if not hasattr(self, 'minX') or np.min(x) < self.minX:
-                    self.minX = np.min(x)
-                if not hasattr(self, 'maxX') or np.max(x) > self.maxX:
-                    self.maxX = np.max(x)
-                if not hasattr(self, 'minY') or np.min(y) < self.minY:
-                    self.minY = np.min(y)
-                if not hasattr(self, 'maxY') or np.max(y) > self.maxY:
-                    self.maxY = np.max(y)
-            zone['maxradius'] = np.max([
-                aisdb.haversine(zone['geometry'].centroid.x,
-                                zone['geometry'].centroid.y, x2, y2)
-                for x2, y2 in zip(x, y)
-            ])
+            if not (np.min(x) >= -180 and np.max(x) <= 180):
+                warnings.warn(f'dividing geometry... {zone["name"]}')
+                for g in self.split_geom(zone):
+                    if g.centroid.x < -180:
+                        x, y = np.array(g.boundary.coords.xy)
+                        self.add_zone(zone['name'] + '_b', shiftcoord(x), y)
+                    elif g.centroid.x > 180:
+                        x, y = np.array(g.boundary.coords.xy)
+                        self.add_zone(zone['name'] + '_c', shiftcoord(x), y)
+                    else:
+                        x, y = np.array(g.boundary.coords.xy)
+                        self.add_zone(zone['name'] + '_a', x, y)
+            else:
+                self.add_zone(zone['name'], x, y)
+
         self.boundary = {
             'xmin': self.minX,
             'xmax': self.maxX,
             'ymin': self.minY,
             'ymax': self.maxY
         }
+        if self.minX_b != 180 and self.boundary['xmin'] % 180 != 0:
+            assert self.minX_b >= self.boundary[
+                'xmin'], f'{self.boundary=} {self.minX_b=}'
+            self.boundary.update({'xmin': self.minX_b, 'xmin_alt': self.minX})
+        if self.maxX_c != -180 and self.boundary['xmax'] % 180 != 0:
+            assert self.maxX_c <= self.boundary[
+                'xmax'], f'{self.boundary=} {self.maxX_c=}'
+            self.boundary.update({'xmax': self.maxX_c, 'xmax_alt': self.maxX})
 
     def nearest_polygons_to_point(self, x, y):
         ''' compute great circle distance for this point to each polygon
@@ -232,11 +315,14 @@ class Domain():
             returns all zones with distances less than zero meters, sorted by
             nearest first
         '''
+        assert float(x), f'{type(x)} {x=}'
+        assert float(y), f'{type(y)} {y=}'
+        assert isinstance(self.zones, dict)
         dist_to_centroids = {}
-        for z in self.zones:
+        for name, z in self.zones.items():
             dist_to_centroids.update({
-                z['name']:
-                aisdb.haversine(
+                name:
+                haversine(
                     x,
                     y,
                     z['geometry'].centroid.x,
@@ -246,48 +332,51 @@ class Domain():
         return dist_to_centroids
 
     def point_in_polygon(self, x, y):
-        ''' returns the first polygon that contains the given point.
-            uses coarse filtering by precomputing distance to centroids
+        ''' returns the first domain zone containing the given coordinates
+
+            args:
+                x (float)
+                    longitude value
+                y (float)
+                    latitude value
         '''
-        nearest = self.nearest_polygons_to_point(x, y)
-        for zone in self.zones:
-            if zone['name'] not in nearest.keys():
-                continue
-            if zone['geometry'].contains(Point(x, y)):
-                return zone['name']
+        assert float(x), f'{type(x)} {x=}'
+        assert float(y), f'{type(y)} {y=}'
+        assert len(self.zones) > 0
+        # first pass filter using distance to centroid, subtracting max radius.
+        # discard all geometry with a distance over zero
+        nearest = {
+            k: v
+            for k, v in sorted(self.nearest_polygons_to_point(x, y).items(),
+                               key=lambda item: item[1]) if v < 0
+        }
+        # check for zone containment, starting with the nearest centroid
+        for key, value in nearest.items():
+            if self.zones[key]['geometry'].contains(Point(x, y)):
+                return key
         return 'Z0'
 
-
-class DomainFromTxts(Domain):
-    ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
-        zone geometry from .txt files directly
-    '''
     meridian = LineString(
         np.array((
             (-180, -180, 180, 180),
             (-90, 90, 90, -90),
         )).T)
 
-    def adjust_coords(self, longitudes):
-        longitudes[np.where(longitudes >= 180)[0]] = -180
-        longitudes[np.where(longitudes <= -180)[0]] = 180
-        return longitudes
-
-    def split_geom(self, geom):
-        merged = shapely.ops.linemerge([geom.boundary, self.meridian])
+    def split_geom(self, zone):
+        merged = shapely.ops.linemerge(
+            [zone['geometry'].boundary, self.meridian])
         border = shapely.ops.unary_union(merged)
         decomp = shapely.ops.polygonize(border)
         return decomp
 
-    def __init__(self,
-                 domainName,
-                 folder,
-                 ext='txt',
-                 correct_coordinate_range=True):
-        self.minX = None
-        self.maxX = None
-        self.minY = None
-        self.maxY = None
+
+class DomainFromTxts(Domain):
+    ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
+        zone geometry from .txt files directly
+    '''
+
+    def __init__(self, domainName, folder, ext='txt'):
+
         files = glob_files(folder, ext=ext)
         zones = []
         for txt in files:
@@ -299,45 +388,52 @@ class DomainFromTxts(Domain):
                     pts.replace('\n\n', '').replace('\n',
                                                     ',').split(',')[:-1]))
             x, y = np.array(xy[::2]), np.array(xy[1::2])
-            if self.minX is None or np.min(x) < self.minX:
-                self.minX = np.min(x)
-            if self.maxX is None or np.max(x) > self.maxX:
-                self.maxX = np.max(x)
-            if self.minY is None or np.min(y) < self.minY:
-                self.minY = np.min(y)
-            if self.maxY is None or np.max(y) > self.maxY:
-                self.maxY = np.max(y)
             geom = Polygon(zip(x, y))
-            minX, maxX = np.min(x), np.max(x)
-            if not (minX >= -180 and maxX <= 180) and correct_coordinate_range:
-                for g in self.split_geom(geom):
-                    if g.centroid.x < -180:
-                        x, y = np.array(g.boundary.coords.xy)
-                        zones.append({
-                            'name': filename,
-                            'geometry': Polygon(zip(shiftcoord(x), y))
-                        })
-                    elif g.centroid.x > 180:
-                        x, y = np.array(g.boundary.coords.xy)
-                        x[np.where(x <= 180)] = -180.
-                        zones.append({
-                            'name': filename,
-                            'geometry': Polygon(zip(shiftcoord(x), y))
-                        })
-                    else:
-                        zones.append({'name': filename, 'geometry': g})
-            else:
-                zones.append({'name': filename, 'geometry': geom})
-        '''
-        for zone in zones:
-            zone['maxradius'] = np.max([
-                aisdb.haversine(zone['geometry'].centroid.x,
-                                zone['geometry'].centroid.y,
-                                x2=x,
-                                y2=y)
-                for x, y in zip(*zone['geometry'].boundary.coords.xy)
-            ])
-            assert isinstance(zone['maxradius'], float)
-        '''
-
+            zones.append({'name': filename, 'geometry': geom})
         super().__init__(domainName, zones, setattrs=False)
+
+
+class DomainFromPoints(Domain):
+    ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
+        zone geometry from longitude and latitude pairs with a bounding-box
+        maximum radial distance.
+    '''
+
+    def __init__(self,
+                 points,
+                 radial_distances,
+                 names=[],
+                 domainName='domain'):
+        ''' creates a bounding-box polygons
+
+            args:
+                points (list)
+                    coordinate XY pairs
+                radial_distances (list)
+                    approximate distance in meters to extend the bounding box.
+                    the distance given will be used as the minimum distance to
+                    box boundaries
+                names (list)
+                    optionally assign a zone name for each point
+
+
+        '''
+        if names == []:
+            names = [f'{i:02d}' for i in range(len(points))]
+        zones = []
+        for xy, d, i in zip(points, radial_distances, names):
+            bounds = radial_coordinate_boundary(*xy, d)
+            geom = {
+                'name':
+                i,
+                'geometry':
+                Polygon([
+                    (bounds['xmin'], bounds['ymin']),
+                    (bounds['xmin'], bounds['ymax']),
+                    (bounds['xmax'], bounds['ymax']),
+                    (bounds['xmax'], bounds['ymin']),
+                    (bounds['xmin'], bounds['ymin']),
+                ]),
+            }
+            zones.append(geom)
+        super().__init__(name=domainName, zones=zones)

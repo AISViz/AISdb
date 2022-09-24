@@ -13,27 +13,20 @@ from .database.dbconn import DBConn
 
 from .database.decoder import decode_msgs
 
-from .database.dbqry import DBQuery
+from .database.dbqry import DBQuery, DBQuery_async
 
 from .database import sqlfcn
 
 from .database import sqlfcn_callbacks
 
-from .webdata import merge_data
-
 from .webdata.bathymetry import Gebco
 
-from .webdata.shore_dist import shore_dist_gfw
-
-from .webdata.merge_data import (
-    merge_layers,
-    merge_tracks_bathymetry,
-    merge_tracks_shoredist,
-)
+from .webdata.shore_dist import ShoreDist, PortDist
 
 from .gis import (
     Domain,
     DomainFromTxts,
+    DomainFromPoints,
     delta_knots,
     delta_meters,
     delta_seconds,
@@ -44,29 +37,24 @@ from .gis import (
     vesseltrack_3D_dist,
 )
 
-from .index import index
-
 from .interp import (
     interp_time, )
 
 from .network_graph import graph
 
 from .proc_util import (
-    fast_unzip,
     glob_files,
     write_csv,
 )
 
 from .track_gen import (
     TrackGen,
+    TrackGen_async,
     split_timedelta,
     fence_tracks,
-    max_tracklength,
     encode_greatcircledistance,
+    encode_greatcircledistance_async,
 )
-
-if not os.environ.get('SPHINXDOC'):
-    from .aisdb import decoder as rustdecoder, haversine, simplify_linestring_idx
 
 import sqlite3
 if (sqlite3.sqlite_version_info[0] < 3

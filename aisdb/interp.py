@@ -3,19 +3,14 @@
 from datetime import timedelta
 
 import numpy as np
+import warnings
 
 
 def np_interp_linear(track, key, intervals):
-    #assert len(track[key]) > 1
     assert len(track['time']) == len(track[key])
-    return np.interp(
-        x=intervals.astype(int),
-        xp=track['time'].astype(int),
-        fp=track[key].astype(float),
-        left=np.nan,
-        right=np.nan,
-        period=None,
-    )
+    return np.interp(x=intervals.astype(int),
+                     xp=track['time'].astype(int),
+                     fp=track[key].astype(float))
 
 
 def interp_time(tracks, step=timedelta(minutes=10)):
@@ -31,23 +26,20 @@ def interp_time(tracks, step=timedelta(minutes=10)):
         returns:
             dictionary of interpolated tracks
     '''
-    stepcount = int(step.total_seconds())
     for track in tracks:
 
         if track['time'].size <= 1:
-            yield track
+            # yield track
+            warnings.warn('cannot interpolate track of length 1, skipping...')
             continue
 
-        stop = track['time'][-1] + (
-            stepcount if track['time'][-1] - track['time'][0] < stepcount else
-            track['time'][-1]) + 1
         intervals = np.arange(
             start=track['time'][0],
-            stop=stop,
-            step=stepcount,
+            stop=track['time'][-1] + int(step.total_seconds()),
+            step=int(step.total_seconds()),
         ).astype(int)
 
-        assert len(intervals) >= 2
+        assert len(intervals) >= 1
 
         itr = dict(
             **{k: track[k]
@@ -81,12 +73,13 @@ async def interp_time_async(tracks, step=timedelta(minutes=10)):
     async for track in tracks:
 
         if track['time'].size <= 1:
-            yield track
+            # yield track
+            warnings.warn('cannot interpolate track of length 1, skipping...')
             continue
 
         intervals = np.arange(
             start=track['time'][0],
-            stop=track['time'][-1],
+            stop=track['time'][-1] + int(step.total_seconds()),
             step=int(step.total_seconds()),
         ).astype(int)
 
