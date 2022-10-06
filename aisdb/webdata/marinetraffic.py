@@ -30,42 +30,42 @@ with open(_insert_sqlfile, 'r') as f:
 
 def _nullinfo(track):
     return {
-        'mmsi':
-        track['mmsi'],
-        'imo':
-        track['imo'] if 'imo' in track.keys() else 0,
-        'name': (track['vessel_name'] if 'vessel_name' in track.keys()
-                 and track['vessel_name'] is not None else ''),
-        'vesseltype_generic':
-        None,
-        'vesseltype_detailed':
-        None,
-        'callsign':
-        None,
-        'flag':
-        None,
-        'gross_tonnage':
-        None,
-        'summer_dwt':
-        None,
-        'length_breadth':
-        None,
-        'year_built':
-        None,
-        'home_port':
-        None,
-        'error404':
-        1
-    }
+            'mmsi':
+            track['mmsi'],
+            'imo':
+            track['imo'] if 'imo' in track.keys() else 0,
+            'name': (track['vessel_name'] if 'vessel_name' in track.keys()
+                     and track['vessel_name'] is not None else ''),
+            'vesseltype_generic':
+            None,
+            'vesseltype_detailed':
+            None,
+            'callsign':
+            None,
+            'flag':
+            None,
+            'gross_tonnage':
+            None,
+            'summer_dwt':
+            None,
+            'length_breadth':
+            None,
+            'year_built':
+            None,
+            'home_port':
+            None,
+            'error404':
+            1
+            }
 
 
 def _loaded(drv: WebDriver) -> bool:  # pragma: no cover
     asset_type = 'asset_type' in drv.current_url
     e404 = '404' == drv.title[0:3]
     exists = drv.find_elements(
-        by='id',
-        value='vesselDetails_voyageInfoSection',
-    )
+            by='id',
+            value='vesselDetails_voyageInfoSection',
+            )
     return (exists or e404 or asset_type)
 
 
@@ -98,19 +98,19 @@ def _getrow(vessel: dict) -> tuple:  # pragma: no cover
     if 'Year Built' not in vessel.keys() or vessel['Year Built'] == '-':
         vessel['Year Built'] = 0
     return (
-        int(vessel['MMSI']),
-        int(vessel['IMO']),
-        vessel['Name'],
-        vessel['Vessel Type - Generic'],
-        vessel['Vessel Type - Detailed'],
-        vessel['Call Sign'],
-        vessel['Flag'],
-        int(vessel['Gross Tonnage']),
-        int(vessel['Summer DWT']),
-        vessel['Length Overall x Breadth Extreme'],
-        int(vessel['Year Built']),
-        vessel['Home Port'],
-    )
+            int(vessel['MMSI']),
+            int(vessel['IMO']),
+            vessel['Name'],
+            vessel['Vessel Type - Generic'],
+            vessel['Vessel Type - Detailed'],
+            vessel['Call Sign'],
+            vessel['Flag'],
+            int(vessel['Gross Tonnage']),
+            int(vessel['Summer DWT']),
+            vessel['Length Overall x Breadth Extreme'],
+            int(vessel['Year Built']),
+            vessel['Home Port'],
+            )
 
 
 def _insertvesselrow(elem, mmsi, trafficDB):  # pragma: no cover
@@ -189,6 +189,7 @@ class VesselInfo():  # pragma: no cover
 
     def __exit__(self, exc_type, exc_value, tb):
         if self.driver is not None:
+            self.driver.close()
             self.driver.quit()
 
     def _getinfo(self, *, url, searchmmsi, infotxt=''):
@@ -219,7 +220,7 @@ class VesselInfo():  # pragma: no cover
             for elem in self.driver.find_elements(
                     By.CLASS_NAME,
                     value='ag-cell-content-link',
-            ):
+                    ):
                 urls.append(elem.get_attribute('href'))
 
             for url in urls:
@@ -227,8 +228,8 @@ class VesselInfo():  # pragma: no cover
 
             with self.trafficDB as conn:
                 insert404 = conn.execute(
-                    'SELECT COUNT(*) FROM webdata_marinetraffic WHERE mmsi=?',
-                    (str(searchmmsi), )).fetchone()[0] == 0
+                        'SELECT COUNT(*) FROM webdata_marinetraffic WHERE mmsi=?',
+                        (str(searchmmsi), )).fetchone()[0] == 0
                 if insert404:
                     conn.execute(_err404, (str(searchmmsi), ))
 
