@@ -103,7 +103,8 @@ pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
     Builder::new()
         .name(format!("{}:server", addr))
         .spawn(move || {
-            let mut buf = [0u8; 32768]; // receive buffer
+            //let mut buf = [0u8; 32768]; // receive buffer
+            let mut buf = [0u8; 8192]; // receive buffer
             loop {
                 match listen_socket.recv_from(&mut buf[0..]) {
                     Ok((c, _remote_addr)) => {
