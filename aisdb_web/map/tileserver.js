@@ -23,7 +23,8 @@ class CustomOSM extends OSM {
       options.crossOrigin !== undefined ? options.crossOrigin : 'anonymous';
 
     let url = null;
-    if (hostname.includes('127.0.0.1')) {
+    // if (hostname.includes('127.0.0.1')) {
+    if (hostname === '' || hostname === '/') {
       url = options.url !== undefined ? options.url : '/{z}/{x}/{y}.png';
     } else {
       url = options.url !== undefined ? options.url : `https://${hostname}/{z}/{x}/{y}.png`;
@@ -64,7 +65,8 @@ class CustomBingMaps extends BingMaps{
       state: 'loading',
       tileLoadFunction: function (imageTile, src) {
         let [ _target, tiles, jpeg, req ] = src.replace('https://', '').split(/[/?]+/);
-        if (hostname.includes('127.0.0.1')) {
+        // if (hostname.includes('127.0.0.1')) {
+        if (hostname === '' || hostname === '/') {
           src = `/${tiles}/${jpeg}?${req}`;
         } else {
           src = `https://${hostname}/${tiles}/${jpeg}?${req}`;

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.2
+------
+
+fix for database server sending wrong date range to front end
+
+
 v1.4.1
 ------
 
