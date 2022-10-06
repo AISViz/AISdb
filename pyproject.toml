@@ -7,7 +7,7 @@ name = "aisdb"
 license-files = [ "license.txt",]
 requires-python = ">=3.8"
 requires-dist = [ "maturin>=0.12", "numpy", "wheel",]
-dependencies = [ "aiosqlite", "orjson", "packaging", "pillow", "pysqlite3", "requests", "selenium", "shapely", "tqdm", "websockets", "numpy", "rasterio", "webdriver-manager",]
+dependencies = [ "aiosqlite", "orjson", "packaging", "pillow", "pysqlite3", "requests", "selenium", "shapely", "tqdm", "websockets", "numpy", "webdriver-manager",]
 zip-safe = false
 version = "1.4.2"
 readme = "readme.rst"
@@ -23,7 +23,7 @@ documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
 repository = "https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/"
 
 [project.optional-dependencies]
-test = [ "coverage", "pytest", "pytest-asyncio", "pytest-cov", "pytest-dotenv",]
+test = [ "coverage", "pytest", "pytest-asyncio", "pytest-cov", "pytest-dotenv","rasterio"]
 docs = [ "sphinx", "sphinx-rtd-theme",]
 
 [tool.maturin]
