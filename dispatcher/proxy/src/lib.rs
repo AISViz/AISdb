@@ -47,7 +47,8 @@ pub fn proxy_thread(
     let mut output_buffer = BufWriter::new(stdout());
     let targets: Vec<(SocketAddr, UdpSocket)> =
         downstream_addrs.iter().map(new_downstream_socket).collect();
-    let mut buf = [0u8; 32768]; // receive buffer
+    //let mut buf = [0u8; 32768]; // receive buffer
+    let mut buf = [0u8; 8192]; // receive buffer
     Builder::new()
         .name(format!("{:#?}", listen_socket))
         .spawn(move || {
