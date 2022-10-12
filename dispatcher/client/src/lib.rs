@@ -4,12 +4,8 @@ use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-//#[path = "../socket.rs"]
-//mod socket;
-//use socket::{bind_socket, new_socket};
-//use crate::{bind_socket, new_socket};
-extern crate dispatch;
-use dispatch::{bind_socket, new_socket};
+extern crate socket_dispatch;
+use socket_dispatch::{bind_socket, new_socket};
 
 /// new upstream socket
 /// socket will allow any downstream IP i.e. 0.0.0.0

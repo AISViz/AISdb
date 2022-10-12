@@ -4,8 +4,8 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket}
 use std::path::PathBuf;
 use std::thread::{Builder, JoinHandle};
 
-extern crate dispatch;
-use dispatch::{bind_socket, new_socket};
+extern crate socket_dispatch;
+use socket_dispatch::{bind_socket, new_socket};
 
 /// server: client socket handler
 /// binds a new socket connection on the network multicast channel

@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::thread::sleep;
+use std::time::Duration;
 
 extern crate testconfig;
 use testconfig::{truncate, TESTDATA, TESTINGDIR};
@@ -67,8 +69,6 @@ fn test_client_multiple_servers() {
     let target_addr_2 = "[::1]:9916".to_string();
     //test_client(pathstr, listen_addr, target_addr, false)
 
-    let bytesize_1 = truncate(PathBuf::from_str(pathstr_1).unwrap());
-    let bytesize_2 = truncate(PathBuf::from_str(pathstr_2).unwrap());
     let _l1 = listener(listen_addr_1, PathBuf::from_str(pathstr_1).unwrap(), false);
     let _l2 = listener(listen_addr_2, PathBuf::from_str(pathstr_2).unwrap(), false);
     let _c = client_socket_stream(
@@ -76,6 +76,9 @@ fn test_client_multiple_servers() {
         vec![target_addr_1, target_addr_2],
         false,
     );
+    sleep(Duration::from_millis(50));
+    let bytesize_1 = truncate(PathBuf::from_str(pathstr_1).unwrap());
+    let bytesize_2 = truncate(PathBuf::from_str(pathstr_2).unwrap());
     println!("log sizes: {}, {}", bytesize_1, bytesize_2);
     assert!(bytesize_1 > 0);
     assert!(bytesize_2 > 0);
