@@ -166,18 +166,16 @@ class SocketServ():
             endval = '2022-01-01'
         else:
             startyear = max(int(dynamic_months[0][:4]), 2012)
-            start_month_range = calendar.monthrange(
-                startyear, int(dynamic_months[0][4:]))[-1]
             end_month_range = calendar.monthrange(int(
                 dynamic_months[-1][:4]), int(dynamic_months[-1][4:]))[-1]
-            startval = f'{startyear}-{dynamic_months[0][4:]}-{start_month_range}'
+            startval = f'{startyear}-{dynamic_months[0][4:]}-1'
             endval = f'{dynamic_months[-1][:4]}-{dynamic_months[-1][4:]}-{end_month_range}'
-        await websocket.send(
-            orjson.dumps({
+            data_range = {
                 'type': 'validrange',
                 'start': startval,
                 'end': endval,
-            }))
+            }
+        await websocket.send(orjson.dumps(data_range))
 
     async def req_zones(self, req, websocket):
         ''' send zone polygons to client. sample request JSON::

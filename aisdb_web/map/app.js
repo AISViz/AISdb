@@ -18,6 +18,5 @@
     vesselmenu.classList.toggle('show');
   };
 
-  // await import('./public/tileserver');
-  await import('./livestream.js');
+  // await import('./livestream.js');
 })();

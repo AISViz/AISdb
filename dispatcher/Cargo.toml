@@ -6,7 +6,14 @@
 #description = "Network dispatcher client and logging server"
 
 [workspace]
-members = [ "dispatch", "client", "server", "proxy", "reverse_proxy", "testconfig"]
+members = [ 
+  "client", 
+  "proxy", 
+  "reverse_proxy", 
+  "server", 
+  "socket_dispatch", 
+  "testconfig",
+]
 
 
 [profile.release]

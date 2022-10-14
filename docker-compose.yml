@@ -61,10 +61,7 @@ services:
         AISDBHOST: ${AISDBHOST:-127.0.0.1}
         AISDBPORT: ${AISDBPORT:-9924}
         VITE_BINGMAPTILES: ${VITE_BINGMAPTILES:-}
-        VITE_TILESERVER: ${VITE_TILESERVER:-127.0.0.1}
-        #BINGMAPSKEY: ${BINGMAPSKEY:-}
-    #environment:
-    #  VITE_BINGMAPSKEY: ${BINGMAPSKEY:-}
+        VITE_TILESERVER: ${VITE_TILESERVER:-/}
     command:
       ['npm', '--prefix', 'aisdb_web/', 'start']
     networks:

@@ -43,7 +43,7 @@ class DBQuery(UserDict):
             callback (function)
                 anonymous function yielding SQL code specifying "WHERE"
                 clauses. common queries are included in
-                :mod:`aisdb.database.sqlfcn_callbacks.py`, e.g.
+                :mod:`aisdb.database.sqlfcn_callbacks`, e.g.
 
                 >>> import os
                 >>> dbpath = './testdata/test.db'
@@ -330,8 +330,8 @@ class DBQuery_async(DBQuery):
             ummsi_idx = reduce(np.append, ([0], ummsi_idx, [len(mmsi_rows)]))
             for i in range(len(ummsi_idx) - 2):
                 yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
-            assert len(ummsi_idx) > 2
-            mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
+            if len(ummsi_idx) > 2:
+                mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
 
             res = await cursor.fetchmany(10**5)
         yield mmsi_rows
