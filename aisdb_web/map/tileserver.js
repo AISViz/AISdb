@@ -81,7 +81,6 @@ class CustomBingMaps extends BingMaps{
     });
 
     this.hidpi_ = hidpi;
-    // this.culture_ = options.culture !== undefined ? options.culture : 'en-us';
     this.culture_ = 'en-us';
     this.maxZoom_ = -1;
     this.imagerySet_ = 'Aerial';
