@@ -90,12 +90,15 @@ class CustomBingMaps extends BingMaps{
     // const url = `https://dev.virtualearth.net/REST/v1/Imagery/Metadata/${
     // this.imagerySet_}?uriScheme=https&include=ImageryProviders&key=${
     // this.apiKey_}&c=${this.culture_}`;
+    let url = null;
+    if (hostname === '' || hostname === '/') {
+      url = '';
+    } else {
+      url = `https://${hostname}`;
+    }
+    url = `${url }/REST/v1/Imagery/Metadata/${this.imagerySet_}?uriScheme=https&include=ImageryProviders&c=${this.culture_}`;
 
-    const url = `https://${hostname}/REST/v1/Imagery/Metadata/${
-      this.imagerySet_
-    }?uriScheme=https&include=ImageryProviders&c=${
-      this.culture_
-    }`;
+
     requestJSONP(
       url,
       this.handleImageryMetadataResponse.bind(this),
