@@ -1,7 +1,10 @@
 import os
 import numpy as np
 
-from aisdb.webdata.bathymetry import Gebco, Gebco_Rasterio
+from aisdb.webdata.bathymetry import Gebco, use_rasterio
+
+if use_rasterio:
+    from aisdb.webdata.bathymetry import Gebco_Rasterio
 
 data_dir = os.environ.get(
     'AISDBDATADIR',
@@ -54,34 +57,34 @@ def test_bathymetry_single_pillow():
         assert 'depth_metres' in test[0]['dynamic']
         print(test[0]['depth_metres'])
 
-
-def test_bathymetry_single_rasterio():
-    with Gebco_Rasterio(data_dir=data_dir) as bathy:
-        test = list(bathy.merge_tracks(tracks_single))
-        assert 'depth_metres' in test[0].keys()
-        assert 'depth_metres' in test[0]['dynamic']
-        print(test[0]['depth_metres'])
-
-
 def test_timing_bathymetry_1M_pillow():
     with Gebco(data_dir=data_dir) as bathy:
         for updated in bathy.merge_tracks(track1M):
             assert 'depth_metres' in updated.keys()
 
+if use_rasterio:
 
-def test_timing_bathymetry_1M_rasterio():
-    with Gebco_Rasterio(data_dir=data_dir) as bathy:
-        for updated in bathy.merge_tracks(track1M):
-            assert 'depth_metres' in updated.keys()
+    def test_bathymetry_single_rasterio():
+        with Gebco_Rasterio(data_dir=data_dir) as bathy:
+            test = list(bathy.merge_tracks(tracks_single))
+            assert 'depth_metres' in test[0].keys()
+            assert 'depth_metres' in test[0]['dynamic']
+            print(test[0]['depth_metres'])
 
 
-def test_bathy_pillow_equals_rasterio():
-    with Gebco_Rasterio(data_dir=data_dir) as rasterio:
-        bathy_a = next(rasterio.merge_tracks(track1K)).copy()
-    with Gebco(data_dir=data_dir) as pillow:
-        bathy_b = next(pillow.merge_tracks(track1K)).copy()
-    avg_diff = np.average(
-        np.abs(bathy_a['depth_metres'] - bathy_b['depth_metres']))
-    print(avg_diff)
-    assert sum(bathy_a['depth_metres'] == bathy_b['depth_metres']) == len(
-        bathy_a['depth_metres'])
+    def test_timing_bathymetry_1M_rasterio():
+        with Gebco_Rasterio(data_dir=data_dir) as bathy:
+            for updated in bathy.merge_tracks(track1M):
+                assert 'depth_metres' in updated.keys()
+
+
+    def test_bathy_pillow_equals_rasterio():
+        with Gebco_Rasterio(data_dir=data_dir) as rasterio:
+            bathy_a = next(rasterio.merge_tracks(track1K)).copy()
+        with Gebco(data_dir=data_dir) as pillow:
+            bathy_b = next(pillow.merge_tracks(track1K)).copy()
+        avg_diff = np.average(
+            np.abs(bathy_a['depth_metres'] - bathy_b['depth_metres']))
+        print(avg_diff)
+        assert sum(bathy_a['depth_metres'] == bathy_b['depth_metres']) == len(
+            bathy_a['depth_metres'])

@@ -23,7 +23,8 @@ fn handle_client(downstream: TcpStream, multicast_addr: String) {
     });
     // multicast_socket.set_broadcast(true).unwrap();
 
-    let mut buf = [0u8; 32768]; // receive buffer
+    //let mut buf = [0u8; 32768]; // receive buffer
+    let mut buf = [0u8; 8192]; // receive buffer
     let mut tcp_writer = BufWriter::new(downstream);
 
     loop {
