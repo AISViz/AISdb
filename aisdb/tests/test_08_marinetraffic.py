@@ -1,21 +1,23 @@
 import os
 from datetime import datetime
 
-from aisdb import track_gen, decode_msgs, DBQuery, sqlfcn_callbacks
+from shapely.geometry import Polygon
+
+from aisdb import track_gen, decode_msgs, DBQuery, sqlfcn_callbacks, Domain
 from aisdb.webdata.marinetraffic import vessel_info, _vessel_info_dict
-from aisdb.tests.create_testing_data import random_polygons_domain
+from aisdb.tests.create_testing_data import sample_gulfstlawrence_bbox
 from aisdb import DBConn
 
 start = datetime(2021, 11, 1)
 end = datetime(2021, 11, 2)
 
 testdir = os.environ.get(
-    'AISDBTESTDIR',
-    os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        'testdata',
-    ),
-)
+        'AISDBTESTDIR',
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            'testdata',
+            ),
+        )
 if not os.path.isdir(testdir):
     os.mkdir(testdir)
 
@@ -26,10 +28,14 @@ def test_init_scraper():
     from aisdb.webdata._scraper import _scraper
     _driver = _scraper()
     _driver.close()
+    _driver.quit()
 
 
 def test_retrieve_marinetraffic_data(tmpdir):
-    domain = random_polygons_domain(count=10)
+    #domain = random_polygons_domain(count=10)
+    coords = sample_gulfstlawrence_bbox()
+    poly = Polygon(zip(*coords))
+    domain = Domain(name='test_marinetraffic', zones=[{'name':'gulfstlawrence', 'geometry': poly}])
 
     datapath = os.path.join(os.path.dirname(__file__),
                             'test_data_20211101.nm4')
@@ -50,7 +56,8 @@ def test_retrieve_marinetraffic_data(tmpdir):
                                 boundary=domain.boundary,
                                 retry_404=False)
         rowgen = qry.gen_qry(verbose=True)
-        tracks = track_gen.TrackGen(rowgen)
+        trackgen = track_gen.TrackGen(rowgen)
+        tracks = [next(trackgen), next(trackgen)]
 
         try:
 
