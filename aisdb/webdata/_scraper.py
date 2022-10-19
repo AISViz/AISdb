@@ -16,7 +16,7 @@ def _scraper():
     # from selenium.webdriver.chrome.options import Options
     # from selenium.webdriver.chrome.service import Service
     # from webdriver_manager.chrome import ChromeDriverManager
-    assert shutil.which('firefox'), 'Firefox is required for this feature'
+    # assert shutil.which('firefox') is not None, f'Firefox is required for this feature. {shutil.which("firefox")=}'
 
     # configs
     opt = Options()
@@ -49,8 +49,8 @@ def _scraper():
     """
 
     driver = webdriver.Firefox(
-        service=Service(executable_path=GeckoDriverManager().install()),
-        options=opt)
+            service=Service(executable_path=GeckoDriverManager().install()),
+            options=opt)
 
     if os.environ.get('DEBUG'):
         driver.maximize_window()
