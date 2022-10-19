@@ -35,23 +35,24 @@ class _RasterFile_generic():
 class RasterFile(_RasterFile_generic):
 
     def _get_img_grids(self, im):
-        # GDAL tags
         if 33922 in im.tag.tagdata.keys():
+            # GDAL tags
             i, j, k, x, y, z = im.tag_v2[33922]  # ModelTiepointTag
             dx, dy, dz = im.tag_v2[33550]  # ModelPixelScaleTag
             lat = np.arange(y + dy, y + (dy * im.size[1]) + dy, dy)[::-1] - 90
             if np.sum(lat > 91):
                 lat -= 90
-        # NASA JPL tags
-    elif 34264 in im.tag.tagdata.keys():  # pragma: no cover
-        dx, _, _, x, _, dy, _, y, _, _, dz, z, _, _, _, _ = im.tag_v2[
-                34264]  # ModelTransformationTag
-        lat = np.arange(y + dy, y + (dy * im.size[1]) + dy, dy)
 
-    else:
-        raise ValueError('error: unknown metadata tag encoding')
+        elif 34264 in im.tag.tagdata.keys():  # pragma: no cover
+            # NASA JPL tags
+            dx, _, _, x, _, dy, _, y, _, _, dz, z, _, _, _, _ = im.tag_v2[
+                    34264]  # ModelTransformationTag
+            lat = np.arange(y + dy, y + (dy * im.size[1]) + dy, dy)
 
-    lon = np.arange(x + dx, x + (dx * im.size[0]) + dx, dx)
+        else:
+            raise ValueError('error: unknown metadata tag encoding')
+
+        lon = np.arange(x + dx, x + (dx * im.size[0]) + dx, dx)
 
         return lon, lat
 
