@@ -18,7 +18,7 @@
 *.so
 *.swp
 *__pycache__*
-.coverage
+.coverage*
 .env
 .pytest_cache
 .rustup
