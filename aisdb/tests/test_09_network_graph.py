@@ -15,35 +15,35 @@ from aisdb.database import sqlfcn, sqlfcn_callbacks
 from aisdb.database.dbqry import DBQuery, DBConn
 from aisdb.gis import Domain
 from aisdb.network_graph import (
-    graph,
-    _processing_pipeline,
-)
+        graph,
+        _processing_pipeline,
+        )
 from aisdb.track_gen import (
-    TrackGen,
-    deserialize_tracks,
-    encode_greatcircledistance,
-    fence_tracks,
-    serialize_tracks,
-)
+        TrackGen,
+        deserialize_tracks,
+        encode_greatcircledistance,
+        fence_tracks,
+        serialize_tracks,
+        )
 from aisdb.tests.create_testing_data import (
-    sample_database_file,
-    sample_gulfstlawrence_bbox,
-)
+        sample_database_file,
+        sample_gulfstlawrence_bbox,
+        )
 
 trafficDBpath = os.environ.get(
-    'AISDBMARINETRAFFIC',
-    os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        'testdata',
-        'marinetraffic_test.db',
-    ))
+        'AISDBMARINETRAFFIC',
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            'testdata',
+            'marinetraffic_test.db',
+            ))
 data_dir = os.environ.get(
-    'AISDBDATADIR',
-    os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        'testdata',
-    ),
-)
+        'AISDBDATADIR',
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            'testdata',
+            ),
+        )
 
 lon, lat = sample_gulfstlawrence_bbox()
 z1 = Polygon(zip(lon, lat))
@@ -54,29 +54,29 @@ domain = Domain('gulf domain',
                     {
                         'name': 'z1',
                         'geometry': z1
-                    },
+                        },
                     {
                         'name': 'z2',
                         'geometry': z2
-                    },
+                        },
                     {
                         'name': 'z3',
                         'geometry': z3
-                    },
-                ])
+                        },
+                    ])
 
 
 def test_fence_tracks(tmpdir):
     tracks = [
-        {
-            'mmsi': -1,
-            'lon': np.array([z1.centroid.x, z2.centroid.x, z3.centroid.x]),
-            'lat': np.array([z1.centroid.y, z2.centroid.y, z3.centroid.y]),
-            'time': np.array(list(range(0, 3 * 1000, 1000))),
-            'dynamic': set(['lon', 'lat', 'time']),
-            'static': {'mmsi'},
-        },
-    ]
+            {
+                'mmsi': -1,
+                'lon': np.array([z1.centroid.x, z2.centroid.x, z3.centroid.x]),
+                'lat': np.array([z1.centroid.y, z2.centroid.y, z3.centroid.y]),
+                'time': np.array(list(range(0, 3 * 1000, 1000))),
+                'dynamic': set(['lon', 'lat', 'time']),
+                'static': {'mmsi'},
+                },
+            ]
     tracks_fenced = fence_tracks(tracks, domain)
     test = next(tracks_fenced)['in_zone']
     assert test[0] == 'z1'
@@ -93,21 +93,21 @@ def test_fence_tracks_realdata(tmpdir):
     with DBConn() as aisdatabase:
         # query configs
         rowgen = DBQuery(
-            dbconn=aisdatabase,
-            dbpath=testdbpath,
-            start=start,
-            end=end,
-            **domain.boundary,
-            callback=sqlfcn_callbacks.in_bbox,
-        )
+                dbconn=aisdatabase,
+                dbpath=testdbpath,
+                start=start,
+                end=end,
+                **domain.boundary,
+                callback=sqlfcn_callbacks.in_bbox,
+                )
 
         # processing configs
         distsplit = partial(
-            encode_greatcircledistance,
-            distance_threshold=250000,
-            speed_threshold=45,
-            minscore=5e-07,
-        )
+                encode_greatcircledistance,
+                distance_threshold=250000,
+                speed_threshold=45,
+                minscore=5e-07,
+                )
         geofenced = partial(fence_tracks, domain=domain)
 
         # query db for points in domain bounding box
@@ -120,14 +120,14 @@ def test_fence_tracks_realdata(tmpdir):
 
 def test_serialize_deserialize_tracks():
     track = dict(
-        lon=(np.random.random(10) * 90) - 90,
-        lat=(np.random.random(10) * 90) + 0,
-        time=np.array(range(10)),
-        dynamic=set(['time', 'lon', 'lat']),
-        static=set(['mmsi', 'ship_type']),
-        mmsi=316000000,
-        ship_type='test',
-    )
+            lon=(np.random.random(10) * 90) - 90,
+            lat=(np.random.random(10) * 90) + 0,
+            time=np.array(range(10)),
+            dynamic=set(['time', 'lon', 'lat']),
+            static=set(['mmsi', 'ship_type']),
+            mmsi=316000000,
+            ship_type='test',
+            )
     for track in deserialize_tracks(serialize_tracks([track])):
         assert isinstance(track, dict)
 
@@ -142,28 +142,29 @@ def setup_network_graph(tmpdir, processes):
 
     with DBConn() as aisdatabase:
         qry = DBQuery(
-            dbconn=aisdatabase,
-            dbpath=testdbpath,
-            start=start,
-            end=end,
-            callback=sqlfcn_callbacks.in_bbox,
-            fcn=sqlfcn.crawl_dynamic_static,
-            **domain.boundary,
-        )
+                dbconn=aisdatabase,
+                dbpath=testdbpath,
+                start=start,
+                end=end,
+                callback=sqlfcn_callbacks.in_bbox,
+                fcn=sqlfcn.crawl_dynamic_static,
+                **domain.boundary,
+                )
 
         graph(
-            qry,
-            data_dir=data_dir,
-            domain=domain,
-            dbpath=testdbpath,
-            trafficDBpath=trafficDBpath,
-            processes=processes,
-            outputfile=outpath,
-            maxdelta=timedelta(weeks=1),
-        )
+                qry,
+                data_dir=data_dir,
+                domain=domain,
+                dbpath=testdbpath,
+                trafficDBpath=trafficDBpath,
+                processes=processes,
+                outputfile=outpath,
+                maxdelta=timedelta(weeks=1),
+                )
         assert os.path.isfile(outpath)
         with open(outpath, 'r') as out:
-            print(out.read())
+            #print(out.read())
+            assert (out.read())
     os.remove(outpath)
 
 
@@ -178,16 +179,16 @@ def test_network_graph_CSV_parallel(tmpdir):
 def test_graph_pipeline_timing(tmpdir):
     count = 1000
     track = lambda: dict(
-        #lon=(np.random.random(count) * 90) - 90,
-        #lat=(np.random.random(count) * 90) + 0,
-        lon=(np.random.random(count) * .25) - 45,
-        lat=(np.random.random(count) * .25) + 45,
-        time=np.array(range(count, count * 30, 30)),
-        dynamic=set(['time', 'lon', 'lat']),
-        static=set(['mmsi', 'ship_type']),
-        mmsi=316000000,
-        ship_type='test',
-    )
+            #lon=(np.random.random(count) * 90) - 90,
+            #lat=(np.random.random(count) * 90) + 0,
+            lon=(np.random.random(count) * .25) - 45,
+            lat=(np.random.random(count) * .25) + 45,
+            time=np.array(range(count, count * 30, 30)),
+            dynamic=set(['time', 'lon', 'lat']),
+            static=set(['mmsi', 'ship_type']),
+            mmsi=316000000,
+            ship_type='test',
+            )
     serialized = serialize_tracks([track() for _ in range(10)])
     #q = Queue()
     #for track_bytes in serialized:
@@ -195,19 +196,19 @@ def test_graph_pipeline_timing(tmpdir):
     #q.put(False)
 
     _processing_pipeline(
-        serialized,
-        domain=domain,
-        tmp_dir=tmpdir,
-        maxdelta=timedelta(weeks=1),
-        distance_threshold=250000,
-        speed_threshold=50,
-        minscore=0,
-        trafficDBpath=trafficDBpath,
-        shoredist_raster=os.path.join(data_dir, 'distance-from-shore.tif'),
-        portdist_raster=os.path.join(data_dir,
-                                     'distance-from-port-v20201104.tiff'),
-        interp_delta=timedelta(seconds=1),
-    )
+            serialized,
+            domain=domain,
+            tmp_dir=tmpdir,
+            maxdelta=timedelta(weeks=1),
+            distance_threshold=250000,
+            speed_threshold=50,
+            minscore=0,
+            trafficDBpath=trafficDBpath,
+            shoredist_raster=os.path.join(data_dir, 'distance-from-shore.tif'),
+            portdist_raster=os.path.join(data_dir,
+                                         'distance-from-port-v20201104.tiff'),
+            interp_delta=timedelta(seconds=1),
+            )
     #q.close()
 
 
