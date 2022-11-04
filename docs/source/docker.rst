@@ -98,6 +98,10 @@ Restart the router to apply the changes, and then verify that the router is serv
 
 .. code-block:: sh
 
+   # follow the prompts given by the following command
+   # when prompted, place the acme-challenge files in the docker folder mounted on /var/www/certbot
+   # e.g. /var/www/certbot/.well-known/acme-challenge/<filename> inside the container
+   # or /home/$USER/cert/www/certbot/.well-known/acme-challenge/<filename> on the host
    docker exec -it certbot certbot certonly --manual -d $DOMAIN
 
    # in another terminal window:
