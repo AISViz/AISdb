@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.4
+------
+
+add option to disable default TrackGen curve decimation
+
+
 v1.4.3
 ------
 

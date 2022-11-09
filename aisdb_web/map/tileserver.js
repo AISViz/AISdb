@@ -4,8 +4,8 @@ import BingMaps from 'ol/source/BingMaps';
 import OSM from 'ol/source/OSM';
 
 // import { hostname } from './clientsocket.js';
-let hostname = import.meta.env.VITE_TILESERVER;
 
+let hostname = import.meta.env.VITE_TILESERVER;
 if (hostname === undefined) {
   console.log('hostname undefined');
 }

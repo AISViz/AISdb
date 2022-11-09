@@ -57,11 +57,14 @@ _statcols = set([
 ])
 
 
-def _yieldsegments(rows, staticcols, dynamiccols):
+def _yieldsegments(rows, staticcols, dynamiccols, decimate=True):
     lon = np.array([r['longitude'] for r in rows], dtype=float)
     lat = np.array([r['latitude'] for r in rows], dtype=float)
     time = np.array([r['time'] for r in rows], dtype=np.uint32)
-    idx = simplify_linestring_idx(lon, lat, precision=0.001)
+    if decimate:
+        idx = simplify_linestring_idx(lon, lat, precision=0.001)
+    else:
+        idx = np.array(range(len(lon)))
     trackdict = dict(
         **{col: rows[0][col]
            for col in staticcols},
@@ -81,7 +84,7 @@ def _yieldsegments(rows, staticcols, dynamiccols):
         yield segment
 
 
-def TrackGen(rowgen: iter) -> dict:
+def TrackGen(rowgen: iter, decimate: bool = True) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
         each row contains columns from database: mmsi time lon lat name ...
@@ -91,6 +94,9 @@ def TrackGen(rowgen: iter) -> dict:
             rowgen (aisdb.database.dbqry.DBQuery.gen_qry())
                 DBQuery rows generator. Yields rows returned
                 by a database query
+            decimate (bool)
+                if True, linear curve decimation will be applied to reduce
+                the number of unnecessary datapoints
 
         yields:
             dictionary containing track column vectors.
@@ -134,11 +140,11 @@ def TrackGen(rowgen: iter) -> dict:
                                                       'latitude']))
             dynamiccols = dynamiccols.union(set(['lon', 'lat', 'time']))
             firstrow = False
-        for track in _yieldsegments(rows, staticcols, dynamiccols):
+        for track in _yieldsegments(rows, staticcols, dynamiccols, decimate):
             yield track
 
 
-async def TrackGen_async(rowgen: iter) -> dict:
+async def TrackGen_async(rowgen: iter, decimate: bool = True) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
         each row contains columns from database: mmsi time lon lat name ...
@@ -148,6 +154,9 @@ async def TrackGen_async(rowgen: iter) -> dict:
             rowgen (aisdb.database.dbqry.DBQuery.gen_qry())
                 DBQuery rows generator. Yields rows returned
                 by a database query
+            decimate (bool)
+                if True, linear curve decimation will be applied to reduce
+                the number of unnecessary datapoints
 
         yields:
             dictionary containing track column vectors.
@@ -196,7 +205,7 @@ async def TrackGen_async(rowgen: iter) -> dict:
                                                       'latitude']))
             dynamiccols = dynamiccols.union(set(['lon', 'lat', 'time']))
             firstrow = False
-        for track in _yieldsegments(rows, staticcols, dynamiccols):
+        for track in _yieldsegments(rows, staticcols, dynamiccols, decimate):
             yield track
 
 

@@ -222,7 +222,7 @@ class SocketServ():
         qry = self._create_dbqry(req)
         trackgen = encode_greatcircledistance_async(
             split_timedelta_async(TrackGen_async(
-                qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)),
+                qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static), decimate=True),
                                   maxdelta=timedelta(days=7)),
             distance_threshold=250000,
             minscore=1e-05,
@@ -288,7 +288,8 @@ class SocketServ():
         qry = self._create_dbqry(req)
         interps = interp_time_async(
             encode_greatcircledistance_async(
-                split_timedelta_async(TrackGen_async(qry.gen_qry()),
+                split_timedelta_async(TrackGen_async(qry.gen_qry(),
+                                                     decimate=True),
                                       maxdelta=timedelta(days=7)),
                 distance_threshold=250000,
                 minscore=1e-05,
