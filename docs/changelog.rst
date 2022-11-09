@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.3
+------
+
+update nginx allowed script-src for localhost
+
+
 v1.4.2
 ------
 
