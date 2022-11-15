@@ -66,8 +66,8 @@ fn filter_insert_vesseldata(
                 .as_secs();
             let ping = VesselPositionPing {
                 mmsi: vdd.mmsi,
-                lon: (vdd.longitude.unwrap() * 1000000.0).round() / 1000000.0,
-                lat: (vdd.latitude.unwrap() * 1000000.0).round() / 1000000.0,
+                lon: (vdd.longitude.unwrap_or(0.) * 1000000.0).round() / 1000000.0,
+                lat: (vdd.latitude.unwrap_or(0.) * 1000000.0).round() / 1000000.0,
                 time: t,
                 rot: (vdd.rot.unwrap_or(-1.) * 1000.0).round() / 1000.0,
                 sog: (vdd.sog_knots.unwrap_or(-1.) * 1000.0).round() / 1000.0,
@@ -253,7 +253,7 @@ fn main() {
     };
 
     // number of messages received before database insert
-    let dynamic_msg_bufsize = 1024;
+    let dynamic_msg_bufsize = 256;
     let static_msg_bufsize = 64;
 
     // spawn multicast rx/tx thread

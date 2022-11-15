@@ -15,10 +15,10 @@ license-file = "../../license.txt"
 name = "stream"
 
 [dependencies]
-aisdb = {path = "../.."}
-socket_dispatch = {path = "../../dispatcher/socket_dispatch"}
-proxy = {path = "../../dispatcher/proxy"}
-server = {path = "../../dispatcher/server"}
+aisdb = {path = ".."}
+socket_dispatch = {path = "../dispatcher/socket_dispatch"}
+proxy = {path = "../dispatcher/proxy"}
+server = {path = "../dispatcher/server"}
 nmea-parser = {version = "0.9"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
