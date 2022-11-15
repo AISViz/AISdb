@@ -15,10 +15,12 @@ license-file = "../../license.txt"
 name = "stream"
 
 [dependencies]
+aisdb = {path = "../.."}
+socket_dispatch = {path = "../../dispatcher/socket_dispatch"}
+proxy = {path = "../../dispatcher/proxy"}
 server = {path = "../../dispatcher/server"}
-proxy= {path = "../../dispatcher/proxy"}
-tungstenite = {version = "0.17.3", features = ["native-tls"]}
 nmea-parser = {version = "0.9"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
+tungstenite = {version = "0.17.3", features = ["native-tls"]}
 
