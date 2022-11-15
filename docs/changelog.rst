@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.8
+------
+
+increase default decimation precision
+
+
 v1.4.7
 ------
 

@@ -57,12 +57,14 @@ _statcols = set([
 ])
 
 
-def _yieldsegments(rows, staticcols, dynamiccols, decimate=True):
+def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001):
+    if decimate is True:
+        decimate = 0.0001
     lon = np.array([r['longitude'] for r in rows], dtype=float)
     lat = np.array([r['latitude'] for r in rows], dtype=float)
     time = np.array([r['time'] for r in rows], dtype=np.uint32)
-    if decimate:
-        idx = simplify_linestring_idx(lon, lat, precision=0.001)
+    if decimate is not False:
+        idx = simplify_linestring_idx(lon, lat, precision=decimate)
     else:
         idx = np.array(range(len(lon)))
     trackdict = dict(
@@ -84,7 +86,7 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=True):
         yield segment
 
 
-def TrackGen(rowgen: iter, decimate: bool = True) -> dict:
+def TrackGen(rowgen: iter, decimate: float = 0.0001) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
         each row contains columns from database: mmsi time lon lat name ...
@@ -144,7 +146,7 @@ def TrackGen(rowgen: iter, decimate: bool = True) -> dict:
             yield track
 
 
-async def TrackGen_async(rowgen: iter, decimate: bool = True) -> dict:
+async def TrackGen_async(rowgen: iter, decimate: float = 0.0001) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
         each row contains columns from database: mmsi time lon lat name ...
@@ -154,9 +156,12 @@ async def TrackGen_async(rowgen: iter, decimate: bool = True) -> dict:
             rowgen (aisdb.database.dbqry.DBQuery.gen_qry())
                 DBQuery rows generator. Yields rows returned
                 by a database query
-            decimate (bool)
+            decimate (bool or int)
                 if True, linear curve decimation will be applied to reduce
-                the number of unnecessary datapoints
+                the number of unnecessary datapoints with a default precision
+                of 0.0001.
+                If Float, this value will be used as the level of precision.
+
 
         yields:
             dictionary containing track column vectors.
