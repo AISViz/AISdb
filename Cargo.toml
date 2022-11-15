@@ -1,5 +1,5 @@
 [package]
-version = "1.4.4"
+version = "1.4.5"
 name = "aisdb"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"
@@ -35,7 +35,7 @@ version = "0.16.4"
 features = [ "extension-module",]
 
 [dependencies.rusqlite]
-version = "0.27"
+version = "0.28"
 
 [profile.release]
 lto = true

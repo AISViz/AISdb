@@ -1,11 +1,10 @@
 use std::io::{BufWriter, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
-//use std::process::exit;
 use std::thread::{spawn, JoinHandle};
 
-//use crate::proxy::proxy_thread;
-//#[path = "./server.rs"]
-//mod server;
+extern crate socket_dispatch;
+use socket_dispatch::BUFSIZE;
+
 extern crate server;
 use server::join_multicast;
 
@@ -23,8 +22,7 @@ fn handle_client(downstream: TcpStream, multicast_addr: String) {
     });
     // multicast_socket.set_broadcast(true).unwrap();
 
-    //let mut buf = [0u8; 32768]; // receive buffer
-    let mut buf = [0u8; 8192]; // receive buffer
+    let mut buf = [0u8; BUFSIZE]; // receive buffer
     let mut tcp_writer = BufWriter::new(downstream);
 
     loop {

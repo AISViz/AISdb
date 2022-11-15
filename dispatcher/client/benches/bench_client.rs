@@ -9,6 +9,9 @@ use std::thread::sleep;
 use std::thread::Builder;
 use std::time::{Duration, Instant};
 
+extern crate socket_dispatch;
+use socket_dispatch::BUFSIZE;
+
 extern crate server;
 use crate::server::join_unicast;
 
@@ -27,7 +30,7 @@ fn test_client_bitrate(_b: &mut Bencher) {
     sleep(Duration::from_millis(15));
 
     let mut bytecount: i64 = 0;
-    let mut buf = [0u8; 32768];
+    let mut buf = [0u8; BUFSIZE];
 
     //b.iter(|| {
     //let target_addr = target_addr.clone();

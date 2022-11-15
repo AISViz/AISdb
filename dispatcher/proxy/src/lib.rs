@@ -2,6 +2,9 @@ use std::io::{stdout, BufWriter, Write};
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
 use std::thread::{Builder, JoinHandle};
 
+extern crate socket_dispatch;
+use socket_dispatch::BUFSIZE;
+
 extern crate client;
 use client::{client_check_ipv6_interfaces, new_sender};
 
@@ -47,8 +50,7 @@ pub fn proxy_thread(
     let mut output_buffer = BufWriter::new(stdout());
     let targets: Vec<(SocketAddr, UdpSocket)> =
         downstream_addrs.iter().map(new_downstream_socket).collect();
-    //let mut buf = [0u8; 32768]; // receive buffer
-    let mut buf = [0u8; 8192]; // receive buffer
+    let mut buf = [0u8; BUFSIZE]; // receive buffer
     Builder::new()
         .name(format!("{:#?}", listen_socket))
         .spawn(move || {

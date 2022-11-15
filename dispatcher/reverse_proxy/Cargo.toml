@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+socket_dispatch = {path = "../socket_dispatch"}
 server = {path = "../server"}
 proxy = {path = "../proxy"}
 

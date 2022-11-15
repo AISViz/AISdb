@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::thread::{Builder, JoinHandle};
 
 extern crate socket_dispatch;
-use socket_dispatch::{bind_socket, new_socket};
+use socket_dispatch::{bind_socket, new_socket, BUFSIZE};
 
 /// server: client socket handler
 /// binds a new socket connection on the network multicast channel
@@ -103,8 +103,7 @@ pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
     Builder::new()
         .name(format!("{}:server", addr))
         .spawn(move || {
-            //let mut buf = [0u8; 32768]; // receive buffer
-            let mut buf = [0u8; 8192]; // receive buffer
+            let mut buf = [0u8; BUFSIZE]; // receive buffer
             loop {
                 match listen_socket.recv_from(&mut buf[0..]) {
                     Ok((c, _remote_addr)) => {

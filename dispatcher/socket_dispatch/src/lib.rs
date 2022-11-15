@@ -3,6 +3,8 @@ use std::net::SocketAddr;
 
 pub use socket2::{Domain, Protocol, Socket, Type};
 
+pub const BUFSIZE: usize = 8192;
+
 #[cfg(unix)]
 pub fn bind_socket(socket: &Socket, addr: &SocketAddr) -> io::Result<()> {
     socket.bind(&socket2::SockAddr::from(*addr))

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.5
+------
+
+add buffer size const to socket_dispatch
+
+
 v1.4.4
 ------
 

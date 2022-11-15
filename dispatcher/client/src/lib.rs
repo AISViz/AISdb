@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 extern crate socket_dispatch;
-use socket_dispatch::{bind_socket, new_socket};
+use socket_dispatch::{bind_socket, new_socket, BUFSIZE};
 
 /// new upstream socket
 /// socket will allow any downstream IP i.e. 0.0.0.0
@@ -112,9 +112,7 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
         ))
     };
 
-    //let mut buf = vec![0u8; 32768];
-    //let mut buf = vec![0u8; 16384];
-    let mut buf = vec![0u8; 8192];
+    let mut buf = vec![0u8; BUFSIZE];
     let mut output_buffer = BufWriter::new(stdout());
 
     while let Ok(c) = reader.read(&mut buf) {
