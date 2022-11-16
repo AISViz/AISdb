@@ -1,5 +1,5 @@
 use std::io::{stdout, BufWriter, Write};
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use std::net::{SocketAddr, TcpListener, TcpStream, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::thread::{spawn, Builder, JoinHandle};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -141,6 +141,7 @@ fn process_message(
 pub fn decode_multicast(
     listen_addr: &String,
     multicast_addr: &String,
+    multicast_addr_raw: Option<&String>,
     tee: bool,
     dbpath: Option<PathBuf>,
     dynamic_msg_buffsize: usize,
@@ -148,6 +149,10 @@ pub fn decode_multicast(
 ) -> JoinHandle<()> {
     let listen_socket = new_listen_socket(listen_addr);
     let (target_addr, target_socket) = new_downstream_socket(multicast_addr);
+    let mut target_raw: Option<(SocketAddr, UdpSocket)> = None;
+    if let Some(rawaddr) = multicast_addr_raw {
+        target_raw = Some(new_downstream_socket(rawaddr));
+    }
 
     let mut buf = [0u8; BUFSIZE];
     let mut parser = NmeaParser::new();
@@ -189,12 +194,18 @@ pub fn decode_multicast(
                             target_socket
                                 .send_to(msg.as_bytes(), &target_addr)
                                 .expect("sending to server socket");
-                            if tee {
-                                let _o = output_buffer
-                                    .write(&buf[0..c])
-                                    .expect("writing to output buffer");
-                                output_buffer.flush().unwrap();
+
+                            if let Some((addr_raw, socket_raw)) = &target_raw {
+                                socket_raw
+                                    .send_to(&buf[0..c], &addr_raw)
+                                    .expect("sending to server socket");
                             }
+                        }
+                        if tee {
+                            let _o = output_buffer
+                                .write(&buf[0..c])
+                                .expect("writing to output buffer");
+                            output_buffer.flush().unwrap();
                         }
                     }
                     Err(err) => {
@@ -258,6 +269,7 @@ fn main() {
         multicast_addr: "224.0.0.20:9919".into(),
         tee: false,
     };
+    let multicast_addr_raw: String = "224.0.0.18:9918".into();
 
     // number of messages received before database insert
     let dynamic_msg_bufsize = 128;
@@ -267,6 +279,8 @@ fn main() {
     let _multicast = decode_multicast(
         &args.udp_listen_addr,
         &args.multicast_addr.clone(),
+        //multicast_addr_raw,
+        Some(&multicast_addr_raw),
         args.tee,
         dbpath,
         dynamic_msg_bufsize,

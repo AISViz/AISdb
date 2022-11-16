@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.12
+-------
+
+enable rebroadcasting raw input from receiver
+
+
 v1.4.11
 -------
 

@@ -1,5 +1,5 @@
 [package]
-version = "1.4.11"
+version = "1.4.12"
 name = "aisdb"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"
@@ -17,7 +17,7 @@ crate-type = [ "cdylib", "rlib",]
 path = "src/lib.rs"
 
 [dependencies]
-geo = "0.20.1"
+geo = "0.23.0"
 geo-types = "*"
 include_dir = "0.7.2"
 
@@ -28,7 +28,7 @@ version = "0.4.21"
 version = "1.1"
 
 [dependencies.nmea-parser]
-version = "0.9"
+version = "0.10"
 
 [dependencies.pyo3]
 version = "0.16.4"
