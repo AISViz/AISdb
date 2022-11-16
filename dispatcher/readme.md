@@ -25,6 +25,13 @@ data over the network.
 - [X] Windows
 
 
+## Install
+Install utils from source using cargo, e.g.
+```
+git clone https://github.com/matt24smith/dispatcher.git
+cargo install dispatcher/reverse_proxy
+```
+
 
 ## Operation
 Use `--help`/`-h` to view help messages.
@@ -36,9 +43,7 @@ Stream data from the client to logging servers. The `--server_addr` option may
 be repeated for multiple server hosts. To accept input from stdin, use `--path "-"`
 
 ```
-cargo run --bin client -- \
-  --path '/dev/random' \
-  --server_addr 'localhost:9921'
+client --path '/dev/random' --server_addr 'localhost:9921'
 ```
 
 ### Proxy
@@ -48,9 +53,7 @@ Options `--listen_addr` and `--downstream_addr` may be repeated for multiple
 endpoints.
 
 ```
-cargo run --bin proxy -- \
-  --listen_addr '0.0.0.0:9921' \
-  --downstream_addr 'localhost:9922'
+proxy --listen_addr '0.0.0.0:9921' --downstream_addr 'localhost:9922'
 ```
 
 ### Reverse-Proxy
@@ -60,10 +63,7 @@ UDP packets will be routed via the multicast channel to listeners on each TCP
 client handler.
 
 ```
-cargo run --bin reverse_proxy -- \
-  --udp_listen_addr '0.0.0.0:9921' \
-  --tcp_listen_addr '0.0.0.0:9921' \
-  --multicast_addr '224.0.0.1:9922'
+reverse_proxy --udp_listen_addr '0.0.0.0:9921' --tcp_listen_addr '0.0.0.0:9921' --multicast_addr '224.0.0.1:9922'
 ```
 
 ### Server
@@ -72,10 +72,7 @@ Start the logging server. The `--listen_addr` option may be repeated to listen
 for incoming messages from multiple sockets.
 
 ```
-cargo run --bin server -- \
-  --path logfile.log \
-  --listen_addr '0.0.0.0:9920' \
-  --listen_addr '[::]:9921'
+server --path logfile.log --listen_addr '0.0.0.0:9920' --listen_addr '[::]:9921'
 ```
 
 

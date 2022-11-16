@@ -1,5 +1,6 @@
 **.bin
 **.crt
+**.lock
 **.log
 **.pytest_cache
 **/__pycache__

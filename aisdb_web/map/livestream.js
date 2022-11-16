@@ -1,6 +1,5 @@
 import { lineSource } from './map';
 import { /* vesselStyles,*/ selectStyle } from './palette.js';
-import { hostname } from './clientsocket.js';
 
 import { Feature } from 'ol';
 import { Fill, Stroke, Style, Circle } from 'ol/style';
@@ -28,7 +27,13 @@ const ptSelectStyle = function(feature) {
 
 /* --- */
 
-let streamsocket = new WebSocket(`ws://${hostname}:9920`);
+let streamsocket = null;
+if (import.meta.env.VITE_DISABLE_SSL !== null &&
+  import.meta.env.VITE_DISABLE_SSL !== undefined) {
+  streamsocket = new WebSocket('ws://127.0.0.1:9920');
+} else {
+  streamsocket = new WebSocket('wss://127.0.0.1:9920');
+}
 let live_targets = {};
 
 

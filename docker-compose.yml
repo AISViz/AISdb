@@ -120,8 +120,8 @@ services:
      - "80:80"
      - "443:443"
      - "${AISDBPORT:-9924}:${AISDBPORT:-9924}"
-     #- "9920:9920"
-     #- "9921:9921"
+     - "9920:9920"
+     - "9921:9921/udp"
     networks:
       ipv6_private:
         ipv6_address: "fc00::2"
@@ -157,16 +157,13 @@ services:
       dockerfile: ./docker/receiver.Dockerfile
     environment:
       RUST_BACKTRACE: 1
-    ports:
-      - "9920:9920"
-      - "9921:9921"
     # will look for database on path ./receiver/ais_rx.db
     # ensure that write permission is allowed
     volumes:
       - ./receiver/:/usr/src/aisdb/receiver/
-    # routing is done by dispatch library
-    # set network mode to "host" to bypass nginx 
-    network_mode: "host"
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::7"
 
 networks:
   ipv6_private:

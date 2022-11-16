@@ -181,10 +181,10 @@ async function init_maplayers() {
    * @see module:url
    */
   mapview = new View({
-    center: fromLonLat([ -63.6, 44.0 ]), // east
+    center: fromLonLat([ -63.562, 44.501 ]), // east
     // center: proj.fromLonLat([-123.0, 49.2]), //west
     // center: proj.fromLonLat([ -100, 57 ]), // canada
-    zoom: 7,
+    zoom: 10,
   });
 
 

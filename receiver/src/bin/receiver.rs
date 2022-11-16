@@ -279,7 +279,6 @@ fn main() {
     let _multicast = decode_multicast(
         &args.udp_listen_addr,
         &args.multicast_addr.clone(),
-        //multicast_addr_raw,
         Some(&multicast_addr_raw),
         args.tee,
         dbpath,
@@ -292,9 +291,17 @@ fn main() {
 
     // handle TCP clients
     for stream in listener.incoming() {
-        let multicast_addr = args.multicast_addr.clone();
-        spawn(move || {
-            handle_client(&stream.unwrap(), multicast_addr);
-        });
+        match stream {
+            Ok(stream) => {
+                let multicast_addr = args.multicast_addr.clone();
+                spawn(move || {
+                    //handle_client(&stream, multicast_addr);
+                    handle_client(&stream, multicast_addr);
+                });
+            }
+            Err(e) => {
+                eprintln!("{:?}", e.raw_os_error());
+            }
+        }
     }
 }
