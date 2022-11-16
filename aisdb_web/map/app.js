@@ -1,4 +1,18 @@
 (async () => {
+  self.addEventListener('activate', (e) => {
+    console.log('Unregistering service worker');
+    self.registration.unregister()
+      .then(() => {
+        return self.clients.matchAll();
+      })
+      .then((clients) => {
+        clients.forEach((client) => {
+          console.log(`Navigating ${client.url}`);
+          client.navigate(client.url);
+        });
+      });
+  });
+
   let { init_maplayers } = await import('./map');
   let [
     { createVesselMenuItem, vesselmenu, vesseltypeselect },
