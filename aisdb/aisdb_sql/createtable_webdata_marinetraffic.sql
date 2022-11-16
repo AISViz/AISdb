@@ -12,4 +12,5 @@ CREATE TABLE IF NOT EXISTS webdata_marinetraffic (
     year_built INTEGER,
     home_port TEXT,
     error404 INTEGER NOT NULL DEFAULT 0
-) WITHOUT ROWID, STRICT;
+) WITHOUT ROWID;
+--, STRICT

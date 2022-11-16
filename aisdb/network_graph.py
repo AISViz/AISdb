@@ -7,17 +7,12 @@ import multiprocessing.queues
 import os
 import pickle
 import re
-import sqlite3
 import tempfile
 import types
 from datetime import timedelta
 from functools import partial, reduce
 from multiprocessing import Pool, Queue
 from time import sleep
-if (sqlite3.sqlite_version_info[0] < 3
-        or (sqlite3.sqlite_version_info[0] <= 3
-            and sqlite3.sqlite_version_info[1] < 35)):
-    import pysqlite3 as sqlite3
 
 import numpy as np
 import warnings

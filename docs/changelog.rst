@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.9
+------
+
+improve sqlite version compatibility
+
+
 v1.4.8
 ------
 

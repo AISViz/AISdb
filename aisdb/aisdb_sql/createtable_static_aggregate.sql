@@ -7,4 +7,5 @@ CREATE TABLE static_{}_aggregate (
     dim_port INTEGER,
     dim_star INTEGER,
     imo INTEGER
-) STRICT;
+);
+--STRICT

@@ -15,13 +15,28 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
         ":memory:" => Connection::open_in_memory().unwrap(),
         _ => Connection::open(path).unwrap(),
     };
+
+    let version_string = rusqlite::version();
+
+    #[cfg(debug_assertions)]
+    println!("SQLite3 version: {}", version_string);
+
+    let vnum: Vec<i32> = version_string
+        .split(".")
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    if vnum[0] < 3 || vnum[0] == 3 && (vnum[1] < 8 || (vnum[1] == 8 && vnum[2] < 2)) {
+        panic!("SQLite3 version is too low! Need version 3.8.2 or higher");
+    }
+
     conn.execute_batch(
         "
         PRAGMA synchronous = 0;
         PRAGMA temp_store = MEMORY;
         ",
     )
-    .expect("PRAGMAS");
+    .expect(format!("setting PRAGMAS for {:?}", path.to_str()).as_str());
 
     Ok(conn)
 }
@@ -41,7 +56,9 @@ pub fn sqlite_createtable_dynamicreport(
     mstr: &str,
 ) -> Result<usize, rusqlite::Error> {
     let sql = sql_from_file("createtable_dynamic_clustered.sql").replace("{}", mstr);
-    Ok(tx.execute(&sql, []).expect("creating dynamic table"))
+    Ok(tx
+        .execute(&sql, [])
+        .expect(format!("creating dynamic table\n{}", sql).as_str()))
 }
 
 /// create SQLite table for monthly static vessel reports
