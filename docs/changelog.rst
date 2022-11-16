@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.13
+-------
+
+update dependency version and add Cargo.lock files to repository
+
+
 v1.4.12
 -------
 
