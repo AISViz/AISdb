@@ -52,6 +52,13 @@ struct ReverseProxyArgs {
     tee: bool,
 }
 
+fn epoch_time() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
 /// Filters incoming UDP messages for vessel dynamic and static messages
 /// inserts static and dynamic messages into database,
 /// and returns VesselPositionPing for dynamic data
@@ -64,15 +71,15 @@ fn filter_insert_vesseldata(
 ) -> Option<String> {
     match parser.parse_sentence(sentence).ok()? {
         ParsedMessage::VesselDynamicData(vdd) => {
-            let t = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
+            if vdd.longitude.is_none() || vdd.latitude.is_none() {
+                return None;
+            }
+
             let ping = VesselPositionPing {
                 mmsi: vdd.mmsi,
-                lon: (vdd.longitude.unwrap_or(0.) * 1000000.0).round() / 1000000.0,
-                lat: (vdd.latitude.unwrap_or(0.) * 1000000.0).round() / 1000000.0,
-                time: t,
+                lon: (vdd.longitude.unwrap() * 1000000.0).round() / 1000000.0,
+                lat: (vdd.latitude.unwrap() * 1000000.0).round() / 1000000.0,
+                time: epoch_time(),
                 rot: (vdd.rot.unwrap_or(-1.) * 1000.0).round() / 1000.0,
                 sog: (vdd.sog_knots.unwrap_or(-1.) * 1000.0).round() / 1000.0,
                 heading: vdd.heading_true.unwrap_or(-1.),
@@ -80,7 +87,7 @@ fn filter_insert_vesseldata(
 
             if insert_db {
                 let insert_msg = VesselData {
-                    epoch: Some(t as i32),
+                    epoch: Some(ping.time as i32),
                     payload: Some(ParsedMessage::VesselDynamicData(vdd)),
                 };
                 dynamic_msgs.push(insert_msg);
@@ -90,13 +97,9 @@ fn filter_insert_vesseldata(
             Some(msg)
         }
         ParsedMessage::VesselStaticData(vsd) => {
-            let t = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
             if insert_db {
                 let insert_msg = VesselData {
-                    epoch: Some(t as i32),
+                    epoch: Some(epoch_time() as i32),
                     payload: Some(ParsedMessage::VesselStaticData(vsd)),
                 };
                 static_msgs.push(insert_msg);

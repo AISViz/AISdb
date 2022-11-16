@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.15
+-------
+
+receiver error handling
+
+
 v1.4.14
 -------
 
