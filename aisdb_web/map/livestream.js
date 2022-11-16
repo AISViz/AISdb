@@ -1,5 +1,6 @@
 import { lineSource } from './map';
 import { /* vesselStyles,*/ selectStyle } from './palette.js';
+import { hostname } from './clientsocket.js';
 
 import { Feature } from 'ol';
 import { Fill, Stroke, Style, Circle } from 'ol/style';
@@ -27,7 +28,7 @@ const ptSelectStyle = function(feature) {
 
 /* --- */
 
-let streamsocket = new WebSocket('ws://localhost:9920');
+let streamsocket = new WebSocket(`ws://${hostname}:9920`);
 let live_targets = {};
 
 

@@ -4,6 +4,8 @@ use std::path::PathBuf;
 use std::thread::{spawn, Builder, JoinHandle};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+// local path external
+
 extern crate socket_dispatch;
 use socket_dispatch::BUFSIZE;
 
@@ -17,6 +19,8 @@ use server::join_multicast;
 extern crate aisdb;
 use aisdb::db::{get_db_conn, prepare_tx_dynamic, prepare_tx_static};
 use aisdb::decode::VesselData;
+
+// external
 
 extern crate nmea_parser;
 use nmea_parser::{NmeaParser, ParsedMessage};
@@ -104,6 +108,9 @@ fn filter_insert_vesseldata(
     }
 }
 
+/// Generate utf-8 strings from buffered bytestream, and split on line breaks.
+/// Segmented strings will be parsed as AIS, and filtered to dynamic and
+/// static messages
 fn process_message(
     buf: &[u8],
     i: usize,
@@ -242,18 +249,18 @@ pub fn handle_client(downstream: &TcpStream, multicast_addr: String) {
 }
 
 fn main() {
-    let dbpath = Some(PathBuf::from("./antenna_rx.db"));
+    let dbpath = Some(PathBuf::from("./ais_rx.db"));
 
     // configure reverse proxy
     let args = ReverseProxyArgs {
         udp_listen_addr: "[::]:9921".into(),
         tcp_listen_addr: "[::]:9920".into(),
         multicast_addr: "224.0.0.20:9919".into(),
-        tee: true,
+        tee: false,
     };
 
     // number of messages received before database insert
-    let dynamic_msg_bufsize = 256;
+    let dynamic_msg_bufsize = 128;
     let static_msg_bufsize = 64;
 
     // spawn multicast rx/tx thread

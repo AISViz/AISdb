@@ -18,5 +18,5 @@
     vesselmenu.classList.toggle('show');
   };
 
-  // await import('./livestream.js');
+  await import('./livestream.js');
 })();

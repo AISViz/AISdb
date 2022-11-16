@@ -62,6 +62,8 @@ services:
         AISDBPORT: ${AISDBPORT:-9924}
         VITE_BINGMAPTILES: ${VITE_BINGMAPTILES:-}
         VITE_TILESERVER: ${VITE_TILESERVER:-/}
+    #depends_on:
+    #  - "receiver"
     command:
       ['npm', '--prefix', 'aisdb_web/', 'start']
     networks:
@@ -93,6 +95,7 @@ services:
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
       AISDBPORT: ${AISDBPORT:-9924}
       # consider mounting volumes at the following locations
+      # ensure that write permissions are allowed on the database file e.g. chmod 777
       AISDBPATH: '/home/ais_env/ais/ais.db'
       AISDBZONES: '/home/ais_env/ais/zones/'
       AISDBMARINETRAFFIC: '/home/ais_env/ais/marinetraffic.db'
@@ -117,6 +120,8 @@ services:
      - "80:80"
      - "443:443"
      - "${AISDBPORT:-9924}:${AISDBPORT:-9924}"
+     #- "9920:9920"
+     #- "9921:9921"
     networks:
       ipv6_private:
         ipv6_address: "fc00::2"
@@ -144,6 +149,24 @@ services:
     depends_on:
       - nginx
 
+  receiver:
+    container_name: receiver
+    init: true
+    build: 
+      context: .
+      dockerfile: ./docker/receiver.Dockerfile
+    environment:
+      RUST_BACKTRACE: 1
+    ports:
+      - "9920:9920"
+      - "9921:9921"
+    # will look for database on path ./receiver/ais_rx.db
+    # ensure that write permission is allowed
+    volumes:
+      - ./receiver/:/usr/src/aisdb/receiver/
+    # routing is done by dispatch library
+    # set network mode to "host" to bypass nginx 
+    network_mode: "host"
 
 networks:
   ipv6_private:

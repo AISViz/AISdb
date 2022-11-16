@@ -7,7 +7,6 @@
 **.pytest_cache
 **.so
 **/debug
-**/debug/*
 **/testdata
 **/webdriver
 **__pycache__**

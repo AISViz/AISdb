@@ -6,7 +6,6 @@ RSTSOURCEDIR="${ROOTDIR}/docs/source"
 #MAPDIR="${ROOTDIR}/aisdb_web/map"
 SPHINXDIR="${ROOTDIR}/aisdb_web/dist_sphinx"
 #CARGODIR="${ROOTDIR}/aisdb_web/dist_cargodoc"
-#JSDOCDIR="${ROOTDIR}/aisdb_web/dist_jsdoc"
 #WASMDIR="${ROOTDIR}/aisdb_wasm"
 
 set -e
