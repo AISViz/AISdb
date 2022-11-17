@@ -21,10 +21,10 @@ rust-test:
   script:
     - mkdir -p testdata 
     - cargo test --color=always --release --lib
-  artifacts:
-    paths:
-      - ./testdata/*
-      - ./target/release/
+  #artifacts:
+  #  paths:
+  #    - ./testdata/*
+  #    - ./target/release/
 
 
 build-website:
@@ -40,15 +40,15 @@ build-website:
     - cd aisdb_web && npm install
     - source ../env/bin/activate && /bin/bash ./build_website.sh
     - cd ..
-  cache:
-    key: persistent_001
-    paths:
-      - ./env
-      - ./data_dir
-      - ./aisdb_web/node_modules/
-  artifacts:
-    paths:
-      - ./aisdb_web/
+  #cache:
+  #  key: persistent_001
+  #  paths:
+  #    - ./env
+  #    - ./data_dir
+  #    - ./aisdb_web/node_modules/
+  #artifacts:
+  #  paths:
+  #    - ./aisdb_web/
 
 
 python-test:
@@ -62,16 +62,16 @@ python-test:
   coverage: '/TOTAL.*\s+(\d+\%)/'
   dependencies:
     - rust-test
-  cache:
-    key: persistent_001
-    paths:
-      - ./env
-      - ./data_dir
-      - ./testdata/
-  artifacts:
-    paths:
-      - ./aisdb_web/dist_coverage/
-      - .coverage
+  #cache:
+  #  key: persistent_001
+  #  paths:
+  #    - ./env
+  #    - ./data_dir
+  #    - ./testdata/
+  #artifacts:
+  #  paths:
+  #    - ./aisdb_web/dist_coverage/
+  #    - .coverage
 
 
 #pkgbuild:
