@@ -54,8 +54,6 @@ Python version 3.8 or higher (tested on version 3.10).
 Install from PyPI
 -----------------
 
-Currently supports Windows (python3.8), Mac (python3.10), and linux (python3.8, python3.9, python3.10)
-
 .. code-block:: sh
 
    python -m venv env_ais && source ./env_ais/bin/activate
@@ -72,17 +70,17 @@ Code examples
 -------------
 
 1. `Parsing raw format messages into a
-   database <./api/aisdb.database.decoder.html#aisdb.database.decoder.decode_msgs>`__
+   database <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.database.decoder.html#aisdb.database.decoder.decode_msgs>`__
 
 2. `Automatically generate SQL database
-   queries <./api/aisdb.database.dbqry.html#aisdb.database.dbqry.DBQuery>`__
+   queries <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.database.dbqry.html#aisdb.database.dbqry.DBQuery>`__
 
-3. `Compute trajectories from database rows <./api/aisdb.track_gen.html#aisdb.track_gen.TrackGen>`__
+3. `Compute trajectories from database rows <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.track_gen.html#aisdb.track_gen.TrackGen>`__
 
-4. `Vessel trajectory cleaning and MMSI deduplication <./api/aisdb.track_gen.html#aisdb.track_gen.encode_greatcircledistance>`__
+4. `Vessel trajectory cleaning and MMSI deduplication <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.track_gen.html#aisdb.track_gen.encode_greatcircledistance>`__
 
 5. `Compute network graph of vessel movements between
-   polygons <./api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
+   polygons <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
 
 6. Integrating data from web sources, such as depth charts, shore distance, etc.
 
