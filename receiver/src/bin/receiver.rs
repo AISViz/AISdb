@@ -45,13 +45,6 @@ struct VesselPositionPing {
     heading: f64,
 }
 
-struct ReverseProxyArgs {
-    udp_listen_addr: String,
-    multicast_addr: String,
-    tcp_listen_addr: String,
-    tee: bool,
-}
-
 fn epoch_time() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -142,19 +135,19 @@ fn process_message(
 /// listens for packets on a UDP socket, and forward to
 /// local multicast address
 pub fn decode_multicast(
-    listen_addr: &String,
-    multicast_addr: &String,
-    multicast_addr_raw: Option<&String>,
+    listen_addr: String,
+    multicast_addr: String,
+    multicast_rebroadcast: Option<String>,
     tee: bool,
     dbpath: Option<PathBuf>,
     dynamic_msg_buffsize: usize,
     static_msg_bufsize: usize,
 ) -> JoinHandle<()> {
-    let listen_socket = new_listen_socket(listen_addr);
-    let (target_addr, target_socket) = new_downstream_socket(multicast_addr);
+    let listen_socket = new_listen_socket(&listen_addr);
+    let (target_addr, target_socket) = new_downstream_socket(&multicast_addr);
     let mut target_raw: Option<(SocketAddr, UdpSocket)> = None;
-    if let Some(rawaddr) = multicast_addr_raw {
-        target_raw = Some(new_downstream_socket(rawaddr));
+    if let Some(rawaddr) = multicast_rebroadcast {
+        target_raw = Some(new_downstream_socket(&rawaddr));
     }
 
     let mut buf = [0u8; BUFSIZE];
@@ -195,12 +188,12 @@ pub fn decode_multicast(
                             &mut static_msgs,
                         ) {
                             target_socket
-                                .send_to(msg.as_bytes(), &target_addr)
+                                .send_to(msg.as_bytes(), target_addr)
                                 .expect("sending to server socket");
 
                             if let Some((addr_raw, socket_raw)) = &target_raw {
                                 socket_raw
-                                    .send_to(&buf[0..c], &addr_raw)
+                                    .send_to(&buf[0..c], addr_raw)
                                     .expect("sending to server socket");
                             }
                         }
@@ -240,9 +233,6 @@ pub fn handle_client(downstream: &TcpStream, multicast_addr: String) {
 
     let mut buf = [0u8; 32768];
     let mut websocket = accept(downstream).unwrap();
-    /*
-    if msg.is_binary() || msg.is_text() { websocket.write_message(msg).unwrap(); } }
-    */
 
     loop {
         match multicast_socket.recv_from(&mut buf[0..]) {
@@ -262,43 +252,39 @@ pub fn handle_client(downstream: &TcpStream, multicast_addr: String) {
     }
 }
 
-fn main() {
-    let dbpath = Some(PathBuf::from("./ais_rx.db"));
-
-    // configure reverse proxy
-    let args = ReverseProxyArgs {
-        udp_listen_addr: "[::]:9921".into(),
-        tcp_listen_addr: "[::]:9920".into(),
-        multicast_addr: "224.0.0.20:9919".into(),
-        tee: true,
-    };
-    let multicast_addr_raw: String = "224.0.0.18:9918".into();
-
-    // number of messages received before database insert
-    let dynamic_msg_bufsize = 128;
-    let static_msg_bufsize = 64;
+pub fn start_receiver(
+    dbpath: Option<&str>,
+    udp_listen_addr: &str,
+    tcp_listen_addr: &str,
+    multicast_addr: &str,
+    multicast_rebroadcast: Option<&str>,
+    dynamic_msg_bufsize: Option<usize>,
+    static_msg_bufsize: Option<usize>,
+    tee: bool,
+) {
+    let dbpath: Option<PathBuf> = dbpath.map(PathBuf::from);
+    let multicast_rebroadcast: Option<String> = multicast_rebroadcast.map(|rawaddr| rawaddr.into());
 
     // spawn multicast rx/tx thread
     let _multicast = decode_multicast(
-        &args.udp_listen_addr,
-        &args.multicast_addr.clone(),
-        Some(&multicast_addr_raw),
-        args.tee,
+        udp_listen_addr.into(),
+        multicast_addr.into(),
+        multicast_rebroadcast,
+        tee,
         dbpath,
-        dynamic_msg_bufsize,
-        static_msg_bufsize,
+        dynamic_msg_bufsize.unwrap_or(256),
+        static_msg_bufsize.unwrap_or(64),
     );
 
     // bind TCP listen address
-    let listener = TcpListener::bind(args.tcp_listen_addr).unwrap();
+    let listener = TcpListener::bind(tcp_listen_addr).unwrap();
 
     // handle TCP clients
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                let multicast_addr = args.multicast_addr.clone();
+                let multicast_addr: String = multicast_addr.into();
                 spawn(move || {
-                    //handle_client(&stream, multicast_addr);
                     handle_client(&stream, multicast_addr);
                 });
             }
@@ -307,4 +293,36 @@ fn main() {
             }
         }
     }
+}
+
+fn main() {
+    // optionally save to database file
+    let dbpath = Some("./ais_rx.db");
+
+    // configure listening socket addresses
+    let udp_listen_addr = "[::]:9921";
+    let tcp_listen_addr = "[::]:9920";
+    let multicast_addr = "224.0.0.20:9919";
+
+    // if this is not None, raw input will be re-broadcasted here
+    // can be used to pass input downstream to e.g. reverse proxy
+    let multicast_rebroadcast = Some("224.0.0.18:9918");
+
+    // number of messages received before database insert
+    let dynamic_msg_bufsize = 128;
+    let static_msg_bufsize = 64;
+
+    // copy input to stdout
+    let tee = false;
+
+    start_receiver(
+        dbpath,
+        udp_listen_addr,
+        tcp_listen_addr,
+        multicast_addr,
+        multicast_rebroadcast,
+        Some(dynamic_msg_bufsize),
+        Some(static_msg_bufsize),
+        tee,
+    )
 }

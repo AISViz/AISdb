@@ -3,7 +3,7 @@
 use geo::algorithm::simplifyvw::SimplifyVwIdx;
 use geo::point;
 use geo::prelude::*;
-use geo_types::{Coordinate, LineString};
+use geo_types::{Coord, LineString};
 use nmea_parser::NmeaParser;
 use pyo3::prelude::*;
 use std::cmp::max;
@@ -117,7 +117,7 @@ pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str, verbose: bool) {
 #[pyfunction]
 pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<usize> {
     let coords = zip!(&x, &y)
-        .map(|(xx, yy)| Coordinate { x: *xx, y: *yy })
+        .map(|(xx, yy)| Coord { x: *xx, y: *yy })
         .collect();
     let line = LineString(coords).simplifyvw_idx(&precision);
     line.into_iter().collect::<Vec<usize>>()
