@@ -1,25 +1,11 @@
 AISDB: Readme
 =============
 
-.. raw:: html
+.. image:: https://git-dev.cs.dal.ca/meridian/aisdb/badges/master/pipeline.svg
 
-    <a href="https://git-dev.cs.dal.ca/meridian/aisdb/-/commits/master">
-      <img alt="pipeline status" src="https://git-dev.cs.dal.ca/meridian/aisdb/badges/master/pipeline.svg" />
-    </a>
+.. image:: https://img.shields.io/gitlab/coverage/meridian/aisdb/master?gitlab_url=https%3A%2F%2Fgit-dev.cs.dal.ca&job_name=python-test
 
-    <!--
-    <a href="https://aisdb.meridian.cs.dal.ca/">
-      <img alt="website" src="https://img.shields.io/gitlab/pipeline-status/meridian/aisdb?branch=master&gitlab_url=https%3A%2F%2Fgit-dev.cs.dal.ca&label=build-website"/>
-    </a>
-    -->
-
-    <a href="https://aisdb.meridian.cs.dal.ca/coverage/">
-      <img alt="coverage" src="https://img.shields.io/gitlab/coverage/meridian/aisdb/master?gitlab_url=https%3A%2F%2Fgit-dev.cs.dal.ca&job_name=python-test"/>
-    </a>
-
-    <a href="https://git-dev.cs.dal.ca/meridian/aisdb/-/releases">
-      <img alt="release" src="https://img.shields.io/gitlab/v/release/meridian/aisdb?gitlab_url=https%3A%2F%2Fgit-dev.cs.dal.ca&include_prereleases&sort=semver"/>
-    </a>
+.. image:: https://img.shields.io/gitlab/v/release/meridian/aisdb?gitlab_url=https%3A%2F%2Fgit-dev.cs.dal.ca&include_prereleases&sort=semver
 
 .. description:
 
@@ -35,16 +21,7 @@ Package features:
   + Data visualization
 
 
-
-.. raw:: html 
-
-   <a href='_images/scriptoutput.png'>
-      <img 
-        src='https://aisdb.meridian.cs.dal.ca/doc/_images/scriptoutput.png' 
-        width="800"
-        onerror="this.html='';"
-      ></img>
-   </a>
+.. image:: https://aisdb.meridian.cs.dal.ca/doc/_images/scriptoutput.png
 
 
 | Web Interface:
@@ -67,44 +44,27 @@ What is AIS?
 
 .. install:
 
+
 Install Prerequisite
 --------------------
 
 Python version 3.8 or higher (tested on version 3.10).
-Requires SQLite version 3.8.2 or higher.
+
+
+Install from PyPI
+-----------------
+
+.. code-block: sh
+
+  python -m venv env_ais && source ./env_ais/bin/activate
+  pip install aisdb
 
 
 Installing from Source
 ----------------------
 
-The `maturin build system <https://maturin.rs/develop.html>`__ can be used to compile dependencies and install AISDB. 
-Conda users may need to `install maturin from conda-forge <https://maturin.rs/installation.html#conda>`__.
+See `docs/install_from_source`__
 
-.. code-block:: sh
-
-  # installing the rust toolchain may be required
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-  # Windows users can instead download the installer:
-  # https://forge.rust-lang.org/infra/other-installation-methods.html#rustup
-  # https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
-
-  # create a virtual python environment and install maturin
-  python -m venv env_ais
-  source ./env_ais/bin/activate
-  python -m pip install --upgrade maturin
-
-  # clone source and navigate to the package root
-  git clone http://git-dev.cs.dal.ca/meridian/aisdb.git
-  cd aisdb
-
-  # install AISDB
-  maturin develop --release --extras=test,docs
-
-
-Also see ``maturin build`` for compiling package wheels instead of a local installation.
-
-
-Read more about the docker services for this package in ``docker-compose.yml`` and :ref:`AISDB docker services <docker>`
 
 
 Code examples

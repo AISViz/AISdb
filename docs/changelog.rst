@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.18
+-------
+
+update docs and readme
+
+
 v1.4.17
 -------
 

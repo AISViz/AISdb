@@ -58,13 +58,5 @@ Hardware Setup
 Software Setup
 --------------
 
--  Install AISHub dispatcher on your device, following the `installation
-   instructions on the AISHub
-   website <https://www.aishub.net/ais-dispatcher#linux>`__
--  Configure your dispatcher to send data to any endpoints as desired,
-   such as `AISHub <https://www.aishub.net/join-us>`__,
-   `VesselFinder <https://stations.vesselfinder.com/become-partner>`__,
-   or
-   `MarineTraffic <https://www.marinetraffic.com/en/p/expand-coverage>`__.
-   Many of these sites will agree to share other AIS data with you in
-   exchange for sending your datastream to them
+See examples in ``docker-compose.yml``
+
