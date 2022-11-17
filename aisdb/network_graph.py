@@ -474,8 +474,9 @@ def graph(qry,
     shoredist_raster = os.path.join(data_dir, 'distance-from-shore.tif')
     portdist_raster = os.path.join(data_dir,
                                    'distance-from-port-v20201104.tiff')
-    assert os.path.isfile(shoredist_raster)
-    assert os.path.isfile(portdist_raster)
+    assert os.path.isfile(
+        shoredist_raster), f'file not found {shoredist_raster}'
+    assert os.path.isfile(portdist_raster), f'file not found {portdist_raster}'
 
     # initialize raster data sources
     pdist = PortDist(portdist_raster)

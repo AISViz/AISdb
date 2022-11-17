@@ -54,6 +54,8 @@ Python version 3.8 or higher (tested on version 3.10).
 Install from PyPI
 -----------------
 
+Currently supports Windows (python3.8), Mac (python3.10), and linux (python3.8, python3.9, python3.10)
+
 .. code-block:: sh
 
    python -m venv env_ais && source ./env_ais/bin/activate
@@ -64,7 +66,6 @@ Installing from Source
 ----------------------
 
 See `Installing from Source <install_from_source>`__
-
 
 
 Code examples
