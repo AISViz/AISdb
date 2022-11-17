@@ -63,7 +63,7 @@ Install from PyPI
 Installing from Source
 ----------------------
 
-See `Installing from Source<docs/install_from_source>`__
+See `Installing from Source <install_from_source>`__
 
 
 
@@ -89,4 +89,4 @@ Collecting AIS Data
 -------------------
 
 1. `Setting up an AIS radio station, and exchanging data with other
-   networks <docs/AIS_base_station.md>`__
+   networks <AIS_base_station>`__
