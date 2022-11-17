@@ -63,7 +63,7 @@ Install from PyPI
 Installing from Source
 ----------------------
 
-See `docs/install_from_source`__
+See `Installing from Source<docs/install_from_source>`__
 
 
 
