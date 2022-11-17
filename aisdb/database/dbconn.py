@@ -4,13 +4,11 @@
 '''
 
 import os
+from calendar import monthrange
+from datetime import datetime
+# import aiosqlite
 
-import aiosqlite
-import sqlite3
-if (sqlite3.sqlite_version_info[0] < 3
-        or (sqlite3.sqlite_version_info[0] <= 3
-            and sqlite3.sqlite_version_info[1] < 35)):  # pragma: no cover
-    import pysqlite3 as sqlite3
+from aisdb import sqlite3
 
 _coarsetype_rows = [
     (20, 'Wing in ground craft'),
@@ -130,6 +128,9 @@ class DBConn(sqlite3.Connection):
                 currently attached databases. initialized as [],
                 list becomes populated with databases using the .attach()
                 method
+            db_daterange (dict)
+                temporal range of monthly database tables. keys are DB file
+                names
     '''
 
     def _create_table_coarsetype(self):
@@ -146,6 +147,7 @@ class DBConn(sqlite3.Connection):
     def __init__(self):
         # configs
         self.dbpaths = []
+        self.db_daterange = {}
         super().__init__(':memory:',
                          timeout=5,
                          detect_types=sqlite3.PARSE_DECLTYPES
@@ -170,3 +172,25 @@ class DBConn(sqlite3.Connection):
             self.execute('ATTACH DATABASE ? AS ?',
                          [dbpath, get_dbname(dbpath)])
             self.dbpaths.append(dbpath)
+
+        # query the temporal range of monthly database tables
+        # results will be stored as a dictionary attribute db_daterange
+        cur = self.cursor()
+        sql_qry = (
+            f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master '
+            'WHERE type="table" AND name LIKE "ais\\_%\\_dynamic" ESCAPE "\\" '
+        )
+        cur.execute(sql_qry)
+        dynamic_tables = cur.fetchall()
+        if dynamic_tables != []:
+            db_months = sorted(
+                [table['name'].split('_')[1] for table in dynamic_tables])
+            self.db_daterange[get_dbname(dbpath)] = {
+                'start':
+                datetime(int(db_months[0][:4]), int(db_months[0][4:]),
+                         1).date(),
+                'end':
+                datetime((y := int(db_months[-1][:4])),
+                         (m := int(db_months[-1][4:])),
+                         monthrange(y, m)[1]).date(),
+            }

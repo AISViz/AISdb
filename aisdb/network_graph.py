@@ -284,7 +284,7 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
 
 def pipeline_callback(tracks, *, domain, tmp_dir, trafficDBpath, maxdelta,
                       distance_threshold, speed_threshold, minscore,
-                      interp_delta, shoredist_raster, **kw):
+                      interp_delta, data_dir, **kw):
     # pipeline configuration from arguments
     serialize_CSV = partial(_serialize_network_edge,
                             domain=domain,
@@ -301,8 +301,9 @@ def pipeline_callback(tracks, *, domain, tmp_dir, trafficDBpath, maxdelta,
     # arrange pipeline processing steps in sequence
     # bathymetry and port distance are added prior to serializing q
     # initialize raster data sources
-    assert os.path.isfile(shoredist_raster)
-    sdist = ShoreDist(shoredist_raster)
+    #assert os.path.isfile(shoredist_raster)
+    #sdist = ShoreDist(shoredist_raster)
+    sdist = ShoreDist(data_dir)
 
     with sdist:
         result = serialize_CSV(
@@ -319,6 +320,9 @@ def pipeline_callback(tracks, *, domain, tmp_dir, trafficDBpath, maxdelta,
 
 
 def _processing_pipeline(q, **kwargs):
+    if 'pipeline_callback' not in kwargs.keys():
+        kwargs['pipeline_callback'] = pipeline_callback
+
     pipeline = kwargs.pop('pipeline_callback')
 
     # if tracks are an iterable type, process them in sequence
@@ -491,7 +495,8 @@ def graph(qry,
             interp_delta=interp_delta,
             maxdelta=maxdelta,
             minscore=minscore,
-            shoredist_raster=shoredist_raster,
+            #shoredist_raster=shoredist_raster,
+            data_dir=data_dir,
             speed_threshold=speed_threshold,
             tmp_dir=tmp_dir,
             trafficDBpath=trafficDBpath,

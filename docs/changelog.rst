@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.17
+-------
+
+improved database query handling
+
+
 v1.4.16
 -------
 

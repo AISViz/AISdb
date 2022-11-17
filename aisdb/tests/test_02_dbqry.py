@@ -27,12 +27,10 @@ def test_query_emptytable(tmpdir):
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
         sqlite_createtable_dynamicreport(dbconn, month='202101', dbpath=dbpath)
-        rows = q.gen_qry(force_reaggregate_static=True)
+        rows = q.gen_qry(reaggregate_static=True)
         try:
             next(rows)
-        except SyntaxError:
-            pass
-        except UserWarning:
+        except StopIteration:
             pass
         except Exception as err:
             raise err
@@ -54,7 +52,7 @@ def test_prepare_qry_domain(tmpdir):
             end=end,
             **domain.boundary,
             callback=sqlfcn_callbacks.in_timerange,
-        ).gen_qry(force_reaggregate_static=True)
+        ).gen_qry(reaggregate_static=True)
         try:
             next(rowgen)
         except SyntaxError:

@@ -1,13 +1,13 @@
 [package]
 name = "client"
-version = "1.4.16"
+version = "1.4.17"
 edition = "2021"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 readme = "../../readme.rst"
 description = "AIS Database and Processing Utils - Web Client WASM functions"
 homepage = "https://aisdb.meridian.cs.dal.ca/"
 documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
-repository = "https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/"
+repository = "https://git-dev.cs.dal.ca/meridian/aisdb"
 license-file = "../../license.txt"
 
 [lib]
