@@ -54,10 +54,10 @@ Python version 3.8 or higher (tested on version 3.10).
 Install from PyPI
 -----------------
 
-.. code-block: sh
+.. code-block:: sh
 
-  python -m venv env_ais && source ./env_ais/bin/activate
-  pip install aisdb
+   python -m venv env_ais && source ./env_ais/bin/activate
+   pip install aisdb
 
 
 Installing from Source
