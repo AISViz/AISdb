@@ -50,65 +50,60 @@ impl VesselData {
 /// ("!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64", 1635883083)
 /// ```
 pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
-    //println!("{:?}", line.as_ref().unwrap().rsplit_once('\\'));
-    match line.as_ref().unwrap().rsplit_once('\\')? {
-        (meta, payload) => {
-            for tag_outer in meta.split(',') {
-                for tag in tag_outer.split('*') {
-                    if tag.len() <= 3 || !&tag.contains("c:") {
-                        continue;
-                    } else if let Ok(i) = tag[2..].parse::<i32>() {
-                        return Some((payload.to_string(), i));
-                    } else if let Ok(i) = tag[3..].parse::<i32>() {
-                        return Some((payload.to_string(), i));
-                    } else if let Ok(i) = tag.split_once(' ').unwrap_or(("", "")).0.parse::<u64>() {
-                        if 946731600 < i
-                            && i <= std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .unwrap()
-                                .as_secs()
-                        {
-                            return Some((payload.to_string(), i.try_into().unwrap()));
-                        } else {
-                            #[cfg(debug_assertions)]
-                            println!(
-                                "skipped- tag:{:?}\tmeta:{:?}\tpayload:{:?}",
-                                tag, meta, payload
-                            );
-                            return None;
-                        }
-                    }
-                }
-            }
-            //println!("{:?}", meta);
-            if meta.contains(' ') {
-                #[cfg(debug_assertions)]
-                println!("{:?}", meta);
-                let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap_or(0);
-                if ii == 0 {
-                    return None;
-                }
-
-                let now = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
-                if 946731600 < ii && ii <= now {
-                    return Some((payload.to_string(), ii.try_into().unwrap()));
+    let (meta, payload) = line.as_ref().unwrap().rsplit_once('\\')?;
+    for tag_outer in meta.split(',') {
+        for tag in tag_outer.split('*') {
+            if tag.len() <= 3 || !&tag.contains("c:") {
+                continue;
+            } else if let Ok(i) = tag[2..].parse::<i32>() {
+                return Some((payload.to_string(), i));
+            } else if let Ok(i) = tag[3..].parse::<i32>() {
+                return Some((payload.to_string(), i));
+            } else if let Ok(i) = tag.split_once(' ').unwrap_or(("", "")).0.parse::<u64>() {
+                if 946731600 < i
+                    && i <= std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs()
+                {
+                    return Some((payload.to_string(), i.try_into().unwrap()));
                 } else {
                     #[cfg(debug_assertions)]
                     println!(
-                        "skipped- ii:{:?}\tmeta:{:?}\tpayload:{:?}",
-                        ii, meta, payload
+                        "skipped- tag:{:?}\tmeta:{:?}\tpayload:{:?}",
+                        tag, meta, payload
                     );
                     return None;
                 }
-            } else {
-                #[cfg(debug_assertions)]
-                println!("skipped- meta:{:?}\tpayload:{:?}", meta, payload);
-                return None;
             }
         }
+    }
+    if meta.contains(' ') {
+        #[cfg(debug_assertions)]
+        println!("{:?}", meta);
+        let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap_or(0);
+        if ii == 0 {
+            return None;
+        }
+
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        if 946731600 < ii && ii <= now {
+            Some((payload.to_string(), ii.try_into().unwrap()))
+        } else {
+            #[cfg(debug_assertions)]
+            println!(
+                "skipped- ii:{:?}\tmeta:{:?}\tpayload:{:?}",
+                ii, meta, payload
+            );
+            None
+        }
+    } else {
+        #[cfg(debug_assertions)]
+        println!("skipped- meta:{:?}\tpayload:{:?}", meta, payload);
+        None
     }
 }
 
@@ -130,7 +125,7 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
     let fragment_no = str::parse::<u8>(cols[2]).unwrap_or(1);
     match (cols[0], count, fragment_no, cols[3], cols[4], cols[5]) {
         (_prefix, c, f, _seq_id, _channel, tx)
-            if (&tx.chars().count() <= &2
+            if (tx.chars().count() <= 2
                 || ((c == 1)
                     && (f == 1)
                     && (&tx[0..1] == ";" || &tx[0..1] == "I" || &tx[0..1] == "J"))) =>
@@ -172,9 +167,6 @@ pub fn decode_insert_msgs(
     mut parser: NmeaParser,
     verbose: bool,
 ) -> Result<NmeaParser, Error> {
-    //) -> Result<(), Error> {
-    //let fstr = &filename.to_str().unwrap();
-    //assert_eq!(&fstr[&fstr.len() - 4..], ".nm4");
     match &filename.to_str().unwrap()[&filename.to_str().unwrap().len() - 3..] {
         "nm4" | ".rx" | "txt" | "NM4" | ".RX" | "TXT" => (),
         _ => {
@@ -209,16 +201,6 @@ pub fn decode_insert_msgs(
             payload: Some(payload),
         };
 
-        /*
-        if is_dynamic {
-        positions.push(message);
-        count += 1;
-        } else {
-        stat_msgs.push(message);
-        count += 1;
-        }
-        */
-
         match (is_dynamic, &message.payload) {
             (_, None) => continue,
             (true, Some(_m)) => {
@@ -232,21 +214,21 @@ pub fn decode_insert_msgs(
         }
 
         if positions.len() >= 500000 {
-            let _d = prepare_tx_dynamic(&mut c, &source, positions);
+            let _d = prepare_tx_dynamic(&mut c, source, positions);
             positions = vec![];
         };
         if stat_msgs.len() >= 500000 {
-            let _s = prepare_tx_static(&mut c, &source, stat_msgs);
+            let _s = prepare_tx_static(&mut c, source, stat_msgs);
             stat_msgs = vec![];
         }
     }
 
     // insert remaining
-    if positions.len() > 0 {
-        let _d = prepare_tx_dynamic(&mut c, &source, positions);
+    if !positions.is_empty() {
+        let _d = prepare_tx_dynamic(&mut c, source, positions);
     }
-    if stat_msgs.len() > 0 {
-        let _s = prepare_tx_static(&mut c, &source, stat_msgs);
+    if !stat_msgs.is_empty() {
+        let _s = prepare_tx_static(&mut c, source, stat_msgs);
     }
 
     let elapsed = start.elapsed();

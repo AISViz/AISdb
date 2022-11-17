@@ -22,9 +22,13 @@ pub fn csvdt_2_epoch(dt: &str) -> i64 {
 
 /// filter everything but vessel data, sort vessel data into static and dynamic vectors
 pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringRecord, i32, bool)> {
+    /*
     if rowopt.is_none() {
         return None;
     }
+    */
+    rowopt.as_ref()?;
+
     let row = rowopt.unwrap();
     let clonedrow = row.clone();
     let msgtype = clonedrow.get(1).unwrap();
@@ -58,7 +62,7 @@ pub fn decodemsgs_ee_csv(
     let start = Instant::now();
 
     let mut reader = csv::Reader::from_reader(
-        File::open(filename).expect(format!("cannot open file {:?}", filename).as_str()),
+        File::open(filename).unwrap_or_else(|_| panic!("cannot open file {:?}", filename)),
     );
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
@@ -137,20 +141,20 @@ pub fn decodemsgs_ee_csv(
         }
 
         if positions.len() >= 500000 {
-            let _d = prepare_tx_dynamic(&mut c, &source, positions);
+            let _d = prepare_tx_dynamic(&mut c, source, positions);
             positions = vec![];
         };
         if stat_msgs.len() >= 500000 {
-            let _s = prepare_tx_static(&mut c, &source, stat_msgs);
+            let _s = prepare_tx_static(&mut c, source, stat_msgs);
             stat_msgs = vec![];
         }
     }
 
-    if positions.len() > 0 {
-        let _d = prepare_tx_dynamic(&mut c, &source, positions);
+    if !positions.is_empty() {
+        let _d = prepare_tx_dynamic(&mut c, source, positions);
     }
-    if stat_msgs.len() > 0 {
-        let _s = prepare_tx_static(&mut c, &source, stat_msgs);
+    if !stat_msgs.is_empty() {
+        let _s = prepare_tx_static(&mut c, source, stat_msgs);
     }
 
     let elapsed = start.elapsed();

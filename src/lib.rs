@@ -22,7 +22,6 @@ pub mod util;
 
 use csvreader::*;
 use decode::*;
-//use load_geotiff::load_pixel;
 
 macro_rules! zip {
     ($x: expr) => ($x);
@@ -84,18 +83,18 @@ pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str, verbose: bool) {
     // check file extensions and begin decode
     let mut parser = NmeaParser::new();
     for (d, f) in &path_arr {
-        if f.to_str().unwrap().contains(&".nm4")
-            || f.to_str().unwrap().contains(&".NM4")
-            || f.to_str().unwrap().contains(&".RX")
-            || f.to_str().unwrap().contains(&".rx")
-            || f.to_str().unwrap().contains(&".TXT")
-            || f.to_str().unwrap().contains(&".txt")
+        if f.to_str().unwrap().contains(".nm4")
+            || f.to_str().unwrap().contains(".NM4")
+            || f.to_str().unwrap().contains(".RX")
+            || f.to_str().unwrap().contains(".rx")
+            || f.to_str().unwrap().contains(".TXT")
+            || f.to_str().unwrap().contains(".txt")
         {
-            parser = decode_insert_msgs(&d, &f, &source, parser, verbose).expect("decoding NM4");
-        } else if f.to_str().unwrap().contains(&".csv") || f.to_str().unwrap().contains(&".CSV") {
-            decodemsgs_ee_csv(&d, &f, &source, verbose).expect("decoding CSV");
+            parser = decode_insert_msgs(d, f, source, parser, verbose).expect("decoding NM4");
+        } else if f.to_str().unwrap().contains(".csv") || f.to_str().unwrap().contains(".CSV") {
+            decodemsgs_ee_csv(d, f, source, verbose).expect("decoding CSV");
         } else {
-            panic!("unknown file extension {:?}", &d);
+            panic!("unknown file extension {:?}", d);
         }
     }
 }
@@ -212,7 +211,7 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
             Ok(i) => i as i32,
             Err(i) => {
                 if (i as i32) < 0 {
-                    0 as i32
+                    0
                 } else if i >= (arr.len()) {
                     (arr.len() - 1) as i32
                 } else {

@@ -270,7 +270,7 @@ fn main() {
         udp_listen_addr: "[::]:9921".into(),
         tcp_listen_addr: "[::]:9920".into(),
         multicast_addr: "224.0.0.20:9919".into(),
-        tee: false,
+        tee: true,
     };
     let multicast_addr_raw: String = "224.0.0.18:9918".into();
 
