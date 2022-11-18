@@ -306,7 +306,7 @@ fn main() {
 
     // if this is not None, raw input will be re-broadcasted here
     // can be used to pass input downstream to e.g. reverse proxy
-    let multicast_rebroadcast = Some("224.0.0.18:9918");
+    let multicast_rebroadcast = Some("[ff02::18]:9918");
 
     // number of messages received before database insert
     let dynamic_msg_bufsize = 128;

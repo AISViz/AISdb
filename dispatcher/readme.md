@@ -1,5 +1,5 @@
 # Network Dispatcher
-Client/proxy/server networked socket dispatcher. Streams files and raw socket 
+Client/proxy/server network socket dispatcher. Streams files and raw socket 
 data over the network.
 
 ### Features
