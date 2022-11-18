@@ -45,18 +45,13 @@ What is AIS?
 .. install:
 
 
-Install Prerequisite
---------------------
-
-Python version 3.8 or higher (tested on version 3.10).
-
-
-Install from PyPI
------------------
+Install
+-------
+Requires Python version 3.8, 3.9, or 3.10
 
 .. code-block:: sh
 
-   python -m venv env_ais && source ./env_ais/bin/activate
+   python -m venv env_ais && source ./env_ais/*/activate
    pip install aisdb
 
 
