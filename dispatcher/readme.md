@@ -14,7 +14,7 @@ data over the network.
 - [X] Minimal 
   - Compiled sizes < 350Kb
   - Tiny memory footprint
-  - Stateless: no shared resources, 1 thread per input socket
+  - Stateless: no shared resources between threads. Communication between threads are routed via UDP multicast
 
 ### Compatible with
 - [X] UDP

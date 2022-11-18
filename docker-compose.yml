@@ -122,7 +122,7 @@ services:
      - "${AISDBPORT:-9924}:${AISDBPORT:-9924}"
      - "9920:9920"
      - "9921:9921/udp"
-     - "9922:9922/udp"
+     - "9922:9922"
     networks:
       ipv6_private:
         ipv6_address: "fc00::2"
@@ -177,9 +177,9 @@ services:
     networks:
       ipv6_private:
         ipv6_address: "fc00::8"
-    working_dir: "/usr/src/aisdb/dispatcher/proxy"
+    working_dir: "/usr/src/aisdb/dispatcher/reverse_proxy"
     command:
-      ["proxy", "--listen_addr", "[ff02::18]:9918", "--downstream_addr", "0.0.0.0:9922", "--tee"]
+      ["reverse_proxy", "--multicast_addr", "[ff02::18]:9918", "--tcp_listen_addr", "[::]:9922", "--tee"]
 
 networks:
   ipv6_private:

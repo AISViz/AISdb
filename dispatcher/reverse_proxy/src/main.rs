@@ -12,19 +12,19 @@ const HELP: &str = r#"
 DISPATCH: reverse_proxy 
 
 USAGE:
-  reverse_proxy --udp_listen_addr [HOSTNAME:PORT] --tcp_listen_addr [LOCAL_ADDRESS:PORT] --multicast_addr [MULTICAST_IP:PORT] 
-
-  e.g.
-  reverse_proxy --udp_listen_addr '0.0.0.0:9920' --tcp_listen_addr '[::1]:9921' --multicast_addr '224.0.0.1:9922'
+  reverse_proxy --tcp_listen_addr [LOCAL_ADDRESS:PORT] --multicast_addr [MULTICAST_IP:PORT]
 
 FLAGS:
-  -h, --help    Prints help information
-  -t, --tee     Copy input to stdout
+  -h, --help                            Prints help information
+  -t, --tee                             Copy input to stdout
+  --udp_listen_addr [HOSTNAME:PORT]     Spawn a multicast listener, and rebroadcast to --multicast_addr    
 
+EXAMPLE:
+  reverse_proxy --udp_listen_addr '0.0.0.0:9920' --tcp_listen_addr '[::1]:9921' --multicast_addr '224.0.0.1:9922'
 "#;
 
 pub struct ReverseProxyArgs {
-    pub udp_listen_addr: String,
+    pub udp_listen_addr: Option<String>,
     pub multicast_addr: String,
     pub tcp_listen_addr: String,
     pub tee: bool,
@@ -38,7 +38,7 @@ fn parse_args() -> Result<ReverseProxyArgs, pico_args::Error> {
     }
     let tee = pargs.contains(["-t", "--tee"]);
     let args = ReverseProxyArgs {
-        udp_listen_addr: pargs.value_from_str("--udp_listen_addr")?,
+        udp_listen_addr: pargs.opt_value_from_str("--udp_listen_addr")?,
         multicast_addr: pargs.value_from_str("--multicast_addr")?,
         tcp_listen_addr: pargs.value_from_str("--tcp_listen_addr")?,
         tee,
@@ -62,11 +62,9 @@ pub fn main() {
 
     // UDP listener thread -> UPD multicast sender
     // rebroadcast upstream UDP via multicast to client threads
-    let _multicast = proxy_thread(
-        &args.udp_listen_addr,
-        &[args.multicast_addr.clone()],
-        args.tee,
-    );
+    if let Some(udp_listen) = args.udp_listen_addr {
+        let _multicast = proxy_thread(&udp_listen, &[args.multicast_addr.clone()], args.tee);
+    }
 
     let r_proxy = reverse_proxy_tcp(args.multicast_addr, args.tcp_listen_addr);
     r_proxy.join().unwrap();

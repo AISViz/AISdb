@@ -8,7 +8,7 @@ use socket_dispatch::BUFSIZE;
 extern crate server;
 use server::join_multicast;
 
-fn handle_client(downstream: TcpStream, multicast_addr: String) {
+fn handle_client_tcp(downstream: TcpStream, multicast_addr: String) {
     let multicast_addr = multicast_addr
         .to_socket_addrs()
         .unwrap()
@@ -31,18 +31,19 @@ fn handle_client(downstream: TcpStream, multicast_addr: String) {
                 let _count_output = tcp_writer.write(&buf[0..count_input]);
             }
             Err(err) => {
-                eprintln!("reverse_proxy_client: got an error: {}", err);
+                eprintln!("reverse_proxy: got an error: {}", err);
                 break;
             }
         }
         if let Err(e) = tcp_writer.flush() {
-            eprintln!("exiting {:?}: {}", multicast_socket, e);
+            #[cfg(debug_assertions)]
+            eprintln!("reverse_proxy: closing {:?} {}", multicast_socket, e);
             break;
         }
     }
 }
 
-/// forward UDP socket stream to downstream TCP clients
+/// Forward UDP socket stream to downstream TCP clients
 ///
 /// Spawns a new thread for each client.
 /// An additional thread will be spawned to listen for upstream_addr, which
@@ -60,7 +61,7 @@ pub fn reverse_proxy_tcp(multicast_addr: String, tcp_listen_addr: String) -> Joi
             println!("new client {:?}", stream);
             let multicast_addr = multicast_addr.clone();
             let _tcp_client = spawn(move || {
-                handle_client(stream.unwrap(), multicast_addr);
+                handle_client_tcp(stream.unwrap(), multicast_addr);
             });
         }
     })
