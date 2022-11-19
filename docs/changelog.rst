@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.20
+-------
+
+front end updates
+
+
 v1.4.19
 -------
 

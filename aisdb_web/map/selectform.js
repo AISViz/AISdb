@@ -126,7 +126,13 @@ async function newSearch(start, end) {
  * @function
  */
 selectbtn.onclick = function() {
-  selectmenu.classList.toggle('show');
+  // selectmenu.classList.toggle('show');
+  polySource.clear();
+  map.removeInteraction(draw);
+  map.removeInteraction(dragBox);
+  drawSource.clear();
+  map.addInteraction(draw);
+  map.addInteraction(dragBox);
 };
 
 
@@ -134,6 +140,7 @@ selectbtn.onclick = function() {
  * @callback selectmenu_childNodes_onclick
  * @function
  */
+/*
 selectmenu.childNodes.forEach((opt) => {
   opt.onclick = async function() {
     selectmenu.classList.toggle('show');
@@ -153,6 +160,7 @@ selectmenu.childNodes.forEach((opt) => {
     }
   };
 });
+*/
 
 
 /** search button click action

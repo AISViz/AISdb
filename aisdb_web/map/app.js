@@ -1,3 +1,9 @@
+navigator.serviceWorker.getRegistrations().then((registrations) => {
+  for (let registration of registrations) {
+    registration.unregister();
+  }
+});
+
 (async () => {
   let { init_maplayers } = await import('./map');
   let [
