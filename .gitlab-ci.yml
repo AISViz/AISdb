@@ -27,8 +27,6 @@ build-website:
   stage: build-website
   only: 
     - master
-  #dependencies:
-  #  - rust-test
   script:
     - cd aisdb_web && npm install
     - /bin/bash ./build_website.sh
@@ -43,16 +41,10 @@ python-test:
   before_script:
     - export PATH="/home/ais_env/env/bin:$PATH"
   script:
-    #- python -m venv env
-    #- source env/bin/activate && python -m pip install --upgrade pip maturin
-    #- source env/bin/activate && maturin develop --release --extras=test,docs
     - mkdir -p data_dir
-    #- source env/bin/activate && AISDBDATADIR=data_dir python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
-    #- AISDBDATADIR=data_dir python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
-    - /home/ais_env/env/bin/python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
+    - maturin develop --release --extras=test --strip
+    - python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
   coverage: '/TOTAL.*\s+(\d+\%)/'
-  #dependencies:
-  #  - rust-test
 
 
 #pkgbuild:
