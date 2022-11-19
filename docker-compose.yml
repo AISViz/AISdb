@@ -33,6 +33,7 @@ services:
   # build python package and run python tests
   python-test:
     container_name: python-test
+    image: meridiancfi/aisdb:latest
     build:
       target: aisdb
       context: .
@@ -43,7 +44,8 @@ services:
       - AISDBTESTDIR=/home/ais_env/testdata
     volumes:
       - ${AISDBDATADIR:-/home/$USER/ais/}:/home/ais_env/ais/
-      - ./aisdb_web/dist_coverage/:/home/ais_env/aisdb_web/dist_coverage/
+      #- ./aisdb_web/dist_coverage/:/home/ais_env/aisdb_web/dist_coverage/
+      - ./docs/dist_coverage/:/home/ais_env/docs/dist_coverage/
       - ./target/:/home/ais_env/target
       - ./testdata:/home/ais_env/testdata
     init: true
@@ -53,6 +55,7 @@ services:
   # webapp
   webserver:
     container_name: webserver
+    init: true
     build: 
       target: webserv
       context: .
@@ -73,12 +76,13 @@ services:
   # nodejs docs server
   docserver:
     container_name: docserver
+    init: true
     build:
       target: docserv
       context: .
       dockerfile: ./docker/Dockerfile
     command:
-      ['npm', '--prefix', 'aisdb_web/', 'run', 'doc']
+      ['node', 'docs/docserver.js']
     networks:
       ipv6_private:
         ipv6_address: "fc00::4"

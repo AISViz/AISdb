@@ -16,14 +16,13 @@ echo
 git ls-files --exclude-from=.dockerignore
 echo
 
-cd $SCRIPTPATH
 read -p "Are you sure? [y/n]" -r
 
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
-  docker build --target aisdb --tag meridiancfi/aisdb:$TAG --tag meridiancfi/aisdb:latest --compress --file ./Dockerfile .. 
+  pwd
+  docker tag meridiancfi/aisdb:latest meridiancfi/aisdb:$TAG
   sudo docker push meridiancfi/aisdb:$TAG
-  #docker build --target aisdb --tag meridiancfi/aisdb:latest --compress --file ./Dockerfile .. 
   sudo docker push meridiancfi/aisdb:latest
 fi
 

@@ -4,7 +4,7 @@ ROOTDIR="${SCRIPTPATH}/.."
 PKGDIR="${ROOTDIR}/aisdb"
 RSTSOURCEDIR="${ROOTDIR}/docs/source"
 MAPDIR="${ROOTDIR}/aisdb_web/map"
-SPHINXDIR="${ROOTDIR}/aisdb_web/dist_sphinx"
+SPHINXDIR="${ROOTDIR}/docs/dist_sphinx"
 WASMDIR="${ROOTDIR}/aisdb_web/client_webassembly"
 
 set -e

@@ -355,6 +355,7 @@ def graph(qry,
           minscore=0,
           pipeline_callback=pipeline_callback,
           qryfcn=sqlfcn.crawl_dynamic_static,
+          decimate=0.0001,
           verbose=False):
     ''' Compute network graph of vessel movements within domain zones.
         Zone polygons will be used as network nodes, with graph edges
@@ -488,7 +489,7 @@ def graph(qry,
 
         rowgen = qry.gen_qry(fcn=qryfcn, verbose=verbose)
         tracks = serialize_tracks(
-            bathy.merge_tracks(pdist.get_distance(TrackGen(rowgen))))
+            bathy.merge_tracks(pdist.get_distance(TrackGen(rowgen, decimate))))
         fcn = partial(
             _processing_pipeline,
             distance_threshold=distance_threshold,

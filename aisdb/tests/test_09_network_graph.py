@@ -111,8 +111,10 @@ def test_fence_tracks_realdata(tmpdir):
         geofenced = partial(fence_tracks, domain=domain)
 
         # query db for points in domain bounding box
-        _test = np.array(list(geofenced(distsplit(TrackGen(
-            rowgen.gen_qry())))))
+        _test = np.array(
+            list(
+                geofenced(distsplit(TrackGen(rowgen.gen_qry(),
+                                             decimate=0.01)))))
         zoneset = reduce(set.union, (set(track['in_zone']) for track in _test))
         assert zoneset != {'Z0'}
         zonemask = [set(track['in_zone']) != {'Z0'} for track in _test]
@@ -160,6 +162,7 @@ def setup_network_graph(tmpdir, processes):
             processes=processes,
             outputfile=outpath,
             maxdelta=timedelta(weeks=1),
+            decimate=0.01,
         )
         assert os.path.isfile(outpath)
         with open(outpath, 'r') as out:
