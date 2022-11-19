@@ -33,7 +33,7 @@ python-test:
     - export PATH="/home/ais_env/env/bin:$PATH"
   script:
     - mkdir -p data_dir testdata
-    - cargo test --color=always --release --lib --manifest-path=./aidb_lib/Cargo.toml
+    - cargo test --color=always --release --lib --manifest-path=./aisdb_lib/Cargo.toml
     - maturin develop --release --extras=test --strip
     - python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
   coverage: '/TOTAL.*\s+(\d+\%)/'

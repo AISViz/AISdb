@@ -10,15 +10,6 @@ use chrono::{DateTime, Utc};
 extern crate rusqlite;
 use rusqlite::{params, Connection, Result, Transaction};
 
-/*
-use std::fs::canonicalize;
-use std::path::PathBuf;
-const SQLDIR: String = canonicalize(PathBuf::from())
-    .unwrap()
-    .into_os_string()
-    .into_string()
-    .unwrap();
-    */
 static PROJECT_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../aisdb/aisdb_sql");
 
 /// open a new database connection at the specified path
