@@ -38,9 +38,10 @@ build-website:
 python-test:
   stage: python-test
   variables:
-    PATH: ".env/bin:$PATH"
     VIRTUAL_ENV: "/home/ais_env/env"
     AISDBDATADIR: "data_dir"
+  #before_script:
+  #  - export PATH=".env/bin:$PATH"
   script:
     #- python -m venv env
     #- source env/bin/activate && python -m pip install --upgrade pip maturin
@@ -48,7 +49,7 @@ python-test:
     - mkdir -p data_dir
     #- source env/bin/activate && AISDBDATADIR=data_dir python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
     #- AISDBDATADIR=data_dir python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
-    - python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
+    - ./env/bin/python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
   coverage: '/TOTAL.*\s+(\d+\%)/'
   #dependencies:
   #  - rust-test
