@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
 
-  # compile rust targets and assemble python package wheels with maturin
+  # compile for manylinux targets and assemble python package wheels
   pkgbuild:
     container_name: pkgbuild
     image: ghcr.io/pyo3/maturin:main
@@ -28,7 +28,7 @@ services:
       - ./testdata:/home/ais_env/testdata
       - ./target/:/home/ais_env/target
     command:
-      ["cargo", "test", "--lib", "--release", "--color=always"]
+      ["cargo", "test", "--lib", "--release", "--color=always", "--manifest-path=./aisdb_lib/Cargo.toml"]
 
   # build python package and run python tests
   python-test:
@@ -191,6 +191,6 @@ networks:
     enable_ipv6: true
     ipam:
       config:
-        - subnet: "fc00:0:0::/119"
+        - subnet: "fc00:0:0::/120"
           gateway: "fc00:0:0::1"
 

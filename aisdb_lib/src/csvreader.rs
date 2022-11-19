@@ -189,8 +189,7 @@ pub fn decodemsgs_ee_csv(
 #[cfg(test)]
 pub mod tests {
 
-    use crate::decodemsgs_ee_csv;
-    use crate::Error;
+    use super::{decodemsgs_ee_csv, Error};
     use std::fs::File;
     use std::io::Write;
     pub use std::{

@@ -9,18 +9,10 @@ workflow:
 
 
 stages:
-  - rust-test
-  - build-website
   - python-test
+  - build-website
   #- pkgbuild
   - publish
-
-
-rust-test:
-  stage: rust-test
-  script:
-    - mkdir -p testdata 
-    - cargo test --color=always --release --lib
 
 
 build-website:
@@ -30,7 +22,6 @@ build-website:
   script:
     - cd aisdb_web && npm install
     - /bin/bash ./build_website.sh
-    - cd ..
 
 
 python-test:
@@ -41,7 +32,8 @@ python-test:
   before_script:
     - export PATH="/home/ais_env/env/bin:$PATH"
   script:
-    - mkdir -p data_dir
+    - mkdir -p data_dir testdata
+    - cargo test --color=always --release --lib --manifest-path=./aidb_lib/Cargo.toml
     - maturin develop --release --extras=test --strip
     - python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
   coverage: '/TOTAL.*\s+(\d+\%)/'

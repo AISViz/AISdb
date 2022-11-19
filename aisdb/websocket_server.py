@@ -81,7 +81,8 @@ class SocketServ():
                 raise err
         except Exception as err:
             await websocket.close()
-            raise err
+            print(err)
+            return
 
     async def handler(self, websocket):
         ''' handle messages received by the websocket '''

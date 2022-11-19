@@ -91,6 +91,7 @@ async function cancelSearch() {
   searchbtn.textContent = 'Search';
   statusdiv.textContent = 'Cancelled search';
   window.statusmsg = statusdiv.textContent;
+  document.body.style.cursor = 'initial';
   await resetSearchState();
   await socket.send(JSON.stringify({ type: 'stop' }));
 }
@@ -133,6 +134,7 @@ selectbtn.onclick = function() {
   drawSource.clear();
   map.addInteraction(draw);
   map.addInteraction(dragBox);
+  document.body.style.cursor = 'crosshair';
 };
 
 
@@ -148,12 +150,14 @@ selectmenu.childNodes.forEach((opt) => {
       polySource.getFeatures().length === 0) {
       map.removeInteraction(draw);
       map.removeInteraction(dragBox);
+      document.body.style.cursor = 'grab';
       drawSource.clear();
       await socket.send(JSON.stringify({ type: 'zones' }));
     } else if (opt.dataset.value === 'selectbox') {
       polySource.clear();
       map.removeInteraction(draw);
       map.removeInteraction(dragBox);
+      document.body.style.cursor = 'crosshair';
       drawSource.clear();
       map.addInteraction(draw);
       map.addInteraction(dragBox);
@@ -207,6 +211,7 @@ searchbtn.onclick = async function() {
   }
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
+  document.body.style.cursor = 'initial';
 };
 
 
@@ -224,6 +229,7 @@ clearbtn.onclick = async function() {
   }
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
+  document.body.style.cursor = 'initial';
   drawSource.clear();
   lineSource.clear();
 };

@@ -8,20 +8,12 @@ use nmea_parser::NmeaParser;
 use pyo3::prelude::*;
 use std::cmp::max;
 
-#[path = "csvreader.rs"]
-pub mod csvreader;
+extern crate aisdb_lib;
+use aisdb_lib::csvreader::decodemsgs_ee_csv;
+use aisdb_lib::decode::decode_insert_msgs;
 
-#[path = "db.rs"]
-pub mod db;
-
-#[path = "decode.rs"]
-pub mod decode;
-
-#[path = "util.rs"]
-pub mod util;
-
-use csvreader::*;
-use decode::*;
+extern crate aisdb_receiver;
+use aisdb_receiver::start_receiver;
 
 macro_rules! zip {
     ($x: expr) => ($x);
@@ -31,7 +23,6 @@ macro_rules! zip {
         )
 }
 
-#[pyfunction]
 /// fast great circle distance
 ///
 /// args:
@@ -47,13 +38,13 @@ macro_rules! zip {
 /// returns:
 ///     distance in metres (float64)
 ///
+#[pyfunction]
 pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
     let p1 = point!(x: x1, y: y1);
     let p2 = point!(x: x2, y: y2);
     p1.haversine_distance(&p2)
 }
 
-#[pyfunction]
 /// Parse NMEA-formatted strings, and create SQLite database
 /// from raw AIS transmissions
 ///
@@ -70,6 +61,7 @@ pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 /// returns:
 ///     None
 ///
+#[pyfunction]
 pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str, verbose: bool) {
     // array tuples containing (dbpath, filepath)
     let mut path_arr = vec![];
@@ -229,6 +221,30 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
         .collect::<Vec<i32>>()
 }
 
+#[pyfunction]
+pub fn receiver(
+    udp_listen_addr: &str,
+    tcp_listen_addr: &str,
+    multicast_addr: &str,
+    dbpath: Option<&str>,
+    multicast_rebroadcast: Option<&str>,
+    dynamic_msg_bufsize: Option<usize>,
+    static_msg_bufsize: Option<usize>,
+    tee: bool,
+) {
+    //
+    start_receiver(
+        dbpath,
+        udp_listen_addr,
+        tcp_listen_addr,
+        multicast_addr,
+        multicast_rebroadcast,
+        dynamic_msg_bufsize,
+        static_msg_bufsize,
+        tee,
+    )
+}
+
 /// Functions imported from Rust
 #[pymodule]
 //#[allow(unused_variables)]
@@ -238,6 +254,7 @@ pub fn aisdb(_py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
     module.add_wrapped(wrap_pyfunction!(encoder_score_fcn))?;
     module.add_wrapped(wrap_pyfunction!(binarysearch_vector))?;
+    module.add_wrapped(wrap_pyfunction!(receiver))?;
     //module.add_wrapped(wrap_pyfunction!(load_geotiff_pixel))?;
     Ok(())
 }

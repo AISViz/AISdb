@@ -1,13 +1,25 @@
-//use std::env::current_exe;
+use crate::decode::VesselData;
+use crate::util::epoch_2_dt;
+
+extern crate include_dir;
 use include_dir::{include_dir, Dir};
 
+extern crate chrono;
 use chrono::{DateTime, Utc};
+
+extern crate rusqlite;
 use rusqlite::{params, Connection, Result, Transaction};
 
-use crate::util::epoch_2_dt;
-use crate::VesselData;
-
-static PROJECT_DIR: Dir<'_> = include_dir!("aisdb/aisdb_sql");
+/*
+use std::fs::canonicalize;
+use std::path::PathBuf;
+const SQLDIR: String = canonicalize(PathBuf::from())
+    .unwrap()
+    .into_os_string()
+    .into_string()
+    .unwrap();
+    */
+static PROJECT_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../aisdb/aisdb_sql");
 
 /// open a new database connection at the specified path
 pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
@@ -189,7 +201,7 @@ pub fn prepare_tx_static(
         .to_string();
     let t = c.transaction().unwrap();
     sqlite_createtable_staticreport(&t, &mstr).expect("create static table");
-    sqlite_insert_static(&t, stat_msgs, &mstr, source).expect("insert static");
+    sqlite_insert_static(&t, stat_msgs, &mstr, source).unwrap_or_else(|_| panic!("insert static"));
     t.commit()
 }
 

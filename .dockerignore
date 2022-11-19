@@ -11,8 +11,8 @@
 **/__pycache__
 **/node_modules/*
 **/target
+**/target/**
 testdata
-**package-lock.json
 *.cookie
 *.d
 *.crt

@@ -16,9 +16,9 @@ use proxy::new_listen_socket;
 extern crate server;
 use server::join_multicast;
 
-extern crate aisdb;
-use aisdb::db::{get_db_conn, prepare_tx_dynamic, prepare_tx_static};
-use aisdb::decode::VesselData;
+extern crate aisdb_lib;
+use aisdb_lib::db::{get_db_conn, prepare_tx_dynamic, prepare_tx_static};
+use aisdb_lib::decode::VesselData;
 
 // external
 
@@ -64,7 +64,11 @@ fn filter_insert_vesseldata(
 ) -> Option<String> {
     match parser.parse_sentence(sentence).ok()? {
         ParsedMessage::VesselDynamicData(vdd) => {
-            if vdd.longitude.is_none() || vdd.latitude.is_none() {
+            if vdd.longitude.is_none()
+                || vdd.latitude.is_none()
+                || vdd.longitude == Some(0.)
+                || vdd.latitude == Some(0.)
+            {
                 return None;
             }
 
@@ -134,7 +138,7 @@ fn process_message(
 /// UDP multicast server
 /// listens for packets on a UDP socket, and forward to
 /// local multicast address
-pub fn decode_multicast(
+fn decode_multicast(
     listen_addr: String,
     multicast_addr: String,
     multicast_rebroadcast: Option<String>,
@@ -218,7 +222,7 @@ pub fn decode_multicast(
 /// TCP server handler
 /// Listens for incoming UDP multicast packets, and reverse-proxy
 /// packets downstream to connected TCP clients
-pub fn handle_client(downstream: &TcpStream, multicast_addr: String) {
+fn handle_client(downstream: &TcpStream, multicast_addr: String) {
     let multicast_addr = multicast_addr
         .to_socket_addrs()
         .unwrap()
@@ -295,6 +299,7 @@ pub fn start_receiver(
     }
 }
 
+#[allow(dead_code)]
 fn main() {
     // optionally save to database file
     let dbpath = Some("./ais_rx.db");

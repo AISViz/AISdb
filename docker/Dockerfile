@@ -23,7 +23,10 @@ RUN python -m venv env
 ENV PATH=./env/bin:$PATH VIRTUAL_ENV="/home/ais_env/env"
 #COPY --chown="ais_env" .coveragerc .coveragerc
 COPY --chown=ais_env aisdb/aisdb_sql aisdb/aisdb_sql
-COPY --chown=ais_env Cargo.toml pyproject.toml build.rs readme.rst ./
+COPY --chown=ais_env aisdb_lib/ aisdb_lib/
+COPY --chown=ais_env dispatcher/ dispatcher/
+COPY --chown=ais_env receiver/ receiver/
+COPY --chown=ais_env Cargo.toml pyproject.toml readme.rst ./
 # pre-cache build dependencies before building
   #&& chown ais_env aisdb \
   #&& touch aisdb/__init__.py \

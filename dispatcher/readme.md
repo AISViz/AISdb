@@ -12,7 +12,7 @@ data over the network.
 - [X] Fast
   - 500+ Mbps read/transfer/write speed via UDP
 - [X] Minimal 
-  - Compiled sizes < 350Kb
+  - Compiled binaries ~350Kb each
   - Tiny memory footprint
   - Stateless: no shared resources between threads. Communication between threads are routed via UDP multicast
 

@@ -239,6 +239,7 @@ async function init_maplayers() {
     selectFeature.setStyle(dragBoxStyle);
     drawSource.addFeature(selectFeature);
     map.removeInteraction(dragBox);
+    document.body.style.cursor = 'initial';
   });
 
   /** draw layer addfeature event */

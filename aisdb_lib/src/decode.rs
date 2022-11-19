@@ -265,9 +265,8 @@ pub fn decode_insert_msgs(
 #[cfg(test)]
 pub mod tests {
 
-    use super::{decode_insert_msgs, parse_headers, NmeaParser};
+    use super::{decode_insert_msgs, parse_headers, Error, NmeaParser};
     use crate::util::glob_dir;
-    use crate::Error;
     use std::fs::create_dir_all;
     use std::fs::File;
     use std::io::Write;
