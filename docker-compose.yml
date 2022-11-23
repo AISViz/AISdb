@@ -15,10 +15,7 @@ services:
     container_name: rust-test
     environment:
       - RUST_BACKTRACE=1
-    build:
-      target: aisdb
-      context: .
-      dockerfile: ./docker/Dockerfile
+    image: meridiancfi/aisdb:latest
     environment:
       - RUST_BACKTRACE=1
     volumes:
@@ -34,10 +31,6 @@ services:
   python-test:
     container_name: python-test
     image: meridiancfi/aisdb:latest
-    build:
-      target: aisdb
-      context: .
-      dockerfile: ./docker/Dockerfile
     environment:
       - RUST_BACKTRACE=1
       - AISDBDATADIR=/home/ais_env/ais
@@ -77,10 +70,7 @@ services:
   docserver:
     container_name: docserver
     init: true
-    build:
-      target: docserv
-      context: .
-      dockerfile: ./docker/Dockerfile
+    image: meridiancfi/aisdb:latest
     command:
       ['node', 'docs/docserver.js']
     networks:
@@ -90,10 +80,7 @@ services:
   # database server
   websocket:
     container_name: websocket
-    build:
-      target: aisdb
-      context: .
-      dockerfile: ./docker/Dockerfile
+    image: meridiancfi/aisdb:latest
     environment:
       AISDBHOST: ${AISDBHOST:-127.0.0.1}
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
@@ -123,10 +110,12 @@ services:
     ports:
      - "80:80"
      - "443:443"
-     - "${AISDBPORT:-9924}:${AISDBPORT:-9924}"
      - "9920:9920"
      - "9921:9921/udp"
+     #- "9921:9921"
      - "9922:9922"
+     - "9923:9923/udp"
+     - "9924:9924"
     networks:
       ipv6_private:
         ipv6_address: "fc00::2"
@@ -157,33 +146,52 @@ services:
   receiver:
     container_name: receiver
     init: true
+    image: meridiancfi/aisdb:latest
     build: 
+      target: aisdb
       context: .
-      dockerfile: ./docker/receiver.Dockerfile
-    environment:
-      RUST_BACKTRACE: 1
+      dockerfile: ./docker/Dockerfile
     # will look for database on path ./receiver/ais_rx.db
     # ensure that write permission is allowed
     volumes:
-      - ./receiver/:/usr/src/aisdb/receiver/
+      - ./receiver:/usr/src/aisdb/receiver
     networks:
       ipv6_private:
         ipv6_address: "fc00::7"
+    command: 
+      ["aisdb-receiver", 
+          "--path", "/usr/src/aisdb/receiver/ais_rx.db", 
+          "--tcp_connect_addr='aisdb.meridian.cs.dal.ca:9922'", 
+          #"--tcp_listen_addr='[::]:9922'", 
+          "--udp_listen_addr='[::]:9921'", 
+          "--tcp_output_addr='[::]:9922'", 
+          "--multicast_addr_rawdata='[ff02::1]:9916'",
+          "--multicast_addr_parsed='[ff02::1]:9917'"
+          #,"--tee"
+      ]
 
   upstream-ais:
     container_name: upstream-ais
     init: true
+    image: meridiancfi/aisdb:latest
     build: 
+      target: aisdb
       context: .
-      dockerfile: ./docker/receiver.Dockerfile
+      dockerfile: ./docker/Dockerfile
     environment:
       RUST_BACKTRACE: 1
     networks:
       ipv6_private:
         ipv6_address: "fc00::8"
+    depends_on:
+      - nginx
     working_dir: "/usr/src/aisdb/dispatcher/reverse_proxy"
     command:
-      ["reverse_proxy", "--multicast_addr", "[ff02::18]:9918", "--tcp_listen_addr", "[::]:9922", "--tee"]
+      ["reverse_proxy",
+         "--multicast_addr", "[ff02::1]:9916",
+         "--tcp_output_addr", "[::]:9920",
+         "--udp_output_addr", "[::]:9923"
+      ]
 
 networks:
   ipv6_private:

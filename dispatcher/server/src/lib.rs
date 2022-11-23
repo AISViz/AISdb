@@ -4,7 +4,6 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket}
 use std::path::PathBuf;
 use std::thread::{Builder, JoinHandle};
 
-extern crate socket_dispatch;
 use socket_dispatch::{bind_socket, new_socket, BUFSIZE};
 
 /// server: client socket handler
@@ -69,29 +68,13 @@ pub fn join_unicast(addr: SocketAddr) -> ioResult<UdpSocket> {
     Ok(socket.into())
 }
 
-/// server socket listener
-pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
+/// to bind to an arbitrary outgoing port, see client::target_socket_interface
+pub fn upstream_socket_interface(addr: String) -> ioResult<(SocketAddr, UdpSocket)> {
     let addr = addr
         .to_socket_addrs()
         .unwrap()
         .next()
         .expect("parsing socket address");
-
-    if !logfile.as_path().parent().unwrap().is_dir() {
-        panic!(
-            "directory does not exist: {}",
-            logfile.parent().unwrap().display()
-        );
-    }
-
-    let file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .append(true)
-        .open(&logfile);
-    let mut writer = BufWriter::new(file.unwrap());
-    let mut output_buffer = BufWriter::new(stdout());
-
     let listen_socket = match addr.ip().is_multicast() {
         //false => join_unicast(addr).expect(format!("failed to create unicast socket listener! {}", addr).as_str()),
         false => join_unicast(addr).unwrap_or_else(|_| panic!("failed to create unicast socket listener! {}", addr)),
@@ -100,6 +83,20 @@ pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
             Err(e) => panic!("failed to create multicast listener on address {}! are you sure this is a valid multicast channel?\n{:?}", addr, e),
         }},
     };
+    Ok((addr, listen_socket))
+}
+
+/// server socket listener
+pub fn listener(addr: String, logfile: PathBuf, tee: bool) -> JoinHandle<()> {
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open(&logfile);
+    let mut writer = BufWriter::new(file.unwrap());
+    let mut output_buffer = BufWriter::new(stdout());
+
+    let (addr, listen_socket) = upstream_socket_interface(addr).unwrap();
     Builder::new()
         .name(format!("{}:server", addr))
         .spawn(move || {

@@ -82,5 +82,11 @@ Code examples
 Collecting AIS Data
 -------------------
 
-1. `Setting up an AIS radio station, and exchanging data with other
-   networks <AIS_base_station>`__
+1. `Log raw AIS data to an SQLite database <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.receiver.html>`__
+
+.. code-block:: python
+
+   from aisdb.receiver import start_receiver
+
+   start_receiver(connect_addr='aisdb.meridian.cs.dal.ca:9920', dbpath='AIS.sqlitedb', stdout=True)
+

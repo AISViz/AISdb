@@ -2,11 +2,9 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
-extern crate pico_args;
-use pico_args::Arguments;
+use server::listener;
 
-pub mod lib;
-pub use crate::lib::listener;
+use pico_args::Arguments;
 
 const HELP: &str = r#"
 DISPATCH: SERVER
@@ -15,7 +13,7 @@ USAGE:
   server --path [OUTPUT_LOGFILE] --listen_addr [SOCKET_ADDR] ...
 
   e.g.
-  server --path logfile.log --listen_addr 127.0.0.1:9920 --listen_addr [::1]:9921
+  server --path logfile.log --listen_addr '127.0.0.1:9920' --listen_addr '[::1]:9921'
 
 
 FLAGS:

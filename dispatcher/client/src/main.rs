@@ -2,19 +2,23 @@ use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::process::exit;
 
-extern crate pico_args;
-use pico_args::Arguments;
+use client::client_socket_stream;
 
-pub mod lib;
-use crate::lib::client_socket_stream;
+use pico_args::Arguments;
 
 const HELP: &str = r#"
 DISPATCH: CLIENT
 
 USAGE:
-  client --path [FILE_DESCRIPTOR] --server_addr [SOCKET_ADDR] ...
+  client --path [FILE_DESCRIPTOR]  ...
 
-  path may be a file, file descriptor/handle, socket, or "-" for stdin
+  Path may be a file descriptor, handle, or socket. 
+  To send input via stdin, set the path to "-"
+
+OPTIONS:
+  --server_addr [SOCKET_ADDR] downstream UDP server address.
+                              can be repeated for multiple servers
+
 
   e.g.
   client --path /dev/random --server_addr 127.0.0.1:9920 --server_addr [::1]:9921

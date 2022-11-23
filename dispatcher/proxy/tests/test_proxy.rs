@@ -30,7 +30,7 @@ fn test_proxy_thread_ipv4() {
     sleep(Duration::from_millis(15));
 
     let targets = vec![proxy_target];
-    let _p = proxy_thread(&proxy_listen, &targets, false);
+    let _p = proxy_thread(proxy_listen, &targets, false);
     sleep(Duration::from_millis(15));
 
     let _c = client_socket_stream(&data, vec![client_target], false);

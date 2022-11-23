@@ -3,10 +3,16 @@ name = "proxy"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+tls = ["dep:rustls", "dep:webpki-roots"]
+
 [dependencies]
 socket_dispatch = {path = "../socket_dispatch"}
 client = {path = "../client"}
 server = {path = "../server"}
+rustls = {version = "0.20", optional = true}
+webpki-roots = {version = "0.22", optional = true}
+#openssl = {version = "0.10", features = ["vendored"], optional = true}
 
 [dependencies.pico-args]
 version = "0.5.0"

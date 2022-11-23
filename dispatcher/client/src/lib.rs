@@ -4,10 +4,9 @@ use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-extern crate socket_dispatch;
 use socket_dispatch::{bind_socket, new_socket, BUFSIZE};
 
-/// new upstream socket
+/// new upstream socket on any available UDP port
 /// socket will allow any downstream IP i.e. 0.0.0.0
 pub fn new_sender(addr: &SocketAddr) -> ioResult<UdpSocket> {
     let socket = new_socket(addr)?;
@@ -54,6 +53,8 @@ fn new_sender_ipv6(addr: &SocketAddr, ipv6_interface: u32) -> ioResult<UdpSocket
 }
 
 pub fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
+    // workaround:
+    // find the first suitable interface
     for i in 0..32 {
         //#[cfg(debug_assertions)]
         //println!("checking interface {}", i);
@@ -73,22 +74,30 @@ pub fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
     panic!("No suitable network interfaces were found!");
 }
 
+/// binds to a random port number for sending
+/// to bind to a specific port, see server::upstream_socket_interface
+pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, UdpSocket)> {
+    let target_addr = server_addr
+        .to_socket_addrs()
+        .unwrap()
+        .next()
+        .expect("parsing server address");
+    let target_socket = match target_addr.is_ipv4() {
+        true => new_sender(&target_addr).expect("creating ipv4 send socket!"),
+        false => client_check_ipv6_interfaces(&target_addr).expect("creating ipv6 send socket!"),
+    };
+    //if target_addr.ip().is_multicast() {
+    target_socket.set_broadcast(true)?;
+    //}
+
+    Ok((target_addr, target_socket))
+}
+
 pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool) -> ioResult<()> {
     let mut targets = vec![];
 
     for server_addr in server_addrs {
-        let target_addr = server_addr
-            .to_socket_addrs()
-            .unwrap()
-            .next()
-            .expect("parsing server address");
-        let target_socket = match target_addr.is_ipv4() {
-            true => new_sender(&target_addr).expect("creating ipv4 send socket!"),
-            false => {
-                client_check_ipv6_interfaces(&target_addr).expect("creating ipv6 send socket!")
-            }
-        };
-        target_socket.set_broadcast(true)?;
+        let (target_addr, target_socket) = target_socket_interface(&server_addr)?;
         targets.push((target_addr, target_socket));
         println!(
             "logging {}: listening for {}",
@@ -97,6 +106,8 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
         );
     }
 
+    // if path is "-" set read buffer to stdin
+    // otherwise, create buffered reader from given file descriptor
     let mut reader: Box<dyn BufRead> = if path == &PathBuf::from_str("-").unwrap() {
         Box::new(BufReader::new(stdin()))
     } else {
@@ -105,7 +116,7 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
                 .create(false)
                 .write(false)
                 .read(true)
-                .open(&path)
+                .open(path)
                 .unwrap_or_else(|e| {
                     panic!("opening {}, {}", path.as_os_str().to_str().unwrap(), e)
                 }),
@@ -133,7 +144,7 @@ pub fn client_socket_stream(path: &PathBuf, server_addrs: Vec<String>, tee: bool
 
         for (target_addr, target_socket) in &targets {
             target_socket
-                .send_to(&buf[0..c], &target_addr)
+                .send_to(&buf[0..c], target_addr)
                 .expect("sending to server socket");
         }
         if tee {

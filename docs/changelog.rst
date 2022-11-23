@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.22
+-------
+
+receiver TLS/TCP
+
+
 v1.4.21
 -------
 

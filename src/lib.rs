@@ -1,18 +1,20 @@
 //! Rust exports for python API
+use std::cmp::max;
+use std::path::PathBuf;
+use std::process::exit;
+use std::thread::sleep;
+use std::time::Duration;
 
 use geo::algorithm::simplifyvw::SimplifyVwIdx;
 use geo::point;
 use geo::prelude::*;
 use geo_types::{Coord, LineString};
 use nmea_parser::NmeaParser;
+use pyo3::ffi::PyErr_CheckSignals;
 use pyo3::prelude::*;
-use std::cmp::max;
 
-extern crate aisdb_lib;
 use aisdb_lib::csvreader::decodemsgs_ee_csv;
 use aisdb_lib::decode::decode_insert_msgs;
-
-extern crate aisdb_receiver;
 use aisdb_receiver::start_receiver;
 
 macro_rules! zip {
@@ -221,33 +223,81 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
         .collect::<Vec<i32>>()
 }
 
+/// Receive raw AIS data from an upstream UDP data source, parse the data into
+/// JSON format, and create a websocket listener to send parsed results downstream.
+/// If dbpath is given, parsed data will be stored in an SQLite database.
+///
+/// args:
+///     dbpath (Option<String>)
+///         If given, raw messages will be parsed and stored in an SQLite database at this location
+///     udp_listen_addr (String)
+///         UDP port to listen for incoming AIS data streams e.g. "0.0.0.0:9921" or "[::]:9921"
+///     tcp_listen_addr (String)
+///         if not None, a thread will be spawned to forward TCP connections to
+///         incoming port ``udp_listen_addr``
+///     multicast_addr (String)
+///         Raw UDP messages will be parsed and then routed to TCP socket listeners via this channel.
+///     multicast_rebroadcast (Option<String>)
+///         Optionally pass a rebroadcast address where raw data will be filtered
+///         and rebroadcasted to this channel for e.g. forwarding to downstream
+///         networks
+///     tcp_output_addr (String)
+///         TCP port to listen for websocket clients to send parsed data in JSON format
+///     dynamic_msg_bufsize (Option<usize>)
+///         Number of positional messages to keep before inserting into the database.
+///         Defaults to 256 if none is given
+///     static_msg_bufsize (Option<usize>)
+///         Number of static messages to keep before inserting into database.
+///         Defaults to 64
+///     tee (bool)
+///         If True, raw input will be copied to stdout
 #[pyfunction]
 pub fn receiver(
-    udp_listen_addr: &str,
-    tcp_listen_addr: &str,
-    multicast_addr: &str,
-    dbpath: Option<&str>,
-    multicast_rebroadcast: Option<&str>,
+    dbpath: Option<String>,
+    tcp_connect_addr: Option<String>,
+    tcp_listen_addr: Option<String>,
+    udp_listen_addr: String,
+    multicast_addr_parsed: Option<String>,
+    multicast_addr_raw: Option<String>,
+    tcp_output_addr: Option<String>,
+    udp_output_addr: Option<String>,
     dynamic_msg_bufsize: Option<usize>,
     static_msg_bufsize: Option<usize>,
     tee: bool,
 ) {
-    //
-    start_receiver(
-        dbpath,
-        udp_listen_addr,
+    let threads = start_receiver(
+        dbpath.map(PathBuf::from),
+        tcp_connect_addr,
         tcp_listen_addr,
-        multicast_addr,
-        multicast_rebroadcast,
+        udp_listen_addr,
+        multicast_addr_parsed,
+        multicast_addr_raw,
+        tcp_output_addr,
+        udp_output_addr,
         dynamic_msg_bufsize,
         static_msg_bufsize,
         tee,
-    )
+    );
+    unsafe {
+        while threads
+            .iter()
+            .map(|t| t.is_finished())
+            .filter(|b| !(*b))
+            .count()
+            > 0
+        {
+            let signal = PyErr_CheckSignals();
+            if signal != 0 {
+                eprintln!("exiting...");
+                exit(signal);
+            }
+            sleep(Duration::from_millis(500));
+        }
+    }
 }
 
 /// Functions imported from Rust
 #[pymodule]
-//#[allow(unused_variables)]
 pub fn aisdb(_py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(haversine))?;
     module.add_wrapped(wrap_pyfunction!(decoder))?;
@@ -255,6 +305,5 @@ pub fn aisdb(_py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(encoder_score_fcn))?;
     module.add_wrapped(wrap_pyfunction!(binarysearch_vector))?;
     module.add_wrapped(wrap_pyfunction!(receiver))?;
-    //module.add_wrapped(wrap_pyfunction!(load_geotiff_pixel))?;
     Ok(())
 }

@@ -1,20 +1,28 @@
 use std::process::exit;
 
-extern crate pico_args;
-use pico_args::Arguments;
+use proxy::{proxy_gateway, proxy_tcp_udp};
 
-use proxy::proxy_gateway;
+use pico_args::Arguments;
 
 const HELP: &str = r#"
 DISPATCH: proxy
 
 USAGE:
-  proxy --listen_addr [LOCAL_ADDRESS:PORT] --downstream_addr [HOSTNAME:PORT] ...
+  proxy  [FLAGS] [OPTIONS]
 
-  either --listen_addr or --downstream_addr may be repeated
-  e.g.
-  proxy --listen_addr '0.0.0.0:9920' --downstream_addr '[::1]:9921' --downstream_addr 'localhost:9922' --tee
+  proxy --udp_listen_addr '0.0.0.0:9920' --udp_downstream_addr '[::1]:9921' \
+        --udp_downstream_addr 'localhost:9922' --tee
 
+OPTIONS:
+  --udp_listen_addr [HOSTNAME:PORT]     UDP listening socket address. May be
+                                        repeated for multiple interfaces
+
+  --udp_downstream_addr [HOSTNAME:PORT] UDP downstream socket address. May be
+                                        repeated for multiple interfaces
+
+  --tcp_connect_addr [HOSTNAME:PORT]    Connect to TCP host, forwarding stream
+                                        data to the first UDP listener address.
+                                        May be repeated for multiple connections
 
 FLAGS:
   -h, --help    Prints help information
@@ -23,8 +31,9 @@ FLAGS:
 "#;
 
 pub struct GatewayArgs {
-    downstream_addrs: Vec<String>,
-    listen_addrs: Vec<String>,
+    udp_listen_addrs: Vec<String>,
+    udp_downstream_addrs: Vec<String>,
+    tcp_connect_addrs: Vec<String>,
     tee: bool,
 }
 
@@ -34,13 +43,14 @@ fn parse_args() -> Result<GatewayArgs, pico_args::Error> {
         print!("{}", HELP);
         exit(0);
     }
-    let tee = pargs.contains(["-t", "--tee"]);
 
     let args = GatewayArgs {
-        listen_addrs: pargs.values_from_str("--listen_addr")?,
-        downstream_addrs: pargs.values_from_str("--downstream_addr")?,
-        tee,
+        udp_listen_addrs: pargs.values_from_str("--udp_listen_addr")?,
+        udp_downstream_addrs: pargs.values_from_str("--udp_downstream_addr")?,
+        tcp_connect_addrs: pargs.values_from_str("--tcp_connect_addr")?,
+        tee: pargs.contains(["-t", "--tee"]),
     };
+
     let remaining = pargs.finish();
     if !remaining.is_empty() {
         println!("Warning: unused arguments {:?}", remaining)
@@ -57,8 +67,17 @@ pub fn main() {
             exit(1);
         }
     };
+    let mut threads = vec![];
 
-    for thread in proxy_gateway(&args.downstream_addrs, &args.listen_addrs, args.tee) {
+    for upstream in args.tcp_connect_addrs {
+        threads.push(proxy_tcp_udp(upstream, args.udp_listen_addrs[0].clone()));
+    }
+
+    for thread in proxy_gateway(&args.udp_downstream_addrs, &args.udp_listen_addrs, args.tee) {
+        threads.push(thread);
+    }
+
+    for thread in threads {
         thread.join().unwrap();
     }
 }

@@ -31,9 +31,9 @@ const ptSelectStyle = function(feature) {
 let streamsocket = null;
 if (import.meta.env.VITE_DISABLE_SSL !== null &&
   import.meta.env.VITE_DISABLE_SSL !== undefined) {
-  streamsocket = new WebSocket(`ws://${hostname}:9920`);
+  streamsocket = new WebSocket(`ws://${hostname}:9922`);
 } else {
-  streamsocket = new WebSocket(`wss://${hostname}:9920`);
+  streamsocket = new WebSocket(`wss://${hostname}:9922`);
 }
 let live_targets = {};
 
