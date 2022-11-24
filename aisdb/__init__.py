@@ -1,11 +1,7 @@
 import os
 import logging
 
-import sqlite3
-if (sqlite3.sqlite_version_info[0] < 3
-        or (sqlite3.sqlite_version_info[0] <= 3
-            and sqlite3.sqlite_version_info[1] < 8)):
-    import pysqlite3 as sqlite3
+import pysqlite3 as sqlite3
 
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
@@ -68,8 +64,3 @@ LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',
                     level=LOGLEVEL,
                     datefmt='%Y-%m-%d %I:%M:%S')
-
-#assert sqlite3.sqlite_version_info[
-#    0] >= 3, 'SQLite version too low! version 3.35 or newer required'
-#assert sqlite3.sqlite_version_info[
-#    1] >= 8, 'SQLite version too low! version 3.35 or newer required'
