@@ -1,7 +1,13 @@
 import os
 import logging
+import warnings
 
-import pysqlite3 as sqlite3
+import sqlite3
+if (sqlite3.sqlite_version_info[0] < 3
+        or (sqlite3.sqlite_version_info[0] <= 3
+            and sqlite3.sqlite_version_info[1] < 8)):
+    warnings.warn(
+        f"An outdated version of SQLite was found ({sqlite3.sqlite_version})")
 
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 

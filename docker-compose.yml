@@ -161,7 +161,7 @@ services:
     command: 
       ["aisdb-receiver", 
           "--path", "/usr/src/aisdb/receiver/ais_rx.db", 
-          "--tcp_connect_addr='aisdb.meridian.cs.dal.ca:9922'", 
+          #"--tcp_connect_addr='aisdb.meridian.cs.dal.ca:9920'", 
           #"--tcp_listen_addr='[::]:9922'", 
           "--udp_listen_addr='[::]:9921'", 
           "--tcp_output_addr='[::]:9922'", 

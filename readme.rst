@@ -82,7 +82,7 @@ Code examples
 Collecting AIS Data
 -------------------
 
-1. `Log raw AIS data to an SQLite database <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.receiver.html>`__
+1. `Decode incoming AIS data and log to SQLite database <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.receiver.html>`__
 
 .. code-block:: python
 
