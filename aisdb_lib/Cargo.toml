@@ -1,9 +1,9 @@
 [package]
-version = "1.4.22"
+version = "1.4.23"
 name = "aisdb-lib"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"
-include = [ "../aisdb/aisdb_sql", "/src/*"]
+include = [ "../aisdb/aisdb_sql", "/src/*",]
 build = "build.rs"
 readme = "readme.rst"
 description = "AIS Database and Processing Utils"
@@ -13,6 +13,7 @@ repository = "https://git-dev.cs.dal.ca/meridian/aisdb"
 license-file = "license.txt"
 
 [lib]
+name = "aisdb-lib"
 
 [dependencies]
 geo = "0.23.0"

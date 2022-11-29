@@ -47,7 +47,8 @@ What is AIS?
 
 Install
 -------
-Requires Python version 3.8, 3.9, or 3.10
+Requires Python version 3.8, 3.9, or 3.10.
+Requires SQLite (included by default in most versions of Python).
 
 .. code-block:: sh
 
@@ -57,6 +58,7 @@ Requires Python version 3.8, 3.9, or 3.10
 
 Installing from Source
 ----------------------
+
 
 See `Installing from Source <install_from_source>`__
 
