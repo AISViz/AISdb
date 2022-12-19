@@ -12,6 +12,7 @@ import orjson
 from aisdb.aisdb import simplify_linestring_idx, encoder_score_fcn
 from aisdb.gis import delta_knots, delta_meters
 from aisdb.proc_util import _segment_rng
+from aisdb import Domain
 
 staticcols = set([
     'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow',
@@ -503,6 +504,8 @@ def fence_tracks(tracks, domain):
 
         Also see zone_mask()
     '''
+    assert isinstance(domain, Domain), 'Not a domain object'
+
     for track in tracks:
         assert isinstance(track, dict)
         if 'in_zone' not in track.keys():

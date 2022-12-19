@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.25
+-------
+
+fix column issue when writing to CSV file
+
+
 v1.4.24
 -------
 

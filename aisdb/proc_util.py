@@ -130,7 +130,7 @@ _columns_order = [
 def write_csv(
     tracks,
     fpath,
-    skipcols=['mmsi', 'label', 'in_zone', 'ship_type'],
+    skipcols=['label', 'in_zone'],
 ):
     ''' write track vector dictionaries as CSV file
 
@@ -151,6 +151,7 @@ def write_csv(
             set(_columns_order).union(set(['marinetraffic_info'])))
         if c in list(tr1['static']) + list(tr1['dynamic'])
     ]
+    colnames = [col for col in colnames if col not in skipcols]
 
     if 'marinetraffic_info' in tr1.keys():
         colnames += tuple(tr1['marinetraffic_info'].keys())
