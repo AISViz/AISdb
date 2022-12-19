@@ -18,11 +18,12 @@ path = "src/receiver.rs"
 
 [dependencies]
 aisdb-lib = {path = "../aisdb_lib"}
-socket_dispatch = {path = "../dispatcher/socket_dispatch"}
-client = {path = "../dispatcher/client"}
-server = {path = "../dispatcher/server"}
-proxy = {path = "../dispatcher/proxy", features = ["tls"]}
-reverse_proxy = {path = "../dispatcher/reverse_proxy"}
+mproxy-socket_dispatch = {path = "../dispatcher/socket_dispatch", version = "0.1"}
+mproxy-client = {path = "../dispatcher/client", version = "0.1"}
+mproxy-server = {path = "../dispatcher/server", version = "0.1"}
+mproxy-forward = {path = "../dispatcher/proxy", features = ["tls"], version = "0.1"}
+mproxy-reverse = {path = "../dispatcher/reverse_proxy", version = "0.1"}
+
 nmea-parser = {version = "0.10"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"

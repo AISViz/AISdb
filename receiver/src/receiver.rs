@@ -1,6 +1,6 @@
 use std::ffi::OsStr;
 use std::io::{stdout, BufWriter, Write};
-use std::net::{SocketAddr, TcpListener, TcpStream, ToSocketAddrs, UdpSocket};
+use std::net::{SocketAddr, TcpListener, TcpStream, UdpSocket};
 use std::path::PathBuf;
 use std::process::exit;
 use std::thread::{spawn, Builder, JoinHandle};
@@ -9,11 +9,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 // local
 use aisdb_lib::db::{get_db_conn, prepare_tx_dynamic, prepare_tx_static};
 use aisdb_lib::decode::VesselData;
-use client::target_socket_interface;
-use proxy::proxy_tcp_udp;
-use reverse_proxy::{reverse_proxy_tcp_udp, reverse_proxy_udp};
-use server::{join_multicast, upstream_socket_interface};
-use socket_dispatch::BUFSIZE;
+use mproxy_client::target_socket_interface;
+use mproxy_forward::proxy_tcp_udp;
+use mproxy_reverse::{reverse_proxy_tcp_udp, reverse_proxy_udp};
+use mproxy_server::upstream_socket_interface;
+use mproxy_socket_dispatch::BUFSIZE;
 
 // external
 use nmea_parser::{NmeaParser, ParsedMessage};
@@ -148,11 +148,8 @@ fn decode_multicast(
     }
 
     // downstream multicast channel for parsed data
-    let target_parsed = if let Some(parsedaddr) = multicast_addr_parsed {
-        Some(target_socket_interface(&parsedaddr).expect("binding socket interface"))
-    } else {
-        None
-    };
+    let target_parsed = multicast_addr_parsed
+        .map(|parsedaddr| target_socket_interface(&parsedaddr).expect("binding socket interface"));
 
     let mut buf = [0u8; BUFSIZE];
     let mut parser = NmeaParser::new();
@@ -228,19 +225,10 @@ fn decode_multicast(
 /// Accepts websocket connections from downstream clients.
 /// Listens for incoming UDP multicast packets, and forward
 /// packets downstream to connected clients
-fn handle_websocket_client(downstream: TcpStream, multicast_addr_parsed: String) -> JoinHandle<()> {
+fn handle_websocket_client(downstream: TcpStream, multicast_addr: String) -> JoinHandle<()> {
     spawn(move || {
-        let multicast_addr_parsed = multicast_addr_parsed
-            .to_socket_addrs()
-            .unwrap()
-            .next()
-            .expect("parsing socket address");
-        if !multicast_addr_parsed.ip().is_multicast() {
-            panic!("not a multicast address {}", multicast_addr_parsed);
-        }
-        let multicast_socket = join_multicast(multicast_addr_parsed).unwrap_or_else(|e| {
-            panic!("joining multicast socket {}", e);
-        });
+        let (_multicast_addr, multicast_socket) =
+            target_socket_interface(&multicast_addr).expect("binding socket");
 
         let mut buf = [0u8; 32768];
         let mut websocket =
@@ -321,24 +309,17 @@ pub fn start_receiver(
 
     // listen for inbound TCP connections and forward to UDP input
     if let Some(tcpaddr) = tcp_listen_addr {
-        threads.push(reverse_proxy_tcp_udp(tcpaddr, udp_listen_addr.clone()));
+        threads.push(reverse_proxy_tcp_udp(tcpaddr, udp_listen_addr));
     }
 
     // bind UDP output socket to send raw input from multicast channel
-    if udp_output_addr.is_some() && multicast_addr_rawdata.is_some() {
-        threads.push(reverse_proxy_udp(
-            multicast_addr_rawdata.unwrap(),
-            udp_output_addr.unwrap(),
-        ));
+    if let (Some(udpout), Some(multicast_raw)) = (udp_output_addr, multicast_addr_rawdata) {
+        threads.push(reverse_proxy_udp(multicast_raw, udpout));
     }
 
     // parsed JSON output via websocket
-    //if let (Some(tcpout), Some(parsed_route)) = (tcp_output_addr, multicast_addr_parsed) {
-    if tcp_output_addr.is_some() && multicast_addr_parsed.is_some() {
-        threads.push(listen_websocket_clients(
-            multicast_addr_parsed.unwrap(),
-            tcp_output_addr.unwrap(),
-        ));
+    if let (Some(tcpout), Some(multicast_parsed)) = (tcp_output_addr, multicast_addr_parsed) {
+        threads.push(listen_websocket_clients(multicast_parsed, tcpout));
     }
 
     threads

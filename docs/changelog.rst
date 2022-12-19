@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.27
+-------
+
+update receiver for new dispatcher API
+
+
 v1.4.26
 -------
 
