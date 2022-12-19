@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.24
+-------
+
+fix bug in gis.py initializing domain when coordinate is zero
+
+
 v1.4.23
 -------
 

@@ -315,8 +315,8 @@ class Domain():
             returns all zones with distances less than zero meters, sorted by
             nearest first
         '''
-        assert float(x), f'{type(x)} {x=}'
-        assert float(y), f'{type(y)} {y=}'
+        assert float(x) or x == 0.0, f'{type(x)} {x=}{y=}'
+        assert float(y) or y == 0.0, f'{type(y)} {x=}{y=}'
         assert isinstance(self.zones, dict)
         dist_to_centroids = {}
         for name, z in self.zones.items():
@@ -340,8 +340,8 @@ class Domain():
                 y (float)
                     latitude value
         '''
-        assert float(x), f'{type(x)} {x=}'
-        assert float(y), f'{type(y)} {y=}'
+        assert float(x) or x == 0.0, f'{type(x)} {x=}{y=}'
+        assert float(y) or y == 0.0, f'{type(y)} {x=}{y=}'
         assert len(self.zones) > 0
         # first pass filter using distance to centroid, subtracting max radius.
         # discard all geometry with a distance over zero
