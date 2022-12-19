@@ -9,7 +9,7 @@ requires-python = ">=3.8"
 requires-dist = [ "maturin>=0.13", "numpy", "wheel",]
 dependencies = [ "aiosqlite", "orjson", "packaging", "pillow", "requests", "selenium", "shapely", "tqdm", "websockets", "numpy", "webdriver-manager",]
 zip-safe = false
-version = "1.4.25"
+version = "1.4.26"
 readme = "readme.rst"
 description = "AIS Database and Processing Utils"
 classifiers = [ "Intended Audience :: Developers", "Intended Audience :: Science/Research", "License :: OSI Approved :: MIT License", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Rust", "Programming Language :: SQL", "Programming Language :: JavaScript", "Topic :: Communications :: Ham Radio", "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends", "Topic :: Scientific/Engineering :: GIS", "Topic :: Scientific/Engineering :: Information Analysis", "Topic :: Utilities",]

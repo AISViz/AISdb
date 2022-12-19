@@ -2,23 +2,28 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
-use server::listener;
+use mproxy_server::listener;
 
 use pico_args::Arguments;
 
 const HELP: &str = r#"
-DISPATCH: SERVER
+MPROXY: UDP Server
+
+Listen for incoming UDP messages and log to file.
 
 USAGE:
-  server --path [OUTPUT_LOGFILE] --listen_addr [SOCKET_ADDR] ...
+  mproxy-server [FLAGS] [OPTIONS] ...
 
-  e.g.
-  server --path logfile.log --listen_addr '127.0.0.1:9920' --listen_addr '[::1]:9921'
-
+OPTIONS: 
+  --path        [FILE_DESCRIPTOR]   Filepath, descriptor, or handle.
+  --listen-addr [SOCKET_ADDR]       Upstream UDP listening address. May be repeated 
 
 FLAGS:
   -h, --help    Prints help information
   -t, --tee     Copy input to stdout
+
+EXAMPLE:
+  mproxy-server --path logfile.log --listen-addr '127.0.0.1:9920' --listen-addr '[::1]:9921'
 
 "#;
 
@@ -37,7 +42,7 @@ fn parse_args() -> Result<ServerArgs, pico_args::Error> {
     let tee = pargs.contains(["-t", "--tee"]);
     let args = ServerArgs {
         path: pargs.value_from_str("--path")?,
-        listen_addr: pargs.values_from_str("--listen_addr")?,
+        listen_addr: pargs.values_from_str("--listen-addr")?,
         tee,
     };
     let remaining = pargs.finish();
@@ -45,7 +50,7 @@ fn parse_args() -> Result<ServerArgs, pico_args::Error> {
         println!("Warning: unused arguments {:?}", remaining)
     }
     if args.listen_addr.is_empty() {
-        eprintln!("Error: the --listen_addr option must be set. Must provide atleast one client IP address");
+        eprintln!("Error: the --listen-addr option must be set. Must provide atleast one client IP address");
     };
 
     Ok(args)

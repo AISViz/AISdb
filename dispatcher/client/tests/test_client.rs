@@ -3,13 +3,10 @@ use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
 
-extern crate testconfig;
 use testconfig::{truncate, TESTDATA, TESTINGDIR};
 
-extern crate server;
-use server::listener;
-
-use client::client_socket_stream;
+use mproxy_client::client_socket_stream;
+use mproxy_server::listener;
 
 fn test_client(pathstr: &str, listen_addr: String, target_addr: String, tee: bool) {
     let _l = listener(listen_addr, PathBuf::from_str(pathstr).unwrap(), false);

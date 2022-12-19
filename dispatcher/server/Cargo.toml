@@ -1,20 +1,26 @@
 [package]
-name = "server"
-version = "0.1.0"
+name = "mproxy-server"
+version = "0.1.2"
 edition = "2021"
+
+license = "MIT"
+readme = "../readme.md"
+repository = "https://github.com/matt24smith/mproxy-dispatcher"
+description = "MPROXY: Server. Listen for incoming UDP messages and log to file."
+documentation = "https://docs.rs/mproxy-server/"
 
 [lib]
 
 [[bin]]
-name = "server"
+name = "mproxy-server"
 
 [dependencies]
-socket_dispatch = {path = "../socket_dispatch"}
+mproxy-socket_dispatch = {path = "../socket_dispatch", version = "0.1.2"}
 
 [dependencies.pico-args]
 version = "0.5.0"
 features = [ "eq-separator",]
 
 [dev-dependencies]
-client = {path = "../client"}
+mproxy-client = {path = "../client"}
 testconfig = {path = "../testconfig"}

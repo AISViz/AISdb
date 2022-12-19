@@ -21,16 +21,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "client"
-version = "0.1.0"
-dependencies = [
- "pico-args",
- "server",
- "socket_dispatch",
- "testconfig",
-]
-
-[[package]]
 name = "js-sys"
 version = "0.3.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -55,6 +45,58 @@ dependencies = [
 ]
 
 [[package]]
+name = "mproxy-client"
+version = "0.1.2"
+dependencies = [
+ "mproxy-server",
+ "mproxy-socket_dispatch",
+ "pico-args",
+ "testconfig",
+]
+
+[[package]]
+name = "mproxy-forward"
+version = "0.1.2"
+dependencies = [
+ "mproxy-client",
+ "mproxy-server",
+ "mproxy-socket_dispatch",
+ "pico-args",
+ "rustls",
+ "testconfig",
+ "webpki-roots",
+]
+
+[[package]]
+name = "mproxy-reverse"
+version = "0.1.2"
+dependencies = [
+ "mproxy-client",
+ "mproxy-forward",
+ "mproxy-server",
+ "mproxy-socket_dispatch",
+ "pico-args",
+ "testconfig",
+]
+
+[[package]]
+name = "mproxy-server"
+version = "0.1.2"
+dependencies = [
+ "mproxy-client",
+ "mproxy-socket_dispatch",
+ "pico-args",
+ "testconfig",
+]
+
+[[package]]
+name = "mproxy-socket_dispatch"
+version = "0.1.2"
+dependencies = [
+ "socket2",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -76,37 +118,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "proxy"
-version = "0.1.0"
-dependencies = [
- "client",
- "pico-args",
- "rustls",
- "server",
- "socket_dispatch",
- "testconfig",
- "webpki-roots",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbe448f377a7d6961e30f5955f9b8d106c3f5e449d493ee1b125c1d43c2b5179"
 dependencies = [
  "proc-macro2",
-]
-
-[[package]]
-name = "reverse_proxy"
-version = "0.1.0"
-dependencies = [
- "client",
- "pico-args",
- "proxy",
- "server",
- "socket_dispatch",
- "testconfig",
 ]
 
 [[package]]
@@ -147,16 +164,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "server"
-version = "0.1.0"
-dependencies = [
- "client",
- "pico-args",
- "socket_dispatch",
- "testconfig",
-]
-
-[[package]]
 name = "socket2"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -167,13 +174,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "socket_dispatch"
-version = "0.1.0"
-dependencies = [
- "socket2",
-]
-
-[[package]]
 name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -181,9 +181,9 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "syn"
-version = "1.0.103"
+version = "1.0.105"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a864042229133ada95abf3b54fdc62ef5ccabe9515b64717bcb9a1919e59445d"
+checksum = "60b9b43d45702de4c839cb9b51d9f529c5dd26a4aff255b42b1ebc03e88ee908"
 dependencies = [
  "proc-macro2",
  "quote",

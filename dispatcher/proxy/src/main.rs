@@ -1,32 +1,32 @@
 use std::process::exit;
 
-use proxy::{proxy_gateway, proxy_tcp_udp};
+use mproxy_forward::{proxy_gateway, proxy_tcp_udp};
 
 use pico_args::Arguments;
 
 const HELP: &str = r#"
-DISPATCH: proxy
+MPROXY: Forwarding Proxy
+
+Forward TLS/TCP, UDP, or Multicast endpoints to a downstream UDP socket address. 
 
 USAGE:
-  proxy  [FLAGS] [OPTIONS]
-
-  proxy --udp_listen_addr '0.0.0.0:9920' --udp_downstream_addr '[::1]:9921' \
-        --udp_downstream_addr 'localhost:9922' --tee
+  mproxy-forward  [FLAGS] [OPTIONS]
 
 OPTIONS:
-  --udp_listen_addr [HOSTNAME:PORT]     UDP listening socket address. May be
-                                        repeated for multiple interfaces
-
-  --udp_downstream_addr [HOSTNAME:PORT] UDP downstream socket address. May be
-                                        repeated for multiple interfaces
-
-  --tcp_connect_addr [HOSTNAME:PORT]    Connect to TCP host, forwarding stream
-                                        data to the first UDP listener address.
-                                        May be repeated for multiple connections
+  --udp-listen-addr     [HOSTNAME:PORT]     UDP listening socket address. May be repeated
+  --udp-downstream-addr [HOSTNAME:PORT]     UDP downstream socket address. May be repeated
+  --tcp-connect-addr    [HOSTNAME:PORT]     Connect to TCP host, forwarding stream. May be repeated 
 
 FLAGS:
   -h, --help    Prints help information
   -t, --tee     Copy input to stdout
+
+EXAMPLE:
+  mproxy-forward --udp-listen-addr '0.0.0.0:9920' \
+    --udp-downstream-addr '[::1]:9921' \
+    --udp-downstream-addr 'localhost:9922' \
+    --tcp-connect-addr 'localhost:9925' \
+    --tee
 
 "#;
 
@@ -45,9 +45,9 @@ fn parse_args() -> Result<GatewayArgs, pico_args::Error> {
     }
 
     let args = GatewayArgs {
-        udp_listen_addrs: pargs.values_from_str("--udp_listen_addr")?,
-        udp_downstream_addrs: pargs.values_from_str("--udp_downstream_addr")?,
-        tcp_connect_addrs: pargs.values_from_str("--tcp_connect_addr")?,
+        udp_listen_addrs: pargs.values_from_str("--udp-listen-addr")?,
+        udp_downstream_addrs: pargs.values_from_str("--udp-downstream-addr")?,
+        tcp_connect_addrs: pargs.values_from_str("--tcp-connect-addr")?,
         tee: pargs.contains(["-t", "--tee"]),
     };
 

@@ -1,24 +1,30 @@
 [package]
-name = "proxy"
-version = "0.1.0"
+name = "mproxy-forward"
+version = "0.1.2"
 edition = "2021"
+
+license = "MIT"
+readme = "../readme.md"
+repository = "https://github.com/matt24smith/mproxy-dispatcher"
+description = "MPROXY: Forwarding Proxy. Forward TLS/TCP, UDP, or Multicast to a downstream UDP socket address."
+documentation = "https://docs.rs/mproxy-forward/"
 
 [features]
 tls = ["dep:rustls", "dep:webpki-roots"]
 
 [dependencies]
-socket_dispatch = {path = "../socket_dispatch"}
-client = {path = "../client"}
-server = {path = "../server"}
+mproxy-socket_dispatch = {path = "../socket_dispatch", version = "0.1.2"}
+mproxy-client = {path = "../client", version = "0.1.2"}
+mproxy-server = {path = "../server", version = "0.1.2"}
+
 rustls = {version = "0.20", optional = true}
 webpki-roots = {version = "0.22", optional = true}
-#openssl = {version = "0.10", features = ["vendored"], optional = true}
 
 [dependencies.pico-args]
 version = "0.5.0"
 features = [ "eq-separator",]
 
 [dev-dependencies]
-client = {path = "../client"}
-server = {path = "../server"}
+mproxy-client = {path = "../client"}
+mproxy-server = {path = "../server"}
 testconfig = {path = "../testconfig"}

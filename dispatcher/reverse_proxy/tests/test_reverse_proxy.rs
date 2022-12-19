@@ -2,13 +2,10 @@ use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
 
-extern crate client;
-use client::client_socket_stream;
+use mproxy_client::client_socket_stream;
+use mproxy_reverse::reverse_proxy_udp_tcp;
 
-extern crate testconfig;
 use testconfig::TESTDATA;
-
-use reverse_proxy::reverse_proxy_udp_tcp;
 
 #[test]
 fn test_reverse_proxy_tcp() {

@@ -1,3 +1,6 @@
+//! MPROXY: Socket Dispatcher. Platform-agnostic API to bind unicast and multicast UDP socket addresses.
+//! Provides socket interface for crates `mproxy-client`, `mproxy-server`, `mproxy-proxy`, and `mproxy-reverseproxy`.
+
 use std::io;
 use std::net::SocketAddr;
 

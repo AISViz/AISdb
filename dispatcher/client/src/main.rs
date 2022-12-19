@@ -2,36 +2,34 @@ use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::process::exit;
 
-use client::client_socket_stream;
+use mproxy_client::client_socket_stream;
 
 use pico_args::Arguments;
 
-const HELP: &str = r#"
-DISPATCH: CLIENT
+pub const HELP: &str = r#"
+MPROXY: UDP Client
+
+Stream file or socket data via UDP. Supports multicast routing
 
 USAGE:
-  client --path [FILE_DESCRIPTOR]  ...
-
-  Path may be a file descriptor, handle, or socket. 
-  To send input via stdin, set the path to "-"
+  mproxy-client [FLAGS] [OPTIONS] ...
 
 OPTIONS:
-  --server_addr [SOCKET_ADDR] downstream UDP server address.
-                              can be repeated for multiple servers
-
-
-  e.g.
-  client --path /dev/random --server_addr 127.0.0.1:9920 --server_addr [::1]:9921
-  client --path - --server_addr 224.0.0.1:9922 --server_addr [ff02::1]:9923 --tee >> logfile.log
+  --path        [FILE_DESCRIPTOR]   Filepath, descriptor, or handle. Use "-" for stdin
+  --server-addr [HOSTNAME:PORT]     Downstream UDP server address. May be repeated
 
 FLAGS:
   -h, --help    Prints help information
   -t, --tee     Copy input to stdout
 
+EXAMPLE:
+  mproxy-client --path /dev/random --server-addr '127.0.0.1:9920' --server-addr '[::1]:9921'
+  mproxy-client --path - --server-addr '224.0.0.1:9922' --server-addr '[ff02::1]:9923' --tee >> logfile.log
+
 "#;
 
 /// command line arguments
-struct ClientArgs {
+pub struct ClientArgs {
     path: PathBuf,
     server_addrs: Vec<String>,
     tee: bool,
@@ -52,12 +50,19 @@ fn parse_args() -> Result<ClientArgs, pico_args::Error> {
 
     let args = ClientArgs {
         path: pargs.value_from_os_str("--path", parse_path)?,
-        server_addrs: pargs.values_from_str("--server_addr")?,
+        server_addrs: pargs.values_from_str("--server-addr")?,
         tee,
     };
     let remaining = pargs.finish();
     if !remaining.is_empty() {
         println!("Warning: unused arguments {:?}", remaining)
+    }
+
+    if args.server_addrs.is_empty() && !args.tee {
+        println!(
+            "At least one server address (or the --tee flag) is required. See --help for more info"
+        );
+        exit(0);
     }
 
     Ok(args)

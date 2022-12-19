@@ -1,95 +1,58 @@
-# Network Dispatcher
-Client/proxy/server network socket dispatcher. Streams files and raw socket 
-data over the network.
+# MPROXY: Multicast Network Dispatcher and Proxy
 
-- [X] Stream arbitrary data over the network
-- [X] Complete networking stack
+Streams data over the network. 
+
+
+## About 
+This repo includes four packages: Forward-proxy, reverse-proxy, UDP client, and UDP server. Proxies allow conversion between TCP and UDP, so these blocks can be combined together for complete interoperability with existing networks.  
+A primary feature is compatability with [UDP Multicast](https://en.wikipedia.org/wiki/Multicast) for intermediate routing and reverse-proxy, enabling dead simple group communication across complex one-to-many or many-to-many data streams, and resulting in scalable reverse-proxy.
+Packages can be run either from the command line or included as a library.
+
+- [X] Simple to use full networking stack
   - Send, proxy, reverse-proxy, and receive to/from multiple endpoints simultaneously
-  - Stream multiplexing and aggregation
-  - [Multicast](https://en.wikipedia.org/wiki/Multicast) reverse-proxy IP routing
-  - Hostname resolution
 - [X] Fast
-  - 500+ Mbps read/transfer/write speed via UDP
+  - Can be deployed in less than 5 minutes
+  - 500+ Mbps read/transfer/write speed (UDP)
 - [X] Minimal 
-  - Compiled binaries ~350Kb each
-  - Tiny memory footprint
-  - Stateless: no shared resources between threads. Communication between threads are routed via UDP multicast
+  - Zero configuration, logging, or caching
+  - Tiny memory footprint, compiled binary sizes ~350KB
+  - No shared resources between threads
+- [X] Leverage benefits of UDP
+  - Simple stream aggregation
+  - Performant proxy and reverse proxy
+  - UDP multicasting enables stateless, scalable reverse-proxy
 
-### Compatible with
+
+## Quick Start
+Get started with a simple client/server network. Install the command line tools with cargo, and start a UDP listen server on port 9920.
+```bash
+cargo install mproxy-client mproxy-server
+mproxy-server --listen-addr "localhost:9920" --path "streamoutput.log" --tee
+```
+Then send some bytes from the client to the server. The path option "-" tells the client to read input from stdin. A filepath, descriptor, or handle may also be used.
+```bash
+mproxy-client --path "-" --server-addr "localhost:9920"
+> Hello world!
+```
+You should now see your message appear in `streamoutput.log` (and also to stdout if `--tee` is used)
+
+
+### Compatability
+
+- [X] Windows/Linux/Mac
+- [X] IPv4/IPv6
 - [X] UDP
-- [X] TCP (via `proxy` or `reverse_proxy`)
-- [X] TLS (partial support for client TLS via `proxy`. Requires feature `tls` enabled)
-- [X] IPv4
-- [X] IPv6
-- [X] Unix/Linux/Mac
-- [X] Windows
+- [X] TCP/TLS 
+  - via forward and reverse proxy 
+  - Partial client-side TLS support provided by `rustls` (requires feature `tls` enabled in `mproxy-forward`)
+- [X] Fully transparent routing
 
 
-## Install
-Install utils from source using cargo, e.g.
-```
-git clone https://github.com/matt24smith/dispatcher.git
-cargo install dispatcher/reverse_proxy
-```
 
-
-## Operation
-Use `--help`/`-h` to view help messages.
-The `--tee`/`-t` flag may be used to copy input to stdout.
-
-### Client
-
-Stream data from the client to logging servers. The `--server_addr` option may 
-be repeated for multiple server hosts. To accept input from stdin, use `--path "-"`
-
-```
-client --path '/dev/random' --server_addr 'localhost:9921'
-```
-
-### Proxy
-
-Forward UDP packets from listening port to downstream hosts. 
-Options `--listen_addr` and `--downstream_addr` may be repeated for multiple 
-endpoints.
-
-```
-proxy --listen_addr '0.0.0.0:9921' --downstream_addr 'localhost:9922'
-```
-
-### Reverse-Proxy
-
-Forward UDP packets from upstream to new incoming TCP client connections.
-UDP packets will be routed via the multicast channel to listeners on each TCP 
-client handler.
-
-```
-reverse_proxy --udp_listen_addr '0.0.0.0:9921' --tcp_output_addr '0.0.0.0:9921' --multicast_addr '224.0.0.1:9922'
-```
-
-### Server
-
-Start the logging server. The `--listen_addr` option may be repeated to listen 
-for incoming messages from multiple sockets.
-
-```
-server --path logfile.log --listen_addr '0.0.0.0:9920' --listen_addr '[::]:9921'
-```
-
-
-## Motivation
-
-- Complete yet barebones distributed networks framework for e.g. telemetry or sensor data
-- Zero-configuration, simple operation and deployment
-- Leverage benefits of UDP protocol:
-  - Ability to merge data streams from many sources
-  - Stream multiplexing and redistribution
-  - UDP multicasting enables stateless, scaleable reverse-proxy
-- Prioritizing cross-compatability, simplicity, security, and performance
-
-## Alternatives
-
-- cURL
-- [Netcat](https://en.wikipedia.org/wiki/Netcat) Point-to-point communications with complete feature set 
-- [Nginx](https://en.wikipedia.org/wiki/Nginx) Feature-rich proxy server with static file serving, file caching, and load balancing
-- [Websocat](https://github.com/vi/websocat) Command-line client for websockets
+## Docs
+See the documentation for installing and operation instructions
+ - [mproxy-client](https://docs.rs/mproxy-client/)
+ - [mproxy-server](https://docs.rs/mproxy-server/)
+ - [mproxy-forward](https://docs.rs/mproxy-forward/)
+ - [mproxy-reverse](https://docs.rs/mproxy-reverse/)
 

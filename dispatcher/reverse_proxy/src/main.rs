@@ -1,29 +1,34 @@
 use std::process::exit;
 
-use proxy::proxy_thread;
-use reverse_proxy::{reverse_proxy_tcp_udp, reverse_proxy_udp, reverse_proxy_udp_tcp};
+use mproxy_forward::forward_udp;
+use mproxy_reverse::{reverse_proxy_tcp_udp, reverse_proxy_udp, reverse_proxy_udp_tcp};
 
 use pico_args::Arguments;
 
 const HELP: &str = r#"
-DISPATCH: reverse_proxy
+MPROXY: Reverse Proxy
+
+Forward upstream TCP and UDP upstream to downstream listeners.
+Messages are routed via UDP multicast to downstream sender threads. 
+Spawns one thread per listener.
 
 USAGE:
-  reverse_proxy  [FLAGS] [OPTIONS]
+  mproxy-reverse  [FLAGS] [OPTIONS]
 
 OPTIONS:
-  --udp_listen_addr [HOSTNAME:PORT]     Spawn a UDP socket listener, and rebroadcast to --multicast_addr
-  --tcp_listen_addr [HOSTNAME:PORT]     Reverse-proxy accepting TCP connections and forwarding to --multicast_addr
-  --multicast_addr  [MULTICAST_IP:PORT] Defaults to '[ff02::1]:9918'
-  --tcp_output_addr [HOSTNAME:PORT]     Forward packets from --multicast_addr to TCP downstream
-  --udp_output_addr [HOSTNAME:PORT]     Forward packets from --multicast_addr to UDP downstream
+  --udp-listen-addr [HOSTNAME:PORT]     Spawn a UDP socket listener, and forward to --multicast-addr
+  --tcp_listen_addr [HOSTNAME:PORT]     Reverse-proxy accepting TCP connections and forwarding to --multicast-addr
+  --multicast-addr  [MULTICAST_IP:PORT] Defaults to '[ff02::1]:9918'
+  --tcp-output-addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to TCP downstream
+  --udp_output_addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to UDP downstream
 
 FLAGS:
-  -h, --help                            Prints help information
-  -t, --tee                             Print UDP input to stdout
+  -h, --help    Prints help information
+  -t, --tee     Print UDP input to stdout
 
 EXAMPLE:
-  reverse_proxy --udp_listen_addr '0.0.0.0:9920' --tcp_output_addr '[::1]:9921' --multicast_addr '224.0.0.1:9922'
+  mproxy-reverse --udp-listen-addr '0.0.0.0:9920' --tcp-output-addr '[::1]:9921' --multicast-addr '224.0.0.1:9922'
+
 "#;
 
 pub struct ReverseProxyArgs {
@@ -43,10 +48,10 @@ fn parse_args() -> Result<ReverseProxyArgs, pico_args::Error> {
     }
     let tee = pargs.contains(["-t", "--tee"]);
     let args = ReverseProxyArgs {
-        udp_listen_addr: pargs.opt_value_from_str("--udp_listen_addr")?,
+        udp_listen_addr: pargs.opt_value_from_str("--udp-listen-addr")?,
         tcp_listen_addr: pargs.opt_value_from_str("--tcp_listen_addr")?,
-        multicast_addr: pargs.opt_value_from_str("--multicast_addr")?,
-        tcp_output_addr: pargs.opt_value_from_str("--tcp_output_addr")?,
+        multicast_addr: pargs.opt_value_from_str("--multicast-addr")?,
+        tcp_output_addr: pargs.opt_value_from_str("--tcp-output-addr")?,
         udp_output_addr: pargs.opt_value_from_str("--udp_output_addr")?,
         tee,
     };
@@ -77,7 +82,7 @@ pub fn main() {
     // UDP listener thread -> UPD multicast sender
     // rebroadcast upstream UDP via multicast to client threads
     if let Some(udp_listen) = args.udp_listen_addr {
-        let multicast = proxy_thread(udp_listen, &[multicast.to_string()], args.tee);
+        let multicast = forward_udp(udp_listen, &[multicast.to_string()], args.tee);
         threads.push(multicast);
     }
 

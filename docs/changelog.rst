@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.26
+-------
+
+update dispatcher API
+
+
 v1.4.25
 -------
 
