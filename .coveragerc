@@ -39,7 +39,7 @@ exclude_lines =
 ignore_errors = True
 
 omit = 
-  **aisdb/tests/*
+  aisdb/tests/*
 
 #[html]
 #directory = coverage_html_report
