@@ -188,10 +188,10 @@ services:
       - nginx
     working_dir: "/usr/src/aisdb/dispatcher/reverse_proxy"
     command:
-      ["reverse_proxy",
-         "--multicast_addr", "[ff02::1]:9916",
-         "--tcp_output_addr", "[::]:9920",
-         "--udp_output_addr", "[::]:9923"
+      ["mproxy-reverse",
+         "--multicast-addr", "[ff02::1]:9916",
+         "--tcp-output-addr", "[::]:9920",
+         "--udp-output-addr", "[::]:9923"
       ]
 
 networks:

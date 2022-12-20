@@ -17,10 +17,10 @@ USAGE:
 
 OPTIONS:
   --udp-listen-addr [HOSTNAME:PORT]     Spawn a UDP socket listener, and forward to --multicast-addr
-  --tcp_listen_addr [HOSTNAME:PORT]     Reverse-proxy accepting TCP connections and forwarding to --multicast-addr
+  --tcp-listen-addr [HOSTNAME:PORT]     Reverse-proxy accepting TCP connections and forwarding to --multicast-addr
   --multicast-addr  [MULTICAST_IP:PORT] Defaults to '[ff02::1]:9918'
   --tcp-output-addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to TCP downstream
-  --udp_output_addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to UDP downstream
+  --udp-output-addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to UDP downstream
 
 FLAGS:
   -h, --help    Prints help information
@@ -49,10 +49,10 @@ fn parse_args() -> Result<ReverseProxyArgs, pico_args::Error> {
     let tee = pargs.contains(["-t", "--tee"]);
     let args = ReverseProxyArgs {
         udp_listen_addr: pargs.opt_value_from_str("--udp-listen-addr")?,
-        tcp_listen_addr: pargs.opt_value_from_str("--tcp_listen_addr")?,
+        tcp_listen_addr: pargs.opt_value_from_str("--tcp-listen-addr")?,
         multicast_addr: pargs.opt_value_from_str("--multicast-addr")?,
         tcp_output_addr: pargs.opt_value_from_str("--tcp-output-addr")?,
-        udp_output_addr: pargs.opt_value_from_str("--udp_output_addr")?,
+        udp_output_addr: pargs.opt_value_from_str("--udp-output-addr")?,
         tee,
     };
     let remaining = pargs.finish();

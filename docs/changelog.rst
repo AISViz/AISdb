@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.28
+-------
+
+improve consistency of dispatcher CLI
+
+
 v1.4.27
 -------
 
