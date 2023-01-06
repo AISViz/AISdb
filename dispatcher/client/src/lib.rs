@@ -128,7 +128,7 @@ fn new_sender_ipv6(addr: &SocketAddr, ipv6_interface: u32) -> ioResult<UdpSocket
 fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
     // workaround:
     // find the first suitable interface
-    for i in 0..32 {
+    for i in 0..65536 {
         //#[cfg(debug_assertions)]
         //println!("checking interface {}", i);
         let socket = new_sender_ipv6(addr, i)?;

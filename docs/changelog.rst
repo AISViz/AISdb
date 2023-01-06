@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.29
+-------
+
+improved radial distance calculation
+
+
 v1.4.28
 -------
 

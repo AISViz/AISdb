@@ -110,8 +110,10 @@ def delta_knots(track, rng=None):
 
 
 def radial_coordinate_boundary(x, y, radius=100000):
-    ''' checks maximum coordinate range for a given point and radial distance
-        in meters
+    ''' Checks approximate coordinate range for a given point and radial
+        distance in meters.
+        Returns a coordinate bounding box cross section length is atleast
+        approximately ``radius`` meters.
 
         args:
             x (float)
@@ -121,25 +123,23 @@ def radial_coordinate_boundary(x, y, radius=100000):
             radius (int, float)
                 maximum radial distance
     '''
+    # radians
+    earth_radius_m = 6371088
+    rlon = np.pi * x / 180
+    rlat = np.pi * y / 180
+    parallel_radius = earth_radius_m * np.cos(rlat)
 
-    xmin, xmax = x, x
-    ymin, ymax = y, y
-
-    # TODO: compute precise value instead of approximating
-    while haversine(x, y, xmin, y) < radius:
-        xmin -= 0.001
-    while haversine(x, y, xmax, y) < radius:
-        xmax += 0.001
-    while haversine(x, y, x, ymin) < radius:
-        ymin -= 0.001
-    while haversine(x, y, x, ymax) < radius:
-        ymax += 0.001
+    # radial delta
+    rlonmin = rlon - radius / parallel_radius
+    rlonmax = rlon + radius / parallel_radius
+    rlatmin = rlat - radius / earth_radius_m
+    rlatmax = rlat + radius / earth_radius_m
 
     return {
-        'xmin': xmin,
-        'xmax': xmax,
-        'ymin': ymin,
-        'ymax': ymax,
+        'xmin': 180 * rlonmin / np.pi,
+        'xmax': 180 * rlonmax / np.pi,
+        'ymin': 180 * rlatmin / np.pi,
+        'ymax': 180 * rlatmax / np.pi
     }
 
 

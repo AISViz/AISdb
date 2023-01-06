@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use geo::algorithm::simplifyvw::SimplifyVwIdx;
 use geo::point;
-use geo::prelude::*;
+use geo::HaversineDistance;
 use geo_types::{Coord, LineString};
 use nmea_parser::NmeaParser;
 use pyo3::ffi::PyErr_CheckSignals;
