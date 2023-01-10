@@ -62,6 +62,7 @@ from .track_gen import (
     TrackGen_async,
     split_timedelta,
     fence_tracks,
+    encode_score,
     encode_greatcircledistance,
     encode_greatcircledistance_async,
 )

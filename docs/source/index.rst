@@ -37,7 +37,7 @@ AISDB Docs: Index
    webserver
    docker
    database
-   AIS_base_station
+   receiver
 
 
 .. toctree::

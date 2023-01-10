@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.30
+-------
+
+update docs for gis.py, track encoding, and receiving messages on a raspberry pi
+
+
 v1.4.29
 -------
 

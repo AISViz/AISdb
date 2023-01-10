@@ -331,7 +331,25 @@ def _split_pathway(track, *, i, segments_idx):
     return path
 
 
-def _score_encode(track, distance_threshold, speed_threshold, minscore):
+def encode_score(track, distance_threshold, speed_threshold, minscore):
+    ''' Encodes likelihood of persistent track membership when given distance,
+        speed, and score thresholds, using track speed deltas computed using
+        distance computed by haversine function divided by elapsed time
+
+        A higher distance threshold will increase the maximum distance in
+        meters allowed between pings for same trajectory membership. A higher
+        speed threshold will allow vessels travelling up to this value in knots
+        to be kconsidered for persistent track membership.
+        The minscore assigns a minimum score needed to be considered for
+        membership, typically 0 or very close to 0 such as 1e-5.
+
+        For example: a vessel travelling at a lower speed with short intervals
+        between pings will have a higher likelihood of persistence.
+        A trajectory with higher average speed or long intervals between
+        pings may indicate two separate trajectories and will be segmented
+        forming alternate trajectories according to highest likelihood of
+        membership.
+    '''
     assert 'time' in track.keys()
     assert len(track['time']) > 0
     params = dict(distance_threshold=distance_threshold,
@@ -389,7 +407,7 @@ def encode_greatcircledistance(
     ''' partitions tracks where delta speeds exceed speed_threshold or
         delta_meters exceeds distance_threshold.
         concatenates track segments with the highest likelihood of being
-        sequential, as encoded by a distance/time score function
+        sequential, as encoded by the encode_score function
 
         args:
             tracks (aisdb.track_gen.TrackGen)
@@ -437,8 +455,8 @@ def encode_greatcircledistance(
     '''
     for track in tracks:
         assert isinstance(track, dict), f'got {type(track)} {track}'
-        for path in _score_encode(track, distance_threshold, speed_threshold,
-                                  minscore):
+        for path in encode_score(track, distance_threshold, speed_threshold,
+                                 minscore):
             yield path
 
 
@@ -488,7 +506,7 @@ async def encode_greatcircledistance_async(tracks,
         >>> os.remove(dbpath)
     '''
     async for track in tracks:
-        for path in _score_encode(
+        for path in encode_score(
                 track,
                 distance_threshold,
                 speed_threshold,

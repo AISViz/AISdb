@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from functools import partial
 
 import numpy as np
-#import shapely.wkb
 import shapely.ops
 import shapely.geometry
 import warnings
@@ -16,8 +15,11 @@ from aisdb.proc_util import glob_files
 
 
 def shiftcoord(x, rng=180):
-    ''' Correct longitude coordinates to be within range(-180, 180).
+    ''' Correct longitude coordinates to be within range(-180, 180)
+        using a linear shift and modulus.
         For latitude coordinate correction, set rng to 90.
+
+        For example: longitude 181 would be corrected to -179 deg.
     '''
     assert len(x) > 0, 'x must be array-like'
     if not isinstance(x, np.ndarray):
@@ -110,10 +112,15 @@ def delta_knots(track, rng=None):
 
 
 def radial_coordinate_boundary(x, y, radius=100000):
-    ''' Checks approximate coordinate range for a given point and radial
-        distance in meters.
-        Returns a coordinate bounding box cross section length is atleast
-        approximately ``radius`` meters.
+    ''' Defines a bounding box area for a given point and radial
+        distance in meters. Returns degree boundaries with a minimum diameter
+        of approximately 2 * ``radius`` meters.
+
+        The boundaries are approximated by converting input coordinates
+        from degrees to radians, and computing a radial delta by
+        dividing an input value by the earth radius. The radial delta
+        is added or subtracted from the input point for each cardinal
+        direction, and then converted back from radians to degrees.
 
         args:
             x (float)
@@ -232,13 +239,20 @@ class Domain():
             self.maxY
     '''
 
-    def zone_max_radius(self, geom, zone_x, zone_y):
+    _meridian = LineString(
+        np.array((
+            (-180, -180, 180, 180),
+            (-90, 90, 90, -90),
+        )).T)
+
+    def _zone_max_radius(self, geom, zone_x, zone_y):
+        ''' computes the maximum distance to the centroid '''
         return np.max([
             haversine(geom.centroid.x, geom.centroid.y, x2, y2)
             for x2, y2 in zip(zone_x, zone_y)
         ])
 
-    def add_zone(self, name, x, y):
+    def _add_zone(self, name, x, y):
         if name[-2:] == '_b' and (x0b := np.min(x)) < self.minX_b:
             self.minX_b = x0b
         elif name[-2:] != '_c' and (x0c := np.min(x)) > self.minX:
@@ -265,6 +279,7 @@ class Domain():
         return
 
     def __init__(self, name, zones=[], **kw):
+        ''' Initialize the domain from zone geometries, dividing along the 180th meridian '''
         if len(zones) == 0:
             raise ValueError(
                 'domain needs to have atleast one polygon geometry')
@@ -284,15 +299,15 @@ class Domain():
                 for g in self.split_geom(zone):
                     if g.centroid.x < -180:
                         x, y = np.array(g.boundary.coords.xy)
-                        self.add_zone(zone['name'] + '_b', shiftcoord(x), y)
+                        self._add_zone(zone['name'] + '_b', shiftcoord(x), y)
                     elif g.centroid.x > 180:
                         x, y = np.array(g.boundary.coords.xy)
-                        self.add_zone(zone['name'] + '_c', shiftcoord(x), y)
+                        self._add_zone(zone['name'] + '_c', shiftcoord(x), y)
                     else:
                         x, y = np.array(g.boundary.coords.xy)
-                        self.add_zone(zone['name'] + '_a', x, y)
+                        self._add_zone(zone['name'] + '_a', x, y)
             else:
-                self.add_zone(zone['name'], x, y)
+                self._add_zone(zone['name'], x, y)
 
         self.boundary = {
             'xmin': self.minX,
@@ -332,7 +347,9 @@ class Domain():
         return dist_to_centroids
 
     def point_in_polygon(self, x, y):
-        ''' returns the first domain zone containing the given coordinates
+        ''' Returns the zone containing the given coordinates.
+            if there are multiple zones containing the coordinates,
+            the zone with the nearest centroid will be selected.
 
             args:
                 x (float)
@@ -356,15 +373,12 @@ class Domain():
                 return key
         return 'Z0'
 
-    meridian = LineString(
-        np.array((
-            (-180, -180, 180, 180),
-            (-90, 90, 90, -90),
-        )).T)
-
     def split_geom(self, zone):
+        ''' Ensure that the zone doesn't intersect longitude 180 or -180.
+            If it does, divide it into two zones.
+        '''
         merged = shapely.ops.linemerge(
-            [zone['geometry'].boundary, self.meridian])
+            [zone['geometry'].boundary, self._meridian])
         border = shapely.ops.unary_union(merged)
         decomp = shapely.ops.polygonize(border)
         return decomp
