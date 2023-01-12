@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.31
+-------
+
+update docker build, default TCP listen address, and improved logging
+
+
 v1.4.30
 -------
 

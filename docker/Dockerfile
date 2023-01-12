@@ -45,8 +45,8 @@ COPY --chown=ais_env aisdb/ aisdb/
 COPY --chown=ais_env docs/ docs/
 COPY --chown=ais_env src/ src/
 
-RUN cargo install --path dispatcher/proxy
-RUN cargo install --path dispatcher/reverse_proxy
+RUN cargo install --path dispatcher/proxy --debug
+RUN cargo install --path dispatcher/reverse_proxy --debug
 RUN cargo install --path receiver
 RUN maturin develop --release --extras=test,docs
 RUN cd docs && npm install

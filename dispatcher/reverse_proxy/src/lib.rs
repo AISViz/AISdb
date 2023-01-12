@@ -132,7 +132,7 @@ fn handle_client_tcp(downstream: TcpStream, multicast_addr: String) {
 /// Spawns a listener thread, plus one thread for each incoming TCP connection.
 pub fn reverse_proxy_udp_tcp(multicast_addr: String, tcp_listen_addr: String) -> JoinHandle<()> {
     spawn(move || {
-        let listener = TcpListener::bind(tcp_listen_addr).unwrap();
+        let listener = TcpListener::bind(tcp_listen_addr).expect("binding downstream TCP Listener");
         for stream in listener.incoming() {
             #[cfg(debug_assertions)]
             println!("new client {:?}", stream);

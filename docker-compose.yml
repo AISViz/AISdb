@@ -162,12 +162,12 @@ services:
     command: 
       ["aisdb-receiver", 
           "--path", "/usr/src/aisdb/receiver/ais_rx.db", 
-          #"--tcp_connect_addr='aisdb.meridian.cs.dal.ca:9920'", 
-          #"--tcp_listen_addr='[::]:9922'", 
-          "--udp_listen_addr='[::]:9921'", 
-          "--tcp_output_addr='[::]:9922'", 
-          "--multicast_addr_rawdata='[ff02::1]:9916'",
-          "--multicast_addr_parsed='[ff02::1]:9917'"
+          #"--tcp-connect-addr='aisdb.meridian.cs.dal.ca:9920'", 
+          #"--tcp-listen-addr='[::]:9922'", 
+          "--udp-listen-addr='[::]:9921'", 
+          "--tcp-output-addr='[::]:9922'", 
+          "--multicast-addr-rawdata='[ff02::1]:9916'",
+          "--multicast-addr-parsed='[ff02::1]:9917'"
           #,"--tee"
       ]
 
@@ -189,8 +189,9 @@ services:
     working_dir: "/usr/src/aisdb/dispatcher/reverse_proxy"
     command:
       ["mproxy-reverse",
+         "--tcp-listen-addr", "[::]:9920",
+         #"--tcp-listen-addr", "[::]:9922",
          "--multicast-addr", "[ff02::1]:9916",
-         "--tcp-output-addr", "[::]:9920",
          "--udp-output-addr", "[::]:9923"
       ]
 

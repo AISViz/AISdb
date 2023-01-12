@@ -64,7 +64,8 @@ def epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
 
 
 def delta_meters(track, rng=None):
-    ''' compute distance in meters between track positions for a given track
+    ''' compute haversine distance in meters between track positions for a
+        given track
 
         args:
             track (dict)
@@ -97,7 +98,7 @@ def delta_seconds(track, rng=None):
 
 def delta_knots(track, rng=None):
     ''' compute speed over ground in knots between track positions for a given
-        track using (distance / time)
+        track using (haversine distance / time)
 
         args:
             track (dict)
@@ -161,7 +162,9 @@ def distance3D(x1, y1, x2, y2, depth_metres):
 
 
 def vesseltrack_3D_dist(tracks, x1, y1, z1, colname='distance_metres'):
-    ''' appends approximate distance to point at every position
+    ''' appends approximate distance to a submerged point at every
+        surface-level position. distance is approximated using the haversine
+        function and pythagoras.
 
         x1 (float)
             point longitude
@@ -272,7 +275,7 @@ class Domain():
         assert -90 <= self.minY <= 90 and -90 <= self.maxY <= 90
 
         geom = Polygon(zip(x, y))
-        maxradius = self.zone_max_radius(geom, x, y)
+        maxradius = self._zone_max_radius(geom, x, y)
 
         self.zones.update({name: {'geometry': geom, 'maxradius': maxradius}})
 

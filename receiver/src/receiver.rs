@@ -351,18 +351,18 @@ fn parse_args() -> Result<ReceiverArgs, pico_args::Error> {
 
     let args = ReceiverArgs {
         dbpath: pargs.opt_value_from_os_str("--path", parse_path)?,
-        tcp_connect_addr: pargs.opt_value_from_str("--tcp_connect_addr")?,
-        tcp_listen_addr: pargs.opt_value_from_str("--tcp_listen_addr")?,
-        udp_listen_addr: pargs.value_from_str("--udp_listen_addr")?,
-        multicast_addr_parsed: pargs.opt_value_from_str("--multicast_addr_parsed")?,
-        multicast_addr_rawdata: pargs.opt_value_from_str("--multicast_addr_rawdata")?,
-        tcp_output_addr: pargs.opt_value_from_str("--tcp_output_addr")?,
-        udp_output_addr: pargs.opt_value_from_str("--udp_output_addr")?,
+        tcp_connect_addr: pargs.opt_value_from_str("--tcp-connect-addr")?,
+        tcp_listen_addr: pargs.opt_value_from_str("--tcp-listen-addr")?,
+        udp_listen_addr: pargs.value_from_str("--udp-listen-addr")?,
+        multicast_addr_parsed: pargs.opt_value_from_str("--multicast-addr-parsed")?,
+        multicast_addr_rawdata: pargs.opt_value_from_str("--multicast-addr-rawdata")?,
+        tcp_output_addr: pargs.opt_value_from_str("--tcp-output-addr")?,
+        udp_output_addr: pargs.opt_value_from_str("--udp-output-addr")?,
         dynamic_msg_bufsize: pargs
-            .opt_value_from_str("--dynamic_msg_bufsize")?
+            .opt_value_from_str("--dynamic-msg-bufsize")?
             .map(|s: String| s.parse().unwrap()),
         static_msg_bufsize: pargs
-            .opt_value_from_str("--static_msg_bufsize")?
+            .opt_value_from_str("--static-msg-bufsize")?
             .map(|s: String| s.parse().unwrap()),
         tee: pargs.contains(["-t", "--tee"]),
     };
