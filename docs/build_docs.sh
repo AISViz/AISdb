@@ -7,6 +7,7 @@ RSTSOURCEDIR="${ROOTDIR}/docs/source"
 SPHINXDIR="${ROOTDIR}/docs/dist_sphinx"
 #CARGODIR="${ROOTDIR}/aisdb_web/dist_cargodoc"
 #WASMDIR="${ROOTDIR}/aisdb_wasm"
+#COVERAGEDIR="${ROOTDIR}/docs/dist_coverage"
 
 set -e
 

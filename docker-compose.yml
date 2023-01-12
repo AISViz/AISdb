@@ -68,6 +68,9 @@ services:
 
   # nodejs docs server
   docserver:
+    volumes:
+      #- ./docs/dist_coverage/:/home/ais_env/aisdb/docs/dist_coverage
+      - ./docs/dist_coverage/:/home/ais_env/docs/dist_coverage/
     container_name: docserver
     init: true
     image: meridiancfi/aisdb:latest

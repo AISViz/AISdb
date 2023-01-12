@@ -594,6 +594,7 @@ async def min_speed_filter_async(tracks, minspeed):
         )
 
 
+'''
 def serialize_tracks(tracks):
     for track in tracks:
         track['static'] = tuple(track['static'])
@@ -613,3 +614,4 @@ def _deser(track_serialized):
 def deserialize_tracks(tracks):
     for track in tracks:
         yield _deser(track)
+'''

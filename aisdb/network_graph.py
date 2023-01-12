@@ -3,7 +3,6 @@
     trajectory statistics within the overall domain
 '''
 
-import multiprocessing.queues
 import os
 import pickle
 import re
@@ -11,8 +10,6 @@ import tempfile
 import types
 from datetime import timedelta
 from functools import partial, reduce
-from multiprocessing import Pool, Queue
-from time import sleep
 
 import numpy as np
 import warnings
@@ -26,10 +23,8 @@ from aisdb.gis import (
 )
 from aisdb.track_gen import (
     TrackGen,
-    deserialize_tracks,
     encode_greatcircledistance,
     fence_tracks,
-    serialize_tracks,
     split_timedelta,
 )
 from aisdb.interp import interp_time
@@ -196,6 +191,7 @@ def _serialize_network_edge(tracks, domain, tmp_dir):
     '''
     for track in tracks:
         assert isinstance(track, dict)
+        assert len(track['time']) > 0
         filepath = os.path.join(tmp_dir, str(track['mmsi']).zfill(9))
         assert 'in_zone' in track.keys(
         ), 'need to append zone info from fence_tracks'
@@ -250,9 +246,7 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
         os.path.join(tmp_dir, fname) for fname in sorted(os.listdir(tmp_dir))
         if '_' not in fname
     ]
-    assert len(
-        picklefiles
-    ) > 0, 'failed to geofence any data... try running again with processes=1'
+    assert len(picklefiles) > 0, 'failed to geofence any data...'
 
     with open(outputfile, 'w') as output:
         with open(picklefiles[0], 'rb') as f0:
@@ -282,64 +276,6 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
             os.remove(picklefile)
 
 
-def pipeline_callback(tracks, *, domain, tmp_dir, trafficDBpath, maxdelta,
-                      distance_threshold, speed_threshold, minscore,
-                      interp_delta, data_dir, **kw):
-    # pipeline configuration from arguments
-    serialize_CSV = partial(_serialize_network_edge,
-                            domain=domain,
-                            tmp_dir=tmp_dir)
-    geofence = partial(fence_tracks, domain=domain)
-    interp = partial(interp_time, step=interp_delta)
-    encode_tracks = partial(encode_greatcircledistance,
-                            distance_threshold=distance_threshold,
-                            minscore=minscore,
-                            speed_threshold=speed_threshold)
-    timesplit = partial(split_timedelta, maxdelta=maxdelta)
-    vinfo = partial(vessel_info, trafficDBpath=trafficDBpath)
-
-    # arrange pipeline processing steps in sequence
-    # bathymetry and port distance are added prior to serializing q
-    # initialize raster data sources
-    #assert os.path.isfile(shoredist_raster)
-    #sdist = ShoreDist(shoredist_raster)
-    sdist = ShoreDist(data_dir)
-
-    with sdist:
-        result = serialize_CSV(
-            geofence(
-                sdist.get_distance(
-                    interp(
-                        encode_tracks(
-                            timesplit(
-                                wetted_surface_area(
-                                    vinfo(deserialize_tracks(tracks)))))))))
-        for res in result:
-            yield res
-    return
-
-
-def _processing_pipeline(q, **kwargs):
-    if 'pipeline_callback' not in kwargs.keys():
-        kwargs['pipeline_callback'] = pipeline_callback
-
-    pipeline = kwargs.pop('pipeline_callback')
-
-    # if tracks are an iterable type, process them in sequence
-    if isinstance(q, (types.GeneratorType, list)):
-        for track in pipeline(q, **kwargs):
-            assert track is None
-
-    # if tracks are a multiprocessing queue, process tracks from queue
-    elif isinstance(q, multiprocessing.queues.Queue):
-        while (t0 := q.get(block=True, timeout=30)) is not False:
-            for track in pipeline([t0], **kwargs):
-                assert track is None
-
-    else:
-        raise ValueError(f'unexpected tracks type: {type(q)}')
-
-
 def graph(qry,
           *,
           outputfile,
@@ -347,14 +283,15 @@ def graph(qry,
           dbpath,
           data_dir,
           trafficDBpath,
-          processes=1,
           maxdelta=timedelta(weeks=1),
           speed_threshold=50,
-          distance_threshold=250000,
-          interp_delta=timedelta(hours=1),
+          distance_threshold=200000,
+          interp_delta=timedelta(minutes=10),
           minscore=0,
-          pipeline_callback=pipeline_callback,
           qryfcn=sqlfcn.crawl_dynamic_static,
+          bathy_dir=None,
+          shoredist_raster=None,
+          portdist_raster=None,
           decimate=0.0001,
           verbose=False):
     ''' Compute network graph of vessel movements within domain zones.
@@ -373,9 +310,6 @@ def graph(qry,
                 location of raster data
             trafficDBpath (string)
                 path to marinetraffic database file
-            processes (integer)
-                number of processes to compute geofencing in parallel.
-                if set to 0 or False, no parallelization will be used
             outpufile (string)
                 filepath for resulting CSV output
             maxdelta (datetime.timedelta)
@@ -460,64 +394,67 @@ def graph(qry,
         ...     graph(qry,
         ...           outputfile=os.path.join('testdata', 'test_graph.csv'),
         ...           dbpath=dbpath, data_dir=data_dir, domain=domain,
-        ...           trafficDBpath=trafficDBpath, processes=3)
+        ...           trafficDBpath=trafficDBpath)
         >>> os.remove(dbpath)
 
-        process the vessel movement graph edges using 3 processes in parallel.
+        process the vessel movement graph edges.
         caution: this may consume a large amount of memory
-
     '''
     assert not isinstance(qry, types.GeneratorType),\
             'Got a generator for "qry" arg instead of DBQuery'
 
     assert isinstance(qry, aisdb.database.dbqry.DBQuery),\
             f'Not a DBQuery object! Got {qry}'
-    shoredist_raster = os.path.join(data_dir, 'distance-from-shore.tif')
-    portdist_raster = os.path.join(data_dir,
-                                   'distance-from-port-v20201104.tiff')
-    assert os.path.isfile(
-        shoredist_raster), f'file not found {shoredist_raster}'
-    assert os.path.isfile(portdist_raster), f'file not found {portdist_raster}'
+
+    rowgen = qry.gen_qry(fcn=qryfcn, verbose=verbose)
+    tracks = TrackGen(rowgen, decimate)
+
+    if portdist_raster is not None:
+        pdist = PortDist(portdist_raster)
+        with pdist:
+            tracks = list(pdist.get_distance(tracks))
+
+    if shoredist_raster is not None:
+        sdist_dir, sdist_name = shoredist_raster.rsplit(os.path.sep, 1)
+        sdist = ShoreDist(sdist_dir, sdist_name)
+        with sdist:
+            tracks = list(sdist.get_distance(tracks))
+
+    if bathy_dir is not None:
+        bathy = Gebco(data_dir=bathy_dir)
+        with bathy:
+            tracks = list(bathy.merge_tracks(tracks))
 
     # initialize raster data sources
-    pdist = PortDist(portdist_raster)
-    bathy = Gebco(data_dir=data_dir)
-    with tempfile.TemporaryDirectory() as tmp_dir, bathy, pdist:
+    with tempfile.TemporaryDirectory() as tmp_dir:
         if os.environ.get('DEBUG'):
             print(f'network graph {tmp_dir = }')
             print(f'\n{domain.name=} {domain.boundary=}')
 
-        rowgen = qry.gen_qry(fcn=qryfcn, verbose=verbose)
-        tracks = serialize_tracks(
-            bathy.merge_tracks(pdist.get_distance(TrackGen(rowgen, decimate))))
-        fcn = partial(
-            _processing_pipeline,
-            distance_threshold=distance_threshold,
-            domain=domain,
-            interp_delta=interp_delta,
-            maxdelta=maxdelta,
-            minscore=minscore,
-            #shoredist_raster=shoredist_raster,
-            data_dir=data_dir,
-            speed_threshold=speed_threshold,
-            tmp_dir=tmp_dir,
-            trafficDBpath=trafficDBpath,
-            pipeline_callback=pipeline_callback,
-        )
-        if processes > 1:
-            q = Queue()
-            with Pool(processes, fcn, [q]) as p:
-                for track in tracks:
-                    while q.qsize() > processes * 2:
-                        sleep(0.001)
-                    q.put(track)
-                for _ in range(processes):
-                    q.put(False)
-                q.close()
-                p.close()
-                p.join()
-        else:
-            fcn(tracks)
+        # configure processing pipeline
+        serialize_CSV = partial(_serialize_network_edge,
+                                domain=domain,
+                                tmp_dir=tmp_dir)
+        geofence = partial(fence_tracks, domain=domain)
+        interp = partial(interp_time, step=interp_delta)
+        encode_tracks = partial(encode_greatcircledistance,
+                                distance_threshold=distance_threshold,
+                                minscore=minscore,
+                                speed_threshold=speed_threshold)
+        timesplit = partial(split_timedelta, maxdelta=maxdelta)
+        vinfo = partial(vessel_info, trafficDBpath=trafficDBpath)
+
+        # pipeline execution order
+        tracks = vinfo(tracks)
+        tracks = wetted_surface_area(tracks)
+        tracks = timesplit(tracks)
+        tracks = encode_tracks(tracks)
+        tracks = interp(tracks)
+        tracks = geofence(tracks)
+        result = serialize_CSV(tracks)
+
+        for res in result:
+            assert res is None
 
         if os.listdir(tmp_dir) == []:
             warnings.warn(f'no data for {outputfile}, skipping...\n')

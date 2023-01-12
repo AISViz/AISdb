@@ -11,7 +11,6 @@ workflow:
 stages:
   - python-test
   - build-website
-  #- pkgbuild
   - publish
 
 
@@ -35,23 +34,8 @@ python-test:
     - mkdir -p data_dir testdata
     - cargo test --color=always --release --lib --manifest-path=./aisdb_lib/Cargo.toml
     - maturin develop --release --extras=test --strip
-    - python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not graph and not timing and not bathy and not raster and not retrieve_marinetraffic_data'
+    - python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not bathy and not raster and not retrieve_marinetraffic_data'
   coverage: '/TOTAL.*\s+(\d+\%)/'
-
-
-#pkgbuild:
-#  image: 
-#    name: ghcr.io/pyo3/maturin:main
-#    entrypoint: [""]
-#  #stage: pkgbuild
-#  #dependencies:
-#    #- rust-test
-#    #- python-test
-#  script:
-#    - maturin build --release --manylinux 2014 --strip --interpreter 3.8 3.9 3.10
-#  artifacts:
-#    paths:
-#      - ./target/wheels/
 
 
 tag:
