@@ -29,8 +29,7 @@ Package features:
 | Docs:
   https://aisdb.meridian.cs.dal.ca/doc/readme.html
 | Source Code: 
-  https://gitlab.meridian.cs.dal.ca/public_projects/aisdb
-
+  https://git-dev.cs.dal.ca/meridian/aisdb
 
 .. whatisais:
 
