@@ -35,7 +35,9 @@ python-test:
     - cargo test --color=always --release --lib --manifest-path=./aisdb_lib/Cargo.toml
     - maturin develop --release --extras=test --strip
     - python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not bathy and not raster and not retrieve_marinetraffic_data'
-  coverage: '/TOTAL.*\s+(\d+\%)/'
+    - python docker/coverage_ci.py
+  #coverage: '/TOTAL.*\s+(\d+\%)/'
+  coverage: '/COVERAGE:.*\s+(\d+\%)/'
 
 
 tag:
