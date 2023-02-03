@@ -77,6 +77,7 @@ streamsocket.onmessage = function (event) {
     });
     trajectory.setId(msg.mmsi);
     trajectory.setStyle(livestreamStyle);
+    trajectory.set('meta', { vesseltype_generic: '' });
     live_targets[msg.mmsi] = trajectory;
   } else {
     // otherwise, update the linestring geometry with the new position
