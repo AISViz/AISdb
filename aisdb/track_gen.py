@@ -285,19 +285,21 @@ def _segments_idx(track, distance_threshold, speed_threshold, **_):
 
 def _scoresarray(track, *, pathways, i, segments_idx, distance_threshold,
                  speed_threshold, minscore):
-    scores = np.array([
-        encoder_score_fcn(
-            x1=pathway['lon'][-1],
-            y1=pathway['lat'][-1],
-            t1=pathway['time'][-1],
-            x2=track['lon'][segments_idx[i]],
-            y2=track['lat'][segments_idx[i]],
-            t2=track['time'][segments_idx[i]],
-            dist_thresh=distance_threshold,
-            speed_thresh=speed_threshold,
-        ) for pathway in pathways
-    ],
-                      dtype=np.float16)
+    scores = np.array(
+        [
+            encoder_score_fcn(
+                x1=pathway['lon'][-1],
+                y1=pathway['lat'][-1],
+                t1=pathway['time'][-1],
+                x2=track['lon'][segments_idx[i]],
+                y2=track['lat'][segments_idx[i]],
+                t2=track['time'][segments_idx[i]],
+                dist_thresh=distance_threshold,
+                speed_thresh=speed_threshold,
+            ) for pathway in pathways
+        ],
+        dtype=np.float32,
+    )
     highscore = (scores[np.where(
         scores == np.max(scores))[0][0]] if scores.size > 0 else minscore)
     return scores, highscore
