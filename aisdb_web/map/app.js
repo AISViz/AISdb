@@ -4,6 +4,9 @@ import { init_maplayers } from './map';
 window.addEventListener('load', async () => {
   let map = await init_maplayers();
 
+  let { initialize_db_socket } = await import('./clientsocket.js');
+  window.socket = await initialize_db_socket();
+
   let [
     { createVesselMenuItem, mapHook, vesselmenu, vesseltypeselect },
     { vessellabels },

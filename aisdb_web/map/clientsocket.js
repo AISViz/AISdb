@@ -181,9 +181,9 @@ async function initialize_db_socket() {
         setSearchRange: _setSearchRange,
       },
     ] = await Promise.all([
-      import('./pkg/client'),
-      import('./url'),
-      import('./selectform'),
+      import('./pkg/client.js'),
+      import('./url.js'),
+      import('./selectform.js'),
     ]);
     process_response = _process_response;
     searchbtn = _searchbtn;

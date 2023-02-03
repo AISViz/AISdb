@@ -4,7 +4,7 @@ import 'flatpickr/dist/flatpickr.css';
 // import 'tiny-date-picker/dist/tiny-date-picker.css';
 // import tinyDatePicker from 'tiny-date-picker';
 
-import { initialize_db_socket, waitForTimerange } from './clientsocket.js';
+import { waitForTimerange } from './clientsocket.js';
 import {
   dragBox,
   draw,
@@ -48,7 +48,8 @@ const selectmenu = document.getElementById('select-menu');
 /** @constant {element} vesselmenu vessel type selection popup menu element */
 const vesselmenu = document.getElementById('vesseltype-menu');
 
-let socket = null;
+// let socket = null;
+// window.dbsocket = socket;
 
 window.timeselectstart = timeselectstart;
 /*
@@ -182,15 +183,12 @@ searchbtn.onclick = async function() {
   let start = timeselectstart.value;
   let end = timeselectend.value;
 
-  if (socket === null) {
-    socket = await initialize_db_socket();
-  }
   await waitForTimerange();
 
   // validate input and create database request
   if (searchstate === false) {
     // if already searching, send STOP
-    await cancelSearch(socket);
+    await cancelSearch(window.socket);
   } else if (window.searcharea === null) {
     // validate area input
     statusdiv.textContent = 'Error: No area selected';
@@ -217,7 +215,7 @@ searchbtn.onclick = async function() {
     window.statusmsg = statusdiv.textContent;
   } else if (searchstate === true) {
     // create database request if everything is OK
-    await newSearch(start, end, socket);
+    await newSearch(start, end, window.socket);
   }
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
@@ -230,16 +228,12 @@ searchbtn.onclick = async function() {
  * @function
  */
 clearbtn.onclick = async function() {
-  if (socket === null) {
-    socket = await initialize_db_socket();
-  }
-
   selectbtn.textContent = 'Select Area';
   await setSearchAreaFromSelected();
   window.statusmsg = '';
   statusdiv.textContent = '';
   if (searchstate === false) {
-    await cancelSearch(socket);
+    await cancelSearch(window.socket);
   }
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);

@@ -33,6 +33,14 @@ struct VesselPositionPing {
     heading: f64,
 }
 
+/*
+#[derive(Serialize, Deserialize)]
+struct VesselStaticPing {
+    mmsi: u32,
+
+}
+*/
+
 fn epoch_time() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -140,6 +148,10 @@ fn filter_insert_vesseldata(
                 static_msgs.push(insert_msg);
             }
             //
+            //let static_ping = VesselStaticData { };
+            //let msg = to_string(&static_ping).unwrap();
+            //Some(msg)
+            //println!("static: ");
             None
         }
         _other => {
