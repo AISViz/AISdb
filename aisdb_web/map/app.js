@@ -1,19 +1,18 @@
-navigator.serviceWorker.getRegistrations().then((registrations) => {
-  for (let registration of registrations) {
-    registration.unregister();
-  }
-});
+import 'ol/ol.css';
+import { init_maplayers } from './map';
 
-(async () => {
-  let { init_maplayers } = await import('./map');
+window.addEventListener('load', async () => {
+  let map = await init_maplayers();
+
   let [
-    { createVesselMenuItem, vesselmenu, vesseltypeselect },
+    { createVesselMenuItem, mapHook, vesselmenu, vesseltypeselect },
     { vessellabels },
   ] = await Promise.all([
     import('./selectform'),
     import('./palette'),
-    init_maplayers(),
   ]);
+
+  await mapHook(map);
 
   createVesselMenuItem('All', 'All', '⋀');
   for (let label of vessellabels) {
@@ -25,4 +24,4 @@ navigator.serviceWorker.getRegistrations().then((registrations) => {
   };
 
   await import('./livestream.js');
-})();
+});

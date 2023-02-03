@@ -92,6 +92,7 @@ fn new_sender(addr: &SocketAddr) -> ioResult<UdpSocket> {
         socket.set_multicast_loop_v4(true)?;
     }
     let target_addr = SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), 0);
+    socket.set_reuse_address(true)?;
     bind_socket(&socket, &target_addr)?;
 
     Ok(socket.into())
@@ -113,15 +114,14 @@ fn new_sender_ipv6(addr: &SocketAddr, ipv6_interface: u32) -> ioResult<UdpSocket
             panic!("setting multicast ipv6 interface: {} {}", ipv6_interface, e);
         }
         let _b = socket.set_multicast_loop_v6(true);
-        socket.set_reuse_address(true)?;
         let _c = bind_socket(&socket, &target_addr);
 
         assert!(_b.is_ok());
         if _c.is_err() {
             panic!("error binding socket {:?}", _c);
         }
-    } else {
     }
+    socket.set_reuse_address(true)?;
     Ok(socket.into())
 }
 

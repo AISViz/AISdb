@@ -4,13 +4,13 @@ import 'flatpickr/dist/flatpickr.css';
 // import 'tiny-date-picker/dist/tiny-date-picker.css';
 // import tinyDatePicker from 'tiny-date-picker';
 
-import { socket, waitForTimerange } from './clientsocket';
+import { initialize_db_socket, waitForTimerange } from './clientsocket.js';
 import {
   dragBox,
   draw,
   drawSource,
   lineSource,
-  map,
+  // map,
   polySource,
   setSearchAreaFromSelected,
 } from './map';
@@ -21,6 +21,12 @@ import {
   // vessellabels,
   vesseltypes,
 } from './palette';
+
+
+let map = null;
+async function mapHook(hook) {
+  map = hook;
+}
 
 
 /** @constant {element} statusdiv status message div element */
@@ -42,6 +48,7 @@ const selectmenu = document.getElementById('select-menu');
 /** @constant {element} vesselmenu vessel type selection popup menu element */
 const vesselmenu = document.getElementById('vesseltype-menu');
 
+let socket = null;
 
 window.timeselectstart = timeselectstart;
 /*
@@ -87,13 +94,13 @@ async function waitForSearchState() {
 
 
 /** cancel button action */
-async function cancelSearch() {
+async function cancelSearch(db_socket) {
   searchbtn.textContent = 'Search';
   statusdiv.textContent = 'Cancelled search';
   window.statusmsg = statusdiv.textContent;
   document.body.style.cursor = 'initial';
   await resetSearchState();
-  await socket.send(JSON.stringify({ type: 'stop' }));
+  await db_socket.send(JSON.stringify({ type: 'stop' }));
 }
 
 
@@ -102,7 +109,7 @@ async function cancelSearch() {
  * 2021-01-01
  * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
  */
-async function newSearch(start, end) {
+async function newSearch(start, end, db_socket) {
   searchstate = false;
   statusdiv.textContent = 'Searching...';
   searchbtn.textContent = 'Cancel';
@@ -112,7 +119,7 @@ async function newSearch(start, end) {
     type = 'heatmap';
     console.log('debugging heatmap...');
   }
-  await socket.send(JSON.stringify({
+  await db_socket.send(JSON.stringify({
     type: type,
     start: start,
     end: end,
@@ -175,12 +182,15 @@ searchbtn.onclick = async function() {
   let start = timeselectstart.value;
   let end = timeselectend.value;
 
+  if (socket === null) {
+    socket = await initialize_db_socket();
+  }
   await waitForTimerange();
 
   // validate input and create database request
   if (searchstate === false) {
     // if already searching, send STOP
-    await cancelSearch();
+    await cancelSearch(socket);
   } else if (window.searcharea === null) {
     // validate area input
     statusdiv.textContent = 'Error: No area selected';
@@ -207,7 +217,7 @@ searchbtn.onclick = async function() {
     window.statusmsg = statusdiv.textContent;
   } else if (searchstate === true) {
     // create database request if everything is OK
-    await newSearch(start, end);
+    await newSearch(start, end, socket);
   }
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
@@ -220,12 +230,16 @@ searchbtn.onclick = async function() {
  * @function
  */
 clearbtn.onclick = async function() {
+  if (socket === null) {
+    socket = await initialize_db_socket();
+  }
+
   selectbtn.textContent = 'Select Area';
   await setSearchAreaFromSelected();
   window.statusmsg = '';
   statusdiv.textContent = '';
   if (searchstate === false) {
-    await cancelSearch();
+    await cancelSearch(socket);
   }
   map.removeInteraction(draw);
   map.removeInteraction(dragBox);
@@ -317,14 +331,14 @@ function set_track_style(ft) {
  * @param {ol.source.Vector} lineSource target layer
  * @see selectedType
  */
-function update_vesseltype_styles(lineSource) {
+function update_vesseltype_styles(_lineSource) {
   /* vessel types selector action */
   if (selectedType === 'All') {
-    for (let ft of lineSource.getFeatures()) {
+    for (let ft of _lineSource.getFeatures()) {
       ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
     }
   } else {
-    for (let ft of lineSource.getFeatures()) {
+    for (let ft of _lineSource.getFeatures()) {
       if (ft.get('meta').vesseltype_generic.includes(selectedType)) {
         ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
       } else {
@@ -361,10 +375,10 @@ function createVesselMenuItem(label, value, symbol) {
   vesselmenu.appendChild(opt);
 }
 
-
 export {
   clearbtn,
   createVesselMenuItem,
+  mapHook,
   resetSearchState,
   searchbtn,
   setSearchRange,

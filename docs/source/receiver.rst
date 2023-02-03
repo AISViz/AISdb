@@ -75,12 +75,14 @@ Create a new text file ``./ais_rcv.service`` with contents:
 
     [Unit]
     Description="AISDB Receiver"
-    After=network.target
+    After=network-online.target
 
     [Service]
     Type=simple
     User=ais
     ExecStart=/home/ais/.cargo/bin/mproxy-client --path /dev/ttyACM0 --server-addr '[::1]:9901'
+    Restart=always
+    RestartSec=30
 
     [Install]
     WantedBy=default.target
@@ -94,12 +96,14 @@ Create a new text file ``./ais_upstream.service`` with contents:
 
     [Unit]
     Description="AISDB Dispatcher"
-    After=network.target
+    After=network-online.target
 
     [Service]
     Type=simple
     User=ais
     ExecStart=/home/ais/.cargo/bin/mproxy-forward --udp-listen-addr '[::]:9901' --tcp-connect-addr 'aisdb.meridian.cs.dal.ca:9920'
+    Restart=always
+    RestartSec=30
 
     [Install]
     WantedBy=default.target
@@ -116,6 +120,7 @@ Next, link and enable the services on the rpi. This will allow the receiver to b
     sudo systemctl link ./ais_rcv.service
     sudo systemctl link ./ais_upstream.service
     sudo systemctl daemon-reload
+    sudo systemctl enable systemd-networkd-wait-online.service
 
     sudo systemctl enable ais_rcv
     sudo systemctl start ais_rcv

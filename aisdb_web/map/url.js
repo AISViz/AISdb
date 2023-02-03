@@ -61,7 +61,7 @@ async function parseUrl() {
     urlParams.get('ecoregions') !== null) {
     let {
       resetLoadingZones, socket, waitForZones
-    } = await import('./clientsocket');
+    } = await import('./clientsocket.js');
     await resetLoadingZones();
     await socket.send(JSON.stringify({ type: 'zones' }));
     await waitForZones();

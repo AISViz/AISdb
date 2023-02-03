@@ -1,7 +1,5 @@
 /** @module clientsocket */
-// import parseUrl from './url';
-// import { newHeatmapFeatures, newPolygonFeature, newTrackFeature } from './map';
-// import { searchbtn, resetSearchState, setSearchRange } from './selectform';
+import { database_hostname, database_port, disable_ssl } from './constants.js';
 
 window.statusmsg = null;
 let newHeatmapFeatures = null;
@@ -10,22 +8,6 @@ let newTrackFeature = null;
 let searchbtn = null;
 let resetSearchState = null;
 let setSearchRange = null;
-
-/** socket server hostname as read from $VITE_AISDBHOST env variable
- * @constant {string} hostname
- */
-let hostname = import.meta.env.VITE_AISDBHOST;
-if (hostname === undefined || hostname === null) {
-  hostname = 'localhost';
-}
-
-/** socket server port as read from $VITE_AISDBPORT env variable
- * @constant {string} hostname
- */
-let port = import.meta.env.VITE_AISDBPORT;
-if (port === undefined) {
-  port = '9924';
-}
 
 
 let doneLoadingRange = false;
@@ -73,27 +55,20 @@ let utf8decode = new TextDecoder();
 function convert_utf8_js(arr) {
   return JSON.parse(utf8decode.decode(new Uint8Array(arr)));
 }
-/**
-  for local testing, do:
-  export VITE_DISABLE_SSL=1
-  npx vite ./aisdb_web/map/
-  */
-let socketHost = null;
-if (import.meta.env.VITE_DISABLE_SSL !== null &&
-  import.meta.env.VITE_DISABLE_SSL !== undefined) {
-  console.log('CAUTION: connecting to websocket over unencrypted connection!');
-  socketHost = `ws://${hostname}:${port}`;
-} else {
-  /** @constant {string} socketHost socket host address */
-  socketHost = `wss://${hostname}/ws`;
-}
 
-let socket = null;
 let process_response = null;
 
-(async () => {
+async function initialize_db_socket() {
+  let socketHost = null;
+  if (disable_ssl !== null && disable_ssl !== undefined) {
+    console.log('CAUTION: connecting to websocket over unencrypted connection!');
+    socketHost = `ws://${database_hostname}:${database_port}`;
+  } else {
+    /** @constant {string} socketHost socket host address */
+    socketHost = `wss://${database_hostname}/ws`;
+  }
   /** @constant {WebSocket} socket database websocket */
-  socket = new WebSocket(socketHost);
+  let socket = new WebSocket(socketHost);
 
   /** closes connection to the server before exiting browser window
    * @callback window_onbeforeunload
@@ -201,7 +176,10 @@ let process_response = null;
     let [
       { default: init, process_response: _process_response },
       { default: parseUrl },
-      { searchbtn: _searchbtn, resetSearchState: _resetSearchState, setSearchRange: _setSearchRange },
+      { searchbtn: _searchbtn,
+        resetSearchState: _resetSearchState,
+        setSearchRange: _setSearchRange,
+      },
     ] = await Promise.all([
       import('./pkg/client'),
       import('./url'),
@@ -231,12 +209,15 @@ let process_response = null;
     // override start/end values from GET request vars
     await parseUrl();
   };
-})();
+
+  return socket;
+}
+
 
 export {
-  hostname,
+  initialize_db_socket,
   resetLoadingZones,
-  socket,
+  // socket,
   waitForTimerange,
   waitForZones,
 };

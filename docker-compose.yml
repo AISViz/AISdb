@@ -29,8 +29,12 @@ services:
 
   # build python package and run python tests
   python-test:
+    build:
+      target: aisdb
+      context: .
+      dockerfile: ./docker/Dockerfile
     container_name: python-test
-    image: meridiancfi/aisdb:latest
+    # image: meridiancfi/aisdb:latest
     environment:
       - RUST_BACKTRACE=1
       - AISDBDATADIR=/home/ais_env/ais
@@ -113,6 +117,7 @@ services:
     ports:
      - "80:80"
      - "443:443"
+     - "9919:9919/udp"
      - "9920:9920"
      - "9921:9921/udp"
      #- "9921:9921"
@@ -142,7 +147,8 @@ services:
     networks:
       ipv6_private:
         ipv6_address: "fc00::5"
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    #entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot certonly --webroot -w /var/www/certbot -d $AISDBHOST -n; sleep 12h & wait $${!}; done;'"
     depends_on:
       - nginx
 
@@ -167,13 +173,17 @@ services:
           "--path", "/usr/src/aisdb/receiver/ais_rx.db", 
           #"--tcp-connect-addr='aisdb.meridian.cs.dal.ca:9920'", 
           #"--tcp-listen-addr='[::]:9922'", 
+          #"--tcp-listen-addr='[::]:9920'", 
           "--udp-listen-addr='[::]:9921'", 
           "--tcp-output-addr='[::]:9922'", 
           "--multicast-addr-rawdata='[ff02::1]:9916'",
           "--multicast-addr-parsed='[ff02::1]:9917'"
           #,"--tee"
       ]
+    depends_on:
+      - nginx
 
+  # forward receiver to downstream
   upstream-ais:
     container_name: upstream-ais
     init: true
@@ -189,11 +199,13 @@ services:
         ipv6_address: "fc00::8"
     depends_on:
       - nginx
+      - receiver
     working_dir: "/usr/src/aisdb/dispatcher/reverse_proxy"
     command:
       ["mproxy-reverse",
-         "--tcp-listen-addr", "[::]:9920",
-         #"--tcp-listen-addr", "[::]:9922",
+         #"--tcp-output-addr", "[::]:9920",
+         #"--tcp-listen-addr", "[::]:9920",
+         "--tcp-output-addr", "[::]:9920",
          "--multicast-addr", "[ff02::1]:9916",
          "--udp-output-addr", "[::]:9923"
       ]

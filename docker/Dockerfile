@@ -18,8 +18,10 @@ RUN useradd -m "ais_env"
 USER "ais_env"
 WORKDIR "/home/ais_env"
 
-ENV PATH=./env/bin:/home/ais_env/.cargo/bin:$PATH   VIRTUAL_ENV="/home/ais_env/env"
-RUN rustup install stable && rustup default stable
+ENV PATH=./env/bin:/home/ais_env/.cargo/bin:$PATH
+ENV VIRTUAL_ENV="/home/ais_env/env"
+ENV CARGO_UNSTABLE_SPARSE_REGISTRY=true
+RUN rustup install nightly && rustup default nightly 
 RUN python -m venv env
 RUN pip install --upgrade pip wheel maturin setuptools
 

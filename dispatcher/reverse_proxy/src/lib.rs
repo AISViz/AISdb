@@ -97,6 +97,11 @@ use mproxy_server::upstream_socket_interface;
 use mproxy_socket_dispatch::BUFSIZE;
 
 fn handle_client_tcp(downstream: TcpStream, multicast_addr: String) {
+    #[cfg(debug_assertions)]
+    println!(
+        "handling downstream client: {} UDP -> {:?} TCP",
+        multicast_addr, downstream
+    );
     let (_multicast_addr, multicast_socket) =
         if let Ok((addr, socket)) = upstream_socket_interface(multicast_addr) {
             if !addr.ip().is_multicast() {
@@ -113,6 +118,7 @@ fn handle_client_tcp(downstream: TcpStream, multicast_addr: String) {
     loop {
         match multicast_socket.recv_from(&mut buf[0..]) {
             Ok((count_input, _remote_addr)) => {
+                //println!("{}", String::from_utf8_lossy(&buf[0..count_input]));
                 let _count_output = tcp_writer.write(&buf[0..count_input]);
             }
             Err(err) => {
@@ -131,6 +137,11 @@ fn handle_client_tcp(downstream: TcpStream, multicast_addr: String) {
 /// Forward a UDP socket stream (e.g. from a multicast channel) to connected TCP clients.
 /// Spawns a listener thread, plus one thread for each incoming TCP connection.
 pub fn reverse_proxy_udp_tcp(multicast_addr: String, tcp_listen_addr: String) -> JoinHandle<()> {
+    #[cfg(debug_assertions)]
+    println!(
+        "forwarding: {} UDP -> {} TCP",
+        multicast_addr, tcp_listen_addr
+    );
     spawn(move || {
         let listener = TcpListener::bind(tcp_listen_addr).expect("binding downstream TCP Listener");
         for stream in listener.incoming() {
@@ -146,6 +157,11 @@ pub fn reverse_proxy_udp_tcp(multicast_addr: String, tcp_listen_addr: String) ->
 
 /// Forward bytes from UDP upstream socket address to UDP downstream socket address
 pub fn reverse_proxy_udp(udp_input_addr: String, udp_output_addr: String) -> JoinHandle<()> {
+    #[cfg(debug_assertions)]
+    println!(
+        "forwarding: {} UDP -> {} UDP",
+        udp_input_addr, udp_output_addr
+    );
     spawn(move || {
         let (addr, listen_socket) = upstream_socket_interface(udp_input_addr).unwrap();
         let (outaddr, output_socket) = target_socket_interface(&udp_output_addr).unwrap();
@@ -153,14 +169,16 @@ pub fn reverse_proxy_udp(udp_input_addr: String, udp_output_addr: String) -> Joi
         let mut buf = [0u8; BUFSIZE];
         loop {
             match listen_socket.recv_from(&mut buf[0..]) {
-                Ok((c, _remote_addr)) => {
+                Ok((c, remote_addr)) => {
                     if c == 0 {
-                        panic!("{}", outaddr);
+                        eprintln!("got message with size 0 from upstream: {}", remote_addr);
+                    } else {
+                        let c_out = output_socket
+                            .send_to(&buf[0..c], outaddr)
+                            .expect("forwarding UDP downstream");
+                        assert!(c == c_out);
+                        //println!("{}", String::from_utf8_lossy(&buf[0..c]));
                     }
-                    let c_out = output_socket
-                        .send_to(&buf[0..c], outaddr)
-                        .expect("forwarding UDP downstream");
-                    assert!(c == c_out);
                 }
                 Err(err) => {
                     eprintln!("{}:reverse_proxy: error {}", addr, err);

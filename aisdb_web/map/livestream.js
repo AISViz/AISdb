@@ -1,6 +1,6 @@
 import { lineSource } from './map';
 import { /* vesselStyles,*/ selectStyle } from './palette.js';
-import { hostname } from './clientsocket.js';
+import { database_hostname, disable_ssl } from './constants.js';
 
 import { Feature } from 'ol';
 import { Fill, Stroke, Style, Circle } from 'ol/style';
@@ -29,11 +29,10 @@ const ptSelectStyle = function(feature) {
 /* --- */
 
 let streamsocket = null;
-if (import.meta.env.VITE_DISABLE_SSL !== null &&
-  import.meta.env.VITE_DISABLE_SSL !== undefined) {
-  streamsocket = new WebSocket(`ws://${hostname}:9922`);
+if (disable_ssl !== null && disable_ssl !== undefined) {
+  streamsocket = new WebSocket(`ws://${database_hostname}:9922`);
 } else {
-  streamsocket = new WebSocket(`wss://${hostname}:9922`);
+  streamsocket = new WebSocket(`wss://${database_hostname}:9922`);
 }
 let live_targets = {};
 
@@ -41,7 +40,7 @@ let live_targets = {};
 streamsocket.onerror = function(event) {
   let msg = `livestream: an unexpected error occurred [${event.code}]`;
   streamsocket.close();
-  streamsocket.onerror = null;
+  streamsocket.onerror = msg;
   streamsocket = null;
 };
 

@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 
 use aisdb_lib::csvreader::decodemsgs_ee_csv;
 use aisdb_lib::decode::decode_insert_msgs;
-use aisdb_receiver::start_receiver;
+use aisdb_receiver::{start_receiver, ReceiverArgs};
 
 macro_rules! zip {
     ($x: expr) => ($x);
@@ -265,19 +265,19 @@ pub fn receiver(
     static_msg_bufsize: Option<usize>,
     tee: bool,
 ) {
-    let threads = start_receiver(
-        dbpath.map(PathBuf::from),
+    let threads = start_receiver(ReceiverArgs {
+        dbpath: dbpath.map(PathBuf::from),
         tcp_connect_addr,
         tcp_listen_addr,
         udp_listen_addr,
         multicast_addr_parsed,
-        multicast_addr_raw,
+        multicast_addr_rawdata: multicast_addr_raw,
         tcp_output_addr,
         udp_output_addr,
         dynamic_msg_bufsize,
         static_msg_bufsize,
         tee,
-    );
+    });
     unsafe {
         while threads
             .iter()
