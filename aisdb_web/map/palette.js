@@ -7,7 +7,7 @@ import { Fill, Stroke, Style, Text } from 'ol/style';
 function zoom_line_width(zoom) {
   let min_width = 2;
   let max_width = 7;
-  let width = zoom / 100 + 5;
+  let width = zoom / 100 + 3;
   if (width < min_width) {
     width = min_width;
   }
