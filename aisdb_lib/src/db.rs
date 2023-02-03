@@ -18,6 +18,7 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
         ":memory:" => Connection::open_in_memory().unwrap(),
         _ => Connection::open(path).unwrap(),
     };
+    conn.busy_timeout(std::time::Duration::from_secs(300))?;
 
     let version_string = rusqlite::version();
 
