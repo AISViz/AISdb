@@ -1,5 +1,5 @@
 import { lineSource } from './map';
-import { /* vesselStyles,*/ selectStyle } from './palette.js';
+import { /* vesselStyles,*/ livestreamStyle, selectStyle } from './palette.js';
 import { database_hostname, disable_ssl } from './constants.js';
 
 import { Feature } from 'ol';
@@ -35,7 +35,6 @@ if (disable_ssl !== null && disable_ssl !== undefined) {
   streamsocket = new WebSocket(`wss://${database_hostname}:9922`);
 }
 let live_targets = {};
-
 
 streamsocket.onerror = function(event) {
   let msg = `livestream: an unexpected error occurred [${event.code}]`;
@@ -77,9 +76,8 @@ streamsocket.onmessage = function (event) {
       meta_str : meta_str,
     });
     trajectory.setId(msg.mmsi);
-    trajectory.setStyle(selectStyle(trajectory));
+    trajectory.setStyle(livestreamStyle);
     live_targets[msg.mmsi] = trajectory;
-    // lineSource.addFeature(trajectory);
   } else {
     // otherwise, update the linestring geometry with the new position
     // lineSource.removeFeature(trajectory);

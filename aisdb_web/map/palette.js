@@ -4,6 +4,19 @@
  */
 import { Fill, Stroke, Style, Text } from 'ol/style';
 
+function zoom_line_width(zoom) {
+  let min_width = 2;
+  let max_width = 7;
+  let width = zoom / 100 + 5;
+  if (width < min_width) {
+    width = min_width;
+  }
+  if (width > max_width) {
+    width = max_width;
+  }
+  return width;
+}
+
 
 /*
  * polygon text styles
@@ -44,20 +57,6 @@ const polySelectStyle = function(feature) {
       width: 4,
     }),
     text: polygonText(feature),
-  });
-};
-
-/** on mousever feature style */
-const selectStyle = function(feature) {
-  return new Style({
-    fill: new Fill({
-      // color: '#eeeeee',
-      color: 'rgba(255, 255, 255, 0.4)',
-    }),
-    stroke: new Stroke({
-      color: 'rgba(255, 255, 255, 0.7)',
-      width: 4,
-    }),
   });
 };
 
@@ -203,9 +202,10 @@ vessellabels.forEach((key, i) => {
 vessellabels.forEach((key, i) => {
   vesseltypes[key.replace(/\s/g, '')] = palette[i];
 });
+
+vesseltypes.Unspecified = '#EEEEEE';
 vesseltypes[''] = '#EEEEEE';
 vesseltypes['-'] = '#EEEEEE';
-vesseltypes.Unspecified = '#EEEEEE';
 vesseltypes['Cargo - Hazard A (Major)'] = vesseltypes.Cargo;
 vesseltypes['Cargo - Hazard B'] = vesseltypes.Cargo;
 vesseltypes['Cargo - Hazard C (Minor)'] = vesseltypes.Cargo;
@@ -224,25 +224,59 @@ vesseltypes['Tanker-HazardC(Minor)'] = vesseltypes.Tanker;
 vesseltypes['Tanker-HazardD(Recognizable)'] = vesseltypes.Tanker;
 
 /** maps vessellabels to colors in palette */
+function getVesselStyle(vesseltype) {
+  return function(feature, zoom) {
+    return new Style({
+      fill: new Fill({
+        color: vesseltypes[vesseltype],
+      }),
+      stroke: new Stroke({
+        color: vesseltypes[vesseltype],
+        width: zoom_line_width(zoom),
+      }),
+    });
+  };
+}
 let vesselStyles = {};
-// vesseltypes.forEach((key) => {
-for (const key of Object.keys(vesseltypes)) {
-  vesselStyles[key] = new Style({
+
+Object.keys(vesseltypes).forEach((key) => {
+  vesselStyles[key] = getVesselStyle(key);
+});
+
+/** on mousever feature style */
+const selectStyle = function(feature) {
+  return new function(feature, zoom) {
+    return new Style({
+      fill: new Fill({
+        // color: '#eeeeee',
+        color: 'rgba(255, 255, 255, 0.4)',
+      }),
+      stroke: new Stroke({
+        color: 'rgba(255, 255, 255, 0.7)',
+        width: zoom_line_width(zoom),
+      }),
+    });
+  }();
+};
+
+
+let livestreamStyle = function (feature, zoom) {
+  return new Style({
+    fill: '#EEEEEE',
     stroke: new Stroke({
-      color: vesseltypes[key],
-      width: 1,
-    }),
-    fill: new Fill({
-      color: vesseltypes[key],
+      color: 'white',
+      width: zoom_line_width(zoom),
     }),
   });
-}
+};
 
 export {
   dragBoxStyle,
+  getVesselStyle,
   hiddenStyle,
-  polyStyle,
+  livestreamStyle,
   polySelectStyle,
+  polyStyle,
   selectStyle,
   vesselStyles,
   vessellabels,

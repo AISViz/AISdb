@@ -161,7 +161,7 @@ async function init_maplayers() {
     polySelectStyle,
     selectStyle,
     vesseltypes,
-  } = await import('./palette');
+  } = await import('./palette.js');
 
   /** ol map TileLayer */
   // the following env var will be set to "1" by the build script
@@ -179,9 +179,10 @@ async function init_maplayers() {
     mapLayer = new TileLayer({ source: new CustomOSM({}) });
   }
 
+
   let map = new _Map({
     target: 'mapDiv', // div item in index.html
-    // layers: [ mapLayer, polyLayer, lineLayer, heatLayer, pointLayer, drawLayer ],
+    layers: [ mapLayer, polyLayer, lineLayer, heatLayer, pointLayer, drawLayer ],
     view: mapview,
     interactions: defaultInteractions({ doubleClickZoom:false }),
     controls: defaultControls().extend([ mousePositionControl ]),
@@ -378,10 +379,6 @@ async function init_maplayers() {
     }, { layerFilter: clickLayerFilterCallback }
     );
   });
-
-
-  // layers: [ mapLayer, polyLayer, lineLayer, heatLayer, pointLayer, drawLayer ],
-  map.setLayers([ mapLayer, polyLayer, lineLayer, heatLayer, pointLayer, drawLayer ]);
 
   return map;
 }

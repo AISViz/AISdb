@@ -311,9 +311,7 @@ let selectedType = 'All';
  * @see selectedType
  */
 function set_track_style(ft) {
-  if (selectedType === 'All') {
-    ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
-  } else if (ft.get('meta').vesseltype_generic.includes(selectedType)) {
+  if (selectedType === 'All' || ft.get('meta').vesseltype_generic.includes(selectedType)){
     ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
   } else {
     ft.setStyle(hiddenStyle);
@@ -325,14 +323,14 @@ function set_track_style(ft) {
  * @param {ol.source.Vector} lineSource target layer
  * @see selectedType
  */
-function update_vesseltype_styles(_lineSource) {
+function update_vesseltype_styles(lineSource) {
   /* vessel types selector action */
   if (selectedType === 'All') {
-    for (let ft of _lineSource.getFeatures()) {
+    for (let ft of lineSource.getFeatures()) {
       ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
     }
   } else {
-    for (let ft of _lineSource.getFeatures()) {
+    for (let ft of lineSource.getFeatures()) {
       if (ft.get('meta').vesseltype_generic.includes(selectedType)) {
         ft.setStyle(vesselStyles[ft.get('meta').vesseltype_generic]);
       } else {

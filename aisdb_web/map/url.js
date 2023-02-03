@@ -97,8 +97,6 @@ async function parseUrl() {
     let { setSearchValue } = await import('./selectform');
     setSearchValue(yesterday_str, now_str);
 
-    console.log(`searching: ${yesterday_str} ${now_str}`);
-
     let { searchbtn } = await import ('./selectform.js');
     searchbtn.click();
   }
