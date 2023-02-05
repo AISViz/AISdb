@@ -89,8 +89,8 @@ async function parseUrl() {
       };
     }
 
-    let now = new Date();
-    let yesterday = new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000);
+    let now = new Date(new Date().getTime() + 1 * 24 * 60 * 60 * 1000);
+    let yesterday = new Date(new Date().getTime() - 1 * 24 * 60 * 60 * 1000);
     let now_str = `${now.getUTCFullYear()}-${now.getUTCMonth() + 1 }-${now.getUTCDate()}`;
     let yesterday_str = `${yesterday.getUTCFullYear()}-${yesterday.getUTCMonth() + 1 }-${yesterday.getUTCDate()}`;
 

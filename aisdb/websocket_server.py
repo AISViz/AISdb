@@ -89,6 +89,8 @@ class SocketServ():
 
         if not hasattr(self, 'dbconn'):
             self.dbconn = await aiosqlite.connect(self.dbpath)
+            await self.dbconn.execute('PRAGMA query_only=1')
+            await self.dbconn.execute('PRAGMA busy_timeout=300000')
 
         async for clientmsg in websocket:
             t0 = datetime.now()

@@ -76,6 +76,7 @@ Create a new text file ``./ais_rcv.service`` with contents:
     [Unit]
     Description="AISDB Receiver"
     After=network-online.target
+    Documentation=https://aisdb.meridian.cs.dal.ca/doc/receiver.html
 
     [Service]
     Type=simple
@@ -97,6 +98,7 @@ Create a new text file ``./ais_upstream.service`` with contents:
     [Unit]
     Description="AISDB Dispatcher"
     After=network-online.target
+    Documentation=https://aisdb.meridian.cs.dal.ca/doc/receiver.html
 
     [Service]
     Type=simple

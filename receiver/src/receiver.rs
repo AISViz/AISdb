@@ -243,13 +243,15 @@ fn decode_multicast(
                 // do database insert
                 if let Some(ref mut conn) = dbconn {
                     if dynamic_msgs.len() > dynamic_msg_buffsize {
-                        prepare_tx_dynamic(conn, "rx", dynamic_msgs)
-                            .expect("inserting vessel dynamic data");
+                        if let Err(e) = prepare_tx_dynamic(conn, "rx", dynamic_msgs) {
+                            eprintln!("Error inserting vessel dynamic data: {}", e);
+                        }
                         dynamic_msgs = vec![];
                     }
                     if static_msgs.len() > static_msg_bufsize {
-                        prepare_tx_static(conn, "rx", static_msgs)
-                            .expect("inserting vessel static data");
+                        if let Err(e) = prepare_tx_static(conn, "rx", static_msgs) {
+                            eprintln!("Error inserting vessel static data: {}", e);
+                        }
                         static_msgs = vec![];
                     }
                 }

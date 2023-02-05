@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.34
+-------
+
+fix receiver crash on database timeout
+
+
 v1.4.33
 -------
 
