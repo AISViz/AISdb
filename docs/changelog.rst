@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.35
+-------
+
+add support for decoding .zip and .gz compressed AIS data files
+
+
 v1.4.34
 -------
 

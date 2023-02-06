@@ -92,18 +92,24 @@ class SocketServ():
             await self.dbconn.execute('PRAGMA query_only=1')
             await self.dbconn.execute('PRAGMA busy_timeout=300000')
 
-        async for clientmsg in websocket:
-            t0 = datetime.now()
-            await asyncio.wait_for(self._handle_client(clientmsg, websocket),
-                                   timeout=2400)
-            delta = (datetime.now() - t0).total_seconds()
-            if delta > 1200:
-                await websocket.send(
-                    orjson.dumps({
-                        'type': 'done',
-                        'status': 'Request timed out!'
-                    }))
-        await websocket.close()
+        try:
+            async for clientmsg in websocket:
+                t0 = datetime.now()
+                await asyncio.wait_for(
+                    fut=self._handle_client(clientmsg, websocket),
+                    timeout=2400,
+                )
+                delta = (datetime.now() - t0).total_seconds()
+                if delta > 1200:
+                    await websocket.send(
+                        orjson.dumps({
+                            'type': 'done',
+                            'status': 'Request timed out!'
+                        }))
+        except websocket.exceptions.ConnectionClosedError as err:
+            print(err)
+        finally:
+            await websocket.close()
         print(f'closed client: ended socket loop {websocket.remote_address}')
 
     async def await_response(self, websocket):

@@ -35,8 +35,9 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
 
     conn.execute_batch(
         "
-        PRAGMA synchronous = 0;
-        PRAGMA temp_store = MEMORY;
+        PRAGMA synchronous=0;
+        PRAGMA temp_store=MEMORY;
+        PRAGMA journal_mode=WAL;
         ",
     )
     .unwrap_or_else(|_| panic!("setting PRAGMAS for {:?}", path.to_str()));

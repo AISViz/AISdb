@@ -77,18 +77,23 @@ pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str, verbose: bool) {
     // check file extensions and begin decode
     let mut parser = NmeaParser::new();
     for (d, f) in &path_arr {
-        if f.to_str().unwrap().contains(".nm4")
-            || f.to_str().unwrap().contains(".NM4")
-            || f.to_str().unwrap().contains(".RX")
-            || f.to_str().unwrap().contains(".rx")
-            || f.to_str().unwrap().contains(".TXT")
-            || f.to_str().unwrap().contains(".txt")
-        {
-            parser = decode_insert_msgs(d, f, source, parser, verbose).expect("decoding NM4");
-        } else if f.to_str().unwrap().contains(".csv") || f.to_str().unwrap().contains(".CSV") {
-            decodemsgs_ee_csv(d, f, source, verbose).expect("decoding CSV");
-        } else {
-            panic!("unknown file extension {:?}", d);
+        match f.extension() {
+            Some(ext_os_str) => match ext_os_str.to_str() {
+                Some("nm4") | Some("NM4") | Some("nmea") | Some("NMEA") | Some("rx")
+                | Some("txt") | Some("RX") | Some("TXT") => {
+                    parser =
+                        decode_insert_msgs(d, f, source, parser, verbose).expect("decoding NM4");
+                }
+                Some("csv") | Some("CSV") => {
+                    decodemsgs_ee_csv(d, f, source, verbose).expect("decoding CSV");
+                }
+                _ => {
+                    panic!("unknown file type! {:?}", &f);
+                }
+            },
+            _ => {
+                panic!("unknown file type! {:?}", &f);
+            }
         }
     }
 }

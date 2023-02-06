@@ -2,10 +2,13 @@
     See function decode_msgs() for usage
 '''
 
-import os
 from hashlib import md5
+import gzip
+import os
 import pickle
 import sqlite3
+import tempfile
+import zipfile
 
 from aisdb.database.dbconn import DBConn
 from aisdb.aisdb import decoder
@@ -54,6 +57,32 @@ class FileChecksums():
         if res is None or res is False:
             return False
         return True
+
+
+def _decode_gz(file, tmp_dir, dbpath, source, verbose):
+    unzip_file = os.path.join(tmp_dir, file.rsplit(os.path.sep, 1)[-1][:-3])
+    if verbose:
+        print(f'unzipping {file} into {unzip_file}...')
+    with gzip.open(file, 'rb') as f1, open(unzip_file, 'wb') as f2:
+        f2.write(f1.read())
+    decoder(dbpath=dbpath, files=[unzip_file], source=source, verbose=verbose)
+    os.remove(unzip_file)
+
+
+def _decode_ziparchive(file, tmp_dir, dbpath, source, verbose):
+    zipf = zipfile.ZipFile(file)
+    for item in zipf.namelist():
+        unzip_file = os.path.join(tmp_dir, item)
+        if verbose:
+            print(f'unzipping {file} into {unzip_file}...')
+        with zipf.open(item, 'rb') as f1, open(unzip_file, 'wb') as f2:
+            f2.write(f1.read())
+        decoder(dbpath=dbpath,
+                files=[unzip_file],
+                source=source,
+                verbose=verbose)
+        os.remove(unzip_file)
+    zipf.close()
 
 
 def decode_msgs(filepaths,
@@ -113,6 +142,8 @@ def decode_msgs(filepaths,
 
     dbindex = FileChecksums()
     dbindex._checksums_table(dbpath)
+    tmp_dir = tempfile.mkdtemp(
+    )  # directory to place unzip files if compressed
     for file in filepaths:
         if not skip_checksum:
             with open(os.path.abspath(file), 'rb') as f:
@@ -124,9 +155,18 @@ def decode_msgs(filepaths,
                 if verbose:  # pragma: no cover
                     print(f'found matching checksum, skipping {file}')
                 continue
-        decoder(dbpath=dbpath, files=[file], source=source, verbose=verbose)
+        if file[-3:] == '.gz':
+            _decode_gz(file, tmp_dir, dbpath, source, verbose)
+        elif file[-4:] == '.zip':
+            _decode_ziparchive(file, tmp_dir, dbpath, source, verbose)
+        else:
+            decoder(dbpath=dbpath,
+                    files=[file],
+                    source=source,
+                    verbose=verbose)
         if not skip_checksum:
             dbindex._insert_checksum(dbpath, signature)
+    os.removedirs(tmp_dir)
 
     if vacuum is not False:
         print("finished parsing data\nvacuuming...")

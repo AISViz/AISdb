@@ -1,5 +1,6 @@
 pub use std::{
-    fs::{create_dir_all, read_dir, File},
+    ffi::OsStr,
+    fs::{create_dir_all, metadata, read_dir, File},
     io::{BufRead, BufReader, Error, Write},
     time::{Duration, Instant},
 };
@@ -167,10 +168,16 @@ pub fn decode_insert_msgs(
     mut parser: NmeaParser,
     verbose: bool,
 ) -> Result<NmeaParser, Error> {
-    match &filename.to_str().unwrap()[&filename.to_str().unwrap().len() - 3..] {
-        "nm4" | ".rx" | "txt" | "NM4" | ".RX" | "TXT" => (),
+    match filename.extension() {
+        Some(ext_os_str) => match ext_os_str.to_str() {
+            Some("nm4") | Some("NM4") | Some("nmea") | Some("NMEA") | Some("rx") | Some("txt")
+            | Some("RX") | Some("TXT") => {}
+            _ => {
+                panic!("unknown file type! {:?}", &filename);
+            }
+        },
         _ => {
-            panic!("invalid file type! {:?}", &filename);
+            panic!("unknown file type! {:?}", &filename);
         }
     }
 
