@@ -37,6 +37,7 @@
 TEST*
 aisdb.egg-info
 aisdb/tests/test_zones/East_Coast_EEZ_Zones_4_25_22
+aisdb_lib/target
 aisdb_wasm/release
 aisdb_wasm/target
 aisdb_web/dist_cargodoc
@@ -60,6 +61,7 @@ info.sh
 prof
 profile
 receiver/Cargo.lock
+receiver/target
 release
 target
 testdata

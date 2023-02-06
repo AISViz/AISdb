@@ -63,7 +63,7 @@ Software Setup
  #. Connect the receiver to the raspberry pi using the USB cable. Login to the pi and update the system ``sudo apt-get update``
  #. Install the rust toolchain on the raspberry pi ``curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh``
  #. Log out and log back in to add rust and cargo to the system path
- #. Install the network client and dispatcher from crates.io ``cargo install mproxy-client mproxy-forward``
+ #. Install the network client and dispatcher from crates.io ``cargo install mproxy-client``
      * To install from source, use the local path instead e.g. ``cargo install --path ./dispatcher/client``
  #. Install new systemd services to run the AIS receiver and dispatcher, replacing ``User=ais`` and ``/home/ais`` with the name selected in step 1.
 
@@ -81,7 +81,7 @@ Create a new text file ``./ais_rcv.service`` with contents:
     [Service]
     Type=simple
     User=ais
-    ExecStart=/home/ais/.cargo/bin/mproxy-client --path /dev/ttyACM0 --server-addr '[::1]:9901'
+    ExecStart=/home/ais/.cargo/bin/mproxy-client --path /dev/ttyACM0 --server-addr 'aisdb.meridian.cs.dal.ca:9921'
     Restart=always
     RestartSec=30
 
@@ -89,46 +89,19 @@ Create a new text file ``./ais_rcv.service`` with contents:
     WantedBy=default.target
 
 
+This service will broadcast receiver input downstream to aisdb.meridian.cs.dal.ca via UDP. 
+Additional endpoints can be added at this step, for more info see ``mproxy-client --help``, as well as additional AIS networking tools ``mproxy-forward``, ``mproxy-server``, and ``mproxy-reverse`` located in the ``./dispatcher`` source directory.
 
-Create a new text file ``./ais_upstream.service`` with contents:
-
-.. code-block:: 
-    :caption: ./ais_upstream.service
-
-    [Unit]
-    Description="AISDB Dispatcher"
-    After=network-online.target
-    Documentation=https://aisdb.meridian.cs.dal.ca/doc/receiver.html
-
-    [Service]
-    Type=simple
-    User=ais
-    ExecStart=/home/ais/.cargo/bin/mproxy-forward --udp-listen-addr '[::]:9901' --tcp-connect-addr 'aisdb.meridian.cs.dal.ca:9920'
-    Restart=always
-    RestartSec=30
-
-    [Install]
-    WantedBy=default.target
-
-
-These services will broadcast receiver input on local UDP port 9901, and then forward it upstream to aisdb.meridian.cs.dal.ca via TCP. 
-Additional local or remote endpoints can be added at this step, for more info see ``mproxy-forward --help``, as well as additional AIS networking tools ``mproxy-server`` and ``mproxy-reverse`` located in the ``./dispatcher`` source directory.
-The UDP Multicast channel may be used to proxy multiple interfaces simultaneously.
-
-Next, link and enable the services on the rpi. This will allow the receiver to be started at boot
+Next, link and enable the service on the rpi. 
+This will start the receiver at boot
 
 .. code-block:: bash
 
-    sudo systemctl link ./ais_rcv.service
-    sudo systemctl link ./ais_upstream.service
-    sudo systemctl daemon-reload
     sudo systemctl enable systemd-networkd-wait-online.service
-
+    sudo systemctl link ./ais_rcv.service
+    sudo systemctl daemon-reload
     sudo systemctl enable ais_rcv
     sudo systemctl start ais_rcv
-
-    sudo systemctl enable ais_upstream
-    sudo systemctl start ais_upstream
 
 
 See more examples in ``docker-compose.yml``
