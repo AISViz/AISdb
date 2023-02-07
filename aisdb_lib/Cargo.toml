@@ -1,5 +1,5 @@
 [package]
-version = "1.4.37"
+version = "1.4.38"
 name = "aisdb-lib"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"

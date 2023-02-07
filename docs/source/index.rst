@@ -38,7 +38,6 @@ AISDB Docs: Index
    docker
    database
    receiver
-   Webmap </map/index.html#http://>  
 
 
 .. toctree::
