@@ -1,5 +1,5 @@
-Setting up an AIS base station
-==============================
+Setting up an AIS receiver
+==========================
 
 Requirements
 ------------
@@ -58,6 +58,20 @@ Hardware Setup
 
 Software Setup
 --------------
+
+Quick Start
++++++++++++
+
+Connect the receiver to the raspberry pi via USB port, and then run the ``configure_rpi.sh`` script.
+This will install the rust toolchain, AISDB dispatcher, and AISDB systemd service (described below), allowing the receiver to start at boot.
+
+.. code-block:: bash
+
+    curl --proto '=https' --tlsv1.2 https://git-dev.cs.dal.ca/meridian/aisdb/-/raw/master/configure_rpi.sh | bash
+
+
+Custom Install
+++++++++++++++
 
  #. Install Raspberry Pi OS with SSH enabled https://www.raspberrypi.com/software/ . If using the RPi imager, be sure to run it as an administrator.
  #. Connect the receiver to the raspberry pi using the USB cable. Login to the pi and update the system ``sudo apt-get update``
