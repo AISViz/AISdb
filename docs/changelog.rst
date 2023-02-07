@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.37
+-------
+
+decoder improvements
+
+
 v1.4.36
 -------
 

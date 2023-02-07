@@ -110,16 +110,6 @@ def get_dbname(dbpath):
     return name
 
 
-pragmas = [
-    'PRAGMA temp_store=MEMORY',
-    'PRAGMA journal_mode=TRUNCATE',
-    'PRAGMA threads=6',
-    'PRAGMA mmap_size=1000000000',  # 1GB
-    'PRAGMA cache_size=-15625000',  # 16GB
-    'PRAGMA cache_spill=0',
-]
-
-
 class DBConn(sqlite3.Connection):
     ''' SQLite3 database connection object
 
@@ -153,9 +143,12 @@ class DBConn(sqlite3.Connection):
                          detect_types=sqlite3.PARSE_DECLTYPES
                          | sqlite3.PARSE_COLNAMES)
         self.row_factory = sqlite3.Row
-        for p in pragmas:
-            self.execute(p)
-        self.commit()
+        cur = self.cursor()
+        cur.execute("PRAGMA journal_mode")
+        res = cur.fetchone()[0]
+        if res != 'wal':
+            self.execute('PRAGMA journal_mode=wal')
+            self.commit()
         self._create_table_coarsetype()
 
     def __exit__(self, exc_class, exc, tb):

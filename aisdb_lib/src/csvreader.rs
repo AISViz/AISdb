@@ -16,15 +16,21 @@ use crate::decode::VesselData;
 
 /// convert time string to epoch seconds
 pub fn csvdt_2_epoch(dt: &str) -> i64 {
-    let utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S").unwrap();
-    DateTime::<Utc>::from_utc(utctime, Utc).timestamp()
+    let mut utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S");
+    if let Err(_e) = utctime {
+        utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%dT%H%M%SZ")
+    }
+    if let Err(e) = utctime {
+        panic!("parsing timestamp from '{}': {}", dt, e);
+    }
+    DateTime::<Utc>::from_utc(utctime.unwrap(), Utc).timestamp()
 }
 
 /// filter everything but vessel data, sort vessel data into static and dynamic vectors
 pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringRecord, i32, bool)> {
     /*
     if rowopt.is_none() {
-        return None;
+    return None;
     }
     */
     rowopt.as_ref()?;
@@ -114,24 +120,24 @@ pub fn decodemsgs_ee_csv(
                 own_vessel: true,
                 ais_type: AisClass::Unknown,
                 mmsi: row.get(0).unwrap().parse().unwrap(),
-                ais_version_indicator: row.get(23).unwrap().parse().unwrap_or(0),
+                ais_version_indicator: row.get(23).unwrap().parse().unwrap_or_default(),
                 imo_number: row.get(15).unwrap().parse().ok(),
                 call_sign: row.get(14).unwrap().parse().ok(),
                 name: Some(row.get(13).unwrap_or("").to_string()),
-                ship_type: ShipType::new(row.get(16).unwrap().parse().unwrap_or(0)),
+                ship_type: ShipType::new(row.get(16).unwrap().parse().unwrap_or_default()),
                 cargo_type: CargoType::Undefined,
                 equipment_vendor_id: None,
                 equipment_model: None,
                 equipment_serial_number: None,
-                dimension_to_bow: row.get(17).unwrap().parse().ok(),
-                dimension_to_stern: row.get(18).unwrap().parse().ok(),
-                dimension_to_port: row.get(19).unwrap().parse().ok(),
-                dimension_to_starboard: row.get(20).unwrap().parse().ok(),
+                dimension_to_bow: row.get(17).unwrap_or_default().parse().ok(),
+                dimension_to_stern: row.get(18).unwrap_or_default().parse().ok(),
+                dimension_to_port: row.get(19).unwrap_or_default().parse().ok(),
+                dimension_to_starboard: row.get(20).unwrap_or_default().parse().ok(),
                 position_fix_type: None,
                 eta: None,
-                draught10: row.get(21).unwrap().parse().ok(),
-                destination: row.get(22).unwrap().parse().ok(),
-                mothership_mmsi: row.get(131).unwrap().parse().ok(),
+                draught10: row.get(21).unwrap_or_default().parse().ok(),
+                destination: row.get(22).unwrap_or_default().parse().ok(),
+                mothership_mmsi: row.get(131).unwrap_or_default().parse().ok(),
             };
             let message = VesselData {
                 epoch: Some(epoch),

@@ -19,7 +19,6 @@ from aisdb.database.dbconn import (
     _create_coarsetype_index,
     _create_coarsetype_table,
     get_dbname,
-    pragmas,
 )
 from aisdb.webdata.marinetraffic import VesselInfo
 
@@ -322,9 +321,6 @@ class DBQuery_async(DBQuery):
         if not hasattr(self, 'dbconn'):
             self.dbconn = await aiosqlite.connect(self.dbpath)
             self.dbconn.row_factory = sqlite3.Row
-
-        for p in pragmas:
-            _ = await self.dbconn.execute(p)
 
         for month in self.data['months']:
             res = await self.dbconn.execute_fetchall(
