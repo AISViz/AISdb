@@ -54,7 +54,7 @@ def test_create_from_CSV(tmpdir):
         # aggregate_static_msgs(dbconn, ["202107"])
 
         # executes SQL statement: ATTACH database AS dbname
-        dbconn.attach(dbpath)
+        dbconn._attach(dbpath)
 
         curr = dbconn.cursor()
         curr.execute(

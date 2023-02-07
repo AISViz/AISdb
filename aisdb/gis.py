@@ -421,7 +421,9 @@ class DomainFromPoints(Domain):
                  radial_distances,
                  names=[],
                  domainName='domain'):
-        ''' creates a bounding-box polygons
+        ''' Creates bounding-box polygons having a minimum radius atleast
+            approximately ``radial_distances`` in metres, centered on
+            ``points``.
 
             args:
                 points (list)

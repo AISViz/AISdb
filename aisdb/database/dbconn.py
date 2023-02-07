@@ -116,7 +116,7 @@ class DBConn(sqlite3.Connection):
         attributes:
             dbpaths (list of strings)
                 currently attached databases. initialized as [],
-                list becomes populated with databases using the .attach()
+                list becomes populated with databases using the ._attach()
                 method
             db_daterange (dict)
                 temporal range of monthly database tables. keys are DB file
@@ -151,6 +151,9 @@ class DBConn(sqlite3.Connection):
             self.commit()
         self._create_table_coarsetype()
 
+    def __enter__(self):
+        return self
+
     def __exit__(self, exc_class, exc, tb):
         for dbpath in self.dbpaths:
             self.execute('DETACH DATABASE ?', [get_dbname(dbpath)])
@@ -158,7 +161,7 @@ class DBConn(sqlite3.Connection):
         self.close()
         self = None
 
-    def attach(self, dbpath):
+    def _attach(self, dbpath):
         ''' connect to an additional database file '''
         assert get_dbname(dbpath) != 'main'
         if dbpath not in self.dbpaths:

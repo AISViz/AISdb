@@ -10,7 +10,7 @@ from aisdb import sqlpath
 
 def sqlite_createtable_dynamicreport(dbconn, month, dbpath):
     assert isinstance(dbconn, (DBConn)), f'not a DBConn object {dbconn}'
-    dbconn.attach(dbpath)
+    dbconn._attach(dbpath)
     with open(os.path.join(sqlpath, 'createtable_dynamic_clustered.sql'),
               'r') as f:
         sql = f.read().format(month).replace(
@@ -20,7 +20,7 @@ def sqlite_createtable_dynamicreport(dbconn, month, dbpath):
 
 def sqlite_createtable_staticreport(dbconn, month, dbpath):
     assert isinstance(dbconn, (DBConn)), f'not a DBConn object {dbconn}'
-    dbconn.attach(dbpath)
+    dbconn._attach(dbpath)
     with open(os.path.join(sqlpath, 'createtable_static.sql'), 'r') as f:
         sql = f.read().format(month).replace(
             f'ais_{month}', f'{get_dbname(dbpath)}.ais_{month}')

@@ -154,8 +154,8 @@ def decode_msgs(filepaths,
         >>> dbpath = os.path.join('testdata', 'doctest.db')
         >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
         ...              'aisdb/tests/test_data_20211101.nm4']
-        >>> dbconn = DBConn():
-        >>> decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath, source='TESTING')
+        >>> with DBConn() as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath, source='TESTING')
         >>> os.remove(dbpath)
     '''
     if not isinstance(dbconn, DBConn):  # pragma: no cover

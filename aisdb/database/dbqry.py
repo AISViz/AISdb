@@ -100,7 +100,7 @@ class DBQuery(UserDict):
             assert dbpath is None
 
         for dbpath in dbpaths:
-            dbconn.attach(dbpath)
+            dbconn._attach(dbpath)
         if not isinstance(dbconn, DBConn):
             raise ValueError(
                 'db argument must be a DBConn database connection.'
@@ -136,14 +136,14 @@ class DBQuery(UserDict):
                     can be supplied here
 
         '''
-        self.dbconn.attach(dbpath)
+        self.dbconn._attach(dbpath)
         vinfo = VesselInfo(trafficDBpath)
         # TODO: determine which attached db to query
 
         print(f'retrieving vessel info for {dbpath}', end='', flush=True)
         for month in self.data['months']:
             dbname = get_dbname(dbpath)
-            self.dbconn.attach(dbpath)
+            self.dbconn._attach(dbpath)
 
             # skip missing tables
             if self.dbconn.execute(
@@ -329,7 +329,7 @@ class DBQuery_async(DBQuery):
                 [f'static_{month}_aggregate'])
             if res == []:
                 with DBConn() as syncdb:
-                    syncdb.attach(self.dbpath)
+                    syncdb._attach(self.dbpath)
                     assert 'main' not in syncdb.dbpaths
                     if verbose:
                         print('Aggregating static messages synchronously... ')

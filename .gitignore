@@ -56,3 +56,5 @@ profile
 release
 target
 testdata
+*.sqlitedb
+*.sqlitedb*

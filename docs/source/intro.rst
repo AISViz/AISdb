@@ -100,13 +100,59 @@ When using CSV, the following header is expected:
   MMSI,Message_ID,Repeat_indicator,Time,Millisecond,Region,Country,Base_station,Online_data,Group_code,Sequence_ID,Channel,Data_length,Vessel_Name,Call_sign,IMO,Ship_Type,Dimension_to_Bow,Dimension_to_stern,Dimension_to_port,Dimension_to_starboard,Draught,Destination,AIS_version,Navigational_status,ROT,SOG,Accuracy,Longitude,Latitude,COG,Heading,Regional,Maneuver,RAIM_flag,Communication_flag,Communication_state,UTC_year,UTC_month,UTC_day,UTC_hour,UTC_minute,UTC_second,Fixing_device,Transmission_control,ETA_month,ETA_day,ETA_hour,ETA_minute,Sequence,Destination_ID,Retransmit_flag,Country_code,Functional_ID,Data,Destination_ID_1,Sequence_1,Destination_ID_2,Sequence_2,Destination_ID_3,Sequence_3,Destination_ID_4,Sequence_4,Altitude,Altitude_sensor,Data_terminal,Mode,Safety_text,Non-standard_bits,Name_extension,Name_extension_padding,Message_ID_1_1,Offset_1_1,Message_ID_1_2,Offset_1_2,Message_ID_2_1,Offset_2_1,Destination_ID_A,Offset_A,Increment_A,Destination_ID_B,offsetB,incrementB,data_msg_type,station_ID,Z_count,num_data_words,health,unit_flag,display,DSC,band,msg22,offset1,num_slots1,timeout1,Increment_1,Offset_2,Number_slots_2,Timeout_2,Increment_2,Offset_3,Number_slots_3,Timeout_3,Increment_3,Offset_4,Number_slots_4,Timeout_4,Increment_4,ATON_type,ATON_name,off_position,ATON_status,Virtual_ATON,Channel_A,Channel_B,Tx_Rx_mode,Power,Message_indicator,Channel_A_bandwidth,Channel_B_bandwidth,Transzone_size,Longitude_1,Latitude_1,Longitude_2,Latitude_2,Station_Type,Report_Interval,Quiet_Time,Part_Number,Vendor_ID,Mother_ship_MMSI,Destination_indicator,Binary_flag,GNSS_status,spare,spare2,spare3,spare4
 
 
-The ``decode_msgs()`` function also accepts compressed ``.zip`` and ``.gz`` file formats as long as they can be decoded into either nm4 or CSV.
+The :func:`aisdb.database.decoder.decode_msgs` function also accepts compressed ``.zip`` and ``.gz`` file formats as long as they can be decoded into either nm4 or CSV.
 
 .. _query:
 
 2. Querying the Database
 ------------------------
 
+Parameters for the database query can be defined using :class:`aisdb.database.dbqry.DBQuery`. 
+Iterate over rows returned from the database for each vessel with :func:`aisdb.database.dbqry.DBQuery.gen_qry`, and vectorize each vessel trajectory as a dictionary of numpy arrays using :func:`aisdb.track_gen.TrackGen`.
+The following query will return vessel positions from the past 48h:
+
+.. code-block:: python
+
+    import aisdb
+    from datetime import datetime, timedelta
+
+    with aisdb.DBConn() as dbconn:
+      qry = aisdb.DBQuery(
+        dbconn=dbconn,
+        dbpath='AIS.sqlitedb',
+        callback=aisdb.database.sql_query_strings.in_timerange,
+        start=datetime.utcnow() - timedelta(hours=48),
+        end=datetime.utcnow(),
+      )
+
+      for vessel in aisdb.TrackGen(qry.gen_qry()):
+          print(vessel)
+
+
+A specific region can be queried for AIS data using :class:`aisdb.gis.Domain` or one of its subclasses to define a collection of ``shapely`` polygon features.
+For this example, the domain contains a single bounding box polygon derived from a coordinate pair and radial distance.
+
+.. code-block:: python
+
+    with DBConn() as dbconn:
+        domain = aisdb.DomainFromPoints(points=[(-63.6, 44.6),], radial_distances=[5000,])
+        qry = aisdb.DBQuery(
+            dbconn=dbconn,
+            dbpath='AIS.sqlitedb',
+            callback=aisdb.database.sqlfcn_callbacks.in_bbox_time_validmmsi,
+            start=datetime.utcnow() - timedelta(hours=48),
+            end=datetime.utcnow(),
+            xmin=domain.boundary['xmin'],
+            xmax=domain.boundary['xmax'],
+            ymin=domain.boundary['ymin'],
+            ymax=domain.boundary['ymax'],
+        )
+
+      for vessel in aisdb.TrackGen(qry.gen_qry()):
+          print(vessel)
+
+
+Additional query callbacks for filtering by region, timeframe, identifier, etc. can be found in :mod:`aisdb.database.sql_query_strings` and :mod:`aisdb.database.sqlfcn_callbacks`
 
 .. _processing:
 

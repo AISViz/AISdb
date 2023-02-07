@@ -1,5 +1,5 @@
-AISDB: Readme
-=============
+Readme
+======
 
 .. image:: https://git-dev.cs.dal.ca/meridian/aisdb/badges/master/pipeline.svg
 
