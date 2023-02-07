@@ -16,6 +16,7 @@ static PROJECT_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../aisdb/aisdb_s
 pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
     let conn = match path.to_str().unwrap() {
         ":memory:" => Connection::open_in_memory().unwrap(),
+        //":memory:" => { Connection::open_with_flags(fpath, SQLITE_OPEN_URI | SQLITE_OPEN_READ_WRITE)?},
         _ => Connection::open(path).unwrap(),
     };
 
@@ -32,15 +33,16 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
     if vnum[0] < 3 || vnum[0] == 3 && (vnum[1] < 8 || (vnum[1] == 8 && vnum[2] < 2)) {
         panic!("SQLite3 version is too low! Need version 3.8.2 or higher");
     }
-
-    conn.execute_batch(
-        "
-        PRAGMA synchronous=0;
-        PRAGMA temp_store=MEMORY;
-        PRAGMA journal_mode=WAL;
-        ",
-    )
-    .unwrap_or_else(|_| panic!("setting PRAGMAS for {:?}", path.to_str()));
+    let res: String = conn
+        .prepare("PRAGMA journal_mode")?
+        .query([])?
+        .next()?
+        .unwrap()
+        .get(0)?;
+    if res != "wal" {
+        conn.execute_batch("PRAGMA journal_mode=WAL;")
+            .unwrap_or_else(|_| panic!("setting PRAGMAS for {:?}", path.to_str()));
+    }
 
     Ok(conn)
 }
@@ -62,7 +64,7 @@ pub fn sqlite_createtable_dynamicreport(
     let sql = sql_from_file("createtable_dynamic_clustered.sql").replace("{}", mstr);
     Ok(tx
         .execute(&sql, [])
-        .unwrap_or_else(|_| panic!("creating dynamic table\n{}", sql)))
+        .unwrap_or_else(|e| panic!("creating dynamic table\n{}\n{}", sql, e)))
 }
 
 /// create SQLite table for monthly static vessel reports
@@ -141,7 +143,7 @@ pub fn sqlite_insert_dynamic(
 
     let mut stmt = tx
         .prepare_cached(sql.as_str())
-        .unwrap_or_else(|_| panic!("preparing SQL statement:\n{}", sql));
+        .unwrap_or_else(|e| panic!("preparing SQL statement:\n{}\n{}", sql, e));
 
     for msg in msgs {
         let (p, e) = msg.dynamicdata();
@@ -159,8 +161,12 @@ pub fn sqlite_insert_dynamic(
                 p.timestamp_seconds,
                 source,
             ])
-            .unwrap_or_else(|_| {
-                panic!("executing prepared row on {}", tx.path().unwrap().display())
+            .unwrap_or_else(|e| {
+                panic!(
+                    "executing prepared row on {}\n{}",
+                    tx.path().unwrap().display(),
+                    e
+                )
             });
     }
 
@@ -193,7 +199,8 @@ pub fn prepare_tx_static(
         .to_string();
     let t = c.transaction().unwrap();
     sqlite_createtable_staticreport(&t, &mstr).expect("create static table");
-    sqlite_insert_static(&t, stat_msgs, &mstr, source).unwrap_or_else(|_| panic!("insert static"));
+    sqlite_insert_static(&t, stat_msgs, &mstr, source)
+        .unwrap_or_else(|e| panic!("insert static: {}", e));
     t.commit()
 }
 

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.36
+-------
+
+improved error handling and logging in aisdb_lib
+
+
 v1.4.35
 -------
 
