@@ -1,31 +1,32 @@
 /** @module render */
 import html2canvas from 'html2canvas';
 
-import { update_vesseltype_styles, waitForSearchState } from './selectform';
-import { lineSource } from './map';
+import { update_vesseltype_styles, waitForSearchState } from './selectform.js';
+import { lineSource } from './map.js';
 
-/** callback to capture the current map canvas as PNG base64image.
+/** Callback to capture the current map canvas as PNG base64image.
  * a download link is appended to the document, which will click itself,
  * then remove itself.
  */
 async function screenshot_callback() {
   await html2canvas(document.querySelector('.map')).then((canvas) => {
-    let dl = `${document.getElementById('time-select-start').value}-`;
-    dl = `${dl}${document.getElementById('time-select-end').value}_`;
-    dl = `${dl}${document.getElementById('vesseltype-select').value}`;
+    let dl = `${document.querySelector('#time-select-start').value}-`;
+    dl = `${dl}${document.querySelector('#time-select-end').value}_`;
+    dl = `${dl}${document.querySelector('#vesseltype-select').value}`;
     dl = `${dl}.png`;
-    let a = document.createElement('a');
+    const a = document.createElement('a');
     a.download = dl;
     const base64image = canvas.toDataURL('image/png');
     a.href = base64image;
-    document.body.appendChild(a);
+    document.body.append(a);
     a.click();
-    document.body.removeChild(a);
+    a.remove();
   });
 }
+
 window.screnshot_single = screenshot_callback;
 
-/** take a screenshot using screenshot_callback() of each vessel type specified
+/** Take a screenshot using screenshot_callback() of each vessel type specified
  * in opts. if opts is undefined, the following vesseltypes will be used:
  * opts = {
       renders: [
@@ -39,13 +40,13 @@ window.screnshot_single = screenshot_callback;
         'None',
       ]
     };
- * @param {Object} opts render options
+ * @param {Object} options render options
  */
-async function screenshot(opts) {
+async function screenshot(options) {
   await waitForSearchState();
 
-  if (opts === undefined) {
-    opts = {
+  if (options === undefined) {
+    options = {
       renders: [
         'All',
         'Cargo',
@@ -55,12 +56,12 @@ async function screenshot(opts) {
         'Pleasure Craft',
         'Passenger',
         'None',
-      ]
+      ],
     };
   }
 
-  const vesseltypeselect = document.getElementById('vesseltype-select');
-  for (let type of opts.renders) {
+  const vesseltypeselect = document.querySelector('#vesseltype-select');
+  for (const type of options.renders) {
     vesseltypeselect.value = type;
     await new Promise((r) => {
       return setTimeout(r, 500);

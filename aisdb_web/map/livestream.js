@@ -1,53 +1,49 @@
-import { lineSource } from './map';
-import { /* vesselStyles,*/ livestreamStyle, selectStyle } from './palette.js';
-import { database_hostname, disable_ssl } from './constants.js';
-
 import { Feature } from 'ol';
 import { Fill, Stroke, Style, Circle } from 'ol/style';
 import { LineString } from 'ol/geom';
-// import { Vector as VectorSource } from 'ol/source';
 import { fromLonLat } from 'ol/proj';
-// import Collection from 'ol/Collection';
+
+import { database_hostname, disable_ssl } from './constants.js';
+import { lineSource } from './map.js';
+import { livestreamStyle } from './palette.js';
+// Import { Vector as VectorSource } from 'ol/source';
+// Import Collection from 'ol/Collection';
 // import WebGLPointsLayer from 'ol/layer/WebGLPoints';
 
 /** on mousever feature style */
 
-const ptSelectStyle = function(feature) {
+const ptSelectStyle = function (feature) {
   return new Style({
     image: new Circle({ radius: 4,
       fill: new Fill({
         color: 'rgba(255, 255, 255, 0.85)',
       }),
       stroke: new Stroke({
-        // color: 'rgba(10, 80, 255, 0.5)',
+        // Color: 'rgba(10, 80, 255, 0.5)',
         color: 'rgba(100, 100, 100, 0.5)',
         width: 1,
-      }) })
+      }) }),
   });
 };
 
 /* --- */
 
 let streamsocket = null;
-if (disable_ssl !== null && disable_ssl !== undefined) {
-  streamsocket = new WebSocket(`ws://${database_hostname}:9922`);
-} else {
-  streamsocket = new WebSocket(`wss://${database_hostname}:9922`);
-}
-let live_targets = {};
+streamsocket = disable_ssl !== null && disable_ssl !== undefined ? new WebSocket(`ws://${database_hostname}:9922`) : new WebSocket(`wss://${database_hostname}:9922`);
+const live_targets = {};
 
-streamsocket.onerror = function(event) {
-  let msg = `livestream: an unexpected error occurred [${event.code}]`;
+streamsocket.onerror = function (event) {
+  // Const message = `livestream: an unexpected error occurred [${event.code}]`;
   streamsocket.close();
-  streamsocket.onerror = msg;
+  streamsocket.onerror = null;
   streamsocket = null;
 };
 
 streamsocket.onmessage = function (event) {
-  // parse message
-  let msg = JSON.parse(event.data);
+  // Parse message
+  const message = JSON.parse(event.data);
 
-  // create new point from message coordinates
+  // Create new point from message coordinates
   /*
   let ft = new Feature({
     geometry: new Point(fromLonLat([ msg.lon, msg.lat ])),
@@ -57,63 +53,67 @@ streamsocket.onmessage = function (event) {
   */
 
   // check target matrix for ship ID
-  let trajectory = live_targets[msg.mmsi];
-  let meta_str = `mmsi: ${msg.mmsi}`;
-  if (msg.sog >= 0) {
-    meta_str = `${meta_str }&emsp;sog: ${msg.sog.toFixed(1)}`;
-  }
-  if (msg.rot >= 0) {
-    meta_str = `${meta_str }&emsp;rot: ${msg.rot.toFixed(1)}`;
-  }
-  if (msg.heading >= 0) {
-    meta_str = `${meta_str }&emsp;heading: ${msg.heading.toFixed(0)}`;
+  let trajectory = live_targets[message.mmsi];
+  let meta_string = `mmsi: ${message.mmsi}`;
+  if (message.sog >= 0) {
+    meta_string = `${meta_string}&emsp;sog: ${message.sog.toFixed(1)}`;
   }
 
-  // if it doesn't exist yet, create a new LineString object
+  if (message.rot >= 0) {
+    meta_string = `${meta_string}&emsp;rot: ${message.rot.toFixed(1)}`;
+  }
+
+  if (message.heading >= 0) {
+    meta_string = `${meta_string}&emsp;heading: ${message.heading.toFixed(0)}`;
+  }
+
+  // If it doesn't exist yet, create a new LineString object
   if (trajectory === undefined) {
     trajectory = new Feature({
-      geometry: new LineString(fromLonLat([ msg.lon, msg.lat ])),
-      meta_str : meta_str,
+      geometry: new LineString(fromLonLat([ message.lon, message.lat ])),
+      meta_str: meta_string,
     });
-    trajectory.setId(msg.mmsi);
+    trajectory.setId(message.mmsi);
     trajectory.setStyle(livestreamStyle);
     trajectory.set('meta', { vesseltype_generic: '' });
-    live_targets[msg.mmsi] = trajectory;
+    live_targets[message.mmsi] = trajectory;
   } else {
-    // otherwise, update the linestring geometry with the new position
+    // Otherwise, update the linestring geometry with the new position
     // lineSource.removeFeature(trajectory);
-    let coords = trajectory.getGeometry().getCoordinates();
-    if (coords[-1, 0] === msg.lon && coords[-1, 1] === msg.lat) {
+    const coords = trajectory.getGeometry().getCoordinates();
+    if (coords[-1, 0] === message.lon && coords[-1, 1] === message.lat) {
       return true;
     }
-    coords.push(fromLonLat([ msg.lon, msg.lat ]));
+
+    coords.push(fromLonLat([ message.lon, message.lat ]));
     trajectory.getGeometry().setCoordinates(coords);
 
-    // compress track using douglas-peucker algorithm
+    // Compress track using douglas-peucker algorithm
     if (trajectory.getGeometry().getCoordinates().length >= 100 &&
       trajectory.getGeometry().getCoordinates().length % 100 === 0) {
       trajectory.setGeometry(trajectory.getGeometry().simplify(100));
-      // console.log(`decimated ${trajectory.get('mmsi')} ${trajectory.getGeometry().getCoordinates().length}`);
+      // Console.log(`decimated ${trajectory.get('mmsi')} ${trajectory.getGeometry().getCoordinates().length}`);
     }
 
-    // enforce maximum number of points per vessel
+    // Enforce maximum number of points per vessel
     if (trajectory.getGeometry().getCoordinates().length > 150) {
       trajectory.getGeometry().setCoordinates(trajectory.getGeometry().getCoordinates().slice(-150));
     }
+
     /*
-    trajectory.set('rot_latest', msg.rot);
+    Trajectory.set('rot_latest', msg.rot);
     trajectory.set('sog_latest', msg.sog);
     trajectory.set('heading_latest', msg.heading);
     */
-    trajectory.set('meta_str', meta_str);
+    trajectory.set('meta_str', meta_string);
 
-    // map window will throw an error for linestring that is too short
-    if (lineSource.getFeatureById(msg.mmsi) === null &&
+    // Map window will throw an error for linestring that is too short
+    if (lineSource.getFeatureById(message.mmsi) === null &&
       trajectory.getGeometry().getCoordinates().length === 2) {
       lineSource.addFeature(trajectory);
     }
   }
-  // pointSource.addFeature(ft);
+
+  // PointSource.addFeature(ft);
   return true;
 };
-

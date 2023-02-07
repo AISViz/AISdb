@@ -1,30 +1,31 @@
 import 'ol/ol.css';
-import { init_maplayers } from './map';
+import { init_maplayers } from './map.js';
 
 window.addEventListener('load', async () => {
-  let map = await init_maplayers();
+  const map = await init_maplayers();
 
-  let { initialize_db_socket } = await import('./clientsocket.js');
+  const { initialize_db_socket } = await import('./clientsocket.js');
   window.socket = await initialize_db_socket();
 
-  let [
+  const [
     { createVesselMenuItem, mapHook, vesselmenu, vesseltypeselect },
     { vessellabels },
   ] = await Promise.all([
-    import('./selectform'),
-    import('./palette'),
+    import('./selectform.js'),
+    import('./palette.js'),
   ]);
 
   await mapHook(map);
 
   createVesselMenuItem('All', 'All', '⋀');
-  for (let label of vessellabels) {
+  for (const label of vessellabels) {
     createVesselMenuItem(label, label);
   }
+
   createVesselMenuItem('Unknown', 'None', '○');
-  vesseltypeselect.onclick = function() {
+  vesseltypeselect.addEventListener('click', () => {
     vesselmenu.classList.toggle('show');
-  };
+  });
 
   await import('./livestream.js');
 });

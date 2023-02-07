@@ -1,41 +1,42 @@
 /**
- * map styling and colorschemes
+ * Map styling and colorschemes
  * @module palette
  */
 import { Fill, Stroke, Style, Text } from 'ol/style';
 
 function zoom_line_width(zoom) {
-  let min_width = 2;
-  let max_width = 7;
+  const min_width = 2;
+  const max_width = 7;
   let width = zoom / 100 + 3;
   if (width < min_width) {
     width = min_width;
   }
+
   if (width > max_width) {
     width = max_width;
   }
+
   return width;
 }
 
-
 /*
- * polygon text styles
+ * Polygon text styles
  */
 
-let polygonText = function(feature) {
+const polygonText = function (feature) {
   return new Text({
     stroke: new Stroke({ color: 'white', width: 3 }),
     align: 'center',
     text: feature.get('meta_str'),
-    // font: '3 12 / 12 12', // weight size / height dom.font.value
+    // Font: '3 12 / 12 12', // weight size / height dom.font.value
     overflow: true,
     fill: new Fill({ color: 'black' }),
   });
 };
 
-/** default zone polygon map style */
+/** Default zone polygon map style */
 
-const polyStyle = function(feature) {
+const polyStyle = function (feature) {
   return new Style({
     stroke: new Stroke({
       color: '#000000',
@@ -46,10 +47,11 @@ const polyStyle = function(feature) {
     text: polygonText(feature),
   });
 };
-const polySelectStyle = function(feature) {
+
+const polySelectStyle = function (feature) {
   return new Style({
     fill: new Fill({
-      // color: '#eeeeee',
+      // Color: '#eeeeee',
       color: 'rgba(255, 255, 255, 0.4)',
     }),
     stroke: new Stroke({
@@ -60,8 +62,7 @@ const polySelectStyle = function(feature) {
   });
 };
 
-
-/** hidden feature style */
+/** Hidden feature style */
 const hiddenStyle = new Style({
   fill: new Fill({
     color: 'rgba(255, 255, 255, 0)',
@@ -72,7 +73,7 @@ const hiddenStyle = new Style({
   }),
 });
 
-/** map window selection area feature style */
+/** Map window selection area feature style */
 const dragBoxStyle = new Style({
   fill: new Fill({
     color: 'rgba(255, 255, 255, 0)',
@@ -83,7 +84,7 @@ const dragBoxStyle = new Style({
   }),
 });
 
-/** tracks color palette */
+/** Tracks color palette */
 const palette = [
   // [0, 0, 0],
   // [1, 0, 103],
@@ -151,7 +152,7 @@ const palette = [
   [ 232, 94, 190 ],
 ];
 
-/** known vessel types */
+/** Known vessel types */
 const vessellabels = [
   // '',
   // '-',
@@ -195,13 +196,14 @@ const vessellabels = [
   'Wing In Grnd',
 ];
 
-let vesseltypes = {};
-vessellabels.forEach((key, i) => {
+const vesseltypes = {};
+for (const [ i, key ] of vessellabels.entries()) {
   vesseltypes[key] = palette[i];
-});
-vessellabels.forEach((key, i) => {
+}
+
+for (const [ i, key ] of vessellabels.entries()) {
   vesseltypes[key.replace(/\s/g, '')] = palette[i];
-});
+}
 
 vesseltypes.Unspecified = '#EEEEEE';
 vesseltypes[''] = '#EEEEEE';
@@ -223,9 +225,9 @@ vesseltypes['Tanker-HazardB'] = vesseltypes.Tanker;
 vesseltypes['Tanker-HazardC(Minor)'] = vesseltypes.Tanker;
 vesseltypes['Tanker-HazardD(Recognizable)'] = vesseltypes.Tanker;
 
-/** maps vessellabels to colors in palette */
+/** Maps vessellabels to colors in palette */
 function getVesselStyle(vesseltype) {
-  return function(feature, zoom) {
+  return function (feature, zoom) {
     return new Style({
       fill: new Fill({
         color: vesseltypes[vesseltype],
@@ -237,18 +239,19 @@ function getVesselStyle(vesseltype) {
     });
   };
 }
-let vesselStyles = {};
 
-Object.keys(vesseltypes).forEach((key) => {
+const vesselStyles = {};
+
+for (const key of Object.keys(vesseltypes)) {
   vesselStyles[key] = getVesselStyle(key);
-});
+}
 
-/** on mousever feature style */
-const selectStyle = function(feature) {
-  return new function(feature, zoom) {
+/** On mousever feature style */
+const selectStyle = function (feature) {
+  return new function (feature, zoom) {
     return new Style({
       fill: new Fill({
-        // color: '#eeeeee',
+        // Color: '#eeeeee',
         color: 'rgba(255, 255, 255, 0.4)',
       }),
       stroke: new Stroke({
@@ -259,8 +262,7 @@ const selectStyle = function(feature) {
   }();
 };
 
-
-let livestreamStyle = function (feature, zoom) {
+const livestreamStyle = function (feature, zoom) {
   return new Style({
     fill: '#EEEEEE',
     stroke: new Stroke({

@@ -8,7 +8,6 @@ import { get as getProjection, getTransformFromProjections } from 'ol/proj';
 
 import { tileserver_hostname } from './constants.js';
 
-
 class CustomOSM extends OSM {
   /**
    * @param {Options} [options] Open Street Map options.
@@ -16,13 +15,13 @@ class CustomOSM extends OSM {
   constructor(options) {
     options = options || {};
 
-    let attributions = options.attributions;
+    const attributions = options.attributions;
 
     const crossOrigin =
       options.crossOrigin !== undefined ? options.crossOrigin : 'anonymous';
 
     let url = null;
-    // if (tileserver_hostname.includes('127.0.0.1')) {
+    // If (tileserver_hostname.includes('127.0.0.1')) {
     if (tileserver_hostname === '' || tileserver_hostname === '/') {
       url = options.url !== undefined ? options.url : '/{z}/{x}/{y}.png';
     } else {
@@ -30,11 +29,11 @@ class CustomOSM extends OSM {
     }
 
     super({
-      // attributions: attributions,
+      // Attributions: attributions,
       attributionsCollapsible: true,
       cacheSize: options.cacheSize,
       crossOrigin: crossOrigin,
-      // interpolate: options.interpolate,
+      // Interpolate: options.interpolate,
       interpolate: false,
       maxZoom: options.maxZoom !== undefined ? options.maxZoom : 19,
       opaque: options.opaque !== undefined ? options.opaque : true,
@@ -48,7 +47,6 @@ class CustomOSM extends OSM {
   }
 }
 
-
 function quadKey(tileCoord) {
   const z = tileCoord[0];
   const digits = new Array(z);
@@ -61,21 +59,22 @@ function quadKey(tileCoord) {
     if (tileCoord[1] & mask) {
       charCode = charCode + 1;
     }
+
     if (tileCoord[2] & mask) {
       charCode = charCode + 2;
     }
+
     digits[i] = String.fromCharCode(charCode);
     mask = mask >> 1;
   }
+
   return digits.join('');
 }
-
 
 const TOS_ATTRIBUTION =
   '<a class="ol-attribution-bing-tos" ' +
   'href="https://www.microsoft.com/maps/product/terms.html" target="_blank">' +
   'Terms of Use</a>';
-
 
 /**
   Create a custom bing maps class where the tileserver is overridden by
@@ -100,15 +99,12 @@ class CustomBingMaps extends TileImage {
       projection: getProjection('EPSG:3857'),
       reprojectionErrorThreshold: options.reprojectionErrorThreshold,
       state: 'loading',
-      // tileLoadFunction: options.tileLoadFunction,
-      tileLoadFunction: function (imageTile, src) {
-        let [ _target, tiles, jpeg, req ] = src.replace('https://', '').split(/[/?]+/);
-        // if (tileserver_hostname.includes('127.0.0.1')) {
-        if (tileserver_hostname === '' || tileserver_hostname === '/') {
-          src = `/${tiles}/${jpeg}?${req}`;
-        } else {
-          src = `https://${tileserver_hostname}/${tiles}/${jpeg}?${req}`;
-        }
+      // TileLoadFunction: options.tileLoadFunction,
+      tileLoadFunction: function(imageTile, src) {
+        const [ _target, tiles, jpeg, request ] = src.replace('https://', '').split(/[/?]+/);
+        // If (tileserver_hostname.includes('127.0.0.1')) {
+        src = tileserver_hostname === '' || tileserver_hostname === '/' ? `/${tiles}/${jpeg}?${request}` : `https://${tileserver_hostname}/${tiles}/${jpeg}?${request}`;
+
         imageTile.src_ = src;
         imageTile.getImage().src = src;
       },
@@ -150,7 +146,7 @@ class CustomBingMaps extends TileImage {
     this.imagerySet_ = 'Aerial';
 
     /*
-    const url =
+    Const url =
       'https://dev.virtualearth.net/REST/v1/Imagery/Metadata/' +
       this.imagerySet_ +
       '?uriScheme=https&include=ImageryProviders&key=' +
@@ -160,12 +156,9 @@ class CustomBingMaps extends TileImage {
       */
 
     let url = null;
-    if (tileserver_hostname === '' || tileserver_hostname === '/') {
-      url = '';
-    } else {
-      url = `https://${tileserver_hostname}`;
-    }
-    url = `${url }/REST/v1/Imagery/Metadata/${this.imagerySet_}?uriScheme=https&include=ImageryProviders&c=${this.culture_}`;
+    url = tileserver_hostname === '' || tileserver_hostname === '/' ? '' : `https://${tileserver_hostname}`;
+
+    url = `${url}/REST/v1/Imagery/Metadata/${this.imagerySet_}?uriScheme=https&include=ImageryProviders&c=${this.culture_}`;
 
     fetch(url)
       .then((response) => {
@@ -219,8 +212,8 @@ class CustomBingMaps extends TileImage {
     const scale = this.hidpi_ ? 2 : 1;
     const tileSize =
       resource.imageWidth === resource.imageHeight ?
-        resource.imageWidth / scale :
-        [ resource.imageWidth / scale, resource.imageHeight / scale ];
+      	resource.imageWidth / scale :
+      	[ resource.imageWidth / scale, resource.imageHeight / scale ];
 
     const tileGrid = createXYZ({
       extent: extent,
@@ -240,7 +233,7 @@ class CustomBingMaps extends TileImage {
           .replace('{subdomain}', subdomain)
           .replace('{culture}', culture);
         return (
-          /**
+        /**
            * @param {import("../tilecoord.js").TileCoord} tileCoord Tile coordinate.
            * @param {number} pixelRatio Pixel ratio.
            * @param {import("../proj/Projection.js").default} projection Projection.
@@ -250,26 +243,28 @@ class CustomBingMaps extends TileImage {
             if (!tileCoord) {
               return undefined;
             }
+
             createOrUpdate(
               tileCoord[0],
               tileCoord[1],
               tileCoord[2],
-              quadKeyTileCoord
+              quadKeyTileCoord,
             );
             let url = imageUrl;
             if (hidpi) {
-              url = `${url }&dpi=d1&device=mobile`;
+              url = `${url}&dpi=d1&device=mobile`;
             }
+
             return url.replace('{quadkey}', quadKey(quadKeyTileCoord));
           }
         );
-      })
+      }),
     );
 
     if (resource.imageryProviders) {
       const transform = getTransformFromProjections(
         getProjection('EPSG:4326'),
-        this.getProjection()
+        this.getProjection(),
       );
 
       this.setAttributions((frameState) => {
@@ -278,11 +273,11 @@ class CustomBingMaps extends TileImage {
         const tileGrid = this.getTileGrid();
         const z = tileGrid.getZForResolution(
           viewState.resolution,
-          this.zDirection
+          this.zDirection,
         );
         const tileCoord = tileGrid.getTileCoordForCoordAndZ(
           viewState.center,
-          z
+          z,
         );
         const zoom = tileCoord[0];
         resource.imageryProviders.map((imageryProvider) => {
@@ -300,6 +295,7 @@ class CustomBingMaps extends TileImage {
               }
             }
           }
+
           if (intersecting) {
             attributions.push(imageryProvider.attribution);
           }
@@ -314,5 +310,4 @@ class CustomBingMaps extends TileImage {
   }
 }
 
-
-export { CustomOSM, CustomBingMaps, };
+export { CustomOSM, CustomBingMaps };
