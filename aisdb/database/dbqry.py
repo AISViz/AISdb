@@ -18,7 +18,6 @@ from aisdb.database.dbconn import (
     _coarsetype_rows,
     _create_coarsetype_index,
     _create_coarsetype_table,
-    get_dbname,
 )
 from aisdb.webdata.marinetraffic import VesselInfo
 
@@ -142,7 +141,7 @@ class DBQuery(UserDict):
 
         print(f'retrieving vessel info for {dbpath}', end='', flush=True)
         for month in self.data['months']:
-            dbname = get_dbname(dbpath)
+            dbname = self.dbconn._get_dbname(dbpath)
             self.dbconn._attach(dbpath)
 
             # skip missing tables
@@ -197,9 +196,9 @@ class DBQuery(UserDict):
         cur = self.dbconn.cursor()
 
         for dbpath in self.dbconn.dbpaths:
-            if get_dbname(dbpath) not in self.dbconn.db_daterange:
+            if self.dbconn._get_dbname(dbpath) not in self.dbconn.db_daterange:
                 continue
-            db_rng = self.dbconn.db_daterange[get_dbname(dbpath)]
+            db_rng = self.dbconn.db_daterange[self.dbconn._get_dbname(dbpath)]
             if self['start'].date() > db_rng['end'] or self['end'].date(
             ) < db_rng['start']:
                 if verbose:
@@ -218,19 +217,20 @@ class DBQuery(UserDict):
 
                 # check if static tables exist
                 cur.execute(
-                    f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master '
+                    f'SELECT * FROM {self.dbconn._get_dbname(dbpath)}.sqlite_master '
                     'WHERE type="table" AND name=?', [f'ais_{month}_static'])
                 if len(cur.fetchall()) == 0:
                     #sqlite_createtable_staticreport(self.dbconn, month, dbpath)
-                    warnings.warn('No static data for selected time range! '
-                                  f'{get_dbname(dbpath)} {month=} '
-                                  f'{rng_string}')
+                    warnings.warn(
+                        'No static data for selected time range! '
+                        f'{self.dbconn._get_dbname(dbpath)} {month=} '
+                        f'{rng_string}')
 
                 # check if aggregate tables exist
-                cur.execute(
-                    (f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master '
-                     'WHERE type="table" and name=?'),
-                    [f'static_{month}_aggregate'])
+                cur.execute((
+                    f'SELECT * FROM {self.dbconn._get_dbname(dbpath)}.sqlite_master '
+                    'WHERE type="table" and name=?'),
+                            [f'static_{month}_aggregate'])
                 res = cur.fetchall()
                 """
                 if reaggregate_static:
@@ -245,18 +245,19 @@ class DBQuery(UserDict):
                               flush=True)
                     aggregate_static_msgs(self.dbconn, [month], verbose)
                     #warnings.warn('No aggregate data for selected time range! '
-                    #              f'{get_dbname(dbpath)} {month=} '
+                    #              f'{self.dbconn._get_dbname(dbpath)} {month=} '
                     #              f'{rng_string}')
 
                 # check if dynamic tables exist
                 cur.execute(
-                    f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master WHERE '
+                    f'SELECT * FROM {self.dbconn._get_dbname(dbpath)}.sqlite_master WHERE '
                     'type="table" and name=?', [f'ais_{month}_dynamic'])
                 if len(cur.fetchall()) == 0:  # pragma: no cover
                     # sqlite_createtable_dynamicreport(self.dbconn, month, dbpath)
-                    warnings.warn('No data for selected time range! '
-                                  f'{get_dbname(dbpath)} {month=} '
-                                  f'{rng_string}')
+                    warnings.warn(
+                        'No data for selected time range! '
+                        f'{self.dbconn._get_dbname(dbpath)} {month=} '
+                        f'{rng_string}')
 
             qry = fcn(dbpath=dbpath, **self.data)
             if verbose:

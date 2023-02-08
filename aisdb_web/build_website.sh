@@ -18,7 +18,11 @@ set -e
 #  --destination "${JSDOCDIR}"
 
 
+
 # webassembly components build for map
+[[ ! -f "$HOME/.cargo/bin/wasm-pack" ]] \
+  && echo "installing wasm-pack..." \
+  && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 cd "${WASMDIR}"
 wasm-pack build --target web --out-dir "${MAPDIR}/pkg" --release
 wasm-opt -O3 -o "${MAPDIR}/pkg/client_bg.wasm" "${MAPDIR}/pkg/client_bg.wasm"
@@ -27,10 +31,11 @@ wasm-opt -O3 -o "${MAPDIR}/pkg/client_bg.wasm" "${MAPDIR}/pkg/client_bg.wasm"
 
 # build map webapp
 cd "${MAPDIR}" 
-  VITE_AISDBHOST=$AISDBHOST \
-  VITE_AISDBPORT=$AISDBPORT \
-  VITE_BINGMAPTILES=$VITE_BINGMAPTILES \
-  VITE_TILESERVER=$VITE_TILESERVER \
-  npx vite build --outDir "${MAPDIR}/../dist_map"
+npm --prefix "${ROOTDIR}/aisdb_web" install
+VITE_AISDBHOST=$AISDBHOST \
+VITE_AISDBPORT=$AISDBPORT \
+VITE_BINGMAPTILES=$VITE_BINGMAPTILES \
+VITE_TILESERVER=$VITE_TILESERVER \
+npx vite build --outDir "${MAPDIR}/../dist_map"
   #VITE_BINGMAPTILES="`if [ -z ${BINGMAPSKEY} ]; then echo ''; else echo 1; fi`" \
 

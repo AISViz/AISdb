@@ -4,6 +4,7 @@ import 'flatpickr/dist/flatpickr.css';
 // Import 'tiny-date-picker/dist/tiny-date-picker.css';
 // import tinyDatePicker from 'tiny-date-picker';
 
+import {no_db_limit} from './constants.js';
 import {waitForTimerange} from './clientsocket.js';
 import {
 	dragBox,
@@ -199,7 +200,7 @@ searchbtn.addEventListener('click', async () => {
 		// Validate time input
 		statusdiv.textContent = `Error: No data after ${timeselectend.max}`;
 		window.statusmsg = statusdiv.textContent;
-	} else if (Math.floor((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)) > 31) {
+	} else if (Math.floor((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)) > 31 && (no_db_limit === undefined || no_db_limit === null)) {
 		// Validate time input
 		statusdiv.textContent = 'Error: select a time range of one month or less';
 		window.statusmsg = statusdiv.textContent;

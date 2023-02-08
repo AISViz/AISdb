@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.39
+-------
+
+add map display example, and update docs
+
+
 v1.4.38
 -------
 

@@ -4,7 +4,7 @@ from collections import Counter
 import numpy as np
 import warnings
 
-from aisdb.database.dbconn import DBConn, get_dbname
+from aisdb.database.dbconn import DBConn
 from aisdb import sqlpath
 
 
@@ -14,7 +14,7 @@ def sqlite_createtable_dynamicreport(dbconn, month, dbpath):
     with open(os.path.join(sqlpath, 'createtable_dynamic_clustered.sql'),
               'r') as f:
         sql = f.read().format(month).replace(
-            f'ais_{month}', f'{get_dbname(dbpath)}.ais_{month}')
+            f'ais_{month}', f'{dbconn._get_dbname(dbpath)}.ais_{month}')
     dbconn.execute(sql)
 
 
@@ -23,7 +23,7 @@ def sqlite_createtable_staticreport(dbconn, month, dbpath):
     dbconn._attach(dbpath)
     with open(os.path.join(sqlpath, 'createtable_static.sql'), 'r') as f:
         sql = f.read().format(month).replace(
-            f'ais_{month}', f'{get_dbname(dbpath)}.ais_{month}')
+            f'ais_{month}', f'{dbconn._get_dbname(dbpath)}.ais_{month}')
     dbconn.execute(sql)
 
 
@@ -51,7 +51,7 @@ def aggregate_static_msgs(dbconn, months_str, verbose=False):
     assert 'main' not in dbconn.dbpaths
 
     for dbpath in dbconn.dbpaths:
-        dbname = get_dbname(dbpath)
+        dbname = dbconn._get_dbname(dbpath)
         assert dbname != 'main'
         cur = dbconn.cursor()
 

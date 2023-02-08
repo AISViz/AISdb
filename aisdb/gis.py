@@ -129,7 +129,7 @@ def radial_coordinate_boundary(x, y, radius=100000):
             y (float)
                 latitude
             radius (int, float)
-                maximum radial distance
+                minimum radial distance
     '''
     # radians
     earth_radius_m = 6371088
@@ -411,9 +411,9 @@ class DomainFromTxts(Domain):
 
 
 class DomainFromPoints(Domain):
-    ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
-        zone geometry from longitude and latitude pairs with a bounding-box
-        maximum radial distance.
+    ''' Subclass of :class:`aisdb.gis.Domain`. Used for convenience to generate
+        bounding box polygons from longitude/latitude pairs and radial
+        distances, where the minimum radius is specified in meters.
     '''
 
     def __init__(self,

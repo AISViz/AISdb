@@ -9,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
 from aisdb import sqlpath
-from aisdb.database.dbconn import DBConn, get_dbname
+from aisdb.database.dbconn import DBConn
 from aisdb.webdata._scraper import _scraper
 import sqlite3
 
@@ -130,7 +130,7 @@ def _insertvesselrow(elem, mmsi, trafficDB):  # pragma: no cover
 def _vessel_info_dict(trafficDBpath):
     with DBConn() as dbconn:
         dbconn._attach(trafficDBpath)
-        dbname = get_dbname(trafficDBpath)
+        dbname = dbconn._get_dbname(trafficDBpath)
         res = dbconn.execute(f'SELECT * FROM {dbname}.webdata_marinetraffic '
                              'WHERE error404 != 1').fetchall()
         return {r['mmsi']: r for r in res}

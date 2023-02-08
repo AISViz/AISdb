@@ -4,20 +4,14 @@ Setting up an AIS receiver
 Requirements
 ------------
 
--  Any device running linux with a constant power supply and internet
-   connection, for example, a Raspberry Pi
-
-   -  The easiest way to supply power to the receiver/filter and read
-      data from the receiver is via USB, so consider a device with USB
-      ports for simplicity, although this is not necessary
+-  Raspberry Pi or some other computer with internetworking capability
 
 -  162MHz receiver, such as `Wegmatt dAISy 2 Channel
    Receiver <https://shop.wegmatt.com/collections/frontpage/products/daisy-2-dual-channel-ais-receiver-with-nmea-0183?variant=7103563628580>`__
--  An antenna in the VHF frequency band (30MHz - 300MHz). If your
-   antenna doesn’t have a BNC type connector, don’t forget an adapter.
+-  An antenna in the VHF frequency band (30MHz - 300MHz)
    Example: `Shakespeare QC-4 VHF
    Antenna <https://shakespeare-ce.com/marine/product/qc-4-quickconnect-vhf-antenna/>`__
--  Optionally, you may also want
+-  Optionally, you may want
 
    -  Antenna mount
    -  A filtered preamp, such as `this one sold by

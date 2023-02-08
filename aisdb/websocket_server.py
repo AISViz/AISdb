@@ -35,7 +35,8 @@ class SocketServ():
         port = os.environ.get('AISDBPORT', 9924)
         self.port = int(port)
         self.domain = domain
-        assert self.domain.zones != []
+        # assert self.domain.zones != []
+        warnings.warn('No domain configured, zones may not be queried')
         self.vesselinfo = _vessel_info_dict(trafficDBpath)
 
     async def _handle_client(self, clientmsg, websocket):

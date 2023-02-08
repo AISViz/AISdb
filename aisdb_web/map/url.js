@@ -16,7 +16,7 @@ function isNumeric(n) {
 }
 
 /** Set map display parameters via GET request. example:
- * http://localhost:3000/?ecoregions=1&x=-65&y=59.75&z=4&start=2021-01-01&end=2021-01-02&xmin=-95.7&xmax=-39.5&ymin=34.4&ymax=74.2
+ * http://localhost:3000/?zones=1&x=-65&y=59.75&z=4&start=2021-01-01&end=2021-01-02&xmin=-95.7&xmax=-39.5&ymin=34.4&ymax=74.2
  */
 async function parseUrl() {
   const { mapview } = await import('./map.js');
@@ -57,8 +57,8 @@ async function parseUrl() {
     };
   }
 
-  if (urlParameters.get('ecoregions') !== undefined &&
-    urlParameters.get('ecoregions') !== null) {
+  if (urlParameters.get('zones') !== undefined &&
+    urlParameters.get('zones') !== null) {
     const {
       resetLoadingZones, waitForZones,
     } = await import('./clientsocket.js');

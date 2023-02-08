@@ -3,10 +3,10 @@
     Also see: https://docs.python.org/3/library/sqlite3.html#connection-objects
 '''
 
-import os
 from calendar import monthrange
 from datetime import datetime
-# import aiosqlite
+import os
+import warnings
 
 from aisdb import sqlite3
 
@@ -104,12 +104,6 @@ _create_coarsetype_index = ('CREATE UNIQUE INDEX IF NOT EXISTS '
                             'idx_coarsetype ON coarsetype_ref(coarse_type)')
 
 
-def get_dbname(dbpath):
-    name_ext = os.path.split(dbpath)[1]
-    name = name_ext.split('.')[0]
-    return name
-
-
 class DBConn(sqlite3.Connection):
     ''' SQLite3 database connection object
 
@@ -143,12 +137,14 @@ class DBConn(sqlite3.Connection):
                          detect_types=sqlite3.PARSE_DECLTYPES
                          | sqlite3.PARSE_COLNAMES)
         self.row_factory = sqlite3.Row
+        '''
         cur = self.cursor()
         cur.execute("PRAGMA journal_mode")
         res = cur.fetchone()[0]
         if res != 'wal':
             self.execute('PRAGMA journal_mode=wal')
             self.commit()
+        '''
         self._create_table_coarsetype()
 
     def __enter__(self):
@@ -156,37 +152,46 @@ class DBConn(sqlite3.Connection):
 
     def __exit__(self, exc_class, exc, tb):
         for dbpath in self.dbpaths:
-            self.execute('DETACH DATABASE ?', [get_dbname(dbpath)])
+            self.execute('DETACH DATABASE ?', [self._get_dbname(dbpath)])
         self.commit()
         self.close()
         self = None
 
+    def _get_dbname(self, dbpath):
+        name_ext = os.path.split(dbpath)[1]
+        name = name_ext.split('.')[0]
+        return name
+
     def _attach(self, dbpath):
         ''' connect to an additional database file '''
-        assert get_dbname(dbpath) != 'main'
+        assert self._get_dbname(dbpath) != 'main'
+
         if dbpath not in self.dbpaths:
             self.execute('ATTACH DATABASE ? AS ?',
-                         [dbpath, get_dbname(dbpath)])
+                         [dbpath, self._get_dbname(dbpath)])
             self.dbpaths.append(dbpath)
 
         # query the temporal range of monthly database tables
         # results will be stored as a dictionary attribute db_daterange
         cur = self.cursor()
         sql_qry = (
-            f'SELECT * FROM {get_dbname(dbpath)}.sqlite_master '
+            f'SELECT * FROM {self._get_dbname(dbpath)}.sqlite_master '
             'WHERE type="table" AND name LIKE "ais\\_%\\_dynamic" ESCAPE "\\" '
         )
-        cur.execute(sql_qry)
-        dynamic_tables = cur.fetchall()
-        if dynamic_tables != []:
-            db_months = sorted(
-                [table['name'].split('_')[1] for table in dynamic_tables])
-            self.db_daterange[get_dbname(dbpath)] = {
-                'start':
-                datetime(int(db_months[0][:4]), int(db_months[0][4:]),
-                         1).date(),
-                'end':
-                datetime((y := int(db_months[-1][:4])),
-                         (m := int(db_months[-1][4:])),
-                         monthrange(y, m)[1]).date(),
-            }
+        try:
+            cur.execute(sql_qry)
+            dynamic_tables = cur.fetchall()
+            if dynamic_tables != []:
+                db_months = sorted(
+                    [table['name'].split('_')[1] for table in dynamic_tables])
+                self.db_daterange[self._get_dbname(dbpath)] = {
+                    'start':
+                    datetime(int(db_months[0][:4]), int(db_months[0][4:]),
+                             1).date(),
+                    'end':
+                    datetime((y := int(db_months[-1][:4])),
+                             (m := int(db_months[-1][4:])),
+                             monthrange(y, m)[1]).date(),
+                }
+        except Exception as err:
+            warnings.warn(str(err.with_traceback(None)))

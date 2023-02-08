@@ -130,7 +130,8 @@ The following query will return vessel positions from the past 48h:
 
 
 A specific region can be queried for AIS data using :class:`aisdb.gis.Domain` or one of its subclasses to define a collection of ``shapely`` polygon features.
-For this example, the domain contains a single bounding box polygon derived from a coordinate pair and radial distance.
+For this example, the domain contains a single bounding box polygon derived from a longitude/latitude coordinate pair and radial distance specified in meters.
+If multiple features are included in the domain object, the domain boundaries will encompass the convex hull of all features contained within. 
 
 .. code-block:: python
 
@@ -180,6 +181,13 @@ Rasters
 5. Visualization
 ----------------
 
+AIS data contained in the database may be viewed in a web map such as the one shown above.
+Requires nodejs and npm installed.
+Run this script from inside the project directory to start the JS client and database server.
+Configuration options such as database path may be set by environment variables.
+
+.. literalinclude:: ../../examples/display.py
+   :language: python
 
 .. _data-sharing:
 
