@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.40
+-------
+
+fix string formatting error in front end
+
+
 v1.4.39
 -------
 

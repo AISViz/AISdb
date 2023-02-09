@@ -91,8 +91,8 @@ async function parseUrl() {
 
     const now = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000);
     const yesterday = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
-    const now_string = `${now.getUTCFullYear()}-${now.getUTCMonth() + 1}-${now.getUTCDate()}`;
-    const yesterday_string = `${yesterday.getUTCFullYear()}-${yesterday.getUTCMonth() + 1}-${yesterday.getUTCDate()}`;
+    const now_string = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+    const yesterday_string = `${yesterday.getUTCFullYear()}-${String(yesterday.getUTCMonth() + 1).padStart(2, '0')}-${String(yesterday.getUTCDate()).padStart(2, '0')}`;
 
     const { setSearchValue } = await import('./selectform.js');
     setSearchValue(yesterday_string, now_string);
