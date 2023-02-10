@@ -27,9 +27,9 @@ Index
       * Get vessel trajectories from the database
       * Query a bounding box encapsulating a collection of zone polygons
   3. :ref:`Processing AIS messages <processing>`
+      * Voyage modelling
       * Data cleaning and MMSI deduplication
-      * Interpolate vessel trajectories to uniform intervals
-      * Geofencing and filtering messages
+      * Interpolating, Geofencing and filtering
   4. :ref:`Integration with external metadata <external-data>`
       * Retrieve detailed vessel metadata from marinetraffic.com
       * Bathymetric charts
@@ -108,8 +108,11 @@ The :func:`aisdb.database.decoder.decode_msgs` function also accepts compressed 
 ------------------------
 
 Parameters for the database query can be defined using :class:`aisdb.database.dbqry.DBQuery`. 
-Iterate over rows returned from the database for each vessel with :func:`aisdb.database.dbqry.DBQuery.gen_qry`, and vectorize each vessel trajectory as a dictionary of numpy arrays using :func:`aisdb.track_gen.TrackGen`.
-The following query will return vessel positions from the past 48h:
+Iterate over rows returned from the database for each vessel with :func:`aisdb.database.dbqry.DBQuery.gen_qry`.
+Convert the results into generator yielding dictionaries with numpy arrays describing position vectors e.g. lon, lat, and time using :func:`aisdb.track_gen.TrackGen`.
+
+
+The following query will return vessel positions from the past 48 hours:
 
 .. code-block:: python
 
@@ -160,20 +163,115 @@ Additional query callbacks for filtering by region, timeframe, identifier, etc. 
 3. Processing
 -------------
 
+Voyage Modelling
+++++++++++++++++
+
+The generator described above can be input into a processing function, yielding modified results.
+For example, to model the activity of vessels on a per-voyage or per-transit basis, each voyage is defined as a continuous vector of vessel positions where the time between observed timestamps never exceeds a 24-hour period.
+
+.. code-block:: python
+
+    import aisdb
+    from datetime import datetime, timedelta
+
+    maxdelta = timedelta(hours=24)
+
+    with aisdb.DBConn() as dbconn:
+      qry = aisdb.DBQuery(
+        dbconn=dbconn,
+        dbpath='AIS.sqlitedb',
+        callback=aisdb.database.sql_query_strings.in_timerange,
+        start=datetime.utcnow() - timedelta(hours=48),
+        end=datetime.utcnow(),
+      )
+
+      tracks = aisdb.TrackGen(qry.gen_qry())
+      track_segments = aisdb.split_timedelta(tracks, maxdelta)
+
+      for segment in track_segments:
+          print(segment)
+
+
+Data cleaning and MMSI deduplication
+++++++++++++++++++++++++++++++++++++
+
+
+A common issue with AIS is that the data is noisy, and databases may contain multiple vessels broadcasting with same identifier at the same time.
+The :func:`aisdb.track_gen.encode_greatcircledistance` function uses an encoder to check the approximate distance between each vessel's position, and then segments resulting vectors where a surface vessel couldn't reasonably travel there using the most direct path, e.g. above 50 knots.
+A distance threshold and speed threshold are used as a hard limit on the maximum delta distance or delta time allowed between messages to be considered continuous.
+A score is computed for each position delta, with sequential messages in close proximity at shorter intervals given a higher score, calculated by haversine distance divided by elapsed time.
+Any deltas with a score not reaching the minimum threshold are considered as the start of a new segment.
+Finally, the beginning of each new segment is compared to the end of each existing segment with a matching vessel identifier, and if the delta exceeds the minimum score, the segments are concatenated.
+If multiple existing trajectories meet the minimum score threshold, the new segment will be concatenated the existing segment with the highest score.
+
+Processing functions may be executed in sequence as a processing chain or pipeline, so after segmenting the individual voyages as shown above, results can be input into the encoder to effectively remove noise and correct for vessels with duplicate identifiers.
+
+.. code-block:: python
+
+    import aisdb
+    from datetime import datetime, timedelta
+
+    maxdelta = timedelta(hours=24)
+    distance_threshold = 200000  # meters
+    speed_threshold = 50  # knots
+    minscore = 1e-6
+
+    with aisdb.DBConn() as dbconn:
+        qry = aisdb.DBQuery(
+          dbconn=dbconn,
+          dbpath='AIS.sqlitedb',
+          callback=aisdb.database.sql_query_strings.in_timerange,
+          start=datetime.utcnow() - timedelta(hours=48),
+          end=datetime.utcnow(),
+        )
+
+        tracks = aisdb.TrackGen(qry.gen_qry())
+        track_segments = aisdb.split_timedelta(tracks, maxdelta)
+        tracks_encoded = aisdb.encode_greatcircledistance(track_segments, distance_threshold=distance_threshold, speed_threshold=speed_threshold, minscore=minscore)
+
+
+Interpolating, geofencing and filtering
++++++++++++++++++++++++++++++++++++++++
+
+Building on the above processing pipeline, the resulting cleaned trajectories can then be geofenced and filtered for results contained by atleast one domain polygon, and interpolated for uniformity.
+
+.. code-block:: python
+
+    # ... 
+        domain = aisdb.DomainFromPoints(points=[(-63.6, 44.6),], radial_distances=[5000,])
+        tracks_filtered = aisdb.track_gen.fence_tracks(tracks_encoded, domain)
+        tracks_interp = aisdb.interp_time(tracks_filtered, step=timedelta(minutes=15))
+
+        for segment in track_segments:
+            print(segment)
+
+
+Additional processing functions can be found in the :mod:`aisdb.track_gen` module.
+
+Exporting as CSV
+++++++++++++++++
+
+The resulting processed voyage data can be exported in CSV format instead of being printed:
+
+.. code-block:: python
+
+    # ...
+        aisdb.write_csv(tracks_interp, 'ais_24h_processed.csv')
+
 
 .. _external-data:
 
 4. Integration with external metadata
 -------------------------------------
 
-Detailed metadata from marinetraffic.com
-++++++++++++++++++++++++++++++++++++++++
-
 Bathymetric charts
 ++++++++++++++++++
 
 Rasters
 +++++++
+
+Detailed metadata from marinetraffic.com
+++++++++++++++++++++++++++++++++++++++++
 
 
 .. _visualization:
@@ -183,7 +281,7 @@ Rasters
 
 AIS data contained in the database may be viewed in a web map such as the one shown above.
 Requires nodejs and npm installed.
-Run this script from inside the project directory to start the JS client and database server.
+Clone the project repo, and this script from inside the project root directory to start the web client and database server.
 Configuration options such as database path may be set by environment variables.
 
 .. literalinclude:: ../../examples/display.py
@@ -193,8 +291,6 @@ Configuration options such as database path may be set by environment variables.
 
 6. Data collection and sharing
 ------------------------------
-
-
 
 AIS station operators are encouraged to share incoming AIS data from their receivers with the MERIDIAN data sharing network.
   
