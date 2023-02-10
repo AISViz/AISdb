@@ -1,3 +1,5 @@
+.. _receiver:
+
 Setting up an AIS receiver
 ==========================
 

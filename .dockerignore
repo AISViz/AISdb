@@ -26,6 +26,7 @@
 *.pyo
 *.so
 *.sqlitedb
+*.sqlitedb*
 *.swp
 *.txt
 .cache
@@ -60,11 +61,10 @@ docs/source/api
 info.sh
 prof
 profile
+receiver/*.db
 receiver/Cargo.lock
 receiver/target
 release
 target
 testdata
 testdata
-*.sqlitedb
-*.sqlitedb*

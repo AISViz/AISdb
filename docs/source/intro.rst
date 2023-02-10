@@ -29,13 +29,14 @@ Index
   3. :ref:`Processing AIS messages <processing>`
       * Voyage modelling
       * Data cleaning and MMSI deduplication
-      * Interpolating, Geofencing and filtering
+      * Interpolating, Geofencing, and filtering
+      * Exporting as CSV
   4. :ref:`Integration with external metadata <external-data>`
       * Retrieve detailed vessel metadata from marinetraffic.com
       * Bathymetric charts
       * Rasters
   5. :ref:`Visualization <visualization>`
-      * 
+      * Display AIS data in the web interface
   6. :ref:`Data collection and sharing <data-sharing>`
       * Setting up an AIS receiving antenna
       * Sharing data to external networks
@@ -300,6 +301,6 @@ AIS station operators are encouraged to share incoming AIS data from their recei
   start_receiver(udp_listen_addr='0.0.0.0:9921', multicast_rebroadcast_addr='aisdb.meridian.cs.dal.ca:9921')
 
 
-For further info on how to set up a Raspberry Pi for receiving AIS, see <receiver link>
+For further info on how to set up a Raspberry Pi for receiving AIS, see :ref:`Setting up an AIS receiver <receiver>`
 
 
