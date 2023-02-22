@@ -106,7 +106,9 @@ label {
 
 .ol-mouse-position {
   color: yellow;
-  font-family: system-ui, monospace;
+  --font-family: system-ui, monospace;
+  font-family: Menlo, Monaco, Consolas, monospace;
+  text-align: right;
   background: rgba(100,100,100,0.3);
 }
 

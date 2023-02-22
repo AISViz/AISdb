@@ -15,6 +15,11 @@ import { fromLonLat } from 'ol/proj';
 import { polyStyle, vesselStyles } from './palette.js';
 import { use_bingmaps } from './constants.js';
 
+/** Default map position */
+const default_startpos = [ -63.22, 44.33 ];
+const default_zoom = 10;
+
+/** User search box */
 window.searcharea = null;
 
 /** Status message div item */
@@ -64,23 +69,40 @@ const heatLayer = new Heatmap({
  * @param {ol/View) view default map view positioning
  */
 
-/* map objects */
-let dragBox = null;
-let draw = null;
+function haversineDistance(coords1, coords2) {
+  function toRad(x) {
+    return x * Math.PI / 180;
+  }
+
+  const lon1 = coords1[0];
+  const lat1 = coords1[1];
+
+  const lon2 = coords2[0];
+  const lat2 = coords2[1];
+
+  const R = 6371; // Km
+
+  const x1 = lat2 - lat1;
+  const dLat = toRad(x1);
+  const x2 = lon2 - lon1;
+  const dLon = toRad(x2);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c;
+
+  return d;
+}
 
 /** Default map position
  * @see module:url
  */
-const mapview = new View({
-  center: fromLonLat([ -63.511, 44.59 ]), // East
-  // center: proj.fromLonLat([-123.0, 49.2]), //west
-  // center: proj.fromLonLat([ -100, 57 ]), // canada
-  zoom: 11,
-});
-const mousePositionControl = new MousePosition({
-  coordinateFormat: createStringXY(4),
-  projection: 'EPSG:4326',
-});
+const mapview = new View({ center: fromLonLat(default_startpos), zoom: default_zoom });
+
+/* Map interactions */
+let dragBox = null;
+let draw = null;
 
 /* Processing functions for incoming websocket data */
 let newHeatmapFeatures = null;
@@ -146,6 +168,7 @@ async function init_maplayers() {
     { default: Point },
     { default: DragBox },
     { default: Draw },
+    { ScaleLine, defaults: defaultControls },
   ] = await Promise.all([
     import('./selectform.js'),
     import('ol/Feature'),
@@ -153,6 +176,7 @@ async function init_maplayers() {
     import('ol/geom/Point'),
     import('ol/interaction/DragBox'),
     import('ol/interaction/Draw'),
+    import('ol/control.js'),
   ]);
 
   const {
@@ -183,8 +207,32 @@ async function init_maplayers() {
     layers: [ mapLayer, polyLayer, lineLayer, heatLayer, pointLayer, drawLayer ],
     view: mapview,
     interactions: defaultInteractions({ doubleClickZoom: false }),
-    controls: defaultControls().extend([ mousePositionControl ]),
+    // Controls: defaultControls().extend([ mousePositionControl ]),
   });
+
+  /** Coordinate display */
+  const mousePositionControl = new MousePosition({
+    // CoordinateFormat: createStringXY(4),
+    coordinateFormat: function(coordinate) {
+      const xy = [ coordinate[0].toFixed(4), coordinate[1].toFixed(4) ];
+      return `${xy[0]}, ${xy[1]}`;
+    },
+    projection: 'EPSG:4326',
+  });
+
+  /** Scale bar display */
+  const scaleControl = new ScaleLine({
+    units: 'metric',
+    bar: true,
+    text: true,
+    steps: 4,
+    minWidth: 200,
+    maxWidth: 256,
+  });
+
+  /** Add coordinate and scale bar displays to map controls */
+  map.getControls().extend([ mousePositionControl ]);
+  map.getControls().extend([ scaleControl ]);
 
   /* Cursor styling: indicate to the user that we are selecting an area */
   draw = new Draw({
@@ -390,7 +438,6 @@ export {
   drawSource,
   init_maplayers,
   lineSource,
-  // Map,
   mapview,
   newHeatmapFeatures,
   newPolygonFeature,

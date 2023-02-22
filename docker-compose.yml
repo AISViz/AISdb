@@ -50,6 +50,7 @@ services:
       ["python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not timing"]
 
   # webapp
+  # connects to database server on $AISDBHOST:$AISDBPORT
   webserver:
     container_name: webserver
     init: true
@@ -62,8 +63,6 @@ services:
         AISDBPORT: ${AISDBPORT:-9924}
         VITE_BINGMAPTILES: ${VITE_BINGMAPTILES:-}
         VITE_TILESERVER: ${VITE_TILESERVER:-/}
-    #depends_on:
-    #  - "receiver"
     command:
       ['npm', '--prefix', 'aisdb_web/', 'start']
     networks:
@@ -73,7 +72,6 @@ services:
   # nodejs docs server
   docserver:
     volumes:
-      #- ./docs/dist_coverage/:/home/ais_env/aisdb/docs/dist_coverage
       - ./docs/dist_coverage/:/home/ais_env/docs/dist_coverage/
     container_name: docserver
     init: true
@@ -97,8 +95,6 @@ services:
       AISDBPATH: '/home/ais_env/ais/ais.db'
       AISDBZONES: '/home/ais_env/ais/zones/'
       AISDBMARINETRAFFIC: '/home/ais_env/ais/marinetraffic.db'
-      #AISDBDATADIR: '/home/ais_env/ais/'
-      #AISDBTESTDIR: '/home/ais_env/testdata'
     init: true
     command: 
       ["python", "-u", "examples/start_websocket.py"]
@@ -120,7 +116,6 @@ services:
      - "9919:9919/udp"
      - "9920:9920"
      - "9921:9921/udp"
-     #- "9921:9921"
      - "9922:9922"
      - "9923:9923/udp"
      - "9924:9924"

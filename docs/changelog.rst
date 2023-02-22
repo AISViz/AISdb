@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.4.41
+-------
+
+add scale bar to web interface
+
+
 v1.4.40
 -------
 

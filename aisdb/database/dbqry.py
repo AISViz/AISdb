@@ -3,7 +3,7 @@
 '''
 
 from collections import UserDict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from functools import reduce
 import sqlite3
 import warnings
@@ -113,7 +113,7 @@ class DBQuery(UserDict):
         assert 'start' in self.data.keys() and 'end' in self.data.keys()
         if self.data['start'] >= self.data['end']:
             raise ValueError('Start must occur before end')
-        assert isinstance(self.data['start'], datetime)
+        assert isinstance(self.data['start'], (datetime, date))
         self.data.update({'months': sqlfcn_callbacks.dt2monthstr(**self.data)})
 
     def check_marinetraffic(self,
