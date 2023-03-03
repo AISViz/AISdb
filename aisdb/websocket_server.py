@@ -107,7 +107,7 @@ class SocketServ():
                             'type': 'done',
                             'status': 'Request timed out!'
                         }))
-        except websocket.exceptions.ConnectionClosedError as err:
+        except websockets.exceptions.ConnectionClosedError as err:
             print(err)
         finally:
             await websocket.close()

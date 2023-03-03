@@ -75,9 +75,10 @@ async function initialize_db_socket() {
    * @callback window_onbeforeunload
    *
    */
-  window.onbefureunload = async function () {
+  window.onbefureunload = function () {
     // Socket.onclose = function() {};
-    await socket.close();
+    socket.addEventListener('close', () => {});
+    socket.close();
   };
 
   /** Socket close event.
