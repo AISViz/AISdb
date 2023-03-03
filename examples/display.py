@@ -20,10 +20,21 @@ os.environ['VITE_TILESERVER'] = 'aisdb.meridian.cs.dal.ca'
 os.environ['VITE_BINGMAPTILES'] = '1'
 args = ['npx', 'vite', '--port', '3000', 'aisdb_web/map']
 
-# start client in a background thread, and run database server
-try:
-    front_end = subprocess.Popen(args, env=os.environ)
-    database_server = SocketServ(dbpath, domain, metadata)
-    db_handle = asyncio.run(database_server.main())
-finally:
-    front_end.kill()
+
+def start_app(*,
+              args=args,
+              env=os.environ,
+              dbpath=dbpath,
+              domain=None,
+              metadata=metadata):
+    ''' start client in a background thread, and run database server '''
+    try:
+        front_end = subprocess.Popen(args, env=os.environ)
+        database_server = SocketServ(dbpath, domain, metadata)
+        _db_handle = asyncio.run(database_server.main())
+    finally:
+        front_end.kill()
+
+
+if __name__ == '__main__':
+    start_app()
