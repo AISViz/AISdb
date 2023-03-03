@@ -5,20 +5,17 @@
 from collections import UserDict
 from datetime import datetime, timedelta, date
 from functools import reduce
+import os
 import sqlite3
 import warnings
 
 import aiosqlite
 import numpy as np
 
+from aisdb import sqlpath
 from aisdb.database import sqlfcn, sqlfcn_callbacks
 from aisdb.database.create_tables import aggregate_static_msgs
-from aisdb.database.dbconn import (
-    DBConn,
-    _coarsetype_rows,
-    _create_coarsetype_index,
-    _create_coarsetype_table,
-)
+from aisdb.database.dbconn import DBConn
 from aisdb.webdata.marinetraffic import VesselInfo
 
 
@@ -302,11 +299,10 @@ class DBQuery_async(DBQuery):
             'SELECT * FROM sqlite_master WHERE type="table" AND name=?',
             ['coarsetype_ref'])
         if cur.fetchall() == []:
-            cur.execute(_create_coarsetype_table)
-            cur.execute(_create_coarsetype_index)
-            cur.executemany((
-                'INSERT OR IGNORE INTO coarsetype_ref (coarse_type, coarse_type_txt) '
-                'VALUES (?,?) '), _coarsetype_rows)
+            with open(os.path.join(sqlpath, 'coarsetype.sql'), 'r') as f:
+                coarsetype_sql = f.read().split(';')
+            for row in coarsetype_sql:
+                cur.execute(row)
             dbconn.commit()
         dbconn.close()
 
