@@ -33,6 +33,7 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
     if vnum[0] < 3 || vnum[0] == 3 && (vnum[1] < 8 || (vnum[1] == 8 && vnum[2] < 2)) {
         panic!("SQLite3 version is too low! Need version 3.8.2 or higher");
     }
+    /*
     let res: String = conn
         .prepare("PRAGMA journal_mode")?
         .query([])?
@@ -43,6 +44,7 @@ pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
         conn.execute_batch("PRAGMA journal_mode=WAL;")
             .unwrap_or_else(|_| panic!("setting PRAGMAS for {:?}", path.to_str()));
     }
+    */
 
     Ok(conn)
 }

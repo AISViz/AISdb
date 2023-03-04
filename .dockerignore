@@ -2,13 +2,13 @@
 **.crt
 **.d
 **.db
-**.db
 **.egg-info
 **.eggs
 **.log
 **.pytest_cache
 **.so
 **.sqlitedb
+**/*.repair
 **/__pycache__
 **/node_modules/*
 **/target
@@ -24,6 +24,7 @@
 *.pyc
 *.pyd
 *.pyo
+*.repair
 *.so
 *.sqlitedb
 *.sqlitedb*

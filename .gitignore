@@ -3,6 +3,7 @@
 **.log
 **.pytest_cache
 **.sqlitedb
+**/*.repair
 **/__pycache__
 **/node_modules/*
 **/target
@@ -19,8 +20,10 @@
 *.pyc
 *.pyd
 *.pyo
+*.repair
 *.so
 *.sqlitedb
+*.sqlitedb*
 *.swp
 *.txt
 .cache
@@ -56,5 +59,3 @@ profile
 release
 target
 testdata
-*.sqlitedb
-*.sqlitedb*
