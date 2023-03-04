@@ -16,15 +16,25 @@ use crate::decode::VesselData;
 
 /// convert time string to epoch seconds
 pub fn csvdt_2_epoch(dt: &str) -> i64 {
-    let utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S").unwrap();
-    DateTime::<Utc>::from_utc(utctime, Utc).timestamp()
+    let mut utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S");
+    if let Err(_e) = utctime {
+        utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%dT%H%M%SZ")
+    }
+    if let Err(e) = utctime {
+        panic!("parsing timestamp from '{}': {}", dt, e);
+    }
+    DateTime::<Utc>::from_utc(utctime.unwrap(), Utc).timestamp()
 }
 
 /// filter everything but vessel data, sort vessel data into static and dynamic vectors
 pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringRecord, i32, bool)> {
+    /*
     if rowopt.is_none() {
-        return None;
+    return None;
     }
+    */
+    rowopt.as_ref()?;
+
     let row = rowopt.unwrap();
     let clonedrow = row.clone();
     let msgtype = clonedrow.get(1).unwrap();
@@ -58,7 +68,7 @@ pub fn decodemsgs_ee_csv(
     let start = Instant::now();
 
     let mut reader = csv::Reader::from_reader(
-        File::open(filename).expect(format!("cannot open file {:?}", filename).as_str()),
+        File::open(filename).unwrap_or_else(|_| panic!("cannot open file {:?}", filename)),
     );
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
@@ -110,24 +120,24 @@ pub fn decodemsgs_ee_csv(
                 own_vessel: true,
                 ais_type: AisClass::Unknown,
                 mmsi: row.get(0).unwrap().parse().unwrap(),
-                ais_version_indicator: row.get(23).unwrap().parse().unwrap_or(0),
+                ais_version_indicator: row.get(23).unwrap().parse().unwrap_or_default(),
                 imo_number: row.get(15).unwrap().parse().ok(),
                 call_sign: row.get(14).unwrap().parse().ok(),
                 name: Some(row.get(13).unwrap_or("").to_string()),
-                ship_type: ShipType::new(row.get(16).unwrap().parse().unwrap_or(0)),
+                ship_type: ShipType::new(row.get(16).unwrap().parse().unwrap_or_default()),
                 cargo_type: CargoType::Undefined,
                 equipment_vendor_id: None,
                 equipment_model: None,
                 equipment_serial_number: None,
-                dimension_to_bow: row.get(17).unwrap().parse().ok(),
-                dimension_to_stern: row.get(18).unwrap().parse().ok(),
-                dimension_to_port: row.get(19).unwrap().parse().ok(),
-                dimension_to_starboard: row.get(20).unwrap().parse().ok(),
+                dimension_to_bow: row.get(17).unwrap_or_default().parse().ok(),
+                dimension_to_stern: row.get(18).unwrap_or_default().parse().ok(),
+                dimension_to_port: row.get(19).unwrap_or_default().parse().ok(),
+                dimension_to_starboard: row.get(20).unwrap_or_default().parse().ok(),
                 position_fix_type: None,
                 eta: None,
-                draught10: row.get(21).unwrap().parse().ok(),
-                destination: row.get(22).unwrap().parse().ok(),
-                mothership_mmsi: row.get(131).unwrap().parse().ok(),
+                draught10: row.get(21).unwrap_or_default().parse().ok(),
+                destination: row.get(22).unwrap_or_default().parse().ok(),
+                mothership_mmsi: row.get(131).unwrap_or_default().parse().ok(),
             };
             let message = VesselData {
                 epoch: Some(epoch),
@@ -137,20 +147,20 @@ pub fn decodemsgs_ee_csv(
         }
 
         if positions.len() >= 500000 {
-            let _d = prepare_tx_dynamic(&mut c, &source, positions);
+            let _d = prepare_tx_dynamic(&mut c, source, positions);
             positions = vec![];
         };
         if stat_msgs.len() >= 500000 {
-            let _s = prepare_tx_static(&mut c, &source, stat_msgs);
+            let _s = prepare_tx_static(&mut c, source, stat_msgs);
             stat_msgs = vec![];
         }
     }
 
-    if positions.len() > 0 {
-        let _d = prepare_tx_dynamic(&mut c, &source, positions);
+    if !positions.is_empty() {
+        let _d = prepare_tx_dynamic(&mut c, source, positions);
     }
-    if stat_msgs.len() > 0 {
-        let _s = prepare_tx_static(&mut c, &source, stat_msgs);
+    if !stat_msgs.is_empty() {
+        let _s = prepare_tx_static(&mut c, source, stat_msgs);
     }
 
     let elapsed = start.elapsed();
@@ -185,8 +195,7 @@ pub fn decodemsgs_ee_csv(
 #[cfg(test)]
 pub mod tests {
 
-    use crate::decodemsgs_ee_csv;
-    use crate::Error;
+    use super::{decodemsgs_ee_csv, Error};
     use std::fs::File;
     use std::io::Write;
     pub use std::{

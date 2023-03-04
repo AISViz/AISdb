@@ -119,9 +119,9 @@ def test_getfiledate():
 def test_binarysearch():
     arr = np.array([1, 2, 3])
     arr_desc = arr[::-1]
-    assert aisdb.proc_util.binarysearch(arr, 2) == 1
-    assert aisdb.proc_util.binarysearch(arr, 5) == 2
-    assert aisdb.proc_util.binarysearch(arr, -10) == 0
-    assert aisdb.proc_util.binarysearch(arr_desc, 10) == 2
-    assert aisdb.proc_util.binarysearch(arr_desc, -5) == 0
-    assert aisdb.proc_util.binarysearch(arr_desc, 2) == 1
+    assert aisdb.aisdb.binarysearch_vector(arr, [2])[0] == 1
+    assert aisdb.aisdb.binarysearch_vector(arr, [5])[0] == 2
+    assert aisdb.aisdb.binarysearch_vector(arr, [-10])[0] == 0
+    assert aisdb.aisdb.binarysearch_vector(arr_desc, [10])[0] == 0
+    assert aisdb.aisdb.binarysearch_vector(arr_desc, [-5])[0] == 2
+    assert aisdb.aisdb.binarysearch_vector(arr_desc, [2])[0] == 1

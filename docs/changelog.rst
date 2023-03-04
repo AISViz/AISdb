@@ -2,6 +2,240 @@
 Changelog
 =========
 
+v1.4.41
+-------
+
+add scale bar to web interface
+
+
+v1.4.40
+-------
+
+fix string formatting error in front end
+
+
+v1.4.39
+-------
+
+add map display example, and update docs
+
+
+v1.4.38
+-------
+
+docs
+
+
+v1.4.37
+-------
+
+decoder improvements
+
+
+v1.4.36
+-------
+
+improved error handling and logging in aisdb_lib
+
+
+v1.4.35
+-------
+
+add support for decoding .zip and .gz compressed AIS data files
+
+
+v1.4.34
+-------
+
+fix receiver crash on database timeout
+
+
+v1.4.33
+-------
+
+merge branch fix_website
+
+
+v1.4.32
+-------
+
+python code cleanup
+
+
+v1.4.31
+-------
+
+update docker build, default TCP listen address, and improved logging
+
+
+v1.4.30
+-------
+
+update docs for gis.py, track encoding, and receiving messages on a raspberry pi
+
+
+v1.4.29
+-------
+
+improved radial distance calculation
+
+
+v1.4.28
+-------
+
+improve consistency of dispatcher CLI
+
+
+v1.4.27
+-------
+
+update receiver for new dispatcher API
+
+
+v1.4.26
+-------
+
+update dispatcher API
+
+
+v1.4.25
+-------
+
+fix column issue when writing to CSV file
+
+
+v1.4.24
+-------
+
+fix bug in gis.py initializing domain when coordinate is zero
+
+
+v1.4.23
+-------
+
+update readme
+
+
+v1.4.22
+-------
+
+receiver TLS/TCP
+
+
+v1.4.21
+-------
+
+add rust receiver to python API
+
+
+v1.4.20
+-------
+
+front end updates
+
+
+v1.4.19
+-------
+
+improve sqlite compatability
+
+
+v1.4.18
+-------
+
+update docs and readme
+
+
+v1.4.17
+-------
+
+improved database query handling
+
+
+v1.4.16
+-------
+
+code cleanup
+
+
+v1.4.15
+-------
+
+receiver error handling
+
+
+v1.4.14
+-------
+
+receiver SSL
+
+
+v1.4.13
+-------
+
+update dependency version and add Cargo.lock files to repository
+
+
+v1.4.12
+-------
+
+enable rebroadcasting raw input from receiver
+
+
+v1.4.11
+-------
+
+update readme
+
+
+v1.4.10
+-------
+
+create docker image for receiver
+
+
+v1.4.9
+------
+
+improve sqlite version compatibility
+
+
+v1.4.8
+------
+
+increase default decimation precision
+
+
+v1.4.7
+------
+
+rename receiver
+
+
+v1.4.6
+------
+
+livestream database integration
+
+
+v1.4.5
+------
+
+add buffer size const to socket_dispatch
+
+
+v1.4.4
+------
+
+add option to disable default TrackGen curve decimation
+
+
+v1.4.3
+------
+
+update nginx allowed script-src for localhost
+
+
 v1.4.2
 ------
 

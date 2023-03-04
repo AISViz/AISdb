@@ -1,5 +1,13 @@
 import os
 import logging
+import warnings
+
+import sqlite3
+if (sqlite3.sqlite_version_info[0] < 3
+        or (sqlite3.sqlite_version_info[0] <= 3
+            and sqlite3.sqlite_version_info[1] < 8)):
+    warnings.warn(
+        f"An outdated version of SQLite was found ({sqlite3.sqlite_version})")
 
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
@@ -42,6 +50,8 @@ from .interp import (
 
 from .network_graph import graph
 
+from .receiver import start_receiver
+
 from .proc_util import (
     glob_files,
     write_csv,
@@ -52,22 +62,12 @@ from .track_gen import (
     TrackGen_async,
     split_timedelta,
     fence_tracks,
+    encode_score,
     encode_greatcircledistance,
     encode_greatcircledistance_async,
 )
-
-import sqlite3
-if (sqlite3.sqlite_version_info[0] < 3
-        or (sqlite3.sqlite_version_info[0] <= 3
-            and sqlite3.sqlite_version_info[1] < 35)):
-    import pysqlite3 as sqlite3
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',
                     level=LOGLEVEL,
                     datefmt='%Y-%m-%d %I:%M:%S')
-
-assert sqlite3.sqlite_version_info[
-    0] >= 3, 'SQLite version too low! version 3.35 or newer required'
-assert sqlite3.sqlite_version_info[
-    1] >= 35, 'SQLite version too low! version 3.35 or newer required'

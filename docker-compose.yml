@@ -2,23 +2,20 @@ version: '3.9'
 
 services:
 
-  # compile rust targets and assemble python package wheels with maturin
+  # compile for manylinux targets and assemble python package wheels
   pkgbuild:
     container_name: pkgbuild
     image: ghcr.io/pyo3/maturin:main
     volumes:
       - ./:/io
-    command: build --release --manylinux 2014 --strip  --interpreter 3.8 3.9 3.10
+    command: build --release --manylinux 2014 --strip  --interpreter 3.8 3.9 3.10 3.11
 
   # run rust tests
   rust-test:
     container_name: rust-test
     environment:
       - RUST_BACKTRACE=1
-    build:
-      target: aisdb
-      context: .
-      dockerfile: ./docker/Dockerfile
+    image: meridiancfi/aisdb:latest
     environment:
       - RUST_BACKTRACE=1
     volumes:
@@ -28,22 +25,24 @@ services:
       - ./testdata:/home/ais_env/testdata
       - ./target/:/home/ais_env/target
     command:
-      ["cargo", "test", "--lib", "--release", "--color=always"]
+      ["cargo", "test", "--lib", "--release", "--color=always", "--manifest-path=./aisdb_lib/Cargo.toml"]
 
   # build python package and run python tests
   python-test:
-    container_name: python-test
     build:
       target: aisdb
       context: .
       dockerfile: ./docker/Dockerfile
+    container_name: python-test
+    # image: meridiancfi/aisdb:latest
     environment:
       - RUST_BACKTRACE=1
       - AISDBDATADIR=/home/ais_env/ais
       - AISDBTESTDIR=/home/ais_env/testdata
     volumes:
       - ${AISDBDATADIR:-/home/$USER/ais/}:/home/ais_env/ais/
-      - ./aisdb_web/dist_coverage/:/home/ais_env/aisdb_web/dist_coverage/
+      #- ./aisdb_web/dist_coverage/:/home/ais_env/aisdb_web/dist_coverage/
+      - ./docs/dist_coverage/:/home/ais_env/docs/dist_coverage/
       - ./target/:/home/ais_env/target
       - ./testdata:/home/ais_env/testdata
     init: true
@@ -51,8 +50,10 @@ services:
       ["python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not timing"]
 
   # webapp
+  # connects to database server on $AISDBHOST:$AISDBPORT
   webserver:
     container_name: webserver
+    init: true
     build: 
       target: webserv
       context: .
@@ -70,13 +71,13 @@ services:
 
   # nodejs docs server
   docserver:
+    volumes:
+      - ./docs/dist_coverage/:/home/ais_env/docs/dist_coverage/
     container_name: docserver
-    build:
-      target: docserv
-      context: .
-      dockerfile: ./docker/Dockerfile
+    init: true
+    image: meridiancfi/aisdb:latest
     command:
-      ['npm', '--prefix', 'aisdb_web/', 'run', 'doc']
+      ['node', 'docs/docserver.js']
     networks:
       ipv6_private:
         ipv6_address: "fc00::4"
@@ -84,20 +85,16 @@ services:
   # database server
   websocket:
     container_name: websocket
-    build:
-      target: aisdb
-      context: .
-      dockerfile: ./docker/Dockerfile
+    image: meridiancfi/aisdb:latest
     environment:
       AISDBHOST: ${AISDBHOST:-127.0.0.1}
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
       AISDBPORT: ${AISDBPORT:-9924}
       # consider mounting volumes at the following locations
+      # ensure that write permissions are allowed on the database file e.g. chmod 777
       AISDBPATH: '/home/ais_env/ais/ais.db'
       AISDBZONES: '/home/ais_env/ais/zones/'
       AISDBMARINETRAFFIC: '/home/ais_env/ais/marinetraffic.db'
-      #AISDBDATADIR: '/home/ais_env/ais/'
-      #AISDBTESTDIR: '/home/ais_env/testdata'
     init: true
     command: 
       ["python", "-u", "examples/start_websocket.py"]
@@ -116,7 +113,12 @@ services:
     ports:
      - "80:80"
      - "443:443"
-     - "${AISDBPORT:-9924}:${AISDBPORT:-9924}"
+     - "9919:9919/udp"
+     - "9920:9920"
+     - "9921:9921/udp"
+     - "9922:9922"
+     - "9923:9923/udp"
+     - "9924:9924"
     networks:
       ipv6_private:
         ipv6_address: "fc00::2"
@@ -140,10 +142,68 @@ services:
     networks:
       ipv6_private:
         ipv6_address: "fc00::5"
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    #entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot certonly --webroot -w /var/www/certbot -d $AISDBHOST -n; sleep 12h & wait $${!}; done;'"
     depends_on:
       - nginx
 
+  receiver:
+    container_name: receiver
+    init: true
+    restart: always
+    image: meridiancfi/aisdb:latest
+    build: 
+      target: aisdb
+      context: .
+      dockerfile: ./docker/Dockerfile
+    # will look for database on path ./receiver/ais_rx.db
+    # ensure that write permission is allowed
+    volumes:
+      - ./receiver:/usr/src/aisdb/receiver
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::7"
+    command: 
+      ["aisdb-receiver", 
+          "--path", "/usr/src/aisdb/receiver/ais_rx.db", 
+          #"--tcp-connect-addr='aisdb.meridian.cs.dal.ca:9920'", 
+          #"--tcp-listen-addr='[::]:9922'", 
+          #"--tcp-listen-addr='[::]:9920'", 
+          "--udp-listen-addr='[::]:9921'", 
+          "--tcp-output-addr='[::]:9922'", 
+          "--multicast-addr-rawdata='[ff02::1]:9916'",
+          "--multicast-addr-parsed='[ff02::1]:9917'"
+          #,"--tee"
+      ]
+    depends_on:
+      - nginx
+
+  # forward receiver to downstream
+  upstream-ais:
+    container_name: upstream-ais
+    init: true
+    image: meridiancfi/aisdb:latest
+    build: 
+      target: aisdb
+      context: .
+      dockerfile: ./docker/Dockerfile
+    environment:
+      RUST_BACKTRACE: 1
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::8"
+    depends_on:
+      - nginx
+      - receiver
+    working_dir: "/usr/src/aisdb/dispatcher/reverse_proxy"
+    command:
+      ["mproxy-reverse",
+         #"--tcp-output-addr", "[::]:9920",
+         #"--tcp-listen-addr", "[::]:9920",
+         "--tcp-output-addr", "[::]:9920",
+         "--multicast-addr", "[ff02::1]:9916",
+         "--udp-output-addr", "[::]:9923"
+      ]
 
 networks:
   ipv6_private:
@@ -151,6 +211,6 @@ networks:
     enable_ipv6: true
     ipam:
       config:
-        - subnet: "fc00:0:0::/119"
+        - subnet: "fc00:0:0::/120"
           gateway: "fc00:0:0::1"
 

@@ -35,7 +35,8 @@ class SocketServ():
         port = os.environ.get('AISDBPORT', 9924)
         self.port = int(port)
         self.domain = domain
-        assert self.domain.zones != []
+        # assert self.domain.zones != []
+        warnings.warn('No domain configured, zones may not be queried')
         self.vesselinfo = _vessel_info_dict(trafficDBpath)
 
     async def _handle_client(self, clientmsg, websocket):
@@ -81,26 +82,35 @@ class SocketServ():
                 raise err
         except Exception as err:
             await websocket.close()
-            raise err
+            print(err)
+            return
 
     async def handler(self, websocket):
         ''' handle messages received by the websocket '''
 
         if not hasattr(self, 'dbconn'):
             self.dbconn = await aiosqlite.connect(self.dbpath)
+            await self.dbconn.execute('PRAGMA query_only=1')
+            await self.dbconn.execute('PRAGMA busy_timeout=300000')
 
-        async for clientmsg in websocket:
-            t0 = datetime.now()
-            await asyncio.wait_for(self._handle_client(clientmsg, websocket),
-                                   timeout=2400)
-            delta = (datetime.now() - t0).total_seconds()
-            if delta > 1200:
-                await websocket.send(
-                    orjson.dumps({
-                        'type': 'done',
-                        'status': 'Request timed out!'
-                    }))
-        await websocket.close()
+        try:
+            async for clientmsg in websocket:
+                t0 = datetime.now()
+                await asyncio.wait_for(
+                    fut=self._handle_client(clientmsg, websocket),
+                    timeout=2400,
+                )
+                delta = (datetime.now() - t0).total_seconds()
+                if delta > 1200:
+                    await websocket.send(
+                        orjson.dumps({
+                            'type': 'done',
+                            'status': 'Request timed out!'
+                        }))
+        except websockets.exceptions.ConnectionClosedError as err:
+            print(err)
+        finally:
+            await websocket.close()
         print(f'closed client: ended socket loop {websocket.remote_address}')
 
     async def await_response(self, websocket):
@@ -222,7 +232,7 @@ class SocketServ():
         qry = self._create_dbqry(req)
         trackgen = encode_greatcircledistance_async(
             split_timedelta_async(TrackGen_async(
-                qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static)),
+                qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static), decimate=0.0001),
                                   maxdelta=timedelta(days=7)),
             distance_threshold=250000,
             minscore=1e-05,
@@ -288,7 +298,8 @@ class SocketServ():
         qry = self._create_dbqry(req)
         interps = interp_time_async(
             encode_greatcircledistance_async(
-                split_timedelta_async(TrackGen_async(qry.gen_qry()),
+                split_timedelta_async(TrackGen_async(qry.gen_qry(),
+                                                     decimate=True),
                                       maxdelta=timedelta(days=7)),
                 distance_threshold=250000,
                 minscore=1e-05,

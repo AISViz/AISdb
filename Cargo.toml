@@ -1,42 +1,24 @@
 [package]
-version = "1.4.2"
+version = "1.4.41"
 name = "aisdb"
-authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"
-include = [ "/aisdb/*.py", "/aisdb/aisdb_sql", "/aisdb/database/*.py", "/aisdb/tests", "/aisdb/webdata/*.py", "/src", "pyproject.toml",]
-build = "build.rs"
-readme = "readme.rst"
-description = "AIS Database and Processing Utils"
-homepage = "https://aisdb.meridian.cs.dal.ca/"
-documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
-repository = "https://gitlab.meridian.cs.dal.ca/public_projects/aisdb/"
-license-file = "license.txt"
+include = [ "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml",]
 
 [lib]
 crate-type = [ "cdylib", "rlib",]
 path = "src/lib.rs"
 
 [dependencies]
-geo = "0.20.1"
+geo = "0.23.0"
 geo-types = "*"
-include_dir = "0.7.2"
+nmea-parser = "0.10"
 
-[dependencies.chrono]
-version = "0.4.21"
+[dependencies.aisdb-lib]
+path = "aisdb_lib"
 
-[dependencies.csv]
-version = "1.1"
-
-[dependencies.nmea-parser]
-version = "0.9"
+[dependencies.aisdb-receiver]
+path = "receiver"
 
 [dependencies.pyo3]
-version = "0.16.4"
-features = [ "extension-module",]
-
-[dependencies.rusqlite]
-version = "0.27"
-
-[profile.release]
-lto = true
-opt-level = 3
+version = "0.17.3"
+features = [ "extension-module", "generate-import-lib",]

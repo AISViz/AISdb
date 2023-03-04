@@ -19,4 +19,5 @@ CREATE TABLE IF NOT EXISTS ais_{}_static (
     eta_minute INTEGER,
     source TEXT NOT NULL,
     PRIMARY KEY (mmsi, time, imo, source)
-) WITHOUT ROWID, STRICT;
+) WITHOUT ROWID;
+--, STRICT

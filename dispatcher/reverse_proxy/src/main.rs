@@ -1,32 +1,42 @@
 use std::process::exit;
 
-extern crate pico_args;
+use mproxy_forward::forward_udp;
+use mproxy_reverse::{reverse_proxy_tcp_udp, reverse_proxy_udp, reverse_proxy_udp_tcp};
+
 use pico_args::Arguments;
 
-extern crate proxy;
-use proxy::proxy_thread;
-
-use reverse_proxy::reverse_proxy_tcp;
-
 const HELP: &str = r#"
-DISPATCH: reverse_proxy 
+MPROXY: Reverse Proxy
+
+Forward upstream TCP and UDP upstream to downstream listeners.
+Messages are routed via UDP multicast to downstream sender threads. 
+Spawns one thread per listener.
 
 USAGE:
-  reverse_proxy --udp_listen_addr [HOSTNAME:PORT] --tcp_listen_addr [LOCAL_ADDRESS:PORT] --multicast_addr [MULTICAST_IP:PORT] 
+  mproxy-reverse  [FLAGS] [OPTIONS]
 
-  e.g.
-  reverse_proxy --udp_listen_addr '0.0.0.0:9920' --tcp_listen_addr '[::1]:9921' --multicast_addr '224.0.0.1:9922'
+OPTIONS:
+  --udp-listen-addr [HOSTNAME:PORT]     Spawn a UDP socket listener, and forward to --multicast-addr
+  --tcp-listen-addr [HOSTNAME:PORT]     Reverse-proxy accepting TCP connections and forwarding to --multicast-addr
+  --multicast-addr  [MULTICAST_IP:PORT] Defaults to '[ff02::1]:9918'
+  --tcp-output-addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to TCP downstream
+  --udp-output-addr [HOSTNAME:PORT]     Forward packets from --multicast-addr to UDP downstream
 
 FLAGS:
   -h, --help    Prints help information
-  -t, --tee     Copy input to stdout
+  -t, --tee     Print UDP input to stdout
+
+EXAMPLE:
+  mproxy-reverse --udp-listen-addr '0.0.0.0:9920' --tcp-output-addr '[::1]:9921' --multicast-addr '224.0.0.1:9922'
 
 "#;
 
 pub struct ReverseProxyArgs {
-    pub udp_listen_addr: String,
-    pub multicast_addr: String,
-    pub tcp_listen_addr: String,
+    pub udp_listen_addr: Option<String>,
+    pub tcp_listen_addr: Option<String>,
+    pub multicast_addr: Option<String>,
+    pub tcp_output_addr: Option<String>,
+    pub udp_output_addr: Option<String>,
     pub tee: bool,
 }
 
@@ -38,9 +48,11 @@ fn parse_args() -> Result<ReverseProxyArgs, pico_args::Error> {
     }
     let tee = pargs.contains(["-t", "--tee"]);
     let args = ReverseProxyArgs {
-        udp_listen_addr: pargs.value_from_str("--udp_listen_addr")?,
-        multicast_addr: pargs.value_from_str("--multicast_addr")?,
-        tcp_listen_addr: pargs.value_from_str("--tcp_listen_addr")?,
+        udp_listen_addr: pargs.opt_value_from_str("--udp-listen-addr")?,
+        tcp_listen_addr: pargs.opt_value_from_str("--tcp-listen-addr")?,
+        multicast_addr: pargs.opt_value_from_str("--multicast-addr")?,
+        tcp_output_addr: pargs.opt_value_from_str("--tcp-output-addr")?,
+        udp_output_addr: pargs.opt_value_from_str("--udp-output-addr")?,
         tee,
     };
     let remaining = pargs.finish();
@@ -60,14 +72,39 @@ pub fn main() {
         }
     };
 
+    let multicast: String = match args.multicast_addr {
+        Some(addr) => addr,
+        _ => "[ff02::1]:9918".to_string(),
+    };
+
+    let mut threads = vec![];
+
     // UDP listener thread -> UPD multicast sender
     // rebroadcast upstream UDP via multicast to client threads
-    let _multicast = proxy_thread(
-        &args.udp_listen_addr,
-        &[args.multicast_addr.clone()],
-        args.tee,
-    );
+    if let Some(udp_listen) = args.udp_listen_addr {
+        let multicast = forward_udp(udp_listen, &[multicast.to_string()], args.tee);
+        threads.push(multicast);
+    }
 
-    let r_proxy = reverse_proxy_tcp(args.multicast_addr, args.tcp_listen_addr);
-    r_proxy.join().unwrap();
+    // UDP multicast listener -> TCP sender
+    if let Some(tcpout) = &args.tcp_output_addr {
+        let tcp_proxy = reverse_proxy_udp_tcp(multicast.to_string(), tcpout.to_string());
+        threads.push(tcp_proxy);
+    }
+
+    // TCP connection listener -> UDP multicast
+    if let Some(tcpin) = args.tcp_listen_addr {
+        let tcp_rproxy = reverse_proxy_tcp_udp(tcpin, multicast.to_string());
+        threads.push(tcp_rproxy);
+    }
+
+    // UDP listener -> UDP sender
+    if let Some(udpout) = args.udp_output_addr {
+        let udp_proxy = reverse_proxy_udp(multicast, udpout);
+        threads.push(udp_proxy);
+    }
+
+    for thread in threads {
+        thread.join().unwrap();
+    }
 }

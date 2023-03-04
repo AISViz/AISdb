@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from functools import partial
 
 import numpy as np
-#import shapely.wkb
 import shapely.ops
 import shapely.geometry
 import warnings
@@ -16,8 +15,11 @@ from aisdb.proc_util import glob_files
 
 
 def shiftcoord(x, rng=180):
-    ''' Correct longitude coordinates to be within range(-180, 180).
+    ''' Correct longitude coordinates to be within range(-180, 180)
+        using a linear shift and modulus.
         For latitude coordinate correction, set rng to 90.
+
+        For example: longitude 181 would be corrected to -179 deg.
     '''
     assert len(x) > 0, 'x must be array-like'
     if not isinstance(x, np.ndarray):
@@ -62,7 +64,8 @@ def epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
 
 
 def delta_meters(track, rng=None):
-    ''' compute distance in meters between track positions for a given track
+    ''' compute haversine distance in meters between track positions for a
+        given track
 
         args:
             track (dict)
@@ -95,7 +98,7 @@ def delta_seconds(track, rng=None):
 
 def delta_knots(track, rng=None):
     ''' compute speed over ground in knots between track positions for a given
-        track using (distance / time)
+        track using (haversine distance / time)
 
         args:
             track (dict)
@@ -110,8 +113,15 @@ def delta_knots(track, rng=None):
 
 
 def radial_coordinate_boundary(x, y, radius=100000):
-    ''' checks maximum coordinate range for a given point and radial distance
-        in meters
+    ''' Defines a bounding box area for a given point and radial
+        distance in meters. Returns degree boundaries with a minimum diameter
+        of approximately 2 * ``radius`` meters.
+
+        The boundaries are approximated by converting input coordinates
+        from degrees to radians, and computing a radial delta by
+        dividing an input value by the earth radius. The radial delta
+        is added or subtracted from the input point for each cardinal
+        direction, and then converted back from radians to degrees.
 
         args:
             x (float)
@@ -119,27 +129,25 @@ def radial_coordinate_boundary(x, y, radius=100000):
             y (float)
                 latitude
             radius (int, float)
-                maximum radial distance
+                minimum radial distance
     '''
+    # radians
+    earth_radius_m = 6371088
+    rlon = np.pi * x / 180
+    rlat = np.pi * y / 180
+    parallel_radius = earth_radius_m * np.cos(rlat)
 
-    xmin, xmax = x, x
-    ymin, ymax = y, y
-
-    # TODO: compute precise value instead of approximating
-    while haversine(x, y, xmin, y) < radius:
-        xmin -= 0.001
-    while haversine(x, y, xmax, y) < radius:
-        xmax += 0.001
-    while haversine(x, y, x, ymin) < radius:
-        ymin -= 0.001
-    while haversine(x, y, x, ymax) < radius:
-        ymax += 0.001
+    # radial delta
+    rlonmin = rlon - radius / parallel_radius
+    rlonmax = rlon + radius / parallel_radius
+    rlatmin = rlat - radius / earth_radius_m
+    rlatmax = rlat + radius / earth_radius_m
 
     return {
-        'xmin': xmin,
-        'xmax': xmax,
-        'ymin': ymin,
-        'ymax': ymax,
+        'xmin': 180 * rlonmin / np.pi,
+        'xmax': 180 * rlonmax / np.pi,
+        'ymin': 180 * rlatmin / np.pi,
+        'ymax': 180 * rlatmax / np.pi
     }
 
 
@@ -154,7 +162,9 @@ def distance3D(x1, y1, x2, y2, depth_metres):
 
 
 def vesseltrack_3D_dist(tracks, x1, y1, z1, colname='distance_metres'):
-    ''' appends approximate distance to point at every position
+    ''' appends approximate distance to a submerged point at every
+        surface-level position. distance is approximated using the haversine
+        function and pythagoras.
 
         x1 (float)
             point longitude
@@ -232,13 +242,20 @@ class Domain():
             self.maxY
     '''
 
-    def zone_max_radius(self, geom, zone_x, zone_y):
+    _meridian = LineString(
+        np.array((
+            (-180, -180, 180, 180),
+            (-90, 90, 90, -90),
+        )).T)
+
+    def _zone_max_radius(self, geom, zone_x, zone_y):
+        ''' computes the maximum distance to the centroid '''
         return np.max([
             haversine(geom.centroid.x, geom.centroid.y, x2, y2)
             for x2, y2 in zip(zone_x, zone_y)
         ])
 
-    def add_zone(self, name, x, y):
+    def _add_zone(self, name, x, y):
         if name[-2:] == '_b' and (x0b := np.min(x)) < self.minX_b:
             self.minX_b = x0b
         elif name[-2:] != '_c' and (x0c := np.min(x)) > self.minX:
@@ -258,13 +275,14 @@ class Domain():
         assert -90 <= self.minY <= 90 and -90 <= self.maxY <= 90
 
         geom = Polygon(zip(x, y))
-        maxradius = self.zone_max_radius(geom, x, y)
+        maxradius = self._zone_max_radius(geom, x, y)
 
         self.zones.update({name: {'geometry': geom, 'maxradius': maxradius}})
 
         return
 
     def __init__(self, name, zones=[], **kw):
+        ''' Initialize the domain from zone geometries, dividing along the 180th meridian '''
         if len(zones) == 0:
             raise ValueError(
                 'domain needs to have atleast one polygon geometry')
@@ -284,15 +302,15 @@ class Domain():
                 for g in self.split_geom(zone):
                     if g.centroid.x < -180:
                         x, y = np.array(g.boundary.coords.xy)
-                        self.add_zone(zone['name'] + '_b', shiftcoord(x), y)
+                        self._add_zone(zone['name'] + '_b', shiftcoord(x), y)
                     elif g.centroid.x > 180:
                         x, y = np.array(g.boundary.coords.xy)
-                        self.add_zone(zone['name'] + '_c', shiftcoord(x), y)
+                        self._add_zone(zone['name'] + '_c', shiftcoord(x), y)
                     else:
                         x, y = np.array(g.boundary.coords.xy)
-                        self.add_zone(zone['name'] + '_a', x, y)
+                        self._add_zone(zone['name'] + '_a', x, y)
             else:
-                self.add_zone(zone['name'], x, y)
+                self._add_zone(zone['name'], x, y)
 
         self.boundary = {
             'xmin': self.minX,
@@ -315,8 +333,8 @@ class Domain():
             returns all zones with distances less than zero meters, sorted by
             nearest first
         '''
-        assert float(x), f'{type(x)} {x=}'
-        assert float(y), f'{type(y)} {y=}'
+        assert float(x) or x == 0.0, f'{type(x)} {x=}{y=}'
+        assert float(y) or y == 0.0, f'{type(y)} {x=}{y=}'
         assert isinstance(self.zones, dict)
         dist_to_centroids = {}
         for name, z in self.zones.items():
@@ -332,7 +350,9 @@ class Domain():
         return dist_to_centroids
 
     def point_in_polygon(self, x, y):
-        ''' returns the first domain zone containing the given coordinates
+        ''' Returns the zone containing the given coordinates.
+            if there are multiple zones containing the coordinates,
+            the zone with the nearest centroid will be selected.
 
             args:
                 x (float)
@@ -340,8 +360,8 @@ class Domain():
                 y (float)
                     latitude value
         '''
-        assert float(x), f'{type(x)} {x=}'
-        assert float(y), f'{type(y)} {y=}'
+        assert float(x) or x == 0.0, f'{type(x)} {x=}{y=}'
+        assert float(y) or y == 0.0, f'{type(y)} {x=}{y=}'
         assert len(self.zones) > 0
         # first pass filter using distance to centroid, subtracting max radius.
         # discard all geometry with a distance over zero
@@ -356,15 +376,12 @@ class Domain():
                 return key
         return 'Z0'
 
-    meridian = LineString(
-        np.array((
-            (-180, -180, 180, 180),
-            (-90, 90, 90, -90),
-        )).T)
-
     def split_geom(self, zone):
+        ''' Ensure that the zone doesn't intersect longitude 180 or -180.
+            If it does, divide it into two zones.
+        '''
         merged = shapely.ops.linemerge(
-            [zone['geometry'].boundary, self.meridian])
+            [zone['geometry'].boundary, self._meridian])
         border = shapely.ops.unary_union(merged)
         decomp = shapely.ops.polygonize(border)
         return decomp
@@ -394,9 +411,9 @@ class DomainFromTxts(Domain):
 
 
 class DomainFromPoints(Domain):
-    ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
-        zone geometry from longitude and latitude pairs with a bounding-box
-        maximum radial distance.
+    ''' Subclass of :class:`aisdb.gis.Domain`. Used for convenience to generate
+        bounding box polygons from longitude/latitude pairs and radial
+        distances, where the minimum radius is specified in meters.
     '''
 
     def __init__(self,
@@ -404,7 +421,9 @@ class DomainFromPoints(Domain):
                  radial_distances,
                  names=[],
                  domainName='domain'):
-        ''' creates a bounding-box polygons
+        ''' Creates bounding-box polygons having a minimum radius atleast
+            approximately ``radial_distances`` in metres, centered on
+            ``points``.
 
             args:
                 points (list)

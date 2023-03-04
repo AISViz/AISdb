@@ -1,27 +1,50 @@
-//use std::env::current_exe;
+use crate::decode::VesselData;
+use crate::util::epoch_2_dt;
+
+extern crate include_dir;
 use include_dir::{include_dir, Dir};
 
+extern crate chrono;
 use chrono::{DateTime, Utc};
+
+extern crate rusqlite;
 use rusqlite::{params, Connection, Result, Transaction};
 
-use crate::util::epoch_2_dt;
-use crate::VesselData;
-
-static PROJECT_DIR: Dir<'_> = include_dir!("aisdb/aisdb_sql");
+static PROJECT_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../aisdb/aisdb_sql");
 
 /// open a new database connection at the specified path
 pub fn get_db_conn(path: &std::path::Path) -> Result<Connection> {
     let conn = match path.to_str().unwrap() {
         ":memory:" => Connection::open_in_memory().unwrap(),
+        //":memory:" => { Connection::open_with_flags(fpath, SQLITE_OPEN_URI | SQLITE_OPEN_READ_WRITE)?},
         _ => Connection::open(path).unwrap(),
     };
-    conn.execute_batch(
-        "
-        PRAGMA synchronous = 0;
-        PRAGMA temp_store = MEMORY;
-        ",
-    )
-    .expect("PRAGMAS");
+
+    let version_string = rusqlite::version();
+
+    #[cfg(debug_assertions)]
+    println!("SQLite3 version: {}", version_string);
+
+    let vnum: Vec<i32> = version_string
+        .split('.')
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    if vnum[0] < 3 || vnum[0] == 3 && (vnum[1] < 8 || (vnum[1] == 8 && vnum[2] < 2)) {
+        panic!("SQLite3 version is too low! Need version 3.8.2 or higher");
+    }
+    /*
+    let res: String = conn
+        .prepare("PRAGMA journal_mode")?
+        .query([])?
+        .next()?
+        .unwrap()
+        .get(0)?;
+    if res != "wal" {
+        conn.execute_batch("PRAGMA journal_mode=WAL;")
+            .unwrap_or_else(|_| panic!("setting PRAGMAS for {:?}", path.to_str()));
+    }
+    */
 
     Ok(conn)
 }
@@ -41,7 +64,9 @@ pub fn sqlite_createtable_dynamicreport(
     mstr: &str,
 ) -> Result<usize, rusqlite::Error> {
     let sql = sql_from_file("createtable_dynamic_clustered.sql").replace("{}", mstr);
-    Ok(tx.execute(&sql, []).expect("creating dynamic table"))
+    Ok(tx
+        .execute(&sql, [])
+        .unwrap_or_else(|e| panic!("creating dynamic table\n{}\n{}", sql, e)))
 }
 
 /// create SQLite table for monthly static vessel reports
@@ -87,18 +112,18 @@ pub fn sqlite_insert_static(
         stmt.execute(params![
             p.mmsi,
             e,
-            p.name.unwrap_or_else(|| "".to_string()),
+            p.name.unwrap_or_default(),
             p.ship_type as i32,
-            p.call_sign.unwrap_or_else(|| "".to_string()),
-            p.imo_number.unwrap_or(0),
-            p.dimension_to_bow.unwrap_or(0),
-            p.dimension_to_stern.unwrap_or(0),
-            p.dimension_to_port.unwrap_or(0),
-            p.dimension_to_starboard.unwrap_or(0),
-            p.draught10.unwrap_or(0),
-            p.destination.unwrap_or_else(|| "".to_string()),
+            p.call_sign.unwrap_or_default(),
+            p.imo_number.unwrap_or_default(),
+            p.dimension_to_bow.unwrap_or_default(),
+            p.dimension_to_stern.unwrap_or_default(),
+            p.dimension_to_port.unwrap_or_default(),
+            p.dimension_to_starboard.unwrap_or_default(),
+            p.draught10.unwrap_or_default(),
+            p.destination.unwrap_or_default(),
             p.ais_version_indicator,
-            p.equipment_vendor_id.unwrap_or_else(|| "".to_string()),
+            p.equipment_vendor_id.unwrap_or_default(),
             eta.format("%m").to_string(),
             eta.format("%d").to_string(),
             eta.format("%H").to_string(),
@@ -120,7 +145,7 @@ pub fn sqlite_insert_dynamic(
 
     let mut stmt = tx
         .prepare_cached(sql.as_str())
-        .expect(format!("preparing SQL statement:\n{}", sql).as_str());
+        .unwrap_or_else(|e| panic!("preparing SQL statement:\n{}\n{}", sql, e));
 
     for msg in msgs {
         let (p, e) = msg.dynamicdata();
@@ -128,17 +153,23 @@ pub fn sqlite_insert_dynamic(
             .execute(params![
                 p.mmsi,
                 e,
-                p.longitude.unwrap_or(0.),
-                p.latitude.unwrap_or(0.),
-                p.rot.unwrap_or(-1.),
-                p.sog_knots.unwrap_or(-1.),
-                p.cog.unwrap_or(-1.),
-                p.heading_true.unwrap_or(-1.),
-                p.special_manoeuvre.unwrap_or(false),
+                p.longitude.unwrap_or_default(),
+                p.latitude.unwrap_or_default(),
+                p.rot.unwrap_or_default(),
+                p.sog_knots.unwrap_or_default(),
+                p.cog.unwrap_or_default(),
+                p.heading_true.unwrap_or_default(),
+                p.special_manoeuvre.unwrap_or_default(),
                 p.timestamp_seconds,
                 source,
             ])
-            .expect(format!("executing prepared row on {}", tx.path().unwrap().display()).as_str());
+            .unwrap_or_else(|e| {
+                panic!(
+                    "executing prepared row on {}\n{}",
+                    tx.path().unwrap().display(),
+                    e
+                )
+            });
     }
 
     Ok(())
@@ -154,10 +185,9 @@ pub fn prepare_tx_dynamic(
         .format("%Y%m")
         .to_string();
     let t = c.transaction().unwrap();
-    let _c = sqlite_createtable_dynamicreport(&t, &mstr).expect("creating dynamic table");
-    let _d = sqlite_insert_dynamic(&t, positions, &mstr, &source).expect("insert dynamic");
-    let _ = t.commit();
-    Ok(())
+    sqlite_createtable_dynamicreport(&t, &mstr).expect("creating dynamic table");
+    sqlite_insert_dynamic(&t, positions, &mstr, source).expect("insert dynamic");
+    t.commit()
 }
 
 /// prepare a new transaction, ensure tables are created, and insert static messages
@@ -170,10 +200,10 @@ pub fn prepare_tx_static(
         .format("%Y%m")
         .to_string();
     let t = c.transaction().unwrap();
-    let _c = sqlite_createtable_staticreport(&t, &mstr).expect("create static table");
-    let _s = sqlite_insert_static(&t, stat_msgs, &mstr, &source).expect("insert static");
-    let _ = t.commit();
-    Ok(())
+    sqlite_createtable_staticreport(&t, &mstr).expect("create static table");
+    sqlite_insert_static(&t, stat_msgs, &mstr, source)
+        .unwrap_or_else(|e| panic!("insert static: {}", e));
+    t.commit()
 }
 
 /* --------------------------------------------------------------------------------------------- */

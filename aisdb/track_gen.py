@@ -12,6 +12,7 @@ import orjson
 from aisdb.aisdb import simplify_linestring_idx, encoder_score_fcn
 from aisdb.gis import delta_knots, delta_meters
 from aisdb.proc_util import _segment_rng
+from aisdb import Domain
 
 staticcols = set([
     'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow',
@@ -57,11 +58,16 @@ _statcols = set([
 ])
 
 
-def _yieldsegments(rows, staticcols, dynamiccols):
+def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001):
+    if decimate is True:
+        decimate = 0.0001
     lon = np.array([r['longitude'] for r in rows], dtype=float)
     lat = np.array([r['latitude'] for r in rows], dtype=float)
     time = np.array([r['time'] for r in rows], dtype=np.uint32)
-    idx = simplify_linestring_idx(lon, lat, precision=0.001)
+    if decimate is not False:
+        idx = simplify_linestring_idx(lon, lat, precision=decimate)
+    else:
+        idx = np.array(range(len(lon)))
     trackdict = dict(
         **{col: rows[0][col]
            for col in staticcols},
@@ -81,7 +87,7 @@ def _yieldsegments(rows, staticcols, dynamiccols):
         yield segment
 
 
-def TrackGen(rowgen: iter) -> dict:
+def TrackGen(rowgen: iter, decimate: float = 0.0001) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
         each row contains columns from database: mmsi time lon lat name ...
@@ -91,6 +97,9 @@ def TrackGen(rowgen: iter) -> dict:
             rowgen (aisdb.database.dbqry.DBQuery.gen_qry())
                 DBQuery rows generator. Yields rows returned
                 by a database query
+            decimate (bool)
+                if True, linear curve decimation will be applied to reduce
+                the number of unnecessary datapoints
 
         yields:
             dictionary containing track column vectors.
@@ -134,11 +143,11 @@ def TrackGen(rowgen: iter) -> dict:
                                                       'latitude']))
             dynamiccols = dynamiccols.union(set(['lon', 'lat', 'time']))
             firstrow = False
-        for track in _yieldsegments(rows, staticcols, dynamiccols):
+        for track in _yieldsegments(rows, staticcols, dynamiccols, decimate):
             yield track
 
 
-async def TrackGen_async(rowgen: iter) -> dict:
+async def TrackGen_async(rowgen: iter, decimate: float = 0.0001) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
         each row contains columns from database: mmsi time lon lat name ...
@@ -148,6 +157,12 @@ async def TrackGen_async(rowgen: iter) -> dict:
             rowgen (aisdb.database.dbqry.DBQuery.gen_qry())
                 DBQuery rows generator. Yields rows returned
                 by a database query
+            decimate (bool or int)
+                if True, linear curve decimation will be applied to reduce
+                the number of unnecessary datapoints with a default precision
+                of 0.0001.
+                If Float, this value will be used as the level of precision.
+
 
         yields:
             dictionary containing track column vectors.
@@ -196,7 +211,7 @@ async def TrackGen_async(rowgen: iter) -> dict:
                                                       'latitude']))
             dynamiccols = dynamiccols.union(set(['lon', 'lat', 'time']))
             firstrow = False
-        for track in _yieldsegments(rows, staticcols, dynamiccols):
+        for track in _yieldsegments(rows, staticcols, dynamiccols, decimate):
             yield track
 
 
@@ -270,19 +285,21 @@ def _segments_idx(track, distance_threshold, speed_threshold, **_):
 
 def _scoresarray(track, *, pathways, i, segments_idx, distance_threshold,
                  speed_threshold, minscore):
-    scores = np.array([
-        encoder_score_fcn(
-            x1=pathway['lon'][-1],
-            y1=pathway['lat'][-1],
-            t1=pathway['time'][-1],
-            x2=track['lon'][segments_idx[i]],
-            y2=track['lat'][segments_idx[i]],
-            t2=track['time'][segments_idx[i]],
-            dist_thresh=distance_threshold,
-            speed_thresh=speed_threshold,
-        ) for pathway in pathways
-    ],
-                      dtype=np.float16)
+    scores = np.array(
+        [
+            encoder_score_fcn(
+                x1=pathway['lon'][-1],
+                y1=pathway['lat'][-1],
+                t1=pathway['time'][-1],
+                x2=track['lon'][segments_idx[i]],
+                y2=track['lat'][segments_idx[i]],
+                t2=track['time'][segments_idx[i]],
+                dist_thresh=distance_threshold,
+                speed_thresh=speed_threshold,
+            ) for pathway in pathways
+        ],
+        dtype=np.float32,
+    )
     highscore = (scores[np.where(
         scores == np.max(scores))[0][0]] if scores.size > 0 else minscore)
     return scores, highscore
@@ -316,7 +333,25 @@ def _split_pathway(track, *, i, segments_idx):
     return path
 
 
-def _score_encode(track, distance_threshold, speed_threshold, minscore):
+def encode_score(track, distance_threshold, speed_threshold, minscore):
+    ''' Encodes likelihood of persistent track membership when given distance,
+        speed, and score thresholds, using track speed deltas computed using
+        distance computed by haversine function divided by elapsed time
+
+        A higher distance threshold will increase the maximum distance in
+        meters allowed between pings for same trajectory membership. A higher
+        speed threshold will allow vessels travelling up to this value in knots
+        to be kconsidered for persistent track membership.
+        The minscore assigns a minimum score needed to be considered for
+        membership, typically 0 or very close to 0 such as 1e-5.
+
+        For example: a vessel travelling at a lower speed with short intervals
+        between pings will have a higher likelihood of persistence.
+        A trajectory with higher average speed or long intervals between
+        pings may indicate two separate trajectories and will be segmented
+        forming alternate trajectories according to highest likelihood of
+        membership.
+    '''
     assert 'time' in track.keys()
     assert len(track['time']) > 0
     params = dict(distance_threshold=distance_threshold,
@@ -374,7 +409,7 @@ def encode_greatcircledistance(
     ''' partitions tracks where delta speeds exceed speed_threshold or
         delta_meters exceeds distance_threshold.
         concatenates track segments with the highest likelihood of being
-        sequential, as encoded by a distance/time score function
+        sequential, as encoded by the encode_score function
 
         args:
             tracks (aisdb.track_gen.TrackGen)
@@ -422,8 +457,8 @@ def encode_greatcircledistance(
     '''
     for track in tracks:
         assert isinstance(track, dict), f'got {type(track)} {track}'
-        for path in _score_encode(track, distance_threshold, speed_threshold,
-                                  minscore):
+        for path in encode_score(track, distance_threshold, speed_threshold,
+                                 minscore):
             yield path
 
 
@@ -473,7 +508,7 @@ async def encode_greatcircledistance_async(tracks,
         >>> os.remove(dbpath)
     '''
     async for track in tracks:
-        for path in _score_encode(
+        for path in encode_score(
                 track,
                 distance_threshold,
                 speed_threshold,
@@ -489,6 +524,8 @@ def fence_tracks(tracks, domain):
 
         Also see zone_mask()
     '''
+    assert isinstance(domain, Domain), 'Not a domain object'
+
     for track in tracks:
         assert isinstance(track, dict)
         if 'in_zone' not in track.keys():
@@ -559,6 +596,7 @@ async def min_speed_filter_async(tracks, minspeed):
         )
 
 
+'''
 def serialize_tracks(tracks):
     for track in tracks:
         track['static'] = tuple(track['static'])
@@ -578,3 +616,4 @@ def _deser(track_serialized):
 def deserialize_tracks(tracks):
     for track in tracks:
         yield _deser(track)
+'''

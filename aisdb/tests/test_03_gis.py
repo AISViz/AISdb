@@ -17,8 +17,7 @@ def test_domain():
 
     for name, zone in domain.zones.items():
         poly = zone['geometry']
-        # assert poly.is_valid
-        print(poly.type, end='|')
+        print(poly.geom_type, end='|')
     print()
 
     zoneID = domain.point_in_polygon(zone['geometry'].centroid.x,
@@ -51,7 +50,7 @@ def test_DomainFromPoints():
 def test_domain_points_in_polygon():
     lon, lat = sample_gulfstlawrence_bbox()
     z1 = Polygon(zip(lon, lat))
-    z2 = Polygon(zip(lon + 90, lat))
+    z2 = Polygon(zip(lon - 145, lat))
     z3 = Polygon(zip(lon, lat - 45))
     domain = Domain('gulf domain',
                     zones=[
@@ -73,7 +72,7 @@ def test_domain_points_in_polygon():
     yy = [z1.centroid.y, z2.centroid.y, z3.centroid.y]
     test = [domain.point_in_polygon(x, y) for x, y in zip(xx, yy)]
     assert test[0] == 'z1'
-    assert test[1] == 'z2'
+    assert test[1] == 'Z0'
     assert test[2] == 'z3'
 
 

@@ -1,28 +1,21 @@
 //! Rust exports for python API
+use std::cmp::max;
+use std::path::PathBuf;
+use std::process::exit;
+use std::thread::sleep;
+use std::time::Duration;
 
 use geo::algorithm::simplifyvw::SimplifyVwIdx;
 use geo::point;
-use geo::prelude::*;
-use geo_types::{Coordinate, LineString};
+use geo::HaversineDistance;
+use geo_types::{Coord, LineString};
 use nmea_parser::NmeaParser;
+use pyo3::ffi::PyErr_CheckSignals;
 use pyo3::prelude::*;
-use std::cmp::max;
 
-#[path = "csvreader.rs"]
-pub mod csvreader;
-
-#[path = "db.rs"]
-pub mod db;
-
-#[path = "decode.rs"]
-pub mod decode;
-
-#[path = "util.rs"]
-pub mod util;
-
-use csvreader::*;
-use decode::*;
-//use load_geotiff::load_pixel;
+use aisdb_lib::csvreader::decodemsgs_ee_csv;
+use aisdb_lib::decode::decode_insert_msgs;
+use aisdb_receiver::{start_receiver, ReceiverArgs};
 
 macro_rules! zip {
     ($x: expr) => ($x);
@@ -32,7 +25,6 @@ macro_rules! zip {
         )
 }
 
-#[pyfunction]
 /// fast great circle distance
 ///
 /// args:
@@ -48,13 +40,13 @@ macro_rules! zip {
 /// returns:
 ///     distance in metres (float64)
 ///
+#[pyfunction]
 pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
     let p1 = point!(x: x1, y: y1);
     let p2 = point!(x: x2, y: y2);
     p1.haversine_distance(&p2)
 }
 
-#[pyfunction]
 /// Parse NMEA-formatted strings, and create SQLite database
 /// from raw AIS transmissions
 ///
@@ -71,6 +63,7 @@ pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 /// returns:
 ///     None
 ///
+#[pyfunction]
 pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str, verbose: bool) {
     // array tuples containing (dbpath, filepath)
     let mut path_arr = vec![];
@@ -84,18 +77,23 @@ pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str, verbose: bool) {
     // check file extensions and begin decode
     let mut parser = NmeaParser::new();
     for (d, f) in &path_arr {
-        if f.to_str().unwrap().contains(&".nm4")
-            || f.to_str().unwrap().contains(&".NM4")
-            || f.to_str().unwrap().contains(&".RX")
-            || f.to_str().unwrap().contains(&".rx")
-            || f.to_str().unwrap().contains(&".TXT")
-            || f.to_str().unwrap().contains(&".txt")
-        {
-            parser = decode_insert_msgs(&d, &f, &source, parser, verbose).expect("decoding NM4");
-        } else if f.to_str().unwrap().contains(&".csv") || f.to_str().unwrap().contains(&".CSV") {
-            decodemsgs_ee_csv(&d, &f, &source, verbose).expect("decoding CSV");
-        } else {
-            panic!("unknown file extension {:?}", &d);
+        match f.extension() {
+            Some(ext_os_str) => match ext_os_str.to_str() {
+                Some("nm4") | Some("NM4") | Some("nmea") | Some("NMEA") | Some("rx")
+                | Some("txt") | Some("RX") | Some("TXT") => {
+                    parser =
+                        decode_insert_msgs(d, f, source, parser, verbose).expect("decoding NM4");
+                }
+                Some("csv") | Some("CSV") => {
+                    decodemsgs_ee_csv(d, f, source, verbose).expect("decoding CSV");
+                }
+                _ => {
+                    panic!("unknown file type! {:?}", &f);
+                }
+            },
+            _ => {
+                panic!("unknown file type! {:?}", &f);
+            }
         }
     }
 }
@@ -118,7 +116,7 @@ pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str, verbose: bool) {
 #[pyfunction]
 pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<usize> {
     let coords = zip!(&x, &y)
-        .map(|(xx, yy)| Coordinate { x: *xx, y: *yy })
+        .map(|(xx, yy)| Coord { x: *xx, y: *yy })
         .collect();
     let line = LineString(coords).simplifyvw_idx(&precision);
     line.into_iter().collect::<Vec<usize>>()
@@ -212,7 +210,7 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
             Ok(i) => i as i32,
             Err(i) => {
                 if (i as i32) < 0 {
-                    0 as i32
+                    0
                 } else if i >= (arr.len()) {
                     (arr.len() - 1) as i32
                 } else {
@@ -230,15 +228,87 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
         .collect::<Vec<i32>>()
 }
 
+/// Receive raw AIS data from an upstream UDP data source, parse the data into
+/// JSON format, and create a websocket listener to send parsed results downstream.
+/// If dbpath is given, parsed data will be stored in an SQLite database.
+///
+/// args:
+///     dbpath (Option<String>)
+///         If given, raw messages will be parsed and stored in an SQLite database at this location
+///     udp_listen_addr (String)
+///         UDP port to listen for incoming AIS data streams e.g. "0.0.0.0:9921" or "[::]:9921"
+///     tcp_listen_addr (String)
+///         if not None, a thread will be spawned to forward TCP connections to
+///         incoming port ``udp_listen_addr``
+///     multicast_addr (String)
+///         Raw UDP messages will be parsed and then routed to TCP socket listeners via this channel.
+///     multicast_rebroadcast (Option<String>)
+///         Optionally pass a rebroadcast address where raw data will be filtered
+///         and rebroadcasted to this channel for e.g. forwarding to downstream
+///         networks
+///     tcp_output_addr (String)
+///         TCP port to listen for websocket clients to send parsed data in JSON format
+///     dynamic_msg_bufsize (Option<usize>)
+///         Number of positional messages to keep before inserting into the database.
+///         Defaults to 256 if none is given
+///     static_msg_bufsize (Option<usize>)
+///         Number of static messages to keep before inserting into database.
+///         Defaults to 64
+///     tee (bool)
+///         If True, raw input will be copied to stdout
+#[pyfunction]
+pub fn receiver(
+    dbpath: Option<String>,
+    tcp_connect_addr: Option<String>,
+    tcp_listen_addr: Option<String>,
+    udp_listen_addr: String,
+    multicast_addr_parsed: Option<String>,
+    multicast_addr_raw: Option<String>,
+    tcp_output_addr: Option<String>,
+    udp_output_addr: Option<String>,
+    dynamic_msg_bufsize: Option<usize>,
+    static_msg_bufsize: Option<usize>,
+    tee: bool,
+) {
+    let threads = start_receiver(ReceiverArgs {
+        dbpath: dbpath.map(PathBuf::from),
+        tcp_connect_addr,
+        tcp_listen_addr,
+        udp_listen_addr,
+        multicast_addr_parsed,
+        multicast_addr_rawdata: multicast_addr_raw,
+        tcp_output_addr,
+        udp_output_addr,
+        dynamic_msg_bufsize,
+        static_msg_bufsize,
+        tee,
+    });
+    unsafe {
+        while threads
+            .iter()
+            .map(|t| t.is_finished())
+            .filter(|b| !(*b))
+            .count()
+            > 0
+        {
+            let signal = PyErr_CheckSignals();
+            if signal != 0 {
+                eprintln!("exiting...");
+                exit(signal);
+            }
+            sleep(Duration::from_millis(500));
+        }
+    }
+}
+
 /// Functions imported from Rust
 #[pymodule]
-//#[allow(unused_variables)]
 pub fn aisdb(_py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(haversine))?;
     module.add_wrapped(wrap_pyfunction!(decoder))?;
     module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
     module.add_wrapped(wrap_pyfunction!(encoder_score_fcn))?;
     module.add_wrapped(wrap_pyfunction!(binarysearch_vector))?;
-    //module.add_wrapped(wrap_pyfunction!(load_geotiff_pixel))?;
+    module.add_wrapped(wrap_pyfunction!(receiver))?;
     Ok(())
 }

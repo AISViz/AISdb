@@ -1,9 +1,6 @@
 import os
-import zipfile
-from multiprocessing import Pool
 from functools import partial, reduce
 from datetime import datetime, timedelta
-import pickle
 import re
 import csv
 
@@ -40,40 +37,6 @@ def _epoch_2_dt(ep_arr, t0=datetime(1970, 1, 1, 0, 0, 0), unit='seconds'):
         raise ValueError(
             f'input must be integer or array of integers. got {ep_arr=}{type(ep_arr)}'
         )
-
-
-def binarysearch(arr, search):
-    ''' fast indexing of ordered arrays
-
-        caution: will return nearest index in out-of-bounds cases
-    '''
-    assert isinstance(arr, np.ndarray)
-    low, high = 0, arr.size - 1
-
-    if arr[0] > arr[1]:
-        descending = True
-        arr = arr[::-1]
-    else:
-        descending = False
-
-    if search < arr[0]:
-        return 0
-    elif search >= arr[-1]:
-        return len(arr) - 1
-
-    while (low <= high):  # pragma: no cover
-        mid = (low + high) // 2
-        if search >= arr[mid - 1] and search <= arr[mid + 1]:
-            break
-        elif (arr[mid] > search):
-            high = mid - 1
-        else:
-            low = mid + 1
-
-    if descending:
-        return arr.size - mid - 1
-    else:
-        return mid
 
 
 def _splits_idx(vector: np.ndarray, d: timedelta) -> np.ndarray:
@@ -130,7 +93,7 @@ _columns_order = [
 def write_csv(
     tracks,
     fpath,
-    skipcols=['mmsi', 'label', 'in_zone', 'ship_type'],
+    skipcols=['label', 'in_zone'],
 ):
     ''' write track vector dictionaries as CSV file
 
@@ -151,6 +114,7 @@ def write_csv(
             set(_columns_order).union(set(['marinetraffic_info'])))
         if c in list(tr1['static']) + list(tr1['dynamic'])
     ]
+    colnames = [col for col in colnames if col not in skipcols]
 
     if 'marinetraffic_info' in tr1.keys():
         colnames += tuple(tr1['marinetraffic_info'].keys())

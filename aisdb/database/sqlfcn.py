@@ -2,7 +2,7 @@
 import os
 
 from aisdb import sqlpath
-from aisdb.database.dbconn import get_dbname
+from aisdb.database.dbconn import DBConn
 
 
 def _dynamic(*, dbpath, month, callback, **kwargs):
@@ -13,7 +13,7 @@ def _dynamic(*, dbpath, month, callback, **kwargs):
     args = [month for _ in range(len(sql.split('{}')) - 1)]
     return sql.format(*args).replace(
         f'ais_{month}_dynamic',
-        f'{get_dbname(dbpath)}.ais_{month}_dynamic') + callback(
+        f'{DBConn._get_dbname(None, dbpath)}.ais_{month}_dynamic') + callback(
             month=month, alias='d', **kwargs)
     return sql.format(*args)
 
@@ -26,7 +26,7 @@ def _static(*, dbpath, month='197001', **_):
     args = [month for _ in range(len(sql.split('{}')) - 1)]
     return sql.format(*args).replace(
         f'static_{month}_aggregate',
-        f'{get_dbname(dbpath)}.static_{month}_aggregate')
+        f'{DBConn._get_dbname(None, dbpath)}.static_{month}_aggregate')
 
 
 def _leftjoin(month='197001'):

@@ -41,7 +41,10 @@ pub fn glob_dir(dirname: std::path::PathBuf, matching: &str) -> Option<Vec<Strin
 }
 
 pub fn epoch_2_dt(e: i64) -> DateTime<Utc> {
-    DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(e, 0), Utc)
+    DateTime::<Utc>::from_utc(
+        NaiveDateTime::from_timestamp_opt(e, 0).expect("getting current timestamp"),
+        Utc,
+    )
 }
 
 #[cfg(test)]
