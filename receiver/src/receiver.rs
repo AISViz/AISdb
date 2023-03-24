@@ -7,7 +7,11 @@ use std::thread::{spawn, Builder, JoinHandle};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // local
-use aisdb_lib::db::{get_db_conn, prepare_tx_dynamic, prepare_tx_static};
+use aisdb_lib::db::{
+    get_db_conn, get_postgresdb_conn, postgres_prepare_tx_dynamic, postgres_prepare_tx_static,
+    sqlite_prepare_tx_dynamic, sqlite_prepare_tx_static,
+};
+use aisdb_lib::db::{PGClient, SqliteConnection};
 use aisdb_lib::decode::VesselData;
 use mproxy_client::target_socket_interface;
 use mproxy_forward::proxy_tcp_udp;
@@ -22,6 +26,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::to_string;
 use tungstenite::{accept, Message};
 
+// need to redefine these structs from nmea_parser to allow serde to deserialize them
+
 #[derive(Serialize, Deserialize)]
 struct VesselPositionPing {
     mmsi: u32,
@@ -33,13 +39,41 @@ struct VesselPositionPing {
     heading: f64,
 }
 
-/*
 #[derive(Serialize, Deserialize)]
 struct VesselStaticPing {
     mmsi: u32,
-
+    imo: u32,
+    vessel_name: String,
+    ship_type: u8,
+    dim_bow: u16,
+    dim_stern: u16,
+    dim_port: u16,
+    dim_star: u16,
+    draught: u8,
 }
-*/
+
+#[derive(Serialize)]
+enum VesselPing {
+    Dynamic(VesselPositionPing),
+    Static(VesselStaticPing),
+}
+
+impl From<VesselStaticPing> for VesselPing {
+    fn from(p: VesselStaticPing) -> Self {
+        VesselPing::Static(p)
+    }
+}
+impl From<VesselPositionPing> for VesselPing {
+    fn from(p: VesselPositionPing) -> Self {
+        VesselPing::Dynamic(p)
+    }
+}
+
+impl From<VesselPing> for VesselData {
+    fn from(p: VesselPing) -> Self {
+        p.into()
+    }
+}
 
 fn epoch_time() -> u64 {
     SystemTime::now()
@@ -48,8 +82,10 @@ fn epoch_time() -> u64 {
         .as_secs()
 }
 
+#[derive(Clone, Debug)]
 pub struct ReceiverArgs {
-    pub dbpath: Option<PathBuf>,
+    pub sqlite_dbpath: Option<PathBuf>,
+    pub postgres_connection_string: Option<String>,
     pub tcp_connect_addr: Option<String>,
     pub tcp_listen_addr: Option<String>,
     pub udp_listen_addr: String,
@@ -73,7 +109,8 @@ fn parse_args() -> Result<ReceiverArgs, pico_args::Error> {
     }
 
     let args = ReceiverArgs {
-        dbpath: pargs.opt_value_from_os_str("--path", parse_path)?,
+        sqlite_dbpath: pargs.opt_value_from_os_str("--path", parse_path)?,
+        postgres_connection_string: pargs.opt_value_from_str("--postgres-connect")?,
         tcp_connect_addr: pargs.opt_value_from_str("--tcp-connect-addr")?,
         tcp_listen_addr: pargs.opt_value_from_str("--tcp-listen-addr")?,
         udp_listen_addr: pargs.value_from_str("--udp-listen-addr")?,
@@ -81,12 +118,8 @@ fn parse_args() -> Result<ReceiverArgs, pico_args::Error> {
         multicast_addr_rawdata: pargs.opt_value_from_str("--multicast-addr-rawdata")?,
         tcp_output_addr: pargs.opt_value_from_str("--tcp-output-addr")?,
         udp_output_addr: pargs.opt_value_from_str("--udp-output-addr")?,
-        dynamic_msg_bufsize: pargs
-            .opt_value_from_str("--dynamic-msg-bufsize")?
-            .map(|s: String| s.parse().unwrap()),
-        static_msg_bufsize: pargs
-            .opt_value_from_str("--static-msg-bufsize")?
-            .map(|s: String| s.parse().unwrap()),
+        dynamic_msg_bufsize: pargs.opt_value_from_str("--dynamic-msg-bufsize")?,
+        static_msg_bufsize: pargs.opt_value_from_str("--static-msg-bufsize")?,
         tee: pargs.contains(["-t", "--tee"]),
     };
 
@@ -99,15 +132,10 @@ fn parse_args() -> Result<ReceiverArgs, pico_args::Error> {
 }
 
 /// Filters incoming UDP messages for vessel dynamic and static messages
-/// inserts static and dynamic messages into database,
-/// and returns VesselPositionPing for dynamic data
-fn filter_insert_vesseldata(
+fn parse_filter_vesseldata(
     sentence: &str,
     parser: &mut NmeaParser,
-    insert_db: bool,
-    dynamic_msgs: &mut Vec<VesselData>,
-    static_msgs: &mut Vec<VesselData>,
-) -> Option<String> {
+) -> Option<(VesselPing, VesselData)> {
     match parser.parse_sentence(sentence).ok()? {
         ParsedMessage::VesselDynamicData(vdd) => {
             if vdd.longitude.is_none()
@@ -120,74 +148,100 @@ fn filter_insert_vesseldata(
 
             let ping = VesselPositionPing {
                 mmsi: vdd.mmsi,
-                lon: (vdd.longitude.unwrap() * 1000000.0).round() / 1000000.0,
-                lat: (vdd.latitude.unwrap() * 1000000.0).round() / 1000000.0,
                 time: epoch_time(),
-                rot: (vdd.rot.unwrap_or(-1.) * 1000.0).round() / 1000.0,
-                sog: (vdd.sog_knots.unwrap_or(-1.) * 1000.0).round() / 1000.0,
                 heading: vdd.heading_true.unwrap_or(-1.),
+                lon: vdd.longitude.unwrap(),
+                lat: vdd.latitude.unwrap(),
+                rot: vdd.rot.unwrap_or(-1.),
+                sog: vdd.sog_knots.unwrap_or(-1.),
             };
 
-            if insert_db {
-                let insert_msg = VesselData {
-                    epoch: Some(ping.time as i32),
-                    payload: Some(ParsedMessage::VesselDynamicData(vdd)),
-                };
-                dynamic_msgs.push(insert_msg);
-            }
-
-            let msg = to_string(&ping).unwrap();
-            Some(msg)
+            let insert_msg = VesselData {
+                epoch: Some(ping.time as i32),
+                payload: Some(ParsedMessage::VesselDynamicData(vdd)),
+            };
+            Some((VesselPing::from(ping), insert_msg))
         }
         ParsedMessage::VesselStaticData(vsd) => {
-            if insert_db {
-                let insert_msg = VesselData {
-                    epoch: Some(epoch_time() as i32),
-                    payload: Some(ParsedMessage::VesselStaticData(vsd)),
-                };
-                static_msgs.push(insert_msg);
-            }
-            //
-            //let static_ping = VesselStaticData { };
-            //let msg = to_string(&static_ping).unwrap();
-            //Some(msg)
-            //println!("static: ");
-            None
+            let insert_msg = VesselData {
+                epoch: Some(epoch_time() as i32),
+                payload: Some(ParsedMessage::VesselStaticData(vsd.clone())),
+            };
+            let static_ping = VesselStaticPing {
+                mmsi: vsd.mmsi,
+                imo: vsd.imo_number.unwrap_or_default(),
+                vessel_name: vsd.name.unwrap_or("".to_string()),
+                ship_type: vsd.ship_type.to_value(),
+                dim_bow: vsd.dimension_to_bow.unwrap_or_default(),
+                dim_stern: vsd.dimension_to_stern.unwrap_or_default(),
+                dim_port: vsd.dimension_to_port.unwrap_or_default(),
+                dim_star: vsd.dimension_to_starboard.unwrap_or_default(),
+                draught: vsd.draught10.unwrap_or_default(),
+            };
+            Some((VesselPing::from(static_ping), insert_msg))
         }
-        _other => {
-            //#[cfg(debug_assertions)]
-            //println!("discarding {:?}", _other);
-            None
-        }
+        _other => None,
     }
 }
 
 /// Generate utf-8 strings from buffered bytestream, and split on line breaks.
 /// Segmented strings will be parsed as AIS, and filtered to dynamic and
 /// static messages
-fn process_message(
+fn split_parse_filter_msgs(
     buf: &[u8],
     i: usize,
     parser: &mut NmeaParser,
-    //dbconn: &mut Option<Connection>,
-    insert_db: bool,
-    dynamic_msgs: &mut Vec<VesselData>,
-    static_msgs: &mut Vec<VesselData>,
-) -> Vec<String> {
-    let msg_txt = &String::from_utf8_lossy(&buf[0..i]);
+) -> Vec<(VesselPing, VesselData)> {
+    let msg_txt = &String::from_utf8(buf[0..i].to_vec()).unwrap();
     let mut msgs = vec![];
-    for msg in msg_txt.split("\r\n") {
-        if msg.is_empty() {
+    for raw in msg_txt.split("\r\n") {
+        if raw.is_empty() {
             continue;
         }
-        if let Some(txt) =
-            filter_insert_vesseldata(msg, parser, insert_db, dynamic_msgs, static_msgs)
-        {
-            //println!("txt: {}", txt);
-            msgs.push(txt);
+        if let Some((ping, vdata)) = parse_filter_vesseldata(raw, parser) {
+            msgs.push((ping, vdata));
         }
     }
     msgs
+}
+
+fn serialize_static_buffer(
+    sqlite_dbconn: &mut Option<SqliteConnection>,
+    postgres_dbconn: &mut Option<PGClient>,
+    static_msgs: Vec<VesselData>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    //#[cfg(debug_assertions)]
+    println!("Inserting {} static messages ...", static_msgs.len());
+    if let Some(ref mut conn) = sqlite_dbconn {
+        if let Err(e) = sqlite_prepare_tx_static(conn, "rx", static_msgs.to_vec()) {
+            eprintln!("Error inserting vessel static data: {}", e);
+        }
+    }
+    if let Some(ref mut conn) = postgres_dbconn {
+        if let Err(e) = postgres_prepare_tx_static(conn, "rx", static_msgs) {
+            eprintln!("Error inserting vessel static data: {}", e);
+        }
+    }
+    Ok(())
+}
+
+fn serialize_dynamic_buffer(
+    sqlite_dbconn: &mut Option<SqliteConnection>,
+    postgres_dbconn: &mut Option<PGClient>,
+    dynamic_msgs: Vec<VesselData>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Inserting {} dynamic messages ...", dynamic_msgs.len());
+    if let Some(ref mut conn) = sqlite_dbconn {
+        if let Err(e) = sqlite_prepare_tx_dynamic(conn, "rx", dynamic_msgs.to_vec()) {
+            eprintln!("Error inserting vessel dynamic data: {}", e);
+        }
+    }
+    if let Some(ref mut conn) = postgres_dbconn {
+        if let Err(e) = postgres_prepare_tx_dynamic(conn, "rx", dynamic_msgs) {
+            eprintln!("Error inserting vessel dynamic data: {}", e);
+        }
+    }
+    Ok(())
 }
 
 /// Spawn decoder thread. Accepts input from a UDP socket.
@@ -196,31 +250,24 @@ fn process_message(
 /// Resulting processed data will then optionally be saved to an
 /// SQLite database at dbpath, and sent to outgoing websocket
 /// clients in JSON format.
-fn decode_multicast(
-    udp_listen_addr: String,
-    multicast_addr_parsed: Option<String>,
-    multicast_addr_rawdata: Option<String>,
-    tee: bool,
-    dbpath: Option<PathBuf>,
-    dynamic_msg_buffsize: usize,
-    static_msg_bufsize: usize,
-) -> JoinHandle<()> {
-    println!("Decoding messages incoming on {}", udp_listen_addr);
-    let (_udp_listen_addr, listen_socket) = upstream_socket_interface(udp_listen_addr).unwrap();
+fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
+    println!("Decoding messages incoming on {}", args.udp_listen_addr);
+    let (_udp_listen_addr, listen_socket) =
+        upstream_socket_interface(args.udp_listen_addr.clone()).unwrap();
 
     // downstream UDP multicast channel for raw data
     let mut target_raw: Option<(SocketAddr, UdpSocket)> = None;
-    if let Some(rawaddr) = multicast_addr_rawdata {
+    if let Some(rawaddr) = &args.multicast_addr_rawdata {
         println!(
             "copying raw input: {} UDP -> {} UDP",
             _udp_listen_addr, rawaddr,
         );
         //target_raw = Some(new_downstream_socket(&rawaddr));
-        target_raw = Some(target_socket_interface(&rawaddr).unwrap());
+        target_raw = Some(target_socket_interface(rawaddr).unwrap());
     }
 
     // downstream multicast channel for parsed data
-    let target_parsed = multicast_addr_parsed.map(|parsedaddr| {
+    let target_parsed = args.multicast_addr_parsed.map(|parsedaddr| {
         println!("copying parsed output to {} UDP", parsedaddr);
         target_socket_interface(&parsedaddr).expect("binding socket interface")
     });
@@ -228,61 +275,94 @@ fn decode_multicast(
     let mut buf = [0u8; BUFSIZE];
     let mut parser = NmeaParser::new();
     let mut output_buffer = BufWriter::new(stdout());
-    let mut dbconn = dbpath.map(|dbp| get_db_conn(dbp.as_path()).expect("getting db conn"));
+    let mut sqlite_dbconn = args
+        .sqlite_dbpath
+        .map(|dbp| get_db_conn(dbp.as_path()).expect("getting sqlite db connection"));
+    let mut postgres_dbconn = args
+        .postgres_connection_string
+        .as_ref()
+        .map(|s| get_postgresdb_conn(s).expect("getting postgres db connection"));
+    let max_dynamic = args.dynamic_msg_bufsize.unwrap_or(256);
+    let max_static = args.static_msg_bufsize.unwrap_or(32);
 
     Builder::new()
         .name(format!("{:#?}", listen_socket))
         .spawn(move || {
-            let insert_db = dbconn.is_some();
             let mut dynamic_msgs: Vec<VesselData> = vec![];
             let mut static_msgs: Vec<VesselData> = vec![];
+            println!(
+                "Spawning receiver. Dynamic msgs buffer: {}\t Static msgs buffer: {}",
+                max_dynamic, max_static
+            );
 
-            //listen_socket.read_timeout().unwrap();
             listen_socket.set_broadcast(true).unwrap();
             loop {
-                // do database insert
-                if let Some(ref mut conn) = dbconn {
-                    if dynamic_msgs.len() > dynamic_msg_buffsize {
-                        if let Err(e) = prepare_tx_dynamic(conn, "rx", dynamic_msgs) {
-                            eprintln!("Error inserting vessel dynamic data: {}", e);
-                        }
-                        dynamic_msgs = vec![];
-                    }
-                    if static_msgs.len() > static_msg_bufsize {
-                        if let Err(e) = prepare_tx_static(conn, "rx", static_msgs) {
-                            eprintln!("Error inserting vessel static data: {}", e);
-                        }
-                        static_msgs = vec![];
-                    }
+                #[cfg(debug_assertions)]
+                println!(
+                    "dynamic messages: {}\tstatic messages: {}",
+                    dynamic_msgs.len(),
+                    static_msgs.len()
+                );
+                if dynamic_msgs.len() >= max_dynamic {
+                    serialize_dynamic_buffer(
+                        &mut sqlite_dbconn,
+                        &mut postgres_dbconn,
+                        dynamic_msgs,
+                    )
+                    .unwrap();
+                    dynamic_msgs = vec![];
+                } else if static_msgs.len() >= max_static {
+                    serialize_static_buffer(&mut sqlite_dbconn, &mut postgres_dbconn, static_msgs)
+                        .unwrap();
+                    static_msgs = vec![];
                 }
 
                 // forward raw + parsed downstream via UDP channels
                 match listen_socket.recv_from(&mut buf[0..]) {
                     Ok((c, _remote_addr)) => {
-                        for msg in process_message(
-                            &buf,
-                            c,
-                            &mut parser,
-                            insert_db,
-                            &mut dynamic_msgs,
-                            &mut static_msgs,
-                        ) {
+                        for (msg, raw) in split_parse_filter_msgs(&buf, c, &mut parser) {
+                            match &msg {
+                                VesselPing::Dynamic(_m) => {
+                                    dynamic_msgs.push(raw);
+                                }
+                                VesselPing::Static(_m) => {
+                                    static_msgs.push(raw);
+                                }
+                            }
                             if let Some((addr_raw, socket_raw)) = &target_raw {
                                 socket_raw
                                     .send_to(&buf[0..c], addr_raw)
                                     .expect("sending to UDP listener via multicast");
-
-                                //#[cfg(debug_assertions)]
-                                //println!("sent {} to target_raw", c);
                             }
 
                             if let Some((addr_parsed, socket_parsed)) = &target_parsed {
-                                socket_parsed
-                                    .send_to(msg.as_bytes(), addr_parsed)
-                                    .expect("sending to websocket via UDP multicast socket");
+                                match msg {
+                                    VesselPing::Dynamic(m) => {
+                                        let vdata: VesselPositionPing = m.into();
+                                        socket_parsed
+                                            .send_to(
+                                                to_string(&vdata).unwrap().as_bytes(),
+                                                addr_parsed,
+                                            )
+                                            .expect(
+                                                "sending to websocket via UDP multicast socket",
+                                            );
+                                    }
+                                    VesselPing::Static(m) => {
+                                        let vdata: VesselStaticPing = m.into();
+                                        socket_parsed
+                                            .send_to(
+                                                to_string(&vdata).unwrap().as_bytes(),
+                                                addr_parsed,
+                                            )
+                                            .expect(
+                                                "sending to websocket via UDP multicast socket",
+                                            );
+                                    }
+                                }
                             }
                         }
-                        if tee {
+                        if args.tee {
                             let _o = output_buffer
                                 .write(&buf[0..c])
                                 .expect("writing to output buffer");
@@ -322,6 +402,7 @@ fn handle_websocket_client(
         );
 
         let mut buf = [0u8; 32768];
+        downstream.set_nodelay(true).unwrap();
         let mut websocket =
             accept(downstream).expect("accepting websocket connection from downstream");
 
@@ -379,18 +460,13 @@ fn listen_websocket_clients(
 }
 
 pub fn start_receiver(args: ReceiverArgs) -> Vec<JoinHandle<()>> {
+    #[cfg(debug_assertions)]
+    println!("starting receiver with arguments: {:#?}", args);
+
     let mut threads: Vec<JoinHandle<()>> = vec![];
 
     // multicast rx/tx thread
-    threads.push(decode_multicast(
-        args.udp_listen_addr.clone(),
-        args.multicast_addr_parsed.clone(),
-        args.multicast_addr_rawdata.clone(),
-        args.tee,
-        args.dbpath,
-        args.dynamic_msg_bufsize.unwrap_or(256),
-        args.static_msg_bufsize.unwrap_or(64),
-    ));
+    threads.push(decode_multicast(args.clone()));
 
     // forward upstream TCP to the UDP input channel
     // TODO: SSL

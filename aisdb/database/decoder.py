@@ -10,14 +10,17 @@ import sqlite3
 import tempfile
 import zipfile
 
-from aisdb.database.dbconn import DBConn
+from aisdb.database.dbconn import SQLiteDBConn, PostgresDBConn
 from aisdb.aisdb import decoder
 
 
 class FileChecksums():
 
-    def __init__(self, dbpath):
-        self.dbpath = dbpath
+    def __init__(self, *, dbconn):
+        assert isinstance(dbconn, (PostgresDBConn, SQLiteDBConn))
+        if isinstance(dbconn, SQLiteDBConn):
+            assert len(dbconn.dbpaths) == 1, f'{dbconn.dbpaths}'
+        self.dbconn = dbconn
         self.checksums_table()
         self.tmp_dir = tempfile.mkdtemp()
 
@@ -33,44 +36,60 @@ class FileChecksums():
             e.g.
                 self.dbconn.close()
         '''
-        #self.dbconn = sqlite3.connect(self.dbpath)
-        dbconn = sqlite3.connect(self.dbpath)
-        cur = dbconn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS
-            hashmap(
-                hash INTEGER PRIMARY KEY,
-                bytes BLOB
-            )
-            WITHOUT ROWID;''')
-        cur.execute('CREATE UNIQUE INDEX IF NOT EXISTS '
-                    'idx_map on hashmap(hash)')
-        zeros = ''.join(['0' for _ in range(32)])
-        ones = ''.join(['f' for _ in range(32)])
-        minval = (int(zeros, base=16) >> 64) - (2**63)
-        maxval = (int(ones, base=16) >> 64) - (2**63)
-        cur.execute('INSERT OR IGNORE INTO hashmap VALUES (?,?)',
-                    (minval, pickle.dumps(None)))
-        cur.execute('INSERT OR IGNORE INTO hashmap VALUES (?,?)',
-                    (maxval, pickle.dumps(None)))
-        dbconn.commit()
-        dbconn.close()
+        # self.dbconn = sqlite3.connect(self.dbpath)
+        if isinstance(self.dbconn, SQLiteDBConn):
+            dbconn = sqlite3.connect(self.dbconn.dbpaths[0])
+            cur = dbconn.cursor()
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS
+                hashmap(
+                    hash INTEGER PRIMARY KEY,
+                    bytes BLOB
+                )
+                WITHOUT ROWID;''')
+            cur.execute('CREATE UNIQUE INDEX '
+                        'IF NOT EXISTS '
+                        'idx_map on hashmap(hash)')
+            dbconn.close()
+        elif isinstance(self.dbconn, PostgresDBConn):
+            dbconn = self.dbconn
+            cur = self.dbconn.cursor()
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS
+                hashmap(
+                    hash TEXT PRIMARY KEY,
+                    bytes BYTEA
+                );''')
+            cur.execute('CREATE UNIQUE INDEX IF NOT EXISTS '
+                        'idx_map on hashmap(hash);')
 
     def insert_checksum(self, checksum):
-        dbconn = sqlite3.connect(self.dbpath)
-        cur = dbconn.cursor()
-        cur.execute('INSERT INTO hashmap VALUES (?,?)',
-                    [checksum, pickle.dumps(None)])
+        if isinstance(self.dbconn, SQLiteDBConn):
+            dbconn = sqlite3.connect(self.dbconn.dbpaths[0])
+        elif isinstance(self.dbconn, PostgresDBConn):
+            dbconn = self.dbconn
+        dbconn.execute('INSERT INTO hashmap VALUES ($1,$2)',
+                       [checksum, pickle.dumps(None)])
         dbconn.commit()
-        dbconn.close()
+        if isinstance(self.dbconn, SQLiteDBConn):
+            dbconn.close()
 
     def checksum_exists(self, checksum):
-        dbconn = sqlite3.connect(self.dbpath)
-        cur = dbconn.cursor()
-        cur.execute('SELECT * FROM hashmap WHERE hash == ?', [checksum])
+        # dbconn = sqlite3.connect(self.dbpath)
+        # cur = dbconn.cursor()
+        if isinstance(self.dbconn, SQLiteDBConn):
+            dbconn = sqlite3.connect(self.dbconn.dbpaths[0])
+            cur = dbconn.cursor()
+            cur.execute('SELECT * FROM hashmap WHERE hash = ?', [checksum])
+        elif isinstance(self.dbconn, PostgresDBConn):
+            dbconn = self.dbconn
+            cur = self.dbconn.cursor()
+            cur.execute('SELECT * FROM hashmap WHERE hash = %s', [checksum])
         res = cur.fetchone()
         dbconn.commit()
-        dbconn.close()
+        # dbconn.close()
+        if isinstance(self.dbconn, SQLiteDBConn):
+            dbconn.close()
 
         if res is None or res is False:
             return False
@@ -85,21 +104,35 @@ class FileChecksums():
         return signature
 
 
-def _decode_gz(file, tmp_dir, dbpath, source, verbose):
+def _decode_gz(file, tmp_dir, dbpath, psql_conn_string, source, verbose):
+    if dbpath is None:
+        dbpath = ''
+    if psql_conn_string is None:
+        psql_conn_string = ''
     unzip_file = os.path.join(tmp_dir, file.rsplit(os.path.sep, 1)[-1][:-3])
     with gzip.open(file, 'rb') as f1, open(unzip_file, 'wb') as f2:
         f2.write(f1.read())
-    decoder(dbpath=dbpath, files=[unzip_file], source=source, verbose=verbose)
+    decoder(dbpath=dbpath,
+            psql_conn_string=psql_conn_string,
+            files=[unzip_file],
+            source=source,
+            verbose=verbose)
     os.remove(unzip_file)
 
 
-def _decode_ziparchive(file, tmp_dir, dbpath, source, verbose):
+def _decode_ziparchive(file, tmp_dir, dbpath, psql_conn_string, source,
+                       verbose):
+    if dbpath is None:
+        dbpath = ''
+    if psql_conn_string is None:
+        psql_conn_string = ''
     zipf = zipfile.ZipFile(file)
     for item in zipf.namelist():
         unzip_file = os.path.join(tmp_dir, item)
         with zipf.open(item, 'r') as f1, open(unzip_file, 'wb') as f2:
             f2.write(f1.read())
         decoder(dbpath=dbpath,
+                psql_conn_string=psql_conn_string,
                 files=[unzip_file],
                 source=source,
                 verbose=verbose)
@@ -109,8 +142,9 @@ def _decode_ziparchive(file, tmp_dir, dbpath, source, verbose):
 
 def decode_msgs(filepaths,
                 dbconn,
-                dbpath,
                 source,
+                dbpath=None,
+                psql_conn_string=None,
                 vacuum=False,
                 skip_checksum=False,
                 verbose=False):
@@ -130,7 +164,11 @@ def decode_msgs(filepaths,
             dbconn (:class:`aisdb.database.dbconn.DBConn`)
                 database connection object
             dbpath (string)
-                database filepath to store results in
+                SQLite database filepath to store results in. If dbconn is a
+                Postgres database connection, set this to ``None``.
+            psql_conn_string (string)
+                Postgres connection string. If dbconn is an SQLite database
+                connection, set this to ``None``.
             source (string)
                 data source name or description. will be used as a primary key
                 column, so duplicate messages from different sources will not
@@ -158,16 +196,25 @@ def decode_msgs(filepaths,
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath, source='TESTING')
         >>> os.remove(dbpath)
     '''
-    if not isinstance(dbconn, DBConn):  # pragma: no cover
-        if isinstance(dbconn):
-            raise ValueError('Files must be decoded synchronously!')
+    if not isinstance(dbconn,
+                      (SQLiteDBConn, PostgresDBConn)):  # pragma: no cover
         raise ValueError('db argument must be a DBConn database connection. '
-                         f'got {DBConn}')
+                         f'got {dbconn}')
 
     if len(filepaths) == 0:  # pragma: no cover
         raise ValueError('must supply atleast one filepath.')
 
-    dbindex = FileChecksums(dbpath)
+    if isinstance(dbconn, SQLiteDBConn):
+        dbconn._attach(dbpath)
+        assert dbpath is not None
+        assert psql_conn_string is None
+        psql_conn_string = ''
+    else:
+        assert psql_conn_string is not None
+        assert dbpath is None
+        dbpath = ''
+
+    dbindex = FileChecksums(dbconn=dbconn)
     for file in filepaths:
         if not skip_checksum:
             with open(os.path.abspath(file), 'rb') as f:
@@ -177,11 +224,22 @@ def decode_msgs(filepaths,
                     print(f'found matching checksum, skipping {file}')
                 continue
         if file[-3:] == '.gz':
-            _decode_gz(file, dbindex.tmp_dir, dbpath, source, verbose)
+            _decode_gz(file,
+                       dbindex.tmp_dir,
+                       source=source,
+                       verbose=verbose,
+                       psql_conn_string=psql_conn_string,
+                       dbpath=dbpath)
         elif file[-4:] == '.zip':
-            _decode_ziparchive(file, dbindex.tmp_dir, dbpath, source, verbose)
+            _decode_ziparchive(file,
+                               dbindex.tmp_dir,
+                               source=source,
+                               verbose=verbose,
+                               psql_conn_string=psql_conn_string,
+                               dbpath=dbpath)
         else:
             decoder(dbpath=dbpath,
+                    psql_conn_string=psql_conn_string,
                     files=[file],
                     source=source,
                     verbose=verbose)

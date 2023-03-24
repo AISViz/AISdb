@@ -17,20 +17,18 @@
 //!
 //! use mproxy_server::listener;
 //!
-//! pub fn main() {
-//!     // bind to IPv6 multicast channel on port 9920
-//!     let listen_addr: String = "[ff01::1]:9920".into();
+//! // bind to IPv6 multicast channel on port 9920
+//! let listen_addr: String = "[ff01::1]:9920".into();
 //!     
-//!     // output filepath
-//!     let logpath = PathBuf::from("server_demo.log");
+//! // output filepath
+//! let logpath = PathBuf::from("server_demo.log");
 //!
-//!     // copy input to stdout
-//!     let tee = true;
+//! // copy input to stdout
+//! let tee = true;
 //!
-//!     // bind socket listener thread
-//!     let server_thread: JoinHandle<_> = listener(listen_addr, logpath, tee);
-//!     server_thread.join().unwrap();
-//! }
+//! // bind socket listener thread
+//! let server_thread: JoinHandle<_> = listener(listen_addr, logpath, tee);
+//! server_thread.join().unwrap();
 //! ```
 //!
 //! ## Command Line Interface

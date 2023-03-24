@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS ais_{}_static (
     dim_star INTEGER,
     draught INTEGER,
     destination TEXT,
-    ais_version TEXT,
+    ais_version INTEGER,
     fixing_device TEXT,
     eta_month INTEGER,
     eta_day INTEGER,
@@ -19,5 +19,4 @@ CREATE TABLE IF NOT EXISTS ais_{}_static (
     eta_minute INTEGER,
     source TEXT NOT NULL,
     PRIMARY KEY (mmsi, time, imo, source)
-) WITHOUT ROWID;
---, STRICT
+);

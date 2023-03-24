@@ -12,12 +12,18 @@ documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
 repository = "https://git-dev.cs.dal.ca/meridian/aisdb"
 license-file = "license.txt"
 
+[features]
+default = ["sqlite", "postgres"]
+sqlite = ["dep:rusqlite"]
+postgres = ["dep:postgres"]
+
 [lib]
 
 [dependencies]
-geo = "0.23.0"
+geo = "*"
 geo-types = "*"
 include_dir = "0.7.2"
+postgres = { version = "0.19", optional = true}
 
 [dependencies.chrono]
 version = "0.4.21"
@@ -31,6 +37,7 @@ version = "0.10"
 [dependencies.rusqlite]
 version = "0.28"
 features = [ "bundled",]
+optional = true
 
 [profile.release]
 lto = true

@@ -3,13 +3,14 @@
 **.log
 **.pytest_cache
 **.sqlitedb
+**.sqlitedb*
 **/*.repair
 **/__pycache__
 **/node_modules/*
 **/target
-**package-lock.json
 *.cookie
 *.crt
+*.csv
 *.d
 *.db
 *.db-journal
@@ -22,10 +23,12 @@
 *.pyo
 *.repair
 *.so
+*.sqldump
 *.sqlitedb
 *.sqlitedb*
 *.swp
 *.txt
+*.zip
 .cache
 .coverage
 .eggs
@@ -40,9 +43,9 @@ aisdb_web/dist_cargodoc
 aisdb_web/dist_jsdoc
 aisdb_web/dist_map
 aisdb_web/map/pkg
-aisdb_web/map/pkg
 aisdb_web/node_modules
 build
+diffstat.sh
 dispatcher/.git
 dispatcher/.gitignore
 dispatcher/target
@@ -59,3 +62,4 @@ profile
 release
 target
 testdata
+testinput

@@ -1,4 +1,4 @@
-INSERT OR IGNORE INTO ais_{}_dynamic
+INSERT INTO ais_{}_dynamic
 (
     mmsi,
     time,
@@ -12,4 +12,6 @@ INSERT OR IGNORE INTO ais_{}_dynamic
     utc_second,
     source
 )
-VALUES (?,?,?,?,?,?,?,?,?,?,?);
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+ON CONFLICT DO NOTHING
+;

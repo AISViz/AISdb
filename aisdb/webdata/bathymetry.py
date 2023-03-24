@@ -126,10 +126,13 @@ class Gebco():
     def merge_tracks(self, tracks):
         ''' append `depth_metres` column to track dictionaries '''
         for track in tracks:
+            # mapping of filepaths to the corresponding boundary region
             raster_keys = np.array(list(self._check_in_bounds(track)),
                                    dtype=object)
-            assert len(raster_keys) == len(
-                track['time']), 'could not load rasters!'
+
+            # ensure that each vector time slice has a value
+            if len(raster_keys) != len(track['time']):
+                raise ValueError(f'no rasters found for track')
             bathy_segments = np.append(
                 np.append([0],
                           np.where(raster_keys[:-1] != raster_keys[:1])[0]),

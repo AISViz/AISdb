@@ -7,7 +7,7 @@ name = "aisdb"
 license-files = [ "license.txt",]
 requires-python = ">=3.8"
 requires-dist = [ "maturin>=0.13", "numpy", "wheel",]
-dependencies = [ "aiosqlite", "orjson", "packaging", "pillow", "requests", "selenium", "shapely", "tqdm", "websockets", "numpy", "webdriver-manager",]
+dependencies = [ "packaging", "pillow", "requests", "selenium", "shapely", "tqdm", "numpy", "webdriver-manager", "psycopg[binary]"]
 zip-safe = false
 version = "1.4.41"
 readme = "readme.rst"
@@ -23,8 +23,9 @@ documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
 repository = "https://git-dev.cs.dal.ca/meridian/aisdb"
 
 [project.optional-dependencies]
-test = [ "coverage", "pytest", "pytest-asyncio", "pytest-cov", "pytest-dotenv", "rasterio",]
+test = [ "coverage", "pytest", "pytest-cov", "pytest-dotenv",]
 docs = [ "sphinx", "sphinx-rtd-theme",]
+devel = ["psycopg",]
 
 [tool.maturin]
 sdist-include = [ "aisdb/*", "aisdb/aisdb_sql/*", "aisdb/database/*", "aisdb/tests/*", "aisdb/webdata/*", "aisdb_lib/*",]
@@ -32,6 +33,5 @@ bindings = "pyo3"
 compatability = "manylinux2014"
 
 [tool.pytest.ini_options]
-asyncio_mode = "strict"
 testpaths = [ "aisdb/tests",]
 addopts = "--color=yes --tb=native --cov-report term --cov-report html:docs/dist_coverage --cov=aisdb --doctest-modules --envfile .env"

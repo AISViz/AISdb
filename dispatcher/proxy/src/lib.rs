@@ -18,23 +18,21 @@
 //!
 //! use mproxy_forward::{forward_udp, proxy_tcp_udp};
 //!
-//! pub fn main() {
-//!     let udp_listen_addr: String ="[ff02::1]:9920".into();
-//!     let udp_downstream_addrs = vec!["[::1]:9921".into(), "localhost:9922".into()];
-//!     let tcp_connect_addr: String = "localhost:9925".into();
-//!     let tee = true;  // copy input to stdout
+//! let udp_listen_addr: String ="[ff02::1]:9920".into();
+//! let udp_downstream_addrs = vec!["[::1]:9921".into(), "localhost:9922".into()];
+//! let tcp_connect_addr: String = "localhost:9925".into();
+//! let tee = true;  // copy input to stdout
 //!     
-//!     let mut threads: Vec<JoinHandle<()>> = vec![];
+//! let mut threads: Vec<JoinHandle<()>> = vec![];
 //!     
-//!     // spawn UDP socket listener and forward to downstream addresses
-//!     threads.push(forward_udp(udp_listen_addr.clone(), &udp_downstream_addrs, tee));
+//! // spawn UDP socket listener and forward to downstream addresses
+//! threads.push(forward_udp(udp_listen_addr.clone(), &udp_downstream_addrs, tee));
 //!     
-//!     // connect to TCP upstream, and forward to UDP socket listener
-//!     threads.push(proxy_tcp_udp(tcp_connect_addr, udp_listen_addr));
+//! // connect to TCP upstream, and forward to UDP socket listener
+//! threads.push(proxy_tcp_udp(tcp_connect_addr, udp_listen_addr));
 //!
-//!     for thread in threads {
-//!         thread.join().unwrap();
-//!     }
+//! for thread in threads {
+//!     thread.join().unwrap();
 //! }
 //! ```
 //!
@@ -152,39 +150,57 @@ pub fn proxy_gateway(
 pub fn proxy_tcp_udp(upstream_tcp: String, downstream_udp: String) -> JoinHandle<()> {
     let mut buf = [0u8; BUFSIZE];
 
-    let (target_addr, target_socket) =
-        target_socket_interface(&downstream_udp).expect("UDP downstream interface");
-
     #[cfg(debug_assertions)]
     println!(
         "proxy: forwarding TCP {:?} -> UDP {:?}",
         upstream_tcp, downstream_udp
     );
 
-    spawn(move || {
+    spawn(move || loop {
+        let target = target_socket_interface(&downstream_udp);
+
+        let (target_addr, target_socket) = if let Ok((target_addr, target_socket)) = target {
+            (target_addr, target_socket)
+        } else {
+            println!("Retrying...");
+            std::thread::sleep(std::time::Duration::from_secs(5));
+            continue;
+        };
+
         #[cfg(feature = "tls")]
         let (mut conn, mut stream) = tls_connection(upstream_tcp.clone());
         #[cfg(feature = "tls")]
         let mut stream = TlsStream::new(&mut conn, &mut stream);
         #[cfg(not(feature = "tls"))]
-        let mut stream =
-            TcpStream::connect(upstream_tcp.clone()).expect("connecting to TCP address");
+        let stream = TcpStream::connect(upstream_tcp.clone());
+        #[cfg(not(feature = "tls"))]
+        let mut stream = if stream.is_ok() {
+            stream.unwrap()
+        } else {
+            println!("Retrying...");
+            std::thread::sleep(std::time::Duration::from_secs(5));
+            continue;
+        };
 
         loop {
             match stream.read(&mut buf[0..]) {
                 Ok(c) => {
                     if c == 0 {
-                        panic!("encountered EOF, disconnecting TCP proxy thread...");
+                        eprintln!("encountered EOF, disconnecting TCP proxy thread...");
+                        break;
                     }
                     target_socket
                         .send_to(&buf[0..c], target_addr)
                         .expect("sending to UDP socket");
                 }
                 Err(e) => {
-                    panic!("err: {}", e);
+                    eprintln!("err: {}", e);
+                    break;
                 }
             }
         }
+        println!("Retrying...");
+        std::thread::sleep(std::time::Duration::from_secs(5))
     })
 }
 
@@ -213,9 +229,12 @@ pub fn tls_connection(tls_connect_addr: String) -> (ClientConnection, TcpStream)
         .with_no_client_auth();
     let rc_config: Arc<ClientConfig> = Arc::new(config);
     let dns_name: String = tls_connect_addr.split(':').next().unwrap().to_string();
-    let server_name = ServerName::try_from(dns_name.as_str()).unwrap();
-    let mut conn = rustls::ClientConnection::new(rc_config, server_name).unwrap();
-    let sock = TcpStream::connect(tls_connect_addr.clone()).unwrap();
+    let server_name = ServerName::try_from(dns_name.as_str())
+        .unwrap_or_else(|e| panic!("Resolving DNS for {}: {}", dns_name, e));
+    let mut conn = rustls::ClientConnection::new(rc_config, server_name)
+        .unwrap_or_else(|e| panic!("Performing handshake: {}", e));
+    let sock = TcpStream::connect(tls_connect_addr.clone())
+        .unwrap_or_else(|e| panic!("Connecting to {}: {}", tls_connect_addr, e));
     sock.set_nodelay(true).unwrap();
 
     // request tls

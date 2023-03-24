@@ -15,6 +15,7 @@ nmea-parser = "0.10"
 
 [dependencies.aisdb-lib]
 path = "aisdb_lib"
+features = ["sqlite", "postgres"]
 
 [dependencies.aisdb-receiver]
 path = "receiver"

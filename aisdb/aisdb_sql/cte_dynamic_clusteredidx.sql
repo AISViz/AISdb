@@ -1,4 +1,3 @@
-
   SELECT 
     d.mmsi, 
     d.time, 
