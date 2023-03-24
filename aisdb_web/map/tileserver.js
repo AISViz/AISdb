@@ -1,3 +1,13 @@
+/** Web map tile server module
+
+    Create a custom bing maps class where the tileserver is overridden by
+    the hostname set in $VITE_TILESERVER.
+    Enables tile caching in nginx to reduce number of API calls
+
+    Refer to:
+    https://github.com/openlayers/openlayers/blob/main/src/ol/source/BingMaps.js
+    https://github.com/openlayers/openlayers/blob/main/src/ol/source/OSM.js
+*/
 import OSM from 'ol/source/OSM';
 import TileImage from 'ol/source/TileImage';
 import { applyTransform, intersects } from 'ol/extent';
@@ -76,17 +86,11 @@ const TOS_ATTRIBUTION =
   'href="https://www.microsoft.com/maps/product/terms.html" target="_blank">' +
   'Terms of Use</a>';
 
-/**
-  Create a custom bing maps class where the tileserver is overridden by
-  the hostname set in $VITE_TILESERVER.
-  The purpose is to enable tile caching in nginx to reduce number of API calls
-
-  reference:
-  https://github.com/openlayers/openlayers/blob/main/src/ol/source/BingMaps.js
-  */
 class CustomBingMaps extends TileImage {
   /**
    * @param {Options} options Bing Maps options.
+      Reference:
+      https://github.com/openlayers/openlayers/blob/main/src/ol/source/BingMaps.js
    */
   constructor(options) {
     const hidpi = options.hidpi !== undefined ? options.hidpi : false;
@@ -154,11 +158,18 @@ class CustomBingMaps extends TileImage {
       '&c=' +
       this.culture_;
       */
-
     let url = null;
-    url = tileserver_hostname === '' || tileserver_hostname === '/' ? '' : `https://${tileserver_hostname}`;
-
-    url = `${url}/REST/v1/Imagery/Metadata/${this.imagerySet_}?uriScheme=https&include=ImageryProviders&c=${this.culture_}`;
+    if (tileserver_hostname !== '' && tileserver_hostname !== '/') {
+      url = `https://${tileserver_hostname}/REST/v1/Imagery/Metadata/${this.imagerySet_}?uriScheme=https&include=ImageryProviders&c=${this.culture_}`;
+    } else {
+      console.log(`info: got tileserver hostname ${tileserver_hostname}. Defaulting...`);
+      url = `https://dev.virtualearth.net/REST/v1/Imagery/Metadata/${
+        this.imagerySet_
+      }?uriScheme=https&include=ImageryProviders&key=${
+        this.apiKey_
+      }&c=${
+        this.culture_}`;
+    }
 
     fetch(url)
       .then((response) => {

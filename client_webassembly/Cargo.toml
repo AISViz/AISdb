@@ -1,0 +1,41 @@
+[package]
+name = "client"
+version = "1.4.41"
+edition = "2021"
+authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
+readme = "../../readme.rst"
+description = "AIS Database and Processing Utils - Web Client WASM functions"
+homepage = "https://aisdb.meridian.cs.dal.ca/"
+documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
+repository = "https://git-dev.cs.dal.ca/meridian/aisdb"
+license-file = "../../license.txt"
+
+[lib]
+crate-type = [ "cdylib",]
+
+[dependencies]
+console_error_panic_hook = "0.1.7"
+flate2 = {version = "1.0" , features = ["zlib"]}
+geo-types = "*"
+geojson = "*"
+js-sys = "0.3"
+serde-wasm-bindgen = "0.4"
+serde_json = "1"
+
+[dependencies.geo]
+version = "*"
+
+[dependencies.serde]
+version = "1.0"
+features = [ "derive",]
+
+[dependencies.wasm-bindgen]
+version = "0.2"
+features = [ "serde-serialize",]
+
+[dependencies.web-sys]
+version = "0.3"
+features = [ "console",]
+
+[profile.release]
+lto = true

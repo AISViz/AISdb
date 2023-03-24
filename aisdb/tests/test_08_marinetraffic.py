@@ -12,12 +12,12 @@ start = datetime(2021, 11, 1)
 end = datetime(2021, 11, 2)
 
 testdir = os.environ.get(
-        'AISDBTESTDIR',
-        os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            'testdata',
-            ),
-        )
+    'AISDBTESTDIR',
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        'testdata',
+    ),
+)
 if not os.path.isdir(testdir):
     os.mkdir(testdir)
 
@@ -35,7 +35,11 @@ def test_retrieve_marinetraffic_data(tmpdir):
     #domain = random_polygons_domain(count=10)
     coords = sample_gulfstlawrence_bbox()
     poly = Polygon(zip(*coords))
-    domain = Domain(name='test_marinetraffic', zones=[{'name':'gulfstlawrence', 'geometry': poly}])
+    domain = Domain(name='test_marinetraffic',
+                    zones=[{
+                        'name': 'gulfstlawrence',
+                        'geometry': poly
+                    }])
 
     datapath = os.path.join(os.path.dirname(__file__),
                             'test_data_20211101.nm4')
@@ -56,7 +60,7 @@ def test_retrieve_marinetraffic_data(tmpdir):
                                 boundary=domain.boundary,
                                 retry_404=False)
         rowgen = qry.gen_qry(verbose=True)
-        trackgen = track_gen.TrackGen(rowgen)
+        trackgen = track_gen.TrackGen(rowgen, decimate=True)
         tracks = [next(trackgen), next(trackgen)]
 
         try:

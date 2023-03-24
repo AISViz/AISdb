@@ -74,10 +74,16 @@ def aggregate_static_msgs(dbconn, months_str, verbose=False):
         cur.execute('DROP TABLE IF EXISTS '
                     f'{dbname}.static_{month}_aggregate')
 
-        with open(os.path.join(sqlpath, 'select_columns_static.sql'),
-                  'r') as f:
-            sql_select = f.read().format(month).replace(
-                'FROM ', f'FROM {dbname}.')
+        #with open(os.path.join(sqlpath, 'select_columns_static.sql'), 'r') as f:
+        #    sql_select = f.read().format(month).replace( 'FROM ', f'FROM {dbname}.')
+
+        sql_select = '''
+          SELECT
+            s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type,
+            s.call_sign, s.dim_bow, s.dim_stern, s.dim_port, s.dim_star,
+            s.draught
+          FROM ais_{}_static AS s WHERE s.mmsi = ?
+        '''.format(month).replace('FROM ', f'FROM {dbname}.')
 
         agg_rows = []
         for mmsi in mmsis:
@@ -109,6 +115,7 @@ def aggregate_static_msgs(dbconn, months_str, verbose=False):
             sql_aggregate = f.read().format(month).replace(
                 f'static_{month}_aggregate',
                 f'{dbname}.static_{month}_aggregate')
+
         cur.execute(sql_aggregate)
 
         if len(agg_rows) == 0:  # pragma: no cover

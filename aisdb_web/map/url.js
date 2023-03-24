@@ -1,9 +1,9 @@
-/** @module url */
+/**@module url */
 
-/** @constant {URLSearchParams} urlParams parses GET request */
+/**@constant {URLSearchParams} urlParams parses GET request */
 const urlParameters = new URLSearchParams(window.location.search);
 
-/** Checks if n is numeric
+/**Checks if n is numeric
  * @param {String} n string to be checked
  * @returns {boolean}
  */
@@ -15,7 +15,7 @@ function isNumeric(n) {
   return false;
 }
 
-/** Set map display parameters via GET request. example:
+/**Set map display parameters via GET request. example:
  * http://localhost:3000/?zones=1&x=-65&y=59.75&z=4&start=2021-01-01&end=2021-01-02&xmin=-95.7&xmax=-39.5&ymin=34.4&ymax=74.2
  */
 async function parseUrl() {
@@ -36,8 +36,6 @@ async function parseUrl() {
   if (Date.parse(urlParameters.get('start')) > 0 &&
     Date.parse(urlParameters.get('end')) > 0) {
     const { setSearchValue } = await import('./selectform.js');
-    // Document.getElementById('time-select-start').value = urlParams.get('start');
-    // document.getElementById('time-select-end').value = urlParams.get('end');
     setSearchValue(urlParameters.get('start'), urlParameters.get('end'));
   }
 
@@ -50,54 +48,57 @@ async function parseUrl() {
     const ymin = Number.parseFloat(urlParameters.get('ymin'));
     const ymax = Number.parseFloat(urlParameters.get('ymax'));
     window.searcharea = {
-      minX: xmin,
-      maxX: xmax,
-      minY: ymin,
-      maxY: ymax,
+      x0: xmin,
+      x1: xmax,
+      y0: ymin,
+      y1: ymax,
     };
   }
 
+  //Load zone geometries from server
+  //NOTE: this has become the default behaviour and added to socket.onopen event in clientsocket.js
+  /*
   if (urlParameters.get('zones') !== undefined &&
     urlParameters.get('zones') !== null) {
     const {
-      resetLoadingZones, waitForZones,
+      resetLoadingZones, waitForZones, waitForTimerange,
     } = await import('./clientsocket.js');
     await resetLoadingZones();
-    await window.socket.send(JSON.stringify({ type: 'zones' }));
+    await window.socket.send(JSON.stringify({ msgtype: 'zones' }));
     await waitForZones();
   }
+  */
 
   if (urlParameters.get('search') !== null) {
     const { searchbtn } = await import('./selectform.js');
     await searchbtn.click();
 
     if (urlParameters.get('screenshot') !== null) {
-      // Import { screenshot } from './render';
       const { screenshot } = await import('./render.js');
-
       await screenshot();
     }
   }
 
   if (urlParameters.get('24h') !== null && urlParameters.get('24h') !== undefined) {
+    const { setSearchValue, searchbtn } = await import('./selectform.js');
+
     if (window.searcharea === null || window.searcharea === undefined) {
       window.searcharea = {
-        minX: -180,
-        maxX: 180,
-        minY: -90,
-        maxY: 90,
+        x0: -180,
+        x1: 180,
+        y0: -90,
+        y1: 90,
       };
     }
 
-    const now = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000);
-    const yesterday = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
+    const daylength = 1 * 24 * 60 * 60 * 1000;
+    const yesterday = new Date(Date.now() - daylength);
+    const now = new Date(Date.now() + daylength);
     const now_string = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
     const yesterday_string = `${yesterday.getUTCFullYear()}-${String(yesterday.getUTCMonth() + 1).padStart(2, '0')}-${String(yesterday.getUTCDate()).padStart(2, '0')}`;
 
-    const { setSearchValue } = await import('./selectform.js');
     setSearchValue(yesterday_string, now_string);
 
-    const { searchbtn } = await import('./selectform.js');
     searchbtn.click();
   }
 

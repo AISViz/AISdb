@@ -5,14 +5,10 @@
 from collections import UserDict
 from datetime import datetime, timedelta, date
 from functools import reduce
-import os
-import sqlite3
 import warnings
 
-import aiosqlite
 import numpy as np
 
-from aisdb import sqlpath
 from aisdb.database import sqlfcn, sqlfcn_callbacks
 from aisdb.database.create_tables import aggregate_static_msgs
 from aisdb.database.dbconn import DBConn
@@ -229,21 +225,12 @@ class DBQuery(UserDict):
                     'WHERE type="table" and name=?'),
                             [f'static_{month}_aggregate'])
                 res = cur.fetchall()
-                """
-                if reaggregate_static:
-                    if verbose:
-                        print(f'building static index for month {month}...',
-                              flush=True)
-                    aggregate_static_msgs(self.dbconn, [month], verbose)
-                """
+
                 if len(res) == 0 or reaggregate_static:
                     if verbose:
                         print(f'building static index for month {month}...',
                               flush=True)
                     aggregate_static_msgs(self.dbconn, [month], verbose)
-                    #warnings.warn('No aggregate data for selected time range! '
-                    #              f'{self.dbconn._get_dbname(dbpath)} {month=} '
-                    #              f'{rng_string}')
 
                 # check if dynamic tables exist
                 cur.execute(
@@ -288,68 +275,3 @@ class DBQuery(UserDict):
 
                 res = cur.fetchmany(10**5)
             yield mmsi_rows
-
-
-class DBQuery_async(DBQuery):
-
-    def __init__(self, *, dbpath, **kwargs):
-        dbconn = sqlite3.Connection(dbpath)
-        cur = dbconn.cursor()
-        cur.execute(
-            'SELECT * FROM sqlite_master WHERE type="table" AND name=?',
-            ['coarsetype_ref'])
-        if cur.fetchall() == []:
-            with open(os.path.join(sqlpath, 'coarsetype.sql'), 'r') as f:
-                coarsetype_sql = f.read().split(';')
-            for row in coarsetype_sql:
-                cur.execute(row)
-            dbconn.commit()
-        dbconn.close()
-
-        self.data = kwargs
-        self.dbpath = dbpath
-        self.create_qry_params()
-
-    async def gen_qry(self,
-                      fcn=sqlfcn.crawl_dynamic,
-                      force_reaggregate_static=False,
-                      verbose=False):
-
-        if not hasattr(self, 'dbconn'):
-            self.dbconn = await aiosqlite.connect(self.dbpath)
-            self.dbconn.row_factory = sqlite3.Row
-
-        for month in self.data['months']:
-            res = await self.dbconn.execute_fetchall(
-                ('SELECT * FROM main.sqlite_master '
-                 'WHERE type="table" and name=?'),
-                [f'static_{month}_aggregate'])
-            if res == []:
-                with DBConn() as syncdb:
-                    syncdb._attach(self.dbpath)
-                    assert 'main' not in syncdb.dbpaths
-                    if verbose:
-                        print('Aggregating static messages synchronously... ')
-                    aggregate_static_msgs(syncdb, [month], verbose=verbose)
-
-        qry = fcn(dbpath='main', **self)
-        if verbose:
-            print(qry)
-        cursor = await self.dbconn.execute(qry)
-        mmsi_rows = []
-        res = await cursor.fetchmany(10**5)
-        while len(res) > 0:
-            mmsi_rows += res
-            ummsi_idx = np.where(
-                np.array(mmsi_rows)[:-1, 0] != np.array(mmsi_rows)[1:,
-                                                                   0])[0] + 1
-            ummsi_idx = reduce(np.append, ([0], ummsi_idx, [len(mmsi_rows)]))
-            for i in range(len(ummsi_idx) - 2):
-                yield mmsi_rows[ummsi_idx[i]:ummsi_idx[i + 1]]
-            if len(ummsi_idx) > 2:
-                mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
-
-            res = await cursor.fetchmany(10**5)
-        yield mmsi_rows
-        await cursor.close()
-        await self.dbconn.close()

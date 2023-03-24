@@ -1,46 +1,62 @@
-/** @module map */
+/**@module map */
 
 import MousePosition from 'ol/control/MousePosition';
 import View from 'ol/View';
-import { createStringXY } from 'ol/coordinate';
+import { ScaleLine } from 'ol/control.js';
+import { default as DragBox } from 'ol/interaction/DragBox';
+import { default as Draw } from 'ol/interaction/Draw';
+import { default as Feature } from 'ol/Feature';
+import { default as GeoJSON } from 'ol/format/GeoJSON';
 import { default as Heatmap } from 'ol/layer/Heatmap';
+import { default as Overlay } from 'ol/Overlay';
+import { default as Point } from 'ol/geom/Point';
 import { default as TileLayer } from 'ol/layer/Tile';
 import { default as VectorLayer } from 'ol/layer/Vector';
 import { default as VectorSource } from 'ol/source/Vector';
 import { default as _Map } from 'ol/Map';
-import { defaults as defaultControls } from 'ol/control';
 import { defaults as defaultInteractions } from 'ol/interaction';
 import { fromLonLat } from 'ol/proj';
+//import { createStringXY } from 'ol/coordinate';
+//import { defaults as defaultControls } from 'ol/control';
 
-import { polyStyle, vesselStyles } from './palette.js';
-import { use_bingmaps } from './constants.js';
+import { vesselInfo } from './clientsocket.js';
+import { debug, use_bingmaps } from './constants.js';
+import { set_track_style } from './selectform.js';
+import {
+  dragBoxStyle,
+  polySelectStyle,
+  polyStyle,
+  selectStyle,
+  vesselStyles,
+} from './palette.js';
 
-/** Default map position */
-const default_startpos = [ -63.22, 44.33 ];
+/**Default map position */
+const default_startpos = [ -63.5, 44.46 ];
 const default_zoom = 10;
 
-/** User search box */
+
+/**User search box */
 window.searcharea = null;
 
-/** Status message div item */
-const statusdiv = document.querySelector('#status-div');
+/**Status message div item */
+//const statusdiv = document.querySelector('#status-div');
 
-/** Contains geometry for map selection feature */
+/**Contains geometry for map selection feature */
 const drawSource = new VectorSource({ wrapX: false });
-/** Contains drawSource for map selection layer */
+/**Contains drawSource for map selection layer */
 const drawLayer = new VectorLayer({ source: drawSource, zIndex: 5 });
 
-/** Contains geometry for map zone polygons */
+/**Contains geometry for map zone polygons */
 const polySource = new VectorSource({});
-/** Contains polySource for map zone polygons */
+/**Contains polySource for map zone polygons */
 const polyLayer = new VectorLayer({
   source: polySource,
   style: polyStyle, zIndex: 1,
 });
 
-/** Contains map vessel line geometries */
+/**Contains map vessel line geometries */
 const lineSource = new VectorSource({});
-/** Contains map lineSource layer */
+/**Contains map lineSource layer */
 const lineLayer = new VectorLayer({
   source: lineSource,
   style: vesselStyles.Unspecified,
@@ -53,9 +69,9 @@ const pointLayer = new VectorLayer({
   zIndex: 4,
 });
 
-/** Map heatmap source */
+/**Map heatmap source */
 const heatSource = new VectorSource({});
-/** Map heatmap layer */
+/**Map heatmap layer */
 const heatLayer = new Heatmap({
   source: heatSource,
   blur: 33,
@@ -63,53 +79,29 @@ const heatLayer = new Heatmap({
   zIndex: 2,
 });
 
-/** Map window
+/**Map window
  * @param {string} target target HTML item by ID
  * @param {Array} layers map layers to display
  * @param {ol/View) view default map view positioning
  */
 
-function haversineDistance(coords1, coords2) {
-  function toRad(x) {
-    return x * Math.PI / 180;
-  }
-
-  const lon1 = coords1[0];
-  const lat1 = coords1[1];
-
-  const lon2 = coords2[0];
-  const lat2 = coords2[1];
-
-  const R = 6371; // Km
-
-  const x1 = lat2 - lat1;
-  const dLat = toRad(x1);
-  const x2 = lon2 - lon1;
-  const dLon = toRad(x2);
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const d = R * c;
-
-  return d;
-}
-
-/** Default map position
+/**Default map position
  * @see module:url
  */
 const mapview = new View({ center: fromLonLat(default_startpos), zoom: default_zoom });
 
-/* Map interactions */
+let map = null;
+
+/*Map interactions */
 let dragBox = null;
 let draw = null;
 
-/* Processing functions for incoming websocket data */
-let newHeatmapFeatures = null;
-let newPolygonFeature = null;
-let newTrackFeature = null;
+/*Processing functions for incoming websocket data */
+//let newHeatmapFeatures = null;
+//let newPolygonFeature = null;
+//let newTrackFeature = null;
 
-/** Set a search area bounding box as determined by the extent
+/**Set a search area bounding box as determined by the extent
  * of currently selected polygons
  */
 async function setSearchAreaFromSelected() {
@@ -118,77 +110,119 @@ async function setSearchAreaFromSelected() {
   for (const ft of polySource.getFeatures()) {
     if (ft.get('selected') === true) {
       if (window.searcharea === null) {
-        window.searcharea = { minX: 180, maxX: -180, minY: 90, maxY: -90 };
+        window.searcharea = { x0: 180, x1: -180, y1: 90, y0: -90 };
       }
 
       const coords = ft.getGeometry().clone()
         .transform('EPSG:3857', 'EPSG:4326').getCoordinates()[0];
       for (const point of coords) {
-        if (ft.get('meta_str').includes('_b') && point[0] < alt_xmin) {
+        if (ft.get('meta_string').includes('_b') && point[0] < alt_xmin) {
           alt_xmin = point[0];
-        } else if (!ft.get('meta_str').includes('_c') &&
-          point[0] < window.searcharea.minX) {
-          window.searcharea.minX = point[0];
+        } else if (!ft.get('meta_string').includes('_c') &&
+          point[0] < window.searcharea.x0) {
+          window.searcharea.x0 = point[0];
         }
 
-        if (ft.get('meta_str').includes('_c') &&
+        if (ft.get('meta_string').includes('_c') &&
           point[0] > alt_xmax) {
           alt_xmax = point[0];
-        } else if (!ft.get('meta_str').includes('_b') &&
-          point[0] > window.searcharea.maxX) {
-          window.searcharea.maxX = point[0];
+        } else if (!ft.get('meta_string').includes('_b') &&
+          point[0] > window.searcharea.x1) {
+          window.searcharea.x1 = point[0];
         }
 
-        if (point[1] < window.searcharea.minY) {
-          window.searcharea.minY = point[1];
+        if (point[1] < window.searcharea.y0) {
+          window.searcharea.y0 = point[1];
         }
 
-        if (point[1] > window.searcharea.maxY) {
-          window.searcharea.maxY = point[1];
+        if (point[1] > window.searcharea.y1) {
+          window.searcharea.y1 = point[1];
         }
       }
     }
   }
 
   if (alt_xmin !== 180) {
-    window.searcharea.minX = alt_xmin;
+    window.searcharea.x0 = alt_xmin;
   }
 
   if (alt_xmax !== -180) {
-    window.searcharea.maxX = alt_xmax;
+    window.searcharea.x1 = alt_xmax;
   }
 }
 
-/** Initialize map layer and associated imports dynamically */
+/**New zone polygon feature
+   * @param {Object} geojs GeoJSON Polygon object
+   * @param {Object} meta metadata containing 'name'
+   */
+const newPolygonFeature = function (geojs, meta) {
+  const format = new GeoJSON();
+  const feature = format.readFeature(geojs, {
+    dataProjection: 'EPSG:4326',
+    featureProjection: 'EPSG:3857',
+  });
+  feature.setId(meta.name);
+  feature.set('meta', meta);
+  feature.set('meta_string', meta.name); //this one controls the map label
+  polySource.addFeature(feature);
+};
+
+/**Add vessel points to overall heatmap
+   * @param {Array} xy Coordinate tuples
+   */
+const newHeatmapFeatures = function (xy) {
+  xy.forEach(async (p) => {
+    const pt = new Feature({
+      geometry: new Point(fromLonLat(p)),
+    });
+    heatSource.addFeature(pt);
+  });
+};
+
+/**New track geometry feature
+   * @param {Object} geojs GeoJSON LineString object
+   * @param {Object} id identifier
+   */
+const newTrackFeature = function (geojs, id) {
+  const format = new GeoJSON();
+  const feature = format.readFeature(geojs, {
+    dataProjection: 'EPSG:4326',
+    featureProjection: 'EPSG:3857',
+  });
+  feature.setId(id);
+  set_track_style(feature);
+  lineSource.addFeature(feature);
+};
+
+/**Callback for map pointermove event
+   * @param {Vector} l ol VectorLayer
+   * @returns {boolean}
+   */
+function pointermoveLayerFilterCallback(l) {
+  if (l === lineLayer || l === polyLayer) {
+    return true;
+  }
+
+  return false;
+}
+
+/**Callback for map click event
+   * @param {Vector} l ol VectorLayer
+   * @returns {boolean}
+   */
+function clickLayerFilterCallback(l) {
+  if (l === polyLayer) {
+    return true;
+  }
+
+  return false;
+}
+
+/**Initialize map layer and associated imports dynamically */
 async function init_maplayers() {
-  const [
-    { set_track_style },
-    { default: Feature },
-    { default: GeoJSON },
-    { default: Point },
-    { default: DragBox },
-    { default: Draw },
-    { ScaleLine, defaults: defaultControls },
-  ] = await Promise.all([
-    import('./selectform.js'),
-    import('ol/Feature'),
-    import('ol/format/GeoJSON'),
-    import('ol/geom/Point'),
-    import('ol/interaction/DragBox'),
-    import('ol/interaction/Draw'),
-    import('ol/control.js'),
-  ]);
-
-  const {
-    dragBoxStyle,
-    polySelectStyle,
-    selectStyle,
-    vesseltypes,
-  } = await import('./palette.js');
-
-  /** Ol map TileLayer */
-  // the following env var will be set to "1" by the build script
-  // if it detects the presence of env var $BINGMAPSKEY at build time
+  /**Ol map TileLayer */
+  //the following env var will be set to "1" by the build script
+  //if it detects the presence of env var $BINGMAPSKEY at build time
   let mapLayer = null;
   if (use_bingmaps !== undefined && use_bingmaps !== '' && use_bingmaps !== '0') {
     const { CustomBingMaps } = await import('./tileserver.js');
@@ -197,22 +231,22 @@ async function init_maplayers() {
       zIndex: 0,
     });
   } else {
-    // Fall back to OSM if no API token was found by the build script
+    //Fall back to OSM if no API token was found by the build script
     const { CustomOSM } = await import('./tileserver.js');
     mapLayer = new TileLayer({ source: new CustomOSM({}) });
   }
 
-  const map = new _Map({
-    target: 'mapDiv', // Div item in index.html
+  map = new _Map({
+    target: 'mapDiv', //Div item in index.html
     layers: [ mapLayer, polyLayer, lineLayer, heatLayer, pointLayer, drawLayer ],
     view: mapview,
     interactions: defaultInteractions({ doubleClickZoom: false }),
-    // Controls: defaultControls().extend([ mousePositionControl ]),
+    //Controls: defaultControls().extend([ mousePositionControl ]),
   });
 
-  /** Coordinate display */
+  /**Coordinate display */
   const mousePositionControl = new MousePosition({
-    // CoordinateFormat: createStringXY(4),
+    //CoordinateFormat: createStringXY(4),
     coordinateFormat: function(coordinate) {
       const xy = [ coordinate[0].toFixed(4), coordinate[1].toFixed(4) ];
       return `${xy[0]}, ${xy[1]}`;
@@ -220,7 +254,7 @@ async function init_maplayers() {
     projection: 'EPSG:4326',
   });
 
-  /** Scale bar display */
+  /**Scale bar display */
   const scaleControl = new ScaleLine({
     units: 'metric',
     bar: true,
@@ -230,11 +264,11 @@ async function init_maplayers() {
     maxWidth: 256,
   });
 
-  /** Add coordinate and scale bar displays to map controls */
+  /**Add coordinate and scale bar displays to map controls */
   map.getControls().extend([ mousePositionControl ]);
   map.getControls().extend([ scaleControl ]);
 
-  /* Cursor styling: indicate to the user that we are selecting an area */
+  /*Cursor styling: indicate to the user that we are selecting an area */
   draw = new Draw({
     type: 'Point',
   });
@@ -252,144 +286,60 @@ async function init_maplayers() {
     document.body.style.cursor = 'initial';
   });
 
-  /** Draw layer addfeature event */
+  /**Draw layer addfeature event */
   drawSource.on('addfeature', async () => {
     const selectbox = drawSource.getFeatures()[0].getGeometry().clone()
       .transform('EPSG:3857', 'EPSG:4326').getCoordinates()[0];
-    const minX = Math.min(selectbox[0][0], selectbox[1][0],
+    const x0 = Math.min(selectbox[0][0], selectbox[1][0],
       selectbox[2][0], selectbox[3][0], selectbox[4][0]);
-    const maxX = Math.max(selectbox[0][0], selectbox[1][0],
+    const x1 = Math.max(selectbox[0][0], selectbox[1][0],
       selectbox[2][0], selectbox[3][0], selectbox[4][0]);
-    const minY = Math.min(selectbox[0][1], selectbox[1][1],
+    const y0 = Math.min(selectbox[0][1], selectbox[1][1],
       selectbox[2][1], selectbox[3][1], selectbox[4][1]);
-    const maxY = Math.max(selectbox[0][1], selectbox[1][1],
+    const y1 = Math.max(selectbox[0][1], selectbox[1][1],
       selectbox[2][1], selectbox[3][1], selectbox[4][1]);
-    window.searcharea = { minX: minX, maxX: maxX, minY: minY, maxY: maxY };
+    window.searcharea = { x0: x0, x1: x1, y0: y0, y1: y1 };
     map.removeInteraction(draw);
     map.removeInteraction(dragBox);
   });
 
-  /** Callback for map pointermove event
-   * @param {Vector} l ol VectorLayer
-   * @returns {boolean}
-   */
-  function pointermoveLayerFilterCallback(l) {
-    if (l === lineLayer || l === polyLayer) {
-      return true;
-    }
 
-    return false;
-  }
+  const overlay_container = document.querySelector('#overlay');
+  const overlay_content = document.querySelector('#overlay-content');
 
-  /** Callback for map click event
-   * @param {Vector} l ol VectorLayer
-   * @returns {boolean}
-   */
-  function clickLayerFilterCallback(l) {
-    if (l === polyLayer) {
-      return true;
-    }
+  const overlay = new Overlay({
+    element: overlay_container,
+    //AutoPan: { animation: { duration: 250, }, },
+  });
 
-    return false;
-  }
-
-  /** New zone polygon feature
-   * @param {Object} geojs GeoJSON Polygon object
-   * @param {Object} meta geometry metadata
-   */
-  newPolygonFeature = async function (geojs, meta) {
-    const format = new GeoJSON();
-    const feature = format.readFeature(geojs, {
-      dataProjection: 'EPSG:4326',
-      featureProjection: 'EPSG:3857',
-    });
-    feature.setProperties({ meta_str: meta.name });
-    polySource.addFeature(feature);
-  };
-
-  /** Add vessel points to overall heatmap
-   * @param {Array} xy Coordinate tuples
-   */
-  newHeatmapFeatures = async function (xy) {
-    xy.forEach(async (p) => {
-      const pt = new Feature({
-        geometry: new Point(fromLonLat(p)),
-      });
-      heatSource.addFeature(pt);
-    });
-  };
-
-  /** New track geometry feature
-   * @param {Object} geojs GeoJSON LineString object
-   * @param {Object} meta geometry metadata
-   */
-  newTrackFeature = async function (geojs, meta) {
-    const format = new GeoJSON();
-    const feature = format.readFeature(geojs, {
-      dataProjection: 'EPSG:4326',
-      featureProjection: 'EPSG:3857',
-    });
-    let meta_string = '';
-    if (meta.mmsi !== 'None') {
-      meta_string = `${meta_string}MMSI: ${meta.mmsi}&emsp;`;
-    }
-
-    if (meta.imo !== 'None' && meta.imo !== 0) {
-      meta_string = `${meta_string}IMO: ${meta.imo}&emsp;`;
-    }
-
-    if (meta.name !== 'None' && meta.name !== 0) {
-      meta_string = `${meta_string}name: ${meta.name}&emsp;`;
-    }
-
-    if (meta.vesseltype_generic !== 'None') {
-      meta_string = `${meta_string}type: ${meta.vesseltype_generic}&ensp;`;
-    }
-
-    if (
-      meta.vesseltype_detailed !== 'None' &&
-      meta.vesseltype_generic !== meta.vesseltype_detailed
-    ) {
-      meta_string = `${meta_string}(${meta.vesseltype_detailed})&emsp;`;
-    }
-
-    if (meta.flag !== 'None') {
-      meta_string = `${meta_string}flag: ${meta.flag}  `;
-    }
-
-    feature.setProperties({
-      meta: meta,
-      meta_str: meta_string.replace(' ', '&nbsp;'),
-    });
-    set_track_style(feature);
-    feature.set('COLOR', vesseltypes[meta.vesseltype_generic]);
-    lineSource.addFeature(feature);
-  };
+  map.addOverlay(overlay);
 
   let selected = null;
   let previous = null;
   map.on('pointermove', (e) => {
     if (selected !== null && selected.get('selected') !== true) {
-      selected.setStyle(undefined);
+      selected.setStyle(selectStyle);
       selected = null;
-    } else
-    if (selected !== null) {
+    } else if (selected !== null) {
       selected = null;
     }
 
-    // Reset track style to previous un-highlighted color
-    if (previous !== null &&
-      previous !== selected &&
-      previous.get('meta') !== undefined) {
-      set_track_style(previous);
+    //reset track style to previous un-highlighted color
+    if (previous !== null && selected !== null && previous.getId() !== selected.getId()) {
+      previous.set('selected', false);
+      if (previous.getGeometry().getType() === 'LineString') {
+        set_track_style(previous);
+      } else {
+        previous.setStyle(polyStyle(previous));
+      }
     }
 
-    // Highlight feature at cursor
+    //highlight feature at cursor
     map.forEachFeatureAtPixel(e.pixel, (f) => {
       selected = f;
       const geomtype = f.getGeometry().getType();
       if (f.get('selected') !== true) {
-        // Console.log(f.getProperties());
+        //Console.log(f.getProperties());
         if (geomtype === 'Polygon') {
           f.setStyle(polySelectStyle(f));
         } else if (geomtype === 'LineString') {
@@ -398,9 +348,20 @@ async function init_maplayers() {
           console.log(`unexpected feature ${geomtype}`);
         }
       }
+      //reset track style
+      if (selected === null || previous !== null && previous.getStyle() === selectStyle) {
+        previous.set('selected', false);
+        if (previous.getGeometry().getType() === 'LineString') {
+          set_track_style(previous);
+        } else {
+          previous.setStyle(polyStyle(previous));
+        }
+      }
 
-      // Keep track of last feature so that styles can be reset after moving mouse
-      if (previous === null || previous.get('meta_str') !== f.get('meta_str')) {
+      //Keep track of last feature so that styles can be reset after moving mouse
+      if (previous === null) {
+        previous = f;
+      } else if (previous.getId() !== f.getId()) {
         previous = f;
       }
 
@@ -408,8 +369,28 @@ async function init_maplayers() {
     }, { layerFilter: pointermoveLayerFilterCallback },
     );
 
-    // Show metadata for selected feature
-    statusdiv.innerHTML = selected ? selected.get('meta_str') : window.statusmsg;
+    //Show metadata for selected feature
+    if (selected !== undefined && selected !== null) {
+      overlay.setPosition(e.coordinate);
+      const vinfo = vesselInfo[selected.getId()];
+      if (vinfo !== undefined && 'meta_string' in vinfo) {
+        overlay_content.innerHTML = vinfo.meta_string;
+      } else if (!isNaN(selected.getId())){
+        overlay_content.innerHTML = `MMSI: ${selected.getId()}<br>`;
+      } else {
+        overlay_content.innerHTML = `${selected.getId()}<br>`;
+      }
+    } else {
+      overlay.setPosition(undefined);
+      if (previous !== null) {
+        previous.set('selected', false);
+        if (previous.getGeometry().getType() === 'LineString') {
+          set_track_style(previous);
+        } else {
+          previous.setStyle(polyStyle(previous));
+        }
+      }
+    }
   });
 
   map.on('click', async (e) => {
@@ -429,13 +410,16 @@ async function init_maplayers() {
     );
   });
 
-  return map;
+  if (debug !== null && debug !== undefined) {
+    console.log('done map initialization');
+  }
 }
 
 export {
   dragBox,
   draw,
   drawSource,
+  map,
   init_maplayers,
   lineSource,
   mapview,

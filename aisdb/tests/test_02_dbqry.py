@@ -2,11 +2,9 @@ import os
 import warnings
 from datetime import datetime, timedelta
 
-import pytest
 from shapely.geometry import Polygon
 
 from aisdb import DBConn, DBQuery, sqlfcn_callbacks, Domain, sqlfcn
-from aisdb.database.dbqry import DBQuery_async
 
 from aisdb.database.create_tables import sqlite_createtable_dynamicreport
 from aisdb.tests.create_testing_data import (
@@ -95,20 +93,3 @@ def test_sql_query_strings(tmpdir):
             except Exception as err:
                 raise err
     return
-
-
-@pytest.mark.asyncio
-async def test_query_async(tmpdir):
-    testdbpath = os.path.join(tmpdir, 'test_query_async.db')
-    # create db synchronously
-    months = sample_database_file(testdbpath)
-    start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
-    end = start + timedelta(weeks=4)
-    q = DBQuery_async(
-        dbpath=testdbpath,
-        start=start,
-        end=end,
-        callback=sqlfcn_callbacks.in_timerange_validmmsi,
-    )
-    async for rows in q.gen_qry():
-        print(rows)

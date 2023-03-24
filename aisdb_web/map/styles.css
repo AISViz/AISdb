@@ -118,6 +118,20 @@ label {
   width: 100vw;
 }
 
+.overlay-popup {
+  color: white;
+  font-family: Menlo, Monaco, Consolas, monospace;
+  text-align: left;
+  background: rgba(50,50,50,0.8);
+}
+
+.overlay-popup div {
+  padding: 6px;
+  padding-left: 16px;
+  padding-right: 16px;
+  min-width: 180px;
+}
+
 @media screen and (min-width: 10px) {
   .map {
     height: calc(100vh - 8em);
