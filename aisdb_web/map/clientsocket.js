@@ -1,52 +1,113 @@
-/** @module clientsocket */
-import { database_hostname, database_port, disable_ssl } from './constants.js';
+/**@module clientsocket */
+
+import {
+  resetSearchState,
+  searchbtn,
+  setValidSearchRange,
+} from './selectform.js';
+
+import {
+  lineSource,
+  newHeatmapFeatures,
+  newPolygonFeature,
+  newTrackFeature,
+  polySource,
+} from './map.js';
+
+import {
+  database_hostname,
+  database_port,
+  debug,
+  disable_ssl_db
+} from './constants.js';
+
+//import { vesselInfoDB, waitForDB } from './db.js';
+
+import init, { process_response } from './pkg/client.js?init';
+
 
 window.statusmsg = null;
-let newHeatmapFeatures = null;
-let newPolygonFeature = null;
-let newTrackFeature = null;
-let searchbtn = null;
-let resetSearchState = null;
-let setSearchRange = null;
-
 let doneLoadingRange = false;
 let doneLoadingZones = false;
+let doneLoadingMetadata = false;
+let doneLoadingSocket = false;
 
-/** Await until socket has returned timerange data */
+let vesselInfo = {};
+window.vesselInfo = vesselInfo;
+
+
+/**@constant {WebSocket} socket database websocket */
+let socket = null; //new WebSocket(socketHost);
+
+let socketHost = null;
+if (disable_ssl_db !== null && disable_ssl_db !== undefined) {
+  console.log('CAUTION: connecting to websocket over unencrypted connection!');
+  socketHost = `ws://${database_hostname}:${database_port}`;
+} else {
+  /**@constant {string} socketHost socket host address */
+  socketHost = `wss://${database_hostname}/ws`;
+}
+
+
+//wait for content to load
+const timeout = (prom, time) => {
+  return Promise.race([ prom, new Promise((_r, rej) => {
+    return setTimeout(rej, time);
+  }) ]);
+};
+
+/**await until socket has returned timerange data */
 async function waitForTimerange() {
   while (doneLoadingRange === false) {
     await new Promise((resolve) => {
-      return setTimeout(resolve, 10);
+      return setTimeout(resolve, 50);
     });
   }
 }
 
-/** Await until socket has returned zone polygons data */
+/**Await until socket has returned zone polygons data */
 async function waitForZones() {
   while (doneLoadingZones === false) {
     await new Promise((resolve) => {
-      return setTimeout(resolve, 10);
+      return setTimeout(resolve, 50);
     });
   }
 }
 
-/** Reset the zone polygons await state */
+/**Await until socket has returned zone polygons data */
+async function waitForMetadata() {
+  while (doneLoadingMetadata === false) {
+    await new Promise((resolve) => {
+      return setTimeout(resolve, 50);
+    });
+  }
+}
+
+async function waitForSocket() {
+  while (doneLoadingSocket === false) {
+    await new Promise((resolve) => {
+      return setTimeout(resolve, 50);
+    });
+  }
+}
+
+/**Reset the zone polygons await state */
 async function resetLoadingZones() {
   doneLoadingZones = false;
 }
 
 const utf8encode = new TextEncoder();
-/** Convert object to UTF8 integer array. Used for passing values to WebAssembly
+/**Convert object to UTF8 integer array. Used for passing values to WebAssembly
  * scripts
  * @param {Object} object arbitrary JSON
  * @returns {Array} UTF8 integer Array
  */
 function convert_js_utf8(object) {
-  return Array.from(utf8encode.encode(JSON.stringify(object)));
+  return Uint8Array.from(utf8encode.encode(JSON.stringify(object)));
 }
 
 const utf8decode = new TextDecoder();
-/** Convert UTF8 integer array to Object. Used for receiving values from
+/**Convert UTF8 integer array to Object. Used for receiving values from
  * WebAssembly scripts
  * @param {Array} array UTF8 integer Array
  * @returns {Object} JSON from UTF8 integer array
@@ -55,189 +116,203 @@ function convert_utf8_js(array) {
   return JSON.parse(utf8decode.decode(new Uint8Array(array)));
 }
 
-let process_response = null;
+function handle_zone(response) {
+  const processed = convert_utf8_js(process_response({
+    rawdata: convert_js_utf8(response),
+  }));
+  processed.type = 'Polygon';
+  processed.coordinates = [ processed.coordinates ];
 
-/** Start the database websocket connection */
-async function initialize_db_socket() {
-  let socketHost = null;
-  if (disable_ssl !== null && disable_ssl !== undefined) {
-    console.log('CAUTION: connecting to websocket over unencrypted connection!');
-    socketHost = `ws://${database_hostname}:${database_port}`;
-  } else {
-    /** @constant {string} socketHost socket host address */
-    socketHost = `wss://${database_hostname}/ws`;
-  }
+  newPolygonFeature(processed, response.meta);
+}
 
-  /** @constant {WebSocket} socket database websocket */
-  const socket = new WebSocket(socketHost);
-
-  /** Closes connection to the server before exiting browser window
-   * @callback window_onbeforeunload
-   *
-   */
-  window.onbefureunload = function () {
-    // Socket.onclose = function() {};
-    socket.addEventListener('close', () => {});
-    socket.close();
-  };
-
-  /** Socket close event.
-   * ends connection with server and displays a status message
-   * @callback socket_onclose
-   * @function
-   * @param {Object} event onclose event
-   */
-  socket.addEventListener('close', (event) => {
-    let message = null;
-    message = event.wasClean ? 'Closed connection with server' : `Unexpected error occurred, please refresh the page [${event.code}]`;
-
-    console.log(message);
-    document.querySelector('#status-div').textContent = message;
-    window.statusmsg = message;
-  });
-
-  /** Socket error event.
-   * displays an error in the status message
-   * @callback socket_onerror
-   * @function
-   * @param {Object} event onerror event
-   */
-  socket.onerror = function (event) {
-    const message = `An unexpected error occurred [${event.code}]`;
-    console.log(message);
-    document.querySelector('#status-div').textContent = message;
-    window.statusmsg = message;
-    socket.close();
-  };
-
-  /** Socket message event.
+/**Socket message event.
    * handles messages from server according to response type
    * @callback socket_onmessage
    * @function
    * @param {Object} event onmessage event
    */
-  socket.onmessage = async function (event) {
-    // Import { newHeatmapFeatures, newPolygonFeature, newTrackFeature } from './map';
-    /** await until socket has returned timerange data */
-    while (socket.onopen === undefined ||
-      process_response === null ||
-      newPolygonFeature === null ||
-      newTrackFeature === null ||
-      newHeatmapFeatures === null) {
-      await new Promise((resolve) => {
-        return setTimeout(resolve, 10);
-      });
-    }
+async function handle_server_response(event) {
+  let response = null;
+  let txt = null;
+  try {
+    txt = await event.data.text();
+  } catch (e) {
+    console.error('could not get event data!\n', e);
+    return;
+  }
+  response = JSON.parse(txt);
 
-    const txt = await event.data.text();
-    const response = JSON.parse(txt);
-    if (response.msgtype === 'track_vector') {
-      const processed = convert_utf8_js(process_response({
-        rawdata: convert_js_utf8(response),
-      }));
-      // Console.log(JSON.stringify(response['meta']['vesseltype_generic']));
-      await newTrackFeature(processed, response.meta);
-      await socket.send(JSON.stringify({ type: 'ack' }));
-    } else if (response.msgtype === 'zone') {
-      await socket.send(JSON.stringify({ type: 'ack' }));
-      const processed = convert_utf8_js(process_response({
-        rawdata: convert_js_utf8(response),
-      }));
-      processed.type = 'Polygon';
-      processed.coordinates = [ processed.coordinates ];
-      await newPolygonFeature(processed, response.meta);
-    } else {
-      switch (response.type) {
-      case 'heatmap': {
-        await newHeatmapFeatures(response.xy);
-        await socket.send(JSON.stringify({ type: 'ack' }));
 
-        break;
-      }
+  if (!('msgtype' in response)) {
+    console.error('unknown response type:', response);
+  }
 
-      case 'done': {
-        document.querySelector('#status-div').textContent = response.status;
-        window.statusmsg = response.status;
-        searchbtn.textContent = 'Search';
-        await resetSearchState();
+  switch (response.msgtype) {
+  case 'track_vector': {
+    const processed = convert_utf8_js(process_response({
+      rawdata: convert_js_utf8(response),
+    }));
+    newTrackFeature(processed, response.meta.mmsi);
+    break;
+  }
 
-        break;
-      }
+  case 'vesselinfo': {
+    //await handle_vesselinfo(response);
+    //await socket.send('ack');
+    console.error('vesselinfo is handled by socket in vessel_metadata.ts');
+    break;
+  }
 
-      case 'doneZones': {
-        doneLoadingZones = true;
+  case 'zone': {
+    handle_zone(response);
+    break;
+  }
 
-        break;
-      }
+  case 'heatmap': {
+    newHeatmapFeatures(response.xy);
+    await socket.send(JSON.stringify({ msgtype: 'ack' }));
 
-      case 'validrange': {
-        doneLoadingRange = true;
-        setSearchRange(response.start, response.end);
+    break;
+  }
 
-        break;
-      }
+  case 'done': {
+    document.querySelector('#status-div').textContent = response.status;
+    window.statusmsg = response.status;
+    searchbtn.textContent = 'Search';
+    await resetSearchState();
 
-      default: {
-        const message = 'Unknown response from server';
-        document.querySelector('#status-div').textContent = message;
-        window.statusmsg = message;
-      }
-      }
-    }
+    break;
+  }
+
+  case 'doneZones': {
+    doneLoadingZones = true;
+
+    break;
+  }
+
+  case 'doneMetadata': {
+    //doneLoadingMetadata = true;
+    console.error('vesselinfo is handled by socket in db.js');
+
+    break;
+  }
+
+  case 'validrange': {
+    doneLoadingRange = true;
+    setValidSearchRange(response.start * 1000, response.end * 1000);
+
+    break;
+  }
+
+  default: {
+    const message = 'Unknown response from server';
+    console.log(response);
+    document.querySelector('#status-div').textContent = message;
+    window.statusmsg = message;
+  }
+  }
+}
+
+
+/**Start the database websocket connection */
+async function initialize_db_socket() {
+  await init();
+
+  socket = new WebSocket(socketHost);
+
+  /**Closes connection to the server before exiting browser window
+   * @callback window_onbeforeunload
+   *
+   */
+  window.onbefureunload = function () {
+    socket.addEventListener('close', () => {});
+    socket.close();
   };
 
-  /** Socket open event.
+  /**Socket close event.
+   * ends connection with server and displays a status message
+   * @callback socket_onclose
+   * @function
+   * @param {Object} event onclose event
+   */
+  socket.addEventListener('close', async (event) => {
+    const message = 'Error: session was terminated. Retrying...';
+    console.log(message);
+    document.querySelector('#status-div').textContent = message;
+    window.statusmsg = message;
+    await new Promise((r) => {
+      return setTimeout(r, Math.random() * 5000 + 5000);
+    });
+    initialize_db_socket();
+  });
+
+  /**Socket error event.
+   * displays an error in the status message
+   * @callback socket_onerror
+   * @function
+   * @param {Object} event onerror event
+   */
+  socket.onerror = async (event) => {
+    socket.close();
+  };
+
+  socket.onmessage = handle_server_response;
+
+  /**Socket open event.
    * establishes connection with server and requests valid time ranges in database
    * @callback socket_onclose
    * @function
    * @param {Object} event onopen event
    */
   socket.addEventListener('open', async () => {
-    // Let msg = `Established connection to ${socketHost}`;
-    const [
-      { default: init, process_response: _process_response },
-      { default: parseUrl },
-      { searchbtn: _searchbtn,
-        resetSearchState: _resetSearchState,
-        setSearchRange: _setSearchRange,
-      },
-    ] = await Promise.all([
-      import('./pkg/client.js'),
-      import('./url.js'),
-      import('./selectform.js'),
+    //clear previous status
+    document.querySelector('#status-div').textContent = '';
+    window.statusmsg = '';
+
+    //reset any existing zones
+    polySource.clear();
+    await resetLoadingZones();
+
+
+    //query valid time ranges and zone polygons
+    await timeout(Promise.all([
+      socket.send(JSON.stringify({ msgtype: 'validrange' })),
+      socket.send(JSON.stringify({ msgtype: 'zones' })),
+      waitForZones(),
+      waitForTimerange()
+    ]), 15000).catch(() => {
+      return console.log('timed out loading data from server!');
+    });
+
+    //await waitForDB();
+    //const vesselObjStore = vesselInfoDB.transaction('VesselInfoDB', 'readwrite').objectStore('VesselInfoDB');
+
+    /*
+    await Promise.all([
+      socket.send(JSON.stringify({ msgtype: 'meta' })),
+      waitForMetadata(),
     ]);
-    process_response = _process_response;
-    searchbtn = _searchbtn;
-    resetSearchState = _resetSearchState;
-    setSearchRange = _setSearchRange;
-    await init();
-
-    const {
-      newHeatmapFeatures: _newHeatmapFeatures,
-      newPolygonFeature: _newPolygonFeature,
-      newTrackFeature: _newTrackFeature,
-    } = await import('./map.js');
-    newHeatmapFeatures = _newHeatmapFeatures;
-    newPolygonFeature = _newPolygonFeature;
-    newTrackFeature = _newTrackFeature;
-
-    // First get valid DB query range from server
-    await socket.send(JSON.stringify({ type: 'validrange' }));
-
-    // Wait for default search start/end values to be initialized
-    await waitForTimerange();
-
-    // Override start/end values from GET request vars
-    await parseUrl();
+    */
+    doneLoadingSocket = true;
   });
 
-  return socket;
+  if (debug !== null && debug !== undefined) {
+    console.log('done db socket initialization');
+  }
+
+  return;
 }
 
 export {
   initialize_db_socket,
   resetLoadingZones,
-  // Socket,
+  socket as db_socket,
+  socketHost as db_socket_host,
+  timeout,
+  vesselInfo,
+  waitForMetadata,
+  waitForSocket,
   waitForTimerange,
   waitForZones,
 };

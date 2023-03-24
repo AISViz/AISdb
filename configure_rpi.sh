@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# A setup script for running the AISDB receiver client.
+# installs a service to $HOME/ais_rcv.service to start the receiver
+# at boot.
+
+
+# incoming AIS messages will be forwarded to the following UDP address.
+# the --server-addr option may be repeated in ExecStart multiple times,
+# see `mproxy-client --help` for more info
+SERVER_ADDRESS="aisdb.meridian.cs.dal.ca:9921"
+
 set -e
 
 cd $HOME
@@ -26,7 +36,7 @@ Documentation=https://aisdb.meridian.cs.dal.ca/doc/receiver.html
 [Service]
 Type=simple
 User=$USER
-ExecStart=$HOME/.cargo/bin/mproxy-client --path /dev/ttyACM0 --server-addr 'aisdb.meridian.cs.dal.ca:9921'
+ExecStart=$HOME/.cargo/bin/mproxy-client --path /dev/ttyACM0 --server-addr $SERVER_ADDRESS
 Restart=always
 RestartSec=30
 

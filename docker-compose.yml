@@ -2,6 +2,14 @@ version: '3.9'
 
 services:
 
+  aisdb-python:
+    image: meridiancfi/aisdb:latest
+    build:
+      target: aisdb-python
+      context: .
+      dockerfile: ./docker/python_build.Dockerfile
+    container_name: aisdb-python
+
   # compile for manylinux targets and assemble python package wheels
   pkgbuild:
     container_name: pkgbuild
@@ -10,94 +18,76 @@ services:
       - ./:/io
     command: build --release --manylinux 2014 --strip  --interpreter 3.8 3.9 3.10 3.11
 
-  # run rust tests
-  rust-test:
-    container_name: rust-test
-    environment:
-      - RUST_BACKTRACE=1
-    image: meridiancfi/aisdb:latest
-    environment:
-      - RUST_BACKTRACE=1
-    volumes:
-      - ./Cargo.toml:/home/ais_env/Cargo.toml
-      - ./src:/home/ais_env/src
-      - ./build.rs:/home/ais_env/build.rs
-      - ./testdata:/home/ais_env/testdata
-      - ./target/:/home/ais_env/target
-    command:
-      ["cargo", "test", "--lib", "--release", "--color=always", "--manifest-path=./aisdb_lib/Cargo.toml"]
-
   # build python package and run python tests
   python-test:
+    init: true
+    image: meridiancfi/aisdb-manylinux:latest
     build:
-      target: aisdb
+      target: aisdb-python-test
       context: .
-      dockerfile: ./docker/Dockerfile
+      dockerfile: ./docker/python_build.Dockerfile
     container_name: python-test
-    # image: meridiancfi/aisdb:latest
     environment:
       - RUST_BACKTRACE=1
-      - AISDBDATADIR=/home/ais_env/ais
-      - AISDBTESTDIR=/home/ais_env/testdata
+      - AISDBDATADIR=/aisdb_src/ais/
+      - AISDBTESTDIR=/aisdb_src/testdata/
+      - AISDBMARINETRAFFIC=/aisdb_src/testdata/marinetraffic_test.db
     volumes:
-      - ${AISDBDATADIR:-/home/$USER/ais/}:/home/ais_env/ais/
-      #- ./aisdb_web/dist_coverage/:/home/ais_env/aisdb_web/dist_coverage/
-      - ./docs/dist_coverage/:/home/ais_env/docs/dist_coverage/
-      - ./target/:/home/ais_env/target
-      - ./testdata:/home/ais_env/testdata
-    init: true
+      - ${AISDBDATADIR:-./testdata}:/aisdb_src/ais/
+      - ./docs/dist_coverage:/aisdb_src/docs/dist_coverage
+      #- ./target/:/aisdb_src/target
+      - ./testdata:/aisdb_src/testdata
+      #- ./testdata/marinetraffic_test.db:$HOME/testdata/marinetraffic_test.db
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::10"
     command: 
-      ["python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not timing"]
+      ["/env_aisdb/bin/python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not marinetraffic"]
+    #command: sh -c 'echo $$AISDBDATADIR && echo $$HOME && echo $$AISDBTESTDIR && ls $$HOME && ls $$AISDBDATADIR'
 
   # webapp
   # connects to database server on $AISDBHOST:$AISDBPORT
   webserver:
     container_name: webserver
-    init: true
     build: 
-      target: webserv
       context: .
-      dockerfile: ./docker/Dockerfile
+      dockerfile: ./docker/webserver.Dockerfile
       args:
-        AISDBHOST: ${AISDBHOST:-127.0.0.1}
-        AISDBPORT: ${AISDBPORT:-9924}
+        VITE_AISDBHOST: ${VITE_AISDBHOST:-127.0.0.1}
+        VITE_AISDBPORT: ${VITE_AISDBPORT:-9924}
         VITE_BINGMAPTILES: ${VITE_BINGMAPTILES:-}
         VITE_TILESERVER: ${VITE_TILESERVER:-/}
-    command:
-      ['npm', '--prefix', 'aisdb_web/', 'start']
+        VITE_NO_DB_LIMIT: ${VITE_NO_DB_LIMIT:-}
     networks:
       ipv6_private:
         ipv6_address: "fc00::3"
 
   # nodejs docs server
   docserver:
-    volumes:
-      - ./docs/dist_coverage/:/home/ais_env/docs/dist_coverage/
     container_name: docserver
+    volumes:
+      - ./docs/dist_coverage:/docs/dist_coverage/:ro
     init: true
-    image: meridiancfi/aisdb:latest
-    command:
-      ['node', 'docs/docserver.js']
+    build: 
+      context: .
+      dockerfile: ./docker/python_build.Dockerfile
+      target: docserver
     networks:
       ipv6_private:
         ipv6_address: "fc00::4"
 
   # database server
-  websocket:
-    container_name: websocket
-    image: meridiancfi/aisdb:latest
-    environment:
-      AISDBHOST: ${AISDBHOST:-127.0.0.1}
-      AISDBHOSTALLOW: ${AISDBHOSTALLOW:-*}
-      AISDBPORT: ${AISDBPORT:-9924}
-      # consider mounting volumes at the following locations
-      # ensure that write permissions are allowed on the database file e.g. chmod 777
-      AISDBPATH: '/home/ais_env/ais/ais.db'
-      AISDBZONES: '/home/ais_env/ais/zones/'
-      AISDBMARINETRAFFIC: '/home/ais_env/ais/marinetraffic.db'
+  db-server:
+    container_name: db-server
+    build: 
+      context: .
+      dockerfile: ./docker/database_server.Dockerfile
     init: true
-    command: 
-      ["python", "-u", "examples/start_websocket.py"]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_ADDR: ${POSTGRES_ADDR:-[fc00::9]}
+      AISDBHOSTALLOW: ${AISDBHOSTALLOW:-[::]}
+      AISDBPORT: ${AISDBPORT:-9924}
     networks: 
       ipv6_private:
         ipv6_address: "fc00::6"
@@ -107,18 +97,21 @@ services:
     image: nginx:latest
     container_name: nginx
     environment: 
-      AISDBHOST: ${AISDBHOST:-127.0.0.1}
-      AISDBPORT: ${AISDBPORT:-9924}
-      BINGMAPSKEY: ${BINGMAPSKEY:-""}
+      VITE_AISDBHOST: ${VITE_AISDBHOST:-127.0.0.1}
+      VITE_AISDBPORT: ${VITE_AISDBPORT:-9924}
+      VITE_BINGMAPSKEY: ${VITE_BINGMAPSKEY:-""}
+      VITE_TILESERVER: ${VITE_TILESERVER:-}
+      NGINX_CSP_FRAME_ANCESTORS: ${NGINX_CSP_FRAME_ANCESTORS:-}
     ports:
      - "80:80"
      - "443:443"
      - "9919:9919/udp"
      - "9920:9920"
      - "9921:9921/udp"
-     - "9922:9922"
+     #- "9922:9922"
      - "9923:9923/udp"
-     - "9924:9924"
+     #- "9924:9924"
+     #- "5432:5432"
     networks:
       ipv6_private:
         ipv6_address: "fc00::2"
@@ -130,7 +123,7 @@ services:
     #  - ~/cert/conf:/etc/letsencrypt
     init: true
     command:
-      ["/bin/sh" , "-c" , "envsubst '$${AISDBHOST} $${AISDBPORT} $${BINGMAPSKEY}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
+      ["/bin/sh" , "-c" , "envsubst '$${VITE_AISDBHOST} $${VITE_AISDBPORT} $${VITE_BINGMAPSKEY} $${VITE_TILESERVER} $${NGINX_CSP_FRAME_ANCESTORS}' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' -c /etc/nginx/nginx.conf"]
 
   # https://eff-certbot.readthedocs.io/en/stable/using.html#where-are-my-certificates
   certbot:
@@ -142,30 +135,32 @@ services:
     networks:
       ipv6_private:
         ipv6_address: "fc00::5"
+    environment:
+      AISDBHOST: "aisdb.meridian.cs.dal.ca"
     #entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot certonly --webroot -w /var/www/certbot -d $AISDBHOST -n; sleep 12h & wait $${!}; done;'"
-    depends_on:
-      - nginx
+    #depends_on:
+    #  - nginx
 
   receiver:
     container_name: receiver
     init: true
-    restart: always
-    image: meridiancfi/aisdb:latest
+    #restart: always
     build: 
-      target: aisdb
       context: .
-      dockerfile: ./docker/Dockerfile
-    # will look for database on path ./receiver/ais_rx.db
-    # ensure that write permission is allowed
+      dockerfile: ./docker/receiver.Dockerfile
     volumes:
-      - ./receiver:/usr/src/aisdb/receiver
+      - ${AISDBPATH:-./AIS.sqlitedb}:/ais_rx.db
     networks:
       ipv6_private:
         ipv6_address: "fc00::7"
+    environment:
+      #POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      - PGPASS:$POSTGRES_PASSWORD
     command: 
       ["aisdb-receiver", 
-          "--path", "/usr/src/aisdb/receiver/ais_rx.db", 
+          "--path", "/ais_rx.db", 
+          "--postgres-connect", "postgresql://postgres:$POSTGRES_PASSWORD@[fc00::9]:5432",
           #"--tcp-connect-addr='aisdb.meridian.cs.dal.ca:9920'", 
           #"--tcp-listen-addr='[::]:9922'", 
           #"--tcp-listen-addr='[::]:9920'", 
@@ -176,34 +171,41 @@ services:
           #,"--tee"
       ]
     depends_on:
-      - nginx
+      - postgresdb
 
   # forward receiver to downstream
   upstream-ais:
     container_name: upstream-ais
     init: true
-    image: meridiancfi/aisdb:latest
     build: 
-      target: aisdb
       context: .
-      dockerfile: ./docker/Dockerfile
+      dockerfile: ./docker/dispatcher.Dockerfile
     environment:
       RUST_BACKTRACE: 1
     networks:
       ipv6_private:
         ipv6_address: "fc00::8"
-    depends_on:
-      - nginx
-      - receiver
-    working_dir: "/usr/src/aisdb/dispatcher/reverse_proxy"
     command:
       ["mproxy-reverse",
          #"--tcp-output-addr", "[::]:9920",
          #"--tcp-listen-addr", "[::]:9920",
          "--tcp-output-addr", "[::]:9920",
-         "--multicast-addr", "[ff02::1]:9916",
-         "--udp-output-addr", "[::]:9923"
+         "--multicast-addr", "[ff02::1]:9916"
+         #"--udp-output-addr", "[::]:9923"
       ]
+
+  # https://github.com/docker-library/docs/blob/master/postgres/README.md
+  postgresdb:
+    container_name: postgresdb
+    image: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::9"
+    volumes:
+      - ${POSTGRES_VOLUME_DIR:-postgres_data}:/var/lib/postgresql/data
 
 networks:
   ipv6_private:
@@ -213,4 +215,3 @@ networks:
       config:
         - subnet: "fc00:0:0::/120"
           gateway: "fc00:0:0::1"
-
