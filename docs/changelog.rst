@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.5.0
+------
+
+version bump #version:minor
+
+
 v1.4.41
 -------
 

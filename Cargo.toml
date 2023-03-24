@@ -1,5 +1,5 @@
 [package]
-version = "1.4.41"
+version = "1.5.0"
 name = "aisdb"
 edition = "2021"
 include = [ "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml",]
@@ -15,7 +15,7 @@ nmea-parser = "0.10"
 
 [dependencies.aisdb-lib]
 path = "aisdb_lib"
-features = ["sqlite", "postgres"]
+features = [ "sqlite", "postgres",]
 
 [dependencies.aisdb-receiver]
 path = "receiver"
