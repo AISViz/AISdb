@@ -18,23 +18,21 @@
 //!
 //! use mproxy_client::client_socket_stream;
 //!
-//! pub fn main() {
-//!     // read input from stdin
-//!     let path = PathBuf::from("-");
+//! // read input from stdin
+//! let path = PathBuf::from("-");
 //!
-//!     // downstream UDP socket addresses
-//!     let server_addrs =  vec!["127.0.0.1:9919".into(), "localhost:9921".into(), "[ff02::1]:9920".into()];
+//! // downstream UDP socket addresses
+//! let server_addrs =  vec!["127.0.0.1:9919".into(), "localhost:9921".into(), "[ff02::1]:9920".into()];
 //!     
-//!     // copy input to stdout
-//!     let tee = true;
+//! // copy input to stdout
+//! let tee = true;
 //!
-//!     let client_thread = spawn(move || {
-//!         client_socket_stream(&path, server_addrs, tee).unwrap();
-//!     });
+//! let client_thread = spawn(move || {
+//!     client_socket_stream(&path, server_addrs, tee).unwrap();
+//! });
 //!
-//!     // run client until EOF
-//!     client_thread.join().unwrap();
-//! }
+//! // run client until EOF
+//! client_thread.join().unwrap();
 //! ```
 //!
 //! ## Command Line Interface
@@ -152,9 +150,9 @@ fn client_check_ipv6_interfaces(addr: &SocketAddr) -> ioResult<UdpSocket> {
 pub fn target_socket_interface(server_addr: &String) -> ioResult<(SocketAddr, UdpSocket)> {
     let target_addr = server_addr
         .to_socket_addrs()
-        .expect(format!("parsing server address from {}", server_addr).as_str())
+        .unwrap_or_else(|e| panic!("parsing server address from {}: {}", server_addr, e))
         .next()
-        .expect(format!("parsing server address from {}", server_addr).as_str());
+        .unwrap_or_else(|| panic!("parsing server address from {}", server_addr));
     let target_socket = match target_addr.is_ipv4() {
         true => new_sender(&target_addr).expect("creating ipv4 send socket!"),
         false => client_check_ipv6_interfaces(&target_addr).expect("creating ipv6 send socket!"),

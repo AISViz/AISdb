@@ -17,11 +17,11 @@ from .database.create_tables import (
     sqlite_createtable_staticreport,
 )
 
-from .database.dbconn import DBConn
+from .database.dbconn import DBConn, SQLiteDBConn, PostgresDBConn
 
 from .database.decoder import decode_msgs
 
-from .database.dbqry import DBQuery, DBQuery_async
+from .database.dbqry import DBQuery
 
 from .database import sqlfcn
 
@@ -59,12 +59,10 @@ from .proc_util import (
 
 from .track_gen import (
     TrackGen,
-    TrackGen_async,
     split_timedelta,
     fence_tracks,
     encode_score,
     encode_greatcircledistance,
-    encode_greatcircledistance_async,
 )
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')

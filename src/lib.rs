@@ -14,7 +14,7 @@ use pyo3::ffi::PyErr_CheckSignals;
 use pyo3::prelude::*;
 
 use aisdb_lib::csvreader::decodemsgs_ee_csv;
-use aisdb_lib::decode::decode_insert_msgs;
+use aisdb_lib::decode::{postgres_decode_insert_msgs, sqlite_decode_insert_msgs};
 use aisdb_receiver::{start_receiver, ReceiverArgs};
 
 macro_rules! zip {
@@ -64,7 +64,13 @@ pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 ///     None
 ///
 #[pyfunction]
-pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str, verbose: bool) {
+pub fn decoder(
+    dbpath: &str,
+    psql_conn_string: &str,
+    files: Vec<&str>,
+    source: &str,
+    verbose: bool,
+) {
     // array tuples containing (dbpath, filepath)
     let mut path_arr = vec![];
     for file in files {
@@ -81,8 +87,20 @@ pub fn decoder(dbpath: &str, files: Vec<&str>, source: &str, verbose: bool) {
             Some(ext_os_str) => match ext_os_str.to_str() {
                 Some("nm4") | Some("NM4") | Some("nmea") | Some("NMEA") | Some("rx")
                 | Some("txt") | Some("RX") | Some("TXT") => {
-                    parser =
-                        decode_insert_msgs(d, f, source, parser, verbose).expect("decoding NM4");
+                    if !dbpath.is_empty() {
+                        parser = sqlite_decode_insert_msgs(d, f, source, parser, verbose)
+                            .expect("decoding NM4");
+                    }
+                    if !psql_conn_string.is_empty() {
+                        parser = postgres_decode_insert_msgs(
+                            psql_conn_string,
+                            f,
+                            source,
+                            parser,
+                            verbose,
+                        )
+                        .expect("decoding NM4");
+                    }
                 }
                 Some("csv") | Some("CSV") => {
                     decodemsgs_ee_csv(d, f, source, verbose).expect("decoding CSV");
@@ -233,8 +251,10 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
 /// If dbpath is given, parsed data will be stored in an SQLite database.
 ///
 /// args:
-///     dbpath (Option<String>)
+///     sqlite_dbpath (Option<String>)
 ///         If given, raw messages will be parsed and stored in an SQLite database at this location
+///     postgres_connection_string (Option<String>)
+///         Postgres database connection string
 ///     udp_listen_addr (String)
 ///         UDP port to listen for incoming AIS data streams e.g. "0.0.0.0:9921" or "[::]:9921"
 ///     tcp_listen_addr (String)
@@ -258,7 +278,8 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
 ///         If True, raw input will be copied to stdout
 #[pyfunction]
 pub fn receiver(
-    dbpath: Option<String>,
+    sqlite_dbpath: Option<String>,
+    postgres_connection_string: Option<String>,
     tcp_connect_addr: Option<String>,
     tcp_listen_addr: Option<String>,
     udp_listen_addr: String,
@@ -271,7 +292,8 @@ pub fn receiver(
     tee: bool,
 ) {
     let threads = start_receiver(ReceiverArgs {
-        dbpath: dbpath.map(PathBuf::from),
+        sqlite_dbpath: sqlite_dbpath.map(PathBuf::from),
+        postgres_connection_string,
         tcp_connect_addr,
         tcp_listen_addr,
         udp_listen_addr,

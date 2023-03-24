@@ -7,7 +7,7 @@ use pico_args::Arguments;
 const HELP: &str = r#"
 MPROXY: Forwarding Proxy
 
-Forward TLS/TCP, UDP, or Multicast endpoints to a downstream UDP socket address. 
+Forward TLS/TCP, UDP, or Multicast endpoints to a downstream UDP socket address.
 
 USAGE:
   mproxy-forward  [FLAGS] [OPTIONS]
@@ -15,7 +15,7 @@ USAGE:
 OPTIONS:
   --udp-listen-addr     [HOSTNAME:PORT]     UDP listening socket address. May be repeated
   --udp-downstream-addr [HOSTNAME:PORT]     UDP downstream socket address. May be repeated
-  --tcp-connect-addr    [HOSTNAME:PORT]     Connect to TCP host, forwarding stream. May be repeated 
+  --tcp-connect-addr    [HOSTNAME:PORT]     Connect to TCP host, forwarding stream. May be repeated
 
 FLAGS:
   -h, --help    Prints help information
@@ -59,7 +59,7 @@ fn parse_args() -> Result<GatewayArgs, pico_args::Error> {
     Ok(args)
 }
 
-pub fn main() {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = match parse_args() {
         Ok(a) => a,
         Err(e) => {
@@ -68,6 +68,10 @@ pub fn main() {
         }
     };
     let mut threads = vec![];
+
+    if args.udp_listen_addrs.is_empty() {
+        panic!("Atleast one UDP listen address is required");
+    }
 
     for upstream in args.tcp_connect_addrs {
         threads.push(proxy_tcp_udp(upstream, args.udp_listen_addrs[0].clone()));
@@ -78,6 +82,7 @@ pub fn main() {
     }
 
     for thread in threads {
-        thread.join().unwrap();
+        thread.join().expect("joining proxy thread");
     }
+    Ok(())
 }

@@ -27,7 +27,6 @@ def interp_time(tracks, step=timedelta(minutes=10)):
             dictionary of interpolated tracks
     '''
     for track in tracks:
-
         if track['time'].size <= 1:
             # yield track
             warnings.warn('cannot interpolate track of length 1, skipping...')

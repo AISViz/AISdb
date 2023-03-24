@@ -1,4 +1,4 @@
-INSERT OR IGNORE INTO ais_{}_static (
+INSERT INTO ais_{}_static (
     mmsi,
     time,
     vessel_name,
@@ -19,4 +19,6 @@ INSERT OR IGNORE INTO ais_{}_static (
     eta_minute,
     source
   )
-VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+ON CONFLICT DO NOTHING
+;

@@ -27,14 +27,14 @@ const polygonText = function (feature) {
   return new Text({
     stroke: new Stroke({ color: 'white', width: 3 }),
     align: 'center',
-    text: feature.get('meta_str'),
-    // Font: '3 12 / 12 12', // weight size / height dom.font.value
+    text: feature.get('meta_string'),
+    //Font: '3 12 / 12 12', // weight size / height dom.font.value
     overflow: true,
     fill: new Fill({ color: 'black' }),
   });
 };
 
-/** Default zone polygon map style */
+/**Default zone polygon map style */
 
 const polyStyle = function (feature) {
   return new Style({
@@ -51,7 +51,7 @@ const polyStyle = function (feature) {
 const polySelectStyle = function (feature) {
   return new Style({
     fill: new Fill({
-      // Color: '#eeeeee',
+      //Color: '#eeeeee',
       color: 'rgba(255, 255, 255, 0.4)',
     }),
     stroke: new Stroke({
@@ -62,7 +62,7 @@ const polySelectStyle = function (feature) {
   });
 };
 
-/** Hidden feature style */
+/**Hidden feature style */
 const hiddenStyle = new Style({
   fill: new Fill({
     color: 'rgba(255, 255, 255, 0)',
@@ -73,7 +73,7 @@ const hiddenStyle = new Style({
   }),
 });
 
-/** Map window selection area feature style */
+/**Map window selection area feature style */
 const dragBoxStyle = new Style({
   fill: new Fill({
     color: 'rgba(255, 255, 255, 0)',
@@ -84,28 +84,28 @@ const dragBoxStyle = new Style({
   }),
 });
 
-/** Tracks color palette */
+/**Tracks color palette */
 const palette = [
-  // [0, 0, 0],
-  // [1, 0, 103],
+  //[0, 0, 0],
+  //[1, 0, 103],
   [ 213, 255, 0 ],
   [ 255, 0, 86 ],
   [ 0, 155, 255 ],
   [ 158, 0, 142 ],
-  // [14, 76, 161],
-  // [0, 95, 57],
+  //[14, 76, 161],
+  //[0, 95, 57],
   [ 255, 110, 65 ],
   [ 0, 255, 0 ],
-  // [149, 0, 58],
-  // [255, 147, 126],
-  // [164, 36, 0],
-  // [0, 21, 68],
-  // [145, 208, 203],
-  // [98, 14, 0],
-  // [107, 104, 130],
-  // [0, 0, 255],
-  // [0, 125, 181],
-  // [106, 130, 108],
+  //[149, 0, 58],
+  //[255, 147, 126],
+  //[164, 36, 0],
+  //[0, 21, 68],
+  //[145, 208, 203],
+  //[98, 14, 0],
+  //[107, 104, 130],
+  //[0, 0, 255],
+  //[0, 125, 181],
+  //[106, 130, 108],
   [ 0, 174, 126 ],
   [ 194, 140, 159 ],
   [ 190, 153, 112 ],
@@ -120,51 +120,51 @@ const palette = [
   [ 150, 138, 232 ],
   [ 167, 87, 64 ],
   [ 1, 255, 254 ],
-  // [255, 238, 232],
+  //[255, 238, 232],
   [ 254, 137, 0 ],
   [ 255, 229, 2 ],
   [ 1, 208, 255 ],
   [ 187, 136, 0 ],
-  // [117, 68, 177],
-  // [165, 255, 210],
+  //[117, 68, 177],
+  //[165, 255, 210],
   [ 255, 166, 254 ],
   [ 119, 77, 0 ],
-  // [122, 71, 130],
-  // [38, 52, 0],
-  // [0, 71, 84],
-  // [67, 0, 44],
+  //[122, 71, 130],
+  //[38, 52, 0],
+  //[0, 71, 84],
+  //[67, 0, 44],
   [ 181, 0, 255 ],
   [ 255, 177, 103 ],
-  // [255, 219, 102],
+  //[255, 219, 102],
   [ 144, 251, 146 ],
   [ 126, 45, 210 ],
   [ 189, 211, 147 ],
   [ 229, 111, 254 ],
-  // [222, 255, 116],
+  //[222, 255, 116],
   [ 0, 255, 120 ],
   [ 189, 198, 255 ],
-  // [0, 100, 1],
+  //[0, 100, 1],
   [ 0, 118, 255 ],
   [ 133, 169, 0 ],
-  // [0, 185, 23],
+  //[0, 185, 23],
   [ 120, 130, 49 ],
   [ 0, 255, 198 ],
   [ 232, 94, 190 ],
 ];
 
-/** Known vessel types */
+/**Known vessel types */
 const vessellabels = [
-  // '',
-  // '-',
-  // 'Unspecified',
+  //'',
+  //'-',
+  //'Unspecified',
   'Anti-Pollution',
   'Beacon, Starboard Hand',
   'Cargo',
   'Dive Vessel',
-  // 'Cargo - Hazard A (Major)',
-  // 'Cargo - Hazard B',
-  // 'Cargo - Hazard C (Minor)',
-  // 'Cargo - Hazard D (Recognizable)',
+  //'Cargo - Hazard A (Major)',
+  //'Cargo - Hazard B',
+  //'Cargo - Hazard C (Minor)',
+  //'Cargo - Hazard D (Recognizable)',
   'Dredger',
   'Fishing',
   'High Speed Craft',
@@ -188,12 +188,13 @@ const vessellabels = [
   'Special Craft',
   'Safe Water',
   'Tanker',
-  // 'Tanker - Hazard A (Major)',
-  // 'Tanker - Hazard B',
-  // 'Tanker - Hazard C (Minor)',
-  // 'Tanker - Hazard D (Recognizable)',
+  //'Tanker - Hazard A (Major)',
+  //'Tanker - Hazard B',
+  //'Tanker - Hazard C (Minor)',
+  //'Tanker - Hazard D (Recognizable)',
   'Tug',
   'Wing In Grnd',
+  'Towing',
 ];
 
 const vesseltypes = {};
@@ -224,8 +225,17 @@ vesseltypes['Tanker-HazardA(Major)'] = vesseltypes.Tanker;
 vesseltypes['Tanker-HazardB'] = vesseltypes.Tanker;
 vesseltypes['Tanker-HazardC(Minor)'] = vesseltypes.Tanker;
 vesseltypes['Tanker-HazardD(Recognizable)'] = vesseltypes.Tanker;
+vesseltypes['Passenger, hazardous category A'] = vesseltypes.Passenger;
+vesseltypes['Passenger, hazardous category B'] = vesseltypes.Passenger;
+vesseltypes['Passenger, hazardous category C'] = vesseltypes.Passenger;
+vesseltypes['Passenger, hazardous category D'] = vesseltypes.Passenger;
+vesseltypes['Wing In Grnd, hazardous category A'] = vesseltypes['Wing In Grnd'];
+vesseltypes['Wing In Grnd, hazardous category B'] = vesseltypes['Wing In Grnd'];
+vesseltypes['Wing In Grnd, hazardous category C'] = vesseltypes['Wing In Grnd'];
+vesseltypes['Wing In Grnd, hazardous category D'] = vesseltypes['Wing In Grnd'];
+vesseltypes['Towing - length >200m or breadth >25m'] = vesseltypes.Towing;
 
-/** Maps vessellabels to colors in palette */
+/**Maps vessellabels to colors in palette */
 function getVesselStyle(vesseltype) {
   return function (feature, zoom) {
     return new Style({
@@ -246,12 +256,12 @@ for (const key of Object.keys(vesseltypes)) {
   vesselStyles[key] = getVesselStyle(key);
 }
 
-/** On mousever feature style */
+/**On mousever feature style */
 const selectStyle = function (feature) {
   return new function (feature, zoom) {
     return new Style({
       fill: new Fill({
-        // Color: '#eeeeee',
+        //Color: '#eeeeee',
         color: 'rgba(255, 255, 255, 0.4)',
       }),
       stroke: new Stroke({

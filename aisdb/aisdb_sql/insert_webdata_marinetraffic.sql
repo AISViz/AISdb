@@ -12,7 +12,7 @@ INSERT INTO webdata_marinetraffic (
     year_built,
     home_port
   )
-VALUES (CAST(? AS INT),CAST(? AS INT),?,?,?,?,?,?,?,?,?,?)
+VALUES (CAST($1 AS INT),CAST($2 AS INT),$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 ON CONFLICT (mmsi) DO UPDATE SET 
     imo = excluded.imo,
     name = excluded.name, 

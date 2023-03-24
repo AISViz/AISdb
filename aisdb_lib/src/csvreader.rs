@@ -11,7 +11,10 @@ use nmea_parser::ais::{
 };
 use nmea_parser::ParsedMessage;
 
-use crate::db::{get_db_conn, prepare_tx_dynamic, prepare_tx_static};
+#[cfg(feature = "sqlite")]
+use crate::db::{get_db_conn, sqlite_prepare_tx_dynamic, sqlite_prepare_tx_static};
+#[cfg(feature = "postgres")]
+//use crate::db::{get_postgresdb_conn, postgres_prepare_tx_dynamic, postgres_prepare_tx_static};
 use crate::decode::VesselData;
 
 /// convert time string to epoch seconds
@@ -96,7 +99,7 @@ pub fn decodemsgs_ee_csv(
                 longitude: row.get(28).unwrap().parse().ok(),
                 cog: row.get(30).unwrap().parse().ok(),
                 heading_true: row.get(31).unwrap().parse().ok(),
-                timestamp_seconds: row.get(42).unwrap().parse::<u8>().unwrap_or(0) as u8,
+                timestamp_seconds: row.get(42).unwrap().parse::<u8>().unwrap_or(0),
                 positioning_system_meta: None,
                 current_gnss_position: None,
                 special_manoeuvre: None,
@@ -147,20 +150,20 @@ pub fn decodemsgs_ee_csv(
         }
 
         if positions.len() >= 500000 {
-            let _d = prepare_tx_dynamic(&mut c, source, positions);
+            let _d = sqlite_prepare_tx_dynamic(&mut c, source, positions);
             positions = vec![];
         };
         if stat_msgs.len() >= 500000 {
-            let _s = prepare_tx_static(&mut c, source, stat_msgs);
+            let _s = sqlite_prepare_tx_static(&mut c, source, stat_msgs);
             stat_msgs = vec![];
         }
     }
 
     if !positions.is_empty() {
-        let _d = prepare_tx_dynamic(&mut c, source, positions);
+        let _d = sqlite_prepare_tx_dynamic(&mut c, source, positions);
     }
     if !stat_msgs.is_empty() {
-        let _s = prepare_tx_static(&mut c, source, stat_msgs);
+        let _s = sqlite_prepare_tx_static(&mut c, source, stat_msgs);
     }
 
     let elapsed = start.elapsed();

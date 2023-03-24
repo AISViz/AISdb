@@ -21,7 +21,7 @@ Package features:
   + Data visualization
 
 
-.. image:: https://aisdb.meridian.cs.dal.ca/doc/_images/scriptoutput.png
+.. image:: https://aisdb.meridian.cs.dal.ca/readme_example.png
 
 
 | Web Interface:
@@ -41,8 +41,8 @@ What is AIS?
 | Description of message types:
   https://arundaleais.github.io/docs/ais/ais_message_types.html
 
-.. install:
 
+.. install:
 
 Install
 -------

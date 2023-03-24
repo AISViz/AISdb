@@ -7,9 +7,8 @@ CREATE TABLE IF NOT EXISTS ais_{}_dynamic (
     sog REAL,
     cog REAL,
     heading REAL,
-    maneuver TEXT,
+    maneuver BOOLEAN,
     utc_second INTEGER,
     source TEXT NOT NULL,
     PRIMARY KEY (mmsi, time, longitude, latitude, sog, cog, source)
-) WITHOUT ROWID;
---, STRICT
+);

@@ -18,9 +18,9 @@ AISDB Docs: Index
 
 .. raw:: html 
 
-   <a href='_images/scriptoutput.png'>
+   <a href='https://aisdb.meridian.cs.dal.ca/?24h'>
       <img 
-        src='https://aisdb.meridian.cs.dal.ca/doc/_images/scriptoutput.png' 
+        src='https://aisdb.meridian.cs.dal.ca/readme_example.png' 
         width="800"
         onerror="this.html='';"
       ></img>

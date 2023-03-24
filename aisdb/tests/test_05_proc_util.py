@@ -69,7 +69,7 @@ def test_write_csv_fromdict(tmpdir):
         )
 
         rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic, verbose=True)
-        tracks = track_gen.TrackGen(rowgen)
+        tracks = track_gen.TrackGen(rowgen, decimate=True)
         aisdb.proc_util.write_csv(tracks,
                                   fpath=os.path.join(tmpdir,
                                                      'test_write_csv.csv'))
@@ -99,7 +99,8 @@ def test_write_csv_fromdict_marinetraffic(tmpdir):
                                 })
 
         rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, verbose=True)
-        tracks = vessel_info(track_gen.TrackGen(rowgen), trafficDBpath)
+        tracks = vessel_info(track_gen.TrackGen(rowgen, decimate=True),
+                             trafficDBpath)
         aisdb.proc_util.write_csv(tracks,
                                   fpath=os.path.join(tmpdir,
                                                      'test_write_csv.csv'))

@@ -21,9 +21,11 @@ read -p "Are you sure? [y/n]" -r
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
   pwd
-  sudo -E docker-compose build python-test
-  docker tag meridiancfi/aisdb:latest meridiancfi/aisdb:$TAG
+  sudo -E docker-compose build aisdb-python python-test
+  docker tag meridiancfi/aisdb:latest meridiancfi/aisdb:$TAG 
+  docker tag meridiancfi/aisdb-manylinux:latest meridiancfi/aisdb-manylinux:latest
   sudo docker push meridiancfi/aisdb:$TAG
   sudo docker push meridiancfi/aisdb:latest
+  sudo docker push meridiancfi/aisdb-manylinux:latest
 fi
 
