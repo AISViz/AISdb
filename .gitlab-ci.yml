@@ -10,17 +10,17 @@ workflow:
 
 stages:
   - python-test
-  - build-website
+  #- build-website
   - publish
 
 
-build-website:
-  stage: build-website
-  only: 
-    - master
-  script:
-    - cd aisdb_web && npm install
-    - /bin/bash ./build_website.sh
+#build-website:
+#  stage: build-website
+#  only: 
+#    - master
+#  script:
+#    - cd aisdb_web && npm install
+#    - /bin/bash ./build_website.sh
 
 
 python-test:
