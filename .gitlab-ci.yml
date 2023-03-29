@@ -54,7 +54,7 @@ tag:
       - ".gitlab-ci.yml"
   before_script:
     - curl --location --output /usr/local/bin/release-cli "https://release-cli-downloads.s3.amazonaws.com/latest/release-cli-linux-amd64"
-    - sudo chmod +x /usr/local/bin/release-cli
+    - chmod +x /usr/local/bin/release-cli
   script: 
     - echo 'tagging release...'
   release:
