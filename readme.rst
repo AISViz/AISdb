@@ -42,25 +42,36 @@ What is AIS?
   https://arundaleais.github.io/docs/ais/ais_message_types.html
 
 
-.. install:
 
 Install
 -------
-Requires Python version 3.9, 3.10, or 3.11.
-Requires SQLite (included by default in most versions of Python).
+
+.. _install-pip:
+  
+Requires Python version 3.9 or newer installed on the system.
+Optionally requires SQLite (included by default in most versions of Python).
+The AISDB Python package can be installed with pip in a virtual Python environment from the command line:
 
 .. code-block:: sh
 
    python -m venv env_ais && source ./env_ais/*/activate
    pip install aisdb
 
+.. _install-src:
 
-Installing from Source
-----------------------
+For information on installing AISDB from source code, see `Installing from Source <https://aisdb.meridian.cs.dal.ca/doc/install_from_source.html>`__
+
+.. _readme-docs:
 
 
-See `Installing from Source <install_from_source>`__
+Documentation
+-------------
 
+An introduction to AISDB can be found here: `Introduction <https://aisdb.meridian.cs.dal.ca/doc/intro.html>`__.
+
+Additional API documentation: `API Docs <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.html>`__.
+
+.. _readme-examples:
 
 Code examples
 -------------
@@ -79,15 +90,4 @@ Code examples
    polygons <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
 
 6. Integrating data from web sources, such as depth charts, shore distance, etc.
-
-Collecting AIS Data
--------------------
-
-1. `Decode incoming AIS data and log to SQLite database <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.receiver.html>`__
-
-.. code-block:: python
-
-   from aisdb.receiver import start_receiver
-
-   start_receiver(connect_addr='aisdb.meridian.cs.dal.ca:9920', dbpath='AIS.sqlitedb', stdout=True)
 

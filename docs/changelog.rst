@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.5.3
+------
+
+update readme and docker docs; add python environment to introduction doc
+
+
 v1.5.2
 ------
 

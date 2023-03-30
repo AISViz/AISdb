@@ -1,3 +1,5 @@
+.. _intro:
+
 Introduction
 ============
 
@@ -19,6 +21,9 @@ For example, AISDB provides convenience functions to download ocean bathymetric 
 Index
 -----
 
+  0. :ref:`Python Environment <python-env>`
+      * Install with Pip
+      * Install with Docker
   1. :ref:`Database Creation <db-create>`
       * From MERIDIAN's data livestream
       * From historical AIS data files
@@ -42,6 +47,24 @@ Index
       * Sharing data to external networks
 
 
+.. _python-env:
+
+0. Python Environment
+---------------------
+
+.. include:: readme.rst
+   :start-after: _install-pip:
+   :end-before: _readme-docs:
+
+.. include:: docker.rst
+   :start-after: _docker-quickstart:
+   :end-before: _docker-compose:
+
+AISDB cloud services are documented in the :ref:`AISDB Docker docs <docker>`.
+
+The Python code in the rest of this document can then be run in the new Python environment.
+When using an interpreter such as `Jupyter <https://jupyter.org/>`__, ensure that jupyter is installed in the same environment as AISDB.
+
 .. _db-create:
 
 1. Database Creation
@@ -54,6 +77,7 @@ Creating a database from live streaming data
 A typical workflow for using AISDB requires a database of recorded AIS messages.
 The following code snippet demonstrates how to create a new database from MERIDIAN's AIS data stream.
 with the argument ``stdout=True``, the raw message input will be copied to stdout before it is decoded and added to the database.
+Also see the receiver api docs: :func:`aisdb.receiver.start_receiver`. 
 
 .. code-block:: python
     
@@ -293,14 +317,17 @@ Configuration options such as database path may be set by environment variables.
 6. Data collection and sharing
 ------------------------------
 
-AIS station operators are encouraged to share incoming AIS data from their receivers with the MERIDIAN data sharing network.
+AIS station operators are may set up an AIS base station with a Raspberry Pi receiver client, and store messages in a database with the receiver server.
+For instructions on transmitting AIS from a Raspberry Pi to the receiver server, see :ref:`Setting up an AIS receiver client <receiver>`.
+The receiver server can then forward incoming filtered messages to a downstream UDP multicast channel:
   
 .. code-block:: python
+
+  import aisdb
     
   # listen for incoming raw AIS messages on port 9921 and share with MERIDIAN network
-  start_receiver(udp_listen_addr='0.0.0.0:9921', multicast_rebroadcast_addr='aisdb.meridian.cs.dal.ca:9921')
-
-
-For further info on how to set up a Raspberry Pi for receiving AIS, see :ref:`Setting up an AIS receiver <receiver>`
-
+  aisdb.start_receiver(
+    udp_listen_addr='0.0.0.0:9921', 
+    multicast_rebroadcast_addr='aisdb.meridian.cs.dal.ca:9921',
+  )
 
