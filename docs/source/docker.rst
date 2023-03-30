@@ -5,6 +5,24 @@ Docker
 
 Package tests, documentation, and webapp are included as services in ``docker-compose.yml``.
 
+.. _docker_quickstart:
+
+Quick Start
+-----------
+
+A docker image is provided containing Python with AISDB installed.
+
+.. code-block:: sh
+
+  docker pull meridiancfi/aisdb
+  docker run --interactive --tty --volume ./:/aisdb/ meridiancfi/aisdb
+
+
+The same can be achieved with ``docker-compose`` in the context of the repository compose file:
+
+.. code-block:: sh
+
+  docker-compose --file ./docker-compose.yml run --rm --volume "`pwd`:/aisdb" aisdb-python
 
 Environment
 -----------
