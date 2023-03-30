@@ -35,15 +35,12 @@ services:
     volumes:
       - ${AISDBDATADIR:-./testdata}:/aisdb_src/ais/
       - ./docs/dist_coverage:/aisdb_src/docs/dist_coverage
-      #- ./target/:/aisdb_src/target
       - ./testdata:/aisdb_src/testdata
-      #- ./testdata/marinetraffic_test.db:$HOME/testdata/marinetraffic_test.db
     networks:
       ipv6_private:
         ipv6_address: "fc00::10"
     command: 
       ["/env_aisdb/bin/python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not marinetraffic"]
-    #command: sh -c 'echo $$AISDBDATADIR && echo $$HOME && echo $$AISDBTESTDIR && ls $$HOME && ls $$AISDBDATADIR'
 
   # webapp
   # connects to database server on $AISDBHOST:$AISDBPORT

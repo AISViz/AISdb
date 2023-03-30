@@ -7,149 +7,176 @@ Package tests, documentation, and webapp are included as services in ``docker-co
 
 .. _docker_quickstart:
 
-Quick Start
------------
+Python Quick Start
+------------------
 
-A docker image is provided containing Python with AISDB installed.
+A docker image is provided containing a Python environment with AISDB installed.
+To start the container, first ensure that docker/docker-compose is installed on the system, and enter into the command line:
 
 .. code-block:: sh
 
   docker pull meridiancfi/aisdb
   docker run --interactive --tty --volume ./:/aisdb/ meridiancfi/aisdb
 
-
+The current working directory will be mounted inside the container as a volume.
 The same can be achieved with ``docker-compose`` in the context of the repository compose file:
 
 .. code-block:: sh
 
   docker-compose --file ./docker-compose.yml run --rm --volume "`pwd`:/aisdb" aisdb-python
 
-Environment
------------
-
-To enable Bing Maps aerial overlay when hosting the application, obtain a WMTS
-token from `Bing Maps <https://www.bingmapsportal.com/>`_ and place this in 
-``.env`` within the project root.
-The ``AISDBHOST`` and ``AISDBPORT`` configurations set the webserver listen address and port, which will default to ``127.0.0.1`` and ``9924`` if unset. 
-By default, the webserver will listen to requests from all clients (``*``), but this can be restricted by setting ``AISDBHOSTALLOW``.
-
-
-``.env``
-
-.. code-block:: sh
-
-  BINGMAPSKEY="<your token here>"
-  AISDBHOST="<your FQDN here>"
-  AISDBPORT=9924
-  AISDBHOSTALLOW="*"
-
-
-The default command for starting the websocket server will look for the database file, zone polygons folder, and marinetraffic database file at the following volume locations.
-These can be mounted inside the docker container using a ``docker-compose.override.yml`` in the root project directory, for example:
-
-.. code-block:: 
-
-.. code-block:: yaml
-
-   services:
-     websocket:
-       volumes:
-         - /home/$USER/ais/ais_2022.db:/home/ais_env/ais/ais.db
-         - /home/$USER/ais/:/home/ais_env/ais/
-         - /home/$USER/ais/marinetraffic.db:/home/ais_env/ais/marinetraffic.db
-
-   
-Instead of using the default command, consider writing a script similar to examples/start_websocket.py with the filepath locations replaced, and volume paths adjusted accordingly
-
-
 Compose Services
 ----------------
 
-Run tests, build documentation, and start the webapp with ``docker-compose up --build python-test && docker-compose up --build nginx websocket webserver docserver``. 
-Services can also be run individually: ``pkgbuild``, ``python-test``, ``rust-test``, ``webserver``, ``docserver``, ``websocket``, ``nginx``, and ``certbot``.
-Note that the ``python-test`` service must be run before starting ``docserver`` for test coverage results (will be output to ``aisdb_web/dist_coverage`` from the project root). 
-For SSL configuration with nginx and certbot, mount certificates to ``/etc/letsencrypt/live/$HOSTNAME/fullchain.pem`` and ``/etc/letsencrypt/live/$HOSTNAME/privkey.pem``
+In addition to the Python AISDB docker image, AISDB provides a complete suite of cloud services for storing, accessing, viewing, and networking AIS data.
+These services are defined in the ``docker-compose.yml`` file in the project repository. 
+Cloud services are implemented in a microservices architecture, using a software-defined network defined in the compose file.
+Services include:
+
+
+* docserver
+
+  - NodeJS webserver to display Sphinx documentation (such as this webpage)
+
+* webserver
+
+  - NodeJS web application front-end interface for AISDB. 
+
+* postgresdb
+
+  - AISDB Postgres database storage.
+
+* db-server
+
+  - Web application back-end. Serves vectorized AIS tracks from the Postgres database in response to JSON-formatted queries.
+
+* receiver
+
+  - Listens for IP-enabled AIS transmitters over TLS/TCP or UDP channels, and stores incoming AIS messages in the postgres database. Optionally forwards filtered messages to a downstream UDP channel in raw or parsed format.
+
+* upstream-ais
+
+  - Live streaming AIS server. Listens for AIS messages forwarded by the ``receiver`` service, and reverse-proxy messages to downstream TCP clients or UDP channels. This service provides live-streaming data to the front end ``webserver``.
+
+
+To start all AISDB cloud services, navigate to the repository root directory and enter into the command line (root permissions may be required):
 
 .. code-block:: sh
 
-  $ docker-compose up --build pkgbuild  # must be run first
-  $ docker-compose up --build python-test rust-test
-  $ docker-compose up --build webserver websocket nginx
+  docker-compose up --build nginx db-server webserver docserver receiver upstream-ais
 
 
-Website SSL
+
+
+Development and Deployment
+--------------------------
+
+The following services are used for the development and deployment of AISDB
+
+* python-test
+
+  - Run Python package integration tests
+
+* pkgbuild
+
+  - Build manylinux-compatible wheels for Python package distribution
+
+* certbot
+
+  - TLS/SSL certificate renewal service. Renews certificates used by the ``nginx`` service. ``privkey.pem`` and ``fullchain.pem`` certificates are mounted in the ``nginx`` container inside directory ``/etc/letsencrypt/live/$FQDN/``,  where ``$FQDN`` is the domain name, e.g. ``127.0.0.1``.
+
+* nginx
+
+  - NGINX gateway router. Routes incoming traffic to the appropriate cloud service. The following ports are exposed by the gateway:
+
+    + ``80``: redirects to port 443
+    + ``443``: serves web application endpoints over HTTPS
+    + ``9920``: Proxy for the ``upstream-ais`` service stream output (raw format).
+    + ``9922``: Proxy for the ``receiver`` service stream output (JSON format).
+
+    The following endpoints are available over HTTPS:
+
+    + ``/``: Proxy for the ``webserver`` service.
+    + ``/doc``: Proxy for the ``docserver`` service.
+    + ``/ws``: Proxy for the ``db-server`` service.
+    + ``/stream``: Alias of port ``9922``. 
+    + ``/stream-raw``: Alias of port ``9920``.
+    + ``/coverage``: Alias of ``/docs/coverage``.
+
+
+Environment
 -----------
 
-Not required for local development.
-
-In ``docker-compose.override.yml``, mount local directories intended for storing certificates from letsencrypt.
-Replace ``/home/$USER/cert/`` with a new local directory for this purpose.
-
-.. code-block:: yaml
-
-  services:
-    nginx:
-      volumes:
-        - /home/$USER/cert/conf:/etc/letsencrypt
-        - /home/$USER/cert/www:/var/www/certbot
-    certbot:
-      volumes:
-        - /home/$USER/cert/conf:/etc/letsencrypt
-        - /home/$USER/cert/www:/var/www/certbot
-
-Disable SSL configuration in nginx temporarily to serve the authentication challenge.
-Make the following modification to ``docker/nginx.conf``, commenting lines for SSL:
-
-.. code-block:: cfg
-
-   #listen 443 ssl http2;
-   #listen [::]:443 ssl http2;
-   #ssl_certificate /etc/letsencrypt/live/${AISDBHOST}/fullchain.pem;
-   #ssl_certificate_key /etc/letsencrypt/live/${AISDBHOST}/privkey.pem;
-   listen 443;
-   listen [::]:443;
-
-Manually request a new certbot authentication challenge from the certbot docker service, replacing $DOMAIN with your fully-qualified domain name.
-Sudo permissions may be required.
-Follow the prompt and create the files in the mounted cert directory, replacing the directory path with the one used in ``docker-compose.override.yml``.
-Restart the router to apply the changes, and then verify that the router is serving the acme challenge with cURL. 
+Services running with docker compose will read environment variables from a ``.env`` file in the project root directory.
+An example ``.env`` file is included here:
 
 .. code-block:: sh
 
-   # follow the prompts given by the following command
-   # when prompted, place the acme-challenge files in the docker folder mounted on /var/www/certbot
-   # e.g. /var/www/certbot/.well-known/acme-challenge/<filename> inside the container
-   # or /home/$USER/cert/www/certbot/.well-known/acme-challenge/<filename> on the host
-   docker exec -it certbot certbot certonly --manual -d $DOMAIN
+  # Front end config (bundled with Vite for NodeJS)
 
-   # in another terminal window:
-   mkdir -p /home/$USER/cert/www/.well-known/acme-challenge/
-   echo "<challenge token from certbot prompt goes here>" > /home/$USER/cert/www/.well-known/acme-challenge/<challenge filename>
-   docker-compose restart nginx
+  # AISDB database server and livestream server hostname
+  VITE_AISDBHOST='127.0.0.1'
 
-   # verify with curl
-   curl $DOMAIN/.well-known/acme-challenge/<challenge filename>
+  # Bing maps token
+  # Get your token here: https://www.bingmapsportal.com/
+  #VITE_BINGMAPSKEY='<my-token-here>'
+
+  # Disable SSL/TLS for incoming livestream data.
+  # When using this option, the front end will connect to the livestream
+  # server at ws://$VITE_AISDBHOST:9922
+  # Otherwise, the front end will connect to wss://$VITE_AISDBHOST/stream
+  VITE_DISABLE_SSL_STREAM=1
+
+  # Disable SSL for the database server connection
+  VITE_DISABLE_SSL_DB=1
+
+  # Port used for database server connection.
+  # This setting is only active when VITE_DISABLE_SSL_DB is enabled, 
+  # otherwise, an SSL connection will be made to https://VITE_AISDBHOST/ws
+  VITE_AISDBPORT=9924
+
+  # Allow users to query an unlimited amount of data at one time
+  #VITE_NO_DB_LIMIT=1
+
+  # if enabled, Bing Maps will be used for WMTS instead of OpenStreetMaps
+  VITE_BINGMAPTILES=1
+
+  # Default WMTS server
+  #VITE_TILESERVER="dev.virtualearth.net"
+  VITE_TILESERVER="aisdb.meridian.cs.dal.ca"
 
 
-If cURL returns the challenge token provided by certbot, proceed with the prompt by pressing 'Enter'.
-Revert ``docker/nginx.conf`` to use SSL and restart the service
+  # Back end config
 
-.. code-block:: cfg
+  # Hostname
+  AISDBHOST='127.0.0.1'
+  #AISDBHOST='aisdb.meridian.cs.dal.ca'
 
-   listen 443 ssl http2;
-   listen [::]:443 ssl http2;
-   ssl_certificate /etc/letsencrypt/live/${AISDBHOST}/fullchain.pem;
-   ssl_certificate_key /etc/letsencrypt/live/${AISDBHOST}/privkey.pem;
-   #listen 443;
-   #listen [::]:443;
+  # Database server port
+  AISDBPORT=9924
+
+  # Python database path
+  #AISDBPATH='./AIS.sqlitedb'
+
+  # Postgres database config
+  # For more info on postgres configs, see:
+  # https://github.com/docker-library/docs/blob/master/postgres/README.md#environment-variables
+  POSTGRES_PASSWORD='example'
+
+  # This volume will be mounted for the postgres data directory
+  POSTGRES_VOLUME_DIR='./postgres_data'
+
+  # NGINX CSP header endpoints
+  NGINX_CSP_FRAME_ANCESTORS=""
+  #NGINX_CSP_FRAME_ANCESTORS="https://aisdb.meridian.cs.dal.ca/"
 
 
-.. code-block:: sh
+  # Tests config
 
-   docker-compose restart nginx certbot
+  # Mounted AISDB metadata directory.
+  # Will be used during testing
+  AISDBDATADIR='/RAID0/ais/'
+  AISDBMARINETRAFFIC='/RAID0/ais/marinetraffic_V2.db'
 
 
-See the following tutorial for more info
-
-| https://pentacent.medium.com/nginx-and-lets-encrypt-with-docker-in-less-than-5-minutes-b4b8a60d3a71
 

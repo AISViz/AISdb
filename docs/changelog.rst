@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.5.2
+------
+
+update cloud services documentation
+
+
 v1.5.1
 ------
 
