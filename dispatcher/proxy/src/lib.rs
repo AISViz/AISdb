@@ -174,8 +174,8 @@ pub fn proxy_tcp_udp(upstream_tcp: String, downstream_udp: String) -> JoinHandle
         #[cfg(not(feature = "tls"))]
         let stream = TcpStream::connect(upstream_tcp.clone());
         #[cfg(not(feature = "tls"))]
-        let mut stream = if stream.is_ok() {
-            stream.unwrap()
+        let mut stream = if let Ok(s) = stream {
+            s
         } else {
             println!("Retrying...");
             std::thread::sleep(std::time::Duration::from_secs(5));

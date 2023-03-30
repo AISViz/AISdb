@@ -41,6 +41,7 @@ RUN python -m pip install --upgrade pip packaging Pillow requests selenium tqdm 
 WORKDIR /aisdb
 COPY --from=aisdb-manylinux /aisdb_src/target/wheels/* wheels/
 RUN python -m pip install wheels/aisdb-*-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+CMD ["python3", "-Iqu"]
 
 
 # install extras required for tests and sphinx docs

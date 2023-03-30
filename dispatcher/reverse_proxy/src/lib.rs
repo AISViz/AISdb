@@ -17,36 +17,34 @@
 //! ```rust,no_run
 //! use mproxy_reverse::{reverse_proxy_tcp_udp, reverse_proxy_udp, reverse_proxy_udp_tcp};
 //!
-//! pub fn main() {
-//!     let udp_listen_addr: Option<String> = Some("0.0.0.0:9920".into());
-//!     let tcp_listen_addr: Option<String> = None;
-//!     let multicast_addr: String = "[ff02::1]:9918".into();
-//!     let tcp_output_addr: Option<String> = Some("[::1]:9921".into());
-//!     let udp_output_addr: Option<String> = None;
+//! let udp_listen_addr: Option<String> = Some("0.0.0.0:9920".into());
+//! let tcp_listen_addr: Option<String> = None;
+//! let multicast_addr: String = "[ff02::1]:9918".into();
+//! let tcp_output_addr: Option<String> = Some("[::1]:9921".into());
+//! let udp_output_addr: Option<String> = None;
 //!
-//!     let mut threads = vec![];
+//! let mut threads = vec![];
 //!
-//!     // TCP connection listener -> UDP multicast channel
-//!     if let Some(tcpin) = tcp_listen_addr {
-//!         let tcp_rproxy = reverse_proxy_tcp_udp(tcpin, multicast_addr.clone());
-//!         threads.push(tcp_rproxy);
-//!     }
+//! // TCP connection listener -> UDP multicast channel
+//! if let Some(tcpin) = tcp_listen_addr {
+//!     let tcp_rproxy = reverse_proxy_tcp_udp(tcpin, multicast_addr.clone());
+//!     threads.push(tcp_rproxy);
+//! }
 //!
-//!     // UDP multicast listener -> TCP sender
-//!     if let Some(tcpout) = &tcp_output_addr {
-//!         let tcp_proxy = reverse_proxy_udp_tcp(multicast_addr.clone(), tcpout.to_string());
-//!         threads.push(tcp_proxy);
-//!     }
+//! // UDP multicast listener -> TCP sender
+//! if let Some(tcpout) = &tcp_output_addr {
+//!     let tcp_proxy = reverse_proxy_udp_tcp(multicast_addr.clone(), tcpout.to_string());
+//!     threads.push(tcp_proxy);
+//! }
 //!
-//!     // UDP multicast listener -> UDP sender
-//!     if let Some(udpout) = udp_output_addr {
-//!         let udp_proxy = reverse_proxy_udp(multicast_addr, udpout);
-//!         threads.push(udp_proxy);
-//!     }
+//! // UDP multicast listener -> UDP sender
+//! if let Some(udpout) = udp_output_addr {
+//!     let udp_proxy = reverse_proxy_udp(multicast_addr, udpout);
+//!     threads.push(udp_proxy);
+//! }
 //!
-//!     for thread in threads {
-//!         thread.join().unwrap();
-//!     }
+//! for thread in threads {
+//!     thread.join().unwrap();
 //! }
 //! ```
 //!

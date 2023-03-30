@@ -1,8 +1,5 @@
-FROM rust:1.68-alpine
-
-RUN apk update && apk upgrade --available
-RUN apk add build-base
-
+FROM rust:slim
+RUN apt-get update -y && apt-get upgrade -y
 
 COPY dispatcher/ dispatcher/
 COPY aisdb/aisdb_sql/ aisdb/aisdb_sql/

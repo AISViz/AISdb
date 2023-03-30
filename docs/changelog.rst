@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.5.1
+------
+
+update docker build, lockfiles, and dispatcher docstrings
+
+
 v1.5.0
 ------
 

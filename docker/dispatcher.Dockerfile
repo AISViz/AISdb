@@ -1,7 +1,9 @@
-FROM rust:1.68-alpine
+#FROM rust:1.68-alpine
+#RUN apk add build-base
+FROM rust:slim
+RUN apt-get update -y && apt-get upgrade -y
 
-RUN apk add build-base
-
+ARG CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 COPY dispatcher/ dispatcher/
 RUN cargo install --path dispatcher/client
 RUN cargo install --path dispatcher/server
