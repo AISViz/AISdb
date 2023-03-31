@@ -1,6 +1,6 @@
 [package]
 name = "mproxy-client"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 
 license = "MIT"
@@ -16,7 +16,7 @@ name = "mproxy-client"
 [lib]
 
 [dependencies]
-mproxy-socket_dispatch = { path = "../socket_dispatch", version = "0.1.5" }
+mproxy-socket_dispatch = { path = "../socket_dispatch", version = "0.1.6" }
 
 [dependencies.pico-args]
 version = "0.5.0"

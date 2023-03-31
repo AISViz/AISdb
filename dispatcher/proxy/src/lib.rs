@@ -22,12 +22,12 @@
 //! let udp_downstream_addrs = vec!["[::1]:9921".into(), "localhost:9922".into()];
 //! let tcp_connect_addr: String = "localhost:9925".into();
 //! let tee = true;  // copy input to stdout
-//!     
+//!
 //! let mut threads: Vec<JoinHandle<()>> = vec![];
-//!     
+//!
 //! // spawn UDP socket listener and forward to downstream addresses
 //! threads.push(forward_udp(udp_listen_addr.clone(), &udp_downstream_addrs, tee));
-//!     
+//!
 //! // connect to TCP upstream, and forward to UDP socket listener
 //! threads.push(proxy_tcp_udp(tcp_connect_addr, udp_listen_addr));
 //!
@@ -168,7 +168,14 @@ pub fn proxy_tcp_udp(upstream_tcp: String, downstream_udp: String) -> JoinHandle
         };
 
         #[cfg(feature = "tls")]
-        let (mut conn, mut stream) = tls_connection(upstream_tcp.clone());
+        let (mut conn, mut stream) =
+            if let Ok((conn, stream)) = tls_connection(upstream_tcp.clone()) {
+                (conn, stream)
+            } else {
+                println!("Retrying...");
+                std::thread::sleep(std::time::Duration::from_secs(5));
+                continue;
+            };
         #[cfg(feature = "tls")]
         let mut stream = TlsStream::new(&mut conn, &mut stream);
         #[cfg(not(feature = "tls"))]
@@ -214,7 +221,9 @@ use std::sync::Arc;
 use webpki_roots::TLS_SERVER_ROOTS;
 
 #[cfg(feature = "tls")]
-pub fn tls_connection(tls_connect_addr: String) -> (ClientConnection, TcpStream) {
+pub fn tls_connection(
+    tls_connect_addr: String,
+) -> Result<(ClientConnection, TcpStream), Box<dyn std::error::Error>> {
     let mut root_store = rustls::RootCertStore::empty();
     root_store.add_server_trust_anchors(TLS_SERVER_ROOTS.0.iter().map(|ta| {
         rustls::OwnedTrustAnchor::from_subject_spki_name_constraints(
@@ -229,12 +238,24 @@ pub fn tls_connection(tls_connect_addr: String) -> (ClientConnection, TcpStream)
         .with_no_client_auth();
     let rc_config: Arc<ClientConfig> = Arc::new(config);
     let dns_name: String = tls_connect_addr.split(':').next().unwrap().to_string();
-    let server_name = ServerName::try_from(dns_name.as_str())
-        .unwrap_or_else(|e| panic!("Resolving DNS for {}: {}", dns_name, e));
-    let mut conn = rustls::ClientConnection::new(rc_config, server_name)
-        .unwrap_or_else(|e| panic!("Performing handshake: {}", e));
-    let sock = TcpStream::connect(tls_connect_addr.clone())
-        .unwrap_or_else(|e| panic!("Connecting to {}: {}", tls_connect_addr, e));
+    let server_name = ServerName::try_from(dns_name.as_str());
+    let server_name = if let Ok(name) = server_name {
+        name
+    } else {
+        return Err(format!("Resolving DNS for {}", dns_name).into());
+    };
+    let conn = rustls::ClientConnection::new(rc_config, server_name);
+    let mut conn = if let Ok(c) = conn {
+        c
+    } else {
+        return Err("Performing handshake".into());
+    };
+    let sock = TcpStream::connect(tls_connect_addr.clone());
+    let sock = if let Ok(s) = sock {
+        s
+    } else {
+        return Err(format!("Connecting to {}", tls_connect_addr).into());
+    };
     sock.set_nodelay(true).unwrap();
 
     // request tls
@@ -249,5 +270,5 @@ pub fn tls_connection(tls_connect_addr: String) -> (ClientConnection, TcpStream)
     if let Some(mut early_data) = conn.early_data() {
         early_data.write_all(request.as_bytes()).unwrap();
     }
-    (conn, sock)
+    Ok((conn, sock))
 }

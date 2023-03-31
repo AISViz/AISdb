@@ -26,7 +26,7 @@ dependencies = [
 
 [[package]]
 name = "aisdb"
-version = "1.5.2"
+version = "1.5.3"
 dependencies = [
  "aisdb-lib",
  "aisdb-receiver",
@@ -38,7 +38,7 @@ dependencies = [
 
 [[package]]
 name = "aisdb-lib"
-version = "1.5.2"
+version = "1.5.3"
 dependencies = [
  "chrono",
  "csv",
@@ -59,7 +59,7 @@ dependencies = [
  "mproxy-forward",
  "mproxy-reverse",
  "mproxy-server",
- "mproxy-socket_dispatch 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mproxy-socket_dispatch 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "nmea-parser",
  "pico-args",
  "serde",
@@ -729,19 +729,19 @@ dependencies = [
 
 [[package]]
 name = "mproxy-client"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
- "mproxy-socket_dispatch 0.1.5",
+ "mproxy-socket_dispatch 0.1.6",
  "pico-args",
 ]
 
 [[package]]
 name = "mproxy-forward"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "mproxy-client",
  "mproxy-server",
- "mproxy-socket_dispatch 0.1.5",
+ "mproxy-socket_dispatch 0.1.6",
  "pico-args",
  "rustls",
  "webpki-roots",
@@ -749,35 +749,35 @@ dependencies = [
 
 [[package]]
 name = "mproxy-reverse"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "mproxy-client",
  "mproxy-forward",
  "mproxy-server",
- "mproxy-socket_dispatch 0.1.5",
+ "mproxy-socket_dispatch 0.1.6",
  "pico-args",
 ]
 
 [[package]]
 name = "mproxy-server"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
- "mproxy-socket_dispatch 0.1.5",
+ "mproxy-socket_dispatch 0.1.6",
  "pico-args",
 ]
 
 [[package]]
 name = "mproxy-socket_dispatch"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
- "socket2 0.4.9",
+ "socket2 0.5.1",
 ]
 
 [[package]]
 name = "mproxy-socket_dispatch"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e5c2913aaa6ebbca3279e4c48a226fc792584aca6f6981514a20c566fcd7ff9"
+checksum = "9bd697af478223ddc83e280062e9a24759d086e6d2906bc684411623b685dfe5"
 dependencies = [
  "socket2 0.4.9",
 ]

@@ -1,5 +1,5 @@
 [package]
-version = "1.5.3"
+version = "1.5.4"
 name = "aisdb"
 edition = "2021"
 include = [ "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml",]

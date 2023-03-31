@@ -2,6 +2,8 @@
 **.crt
 **.d
 **.db
+**.db-shm
+**.db-wal
 **.egg-info
 **.eggs
 **.log
@@ -18,6 +20,8 @@
 *.d
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 *.egg-info  
 *.eggs
 *.log
@@ -61,8 +65,8 @@ docs/dist_coverage
 docs/dist_sphinx
 docs/html
 docs/source/api
-docs/source/readme.rst
 docs/source/changelog.rst
+docs/source/readme.rst
 info.sh
 prof
 profile

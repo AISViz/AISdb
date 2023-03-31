@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.5.4
+------
+
+improved fault tolerance in dispatcher proxy
+
+
 v1.5.3
 ------
 

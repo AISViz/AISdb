@@ -1,5 +1,7 @@
 **.bin
 **.crt
+**.db-shm
+**.db-wal
 **.log
 **.pytest_cache
 **.sqlitedb
@@ -14,6 +16,8 @@
 *.d
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 *.egg-info
 *.eggs
 *.log
