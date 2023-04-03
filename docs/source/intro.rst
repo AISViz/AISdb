@@ -83,7 +83,7 @@ Also see the receiver api docs: :func:`aisdb.receiver.start_receiver`.
     
   from aisdb.receiver import start_receiver
 
-  start_receiver(connect_addr='aisdb.meridian.cs.dal.ca:9920', dbpath='AIS.sqlitedb', stdout=True)
+  start_receiver(connect_addr='aisdb.meridian.cs.dal.ca:9920', sqlite_dbpath='AIS.sqlitedb', stdout=True)
 
 
 Creating a database from historical data files
