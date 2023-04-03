@@ -96,12 +96,15 @@ async function newSearch(start, end, db_socket) {
     console.log('debugging heatmap...');
   }
 
-  await db_socket.send(JSON.stringify({
+  const msg = JSON.stringify({
     msgtype: msgtype,
     start: start,
     end: end,
     area: window.searcharea,
-  }));
+  });
+  console.log(`Sending database request to: ${db_socket.url}\n${msg}`);
+
+  await db_socket.send(msg);
   window.searcharea = null;
 }
 
@@ -112,44 +115,35 @@ const timeselectstart_fp = flatpickr(timeselectstart, {
   onChange: function(selectedDates, dateString, instance) {
     timeselectstart.value = dateString;
   },
+  altInput: true,
+  altFormat: 'Z',
+  enableTime: true,
+  time_24hr: true,
+  defaultDate: new Date(Date.now()).getTime() - 1000 * 60 * 60 * 24,
 });
 const timeselectend_fp = flatpickr(timeselectend, {
   onChange: function(selectedDates, dateString, instance) {
     timeselectend.value = dateString;
   },
+  //dateFormat:
+  altInput: true,
+  altFormat: 'Z',
+  enableTime: true,
+  time_24hr: true,
+  defaultDate: new Date(Date.now()).getTime() - 1000 * 60 * 5,
 });
 
 /**Set date input min/max values upon connection to server.
  * a timerange request is made on connection, and this function will be
  * called
- * @param {string} start start time as retrieved from date input, e.g.
- * 2021-01-01
- * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
+ * @param {string} start start time as retrieved from date input
+ * @param {string} end end time as retrieved from date input
  */
 function setValidSearchRange(start, end) {
-  //Min/max values
-  timeselectstart_fp.set('minDate', start - 1000 * 60 * 60 * 24);
-  timeselectend_fp.set('minDate', start);
-  timeselectstart_fp.set('maxDate', end);
-  timeselectend_fp.set('maxDate', end);
-
-  if (timeselectstart.value !== undefined && timeselectstart.value !== null && timeselectstart.value !== '') {
-    return;
-  }
-
-  //Preselected value:
-  const defaultEnd = new Date(new Date(end).getTime()).toISOString().split('T')[0];
-  const defaultStart = new Date(new Date(end).getTime() - 1000 * 60 * 60 * 24 * 2).toISOString().split('T')[0];
-
-  if (timeselectstart.value === '' && timeselectend.value === '') {
-    timeselectstart_fp.set('defaultDate', defaultStart);
-    timeselectend_fp.set('defaultDate', defaultEnd);
-    timeselectstart_fp.jumpToDate(defaultStart, true);
-    timeselectend_fp.jumpToDate(defaultEnd, true);
-
-    timeselectstart.value = defaultStart;
-    timeselectend.value = defaultEnd;
-  }
+  timeselectstart_fp.set('minDate', new Date(start - 1000 * 60 * 60 * 24));
+  timeselectend_fp.set('minDate', new Date(start));
+  timeselectstart_fp.set('maxDate', new Date(end));
+  timeselectend_fp.set('maxDate', new Date(end));
 }
 
 /**Set start/end date input default values. used by module:url for setting
@@ -159,11 +153,7 @@ function setValidSearchRange(start, end) {
  * @param {string} end end time as retrieved from date input, e.g. 2021-01-01
  */
 function setSearchValue(start, end) {
-  //Timeselectstart_fp.set('defaultDate', start);
-  //timeselectstart_fp.jumpToDate(start, true);
   timeselectstart.value = start;
-  //Timeselectend_fp.set('defaultDate', end);
-  //timeselectend_fp.jumpToDate(end, true);
   timeselectend.value = end;
 }
 
@@ -302,15 +292,35 @@ async function initialize_selectform() {
    * @function
    */
   searchbtn.addEventListener('click', async () => {
-    const start = new Date(timeselectstart.value);
-    const end = new Date(timeselectend.value);
-    //Const start = timeselectstart.value;
-    //const end = timeselectend.value;
+    let start = new Date(timeselectstart.value);
+    let end = new Date(timeselectend.value);
+    //const offset = new Date(Date.UTC(1970, 0, 0, 0, 0)); //milliseconds;
+    //start = new Date(start.getTime() + offset.getTime() * -1);
+    //end = new Date(end.getTime() + offset.getTime() * -1);
+    //console.log(`offset: ${offset.toISOString()}\t start: ${start.toISOString()}\tend: ${end.toISOString()}`);
 
     await waitForTimerange();
     const daylength = 1000 * 60 * 60 * 24;
-    const max_time = timeselectend_fp.config.maxDate;
-    const min_time = timeselectstart_fp.config.minDate;
+    const max_time = new Date(timeselectend_fp.config.maxDate.getTime());
+    const min_time = new Date(timeselectstart_fp.config.minDate.getTime());
+
+    //Validate time input
+    if (start.getTime() < min_time.getTime()) {
+      //statusdiv.textContent = `Warning: No data before ${min_time}\t got: ${new Date(start.getTime() + offset.getTime())}`;
+      statusdiv.textContent = `Warning: No data before ${min_time.toISOString()}\t got: ${start.toISOString()}`;
+      console.log(statusdiv.textContent);
+      window.statusmsg = statusdiv.textContent;
+      start = min_time;
+      timeselectstart.value = min_time.toISOString();
+    }
+    if (end.getTime() > max_time.getTime()) {
+      //statusdiv.textContent = `Warning: No data after ${max_time}\t got: ${new Date(end.getTime() + offset.getTime())}`;
+      statusdiv.textContent = `Warning: No data before ${max_time.toISOString()}\t got: ${end.toISOString()}`;
+      console.log(statusdiv.textContent);
+      window.statusmsg = statusdiv.textContent;
+      end = max_time;
+      timeselectend.value = max_time.toISOString();
+    }
 
     //Validate input and create database request
     if (searchstate === false) {
@@ -329,14 +339,6 @@ async function initialize_selectform() {
       //Validate time input
       statusdiv.textContent = 'Error: Start must occur before end';
       window.statusmsg = statusdiv.textContent;
-    } else if (start.getTime() < min_time.getTime() - daylength * 2) {
-      //Validate time input
-      statusdiv.textContent = `Error: No data before ${min_time.toUTCString()}`;
-      window.statusmsg = statusdiv.textContent;
-    } else if (end.getTime() > max_time.getTime() + daylength * 2) {
-      //Validate time input
-      statusdiv.textContent = `Error: No data after ${max_time.toUTCString()}`;
-      window.statusmsg = statusdiv.textContent;
     } else if (Math.floor((end.getTime() - start.getTime()) / daylength) > 31 && (no_db_limit === undefined || no_db_limit === null)) {
       //Validate time input
       statusdiv.textContent = 'Error: select a time range of one month or less';
@@ -344,7 +346,8 @@ async function initialize_selectform() {
     } else if (searchstate === true) {
       //Create database request if everything is OK
       await waitForSocket();
-      await newSearch(start.getTime() / 1000, end.getTime() / 1000, db_socket);
+      //console.log(`start: ${start.toISOString()}\tend: ${end.toISOString()}`);
+      await newSearch(Math.round(start.getTime() / 1000), Math.round(end.getTime() / 1000), db_socket);
     }
 
     await waitForMap();

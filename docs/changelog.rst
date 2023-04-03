@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.5.5
+------
+
+fix timerange selection
+
+
 v1.5.4
 ------
 

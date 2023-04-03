@@ -9,25 +9,22 @@ body {
   height: 100%;
 }
 
-button {
+.selectform_button {
   font-size: 1em;
   background-color: rgba(100,100,100,0.2);
   border: 1px solid black;
   cursor: pointer;
   border-radius: 2px;
 }
-button:active {
+.selectform_button:active {
   background-color: rgba(100,100,100,0.65);
 }
 
-select, input {
-  display: flex;
-  min-width: 8em;
+.dateinput {
   text-align: right;
-  margin-left: .5em;
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-label {
+.dateinputlabel {
   text-align: right;
 }
 
@@ -139,18 +136,29 @@ label {
   .liquidlayout {
     height: 8em;
   }
+  .widecol {
+    min-width: 60vw;
+    margin-left: 2px;
+    margin-right: 2px;
+    margin-top: 2px;
+  }
   .col {
     min-width: 40vw;
     margin-left: 2px;
     margin-right: 2px;
+    margin-top: 2px;
   }
   .shortcol {
-    min-width: 40vw;
+    min-width: 20vw;
+    margin-left: 2px;
+    margin-right: 5vw;
+    margin-top: 2px;
   }
   .flexfill {
     flex-grow: 100;
     min-width: 90vw;
     min-height: 2em;
+    margin-top: 2px;
   }
 }
 
@@ -161,8 +169,13 @@ label {
   .liquidlayout {
     height: 4.5em;
   }
+  .widecol {
+    min-width: 22vw;
+    margin-left: 2px;
+    margin-right: 2px;
+  }
   .col {
-    min-width: 18vw;
+    min-width: 16vw;
     margin-left: 2px;
     margin-right: 2px;
   }
@@ -182,6 +195,12 @@ label {
   }
   .liquidlayout {
     height: 2.25em;
+  }
+  .widecol {
+    min-width: 12.5vw;
+    max-width: 25em;
+    margin-left: 2px;
+    margin-right: 2px;
   }
   .col {
     min-width: 4vw;
