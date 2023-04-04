@@ -55,7 +55,7 @@ CMD [ "/env_aisdb/bin/python" ]
 
 
 # copy sphinx docs to node container
-FROM node:19-alpine AS docserver
+FROM node:latest AS docserver
 COPY --from=aisdb-python-test /aisdb_src/docs docs
 RUN cd docs && npm install
 CMD ["node", "docs/docserver.js"]

@@ -294,6 +294,9 @@ fn query_validrange(pg: &mut Client) -> Result<(i32, i32), Box<dyn std::error::E
     sql.push_str(" AND table_name LIKE '%_dynamic'");
     sql.push_str(" ORDER BY table_name ASC");
     let tables = pg.query(&sql, &[])?;
+    if tables.is_empty() {
+        panic!("Empty database!");
+    }
     let start_table: String = tables[0].get(0);
     let end_table: String = tables[tables.len() - 1].get(0);
     let start: i32 = pg

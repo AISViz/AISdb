@@ -51,6 +51,7 @@ services:
     build: 
       context: .
       dockerfile: ./docker/webserver.Dockerfile
+      target: webserver
     environment:
       VITE_AISDBHOST: ${VITE_AISDBHOST:-127.0.0.1}
       VITE_AISDBPORT: ${VITE_AISDBPORT:-9924}

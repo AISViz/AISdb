@@ -35,6 +35,7 @@
 *.zip
 .cache
 .coverage
+.coverage.*
 .eggs
 .env
 .pytest_cache

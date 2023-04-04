@@ -39,6 +39,7 @@
 *.zip
 .cache
 .coverage
+.coverage.*
 .eggs
 .git
 .pytest_cache
