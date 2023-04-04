@@ -32,7 +32,6 @@ COPY docs/ docs/
 # build manylinux package wheels for distribution
 RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin build --release --strip --compatibility manylinux2014 --interpreter 3.9 3.10 3.11 3.12 --locked --offline
 RUN RUST_BACKTRACE=1 CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse VIRTUAL_ENV=/env_aisdb/ maturin develop --release --extras=test,docs --locked --offline
-RUN cargo clean
 
 
 # copy wheel file from aisdb-manylinux to a fresh python container and install AISDB
