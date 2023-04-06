@@ -39,59 +39,14 @@ class _DBConn():
         '''
         with open(os.path.join(sqlpath, 'coarsetype.sql'), 'r') as f:
             coarsetype_sql = f.read().split(';')
-        cur = self.cursor()
-        for row in coarsetype_sql:
-            if row == '\n':
+        #cur = self.cursor()
+        for stmt in coarsetype_sql:
+            if stmt == '\n':
                 continue
-            #cur.execute(row)
-            self.execute(row)
+            #cur.execute(stmt)
+            self.execute(stmt)
         self.commit()
-        cur.close()
-
-    def _get_dbname(self, dbpath):
-        name_ext = os.path.split(dbpath)[1]
-        name = name_ext.split('.')[0]
-        return name
-
-    def _attach(self, dbpath):
-        ''' connect to an additional database file '''
-        assert self._get_dbname(dbpath) != 'main'
-        #cur = self.cursor()
-
-        if dbpath not in self.dbpaths:
-            #cur.execute('ATTACH DATABASE ? AS ?',
-            self.execute('ATTACH DATABASE ? AS ?',
-                    [dbpath, self._get_dbname(dbpath)])
-            self.dbpaths.append(dbpath)
         #cur.close()
-
-        # query the temporal range of monthly database tables
-        # results will be stored as a dictionary attribute db_daterange
-        #cur = self.cursor()
-        sql_qry = (
-                f'SELECT * FROM {self._get_dbname(dbpath)}.sqlite_master '
-                'WHERE type="table" AND name LIKE "ais\\_%\\_dynamic" ESCAPE "\\" '
-                )
-        try:
-            cur = self.cursor()
-            cur.execute(sql_qry)
-            dynamic_tables = cur.fetchall()
-            if dynamic_tables != []:
-                db_months = sorted(
-                        [table['name'].split('_')[1] for table in dynamic_tables])
-                self.db_daterange[self._get_dbname(dbpath)] = {
-                        'start':
-                        datetime(int(db_months[0][:4]), int(db_months[0][4:]),
-                            1).date(),
-                        'end':
-                        datetime((y := int(db_months[-1][:4])),
-                            (m := int(db_months[-1][4:])),
-                            monthrange(y, m)[1]).date(),
-                        }
-        except Exception as err:
-            warnings.warn(str(err.with_traceback(None)))
-        finally:
-            cur.close()
 
 
 class SQLiteDBConn(_DBConn, sqlite3.Connection):
@@ -110,19 +65,65 @@ class SQLiteDBConn(_DBConn, sqlite3.Connection):
         self.dbpaths = []
         self.db_daterange = {}
         super().__init__(':memory:',
-                timeout=5,
-                detect_types=sqlite3.PARSE_DECLTYPES
-                | sqlite3.PARSE_COLNAMES)
+                         timeout=5,
+                         detect_types=sqlite3.PARSE_DECLTYPES
+                         | sqlite3.PARSE_COLNAMES)
         self.row_factory = sqlite3.Row
-        '''
-            cur = self.cursor()
-            cur.execute("PRAGMA journal_mode")
-            res = cur.fetchone()[0]
-            if res != 'wal':
-                self.execute('PRAGMA journal_mode=wal')
-                self.commit()
-        '''
         self._create_table_coarsetype()
+
+    def _get_dbname(self, dbpath):
+        name_ext = os.path.split(dbpath)[1]
+        name = name_ext.split('.')[0]
+        return name
+
+    def _attach(self, dbpath):
+        ''' connect to an additional database file '''
+        assert dbpath is not None
+        dbname = self._get_dbname(dbpath)
+
+        assert dbname is not None
+        assert dbname != 'main'
+        assert dbname != 'temp'
+        assert dbname != ''
+
+        if dbpath not in self.dbpaths:
+            if os.environ.get('DEBUG'):
+                print('attaching database:', dbpath, dbname)
+            try:
+                self.execute('ATTACH ? AS ?', [dbpath, dbname])
+            except Exception as e:
+                print(f'failed: ATTACH {dbpath} AS {dbname}')
+                raise e
+            self.dbpaths.append(dbpath)
+        #cur.close()
+
+        # query the temporal range of monthly database tables
+        # results will be stored as a dictionary attribute db_daterange
+        #cur = self.cursor()
+        sql_qry = (
+            f'SELECT * FROM {dbname}.sqlite_master '
+            'WHERE type="table" AND name LIKE "ais\\_%\\_dynamic" ESCAPE "\\" '
+        )
+        try:
+            cur = self.cursor()
+            cur.execute(sql_qry)
+            dynamic_tables = cur.fetchall()
+            if dynamic_tables != []:
+                db_months = sorted(
+                    [table['name'].split('_')[1] for table in dynamic_tables])
+                self.db_daterange[dbname] = {
+                    'start':
+                    datetime(int(db_months[0][:4]), int(db_months[0][4:]),
+                             1).date(),
+                    'end':
+                    datetime((y := int(db_months[-1][:4])),
+                             (m := int(db_months[-1][4:])),
+                             monthrange(y, m)[1]).date(),
+                }
+        except Exception as err:
+            warnings.warn(str(err.with_traceback(None)))
+        finally:
+            cur.close()
 
 
 # default to local SQLite database
@@ -146,6 +147,7 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
             import os
             from aisdb.database.dbconn import PostgresDBConn
+
             # keyword arguments
             dbconn = PostgresDBConn(
                 hostaddr='127.0.0.1',
@@ -153,7 +155,8 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
                 port=5432,
                 password=os.environ.get('POSTGRES_PASSWORD'),
             )
-            # libpq connection string
+
+            # Alternatively, connect using a connection string:
             dbconn = PostgresDBConn('Postgresql://localhost:5433')
 
     '''
@@ -174,7 +177,6 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
         #self.dbpaths = []
         self.db_daterange = {}
-
 
     def execute(self, sql, args=[]):
         sql = re.sub(r'\$[0-9][0-9]*', r'%s', sql)

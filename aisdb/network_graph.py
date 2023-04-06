@@ -360,9 +360,9 @@ def graph(qry,
         >>> from aisdb.database.sqlfcn_callbacks import in_bbox_time
 
         >>> # create example database file
-        >>> dbpath = './testdata/test.db'
-        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
-        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> dbpath = './example.sqlitedb'
+        >>> filepaths = ['./aisdb/tests/testdata/test_data_20210701.csv',
+        ...              './aisdb/tests/testdata/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
         ...     source='TESTING')
@@ -395,6 +395,9 @@ def graph(qry,
         ...           outputfile=os.path.join('testdata', 'test_graph.csv'),
         ...           dbpath=dbpath, data_dir=data_dir, domain=domain,
         ...           trafficDBpath=trafficDBpath)
+
+        delete the example database file
+
         >>> os.remove(dbpath)
 
         process the vessel movement graph edges.
@@ -426,6 +429,8 @@ def graph(qry,
             tracks = list(bathy.merge_tracks(tracks))
 
     # initialize raster data sources
+    if not os.path.isdir('/tmp'):  # pragma: no cover
+        os.mkdir('/tmp')
     with tempfile.TemporaryDirectory() as tmp_dir:
         if os.environ.get('DEBUG'):
             print(f'network graph {tmp_dir = }')

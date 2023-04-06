@@ -66,19 +66,33 @@ def sample_gulfstlawrence_bbox():
 
 
 def random_polygons_domain(count=10):
-    return Domain('testdomain',
-                  [{
-                      'name': f'random_{i:03}',
-                      'geometry': Polygon(zip(*sample_random_polygon()))
-                  } for i in range(count)])
+    return Domain(
+        'testdomain', [{
+            'name': f'random_{i:03}',
+            'geometry': Polygon(zip(*sample_random_polygon()))
+        } for i in range(count)] + [
+            {
+                'name':
+                'outofbounds0',
+                'geometry':
+                Polygon(zip([-200, -170, -170, -200, -200],
+                            [90, 90, 0, 0, 90]))
+            },
+            {
+                'name':
+                'outofbounds1',
+                'geometry':
+                Polygon(zip([200, 170, 170, 200, 200], [-90, -90, 0, 0, -90]))
+            },
+        ])
 
 
 def sample_database_file(dbpath):
     ''' test data for date 2021-11-01 '''
-    datapath_csv = os.path.join(os.path.dirname(__file__),
+    datapath_csv = os.path.join(os.path.dirname(__file__), 'testdata',
                                 'test_data_20210701.csv')
     # no static data in nm4
-    datapath_nm4 = os.path.join(os.path.dirname(__file__),
+    datapath_nm4 = os.path.join(os.path.dirname(__file__), 'testdata',
                                 'test_data_20211101.nm4')
     months = ["202107", "202111"]
     with DBConn() as dbconn:

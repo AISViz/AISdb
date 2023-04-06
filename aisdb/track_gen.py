@@ -106,8 +106,8 @@ def TrackGen(rowgen: iter, decimate: False) -> dict:
 
         >>> # create example database file
         >>> dbpath = './testdata/test.db'
-        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
-        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
+        ...              'aisdb/tests/testdata/test_data_20211101.nm4']
 
         >>> with DBConn() as dbconn:
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
@@ -332,8 +332,8 @@ def encode_greatcircledistance(
 
         >>> # create example database file
         >>> dbpath = './testdata/test.db'
-        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
-        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
+        ...              'aisdb/tests/testdata/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn,
         ...     dbpath=dbpath, source='TESTING')

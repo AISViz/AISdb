@@ -66,8 +66,8 @@ class DBQuery(UserDict):
 
         >>> dbpath = './testdata/test.db'
         >>> start, end = datetime(2021, 7, 1), datetime(2021, 7, 7)
-        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
-        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
+        ...              'aisdb/tests/testdata/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
         ...     source='TESTING')

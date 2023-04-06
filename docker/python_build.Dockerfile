@@ -19,28 +19,28 @@ RUN mkdir -p src receiver/src aisdb \
   && echo 'fn main(){}' > receiver/src/lib.rs \
   && touch aisdb/__init__.py
 RUN python3.9 -m venv /env_aisdb
-RUN /env_aisdb/bin/python -m pip install .[test,docs]
+RUN /env_aisdb/bin/python -m pip install .[test,docs,web_api]
 
 
 COPY receiver/ receiver/
 COPY src/ src/
-RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin build --release --strip --compatibility manylinux2014 --interpreter 3.9 3.10 3.11 3.12 --locked
+RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin build --release --strip --compatibility manylinux2014 --interpreter 3.11 --locked
 COPY aisdb/ aisdb/
 COPY examples/  examples/
 COPY docs/ docs/
 
 # build manylinux package wheels for distribution
 RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin build --release --strip --compatibility manylinux2014 --interpreter 3.9 3.10 3.11 3.12 --locked --offline
-RUN RUST_BACKTRACE=1 CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse VIRTUAL_ENV=/env_aisdb/ maturin develop --release --extras=test,docs --locked --offline
+RUN RUST_BACKTRACE=1 CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse VIRTUAL_ENV=/env_aisdb/ maturin develop --release --extras=test,docs,web_api --locked --offline
 
 
 # copy wheel file from aisdb-manylinux to a fresh python container and install AISDB
-FROM python:3.11.2-slim AS aisdb-python
+FROM python:slim AS aisdb-python
 RUN apt-get update -y && apt-get upgrade -y
-RUN python -m pip install --upgrade pip packaging Pillow requests selenium tqdm numpy webdriver-manager pytest coverage pytest-cov pytest-dotenv psycopg2-binary
+RUN python -m pip install --upgrade pip packaging Pillow requests selenium tqdm numpy webdriver-manager pytest coverage pytest-cov pytest-dotenv psycopg[binary] orjson websockets
 WORKDIR /aisdb
 COPY --from=aisdb-manylinux /aisdb_src/target/wheels/* wheels/
-RUN python -m pip install wheels/aisdb-*-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+RUN python -m pip install "`ls wheels/aisdb-*-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl`[web_api,test]"
 CMD ["python3", "-Iqu"]
 
 
@@ -55,7 +55,7 @@ CMD [ "/env_aisdb/bin/python" ]
 
 
 # copy sphinx docs to node container
-FROM node:latest AS docserver
+FROM node:slim AS docserver
 COPY --from=aisdb-python-test /aisdb_src/docs docs
 RUN cd docs && npm install
 CMD ["node", "docs/docserver.js"]

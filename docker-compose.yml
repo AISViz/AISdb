@@ -1,5 +1,9 @@
 version: '3.9'
 
+secrets:
+  pgpassfile:
+    file: ${PGPASSFILE:-$HOME/.pgpass}
+
 services:
 
   aisdb-python:
@@ -24,23 +28,30 @@ services:
     image: meridiancfi/aisdb-manylinux:latest
     build:
       target: aisdb-python-test
+      #target: aisdb-python
       context: .
       dockerfile: ./docker/python_build.Dockerfile
+    working_dir: /aisdb_src
     container_name: python-test
     environment:
       - RUST_BACKTRACE=1
       - AISDBDATADIR=/aisdb_src/ais/
       - AISDBTESTDIR=/aisdb_src/testdata/
       - AISDBMARINETRAFFIC=/aisdb_src/testdata/marinetraffic_test.db
+      #- DEBUG=1
+      #- PDB=${PDB:-}
     volumes:
       - ${AISDBDATADIR:-./testdata}:/aisdb_src/ais/
       - ./docs/dist_coverage:/aisdb_src/docs/dist_coverage
       - ./testdata:/aisdb_src/testdata
+      - ./aisdb/tests/testdata:/aisdb_src/aisdb/tests/testdata
     networks:
       ipv6_private:
         ipv6_address: "fc00::10"
     command: 
       ["/env_aisdb/bin/python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not marinetraffic"]
+      #["python", "-m", "pytest",  "--durations=10", "-k", "not marinetraffic", "--pyargs", "aisdb", "$PDB"]
+      #"--doctest-modules",
 
   # webapp
   # connects to database server on $AISDBHOST:$AISDBPORT
@@ -85,11 +96,16 @@ services:
       context: .
       dockerfile: ./docker/database_server.Dockerfile
     init: true
+    secrets:
+      - pgpassfile
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
-      POSTGRES_ADDR: ${POSTGRES_ADDR:-[fc00::9]}
+      PGPASSFILE: /run/secrets/pgpassfile
+      PGUSER: ${PGUSER:-postgres}
+      PGHOST: ${PGHOST:-[fc00::9]}
+      PGPORT: ${PGPORT:-5432}
       AISDBHOSTALLOW: ${AISDBHOSTALLOW:-[::]}
       AISDBPORT: ${AISDBPORT:-9924}
+      RUST_BACKTRACE: 1
     networks: 
       ipv6_private:
         ipv6_address: "fc00::6"

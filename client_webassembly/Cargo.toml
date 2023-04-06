@@ -1,6 +1,6 @@
 [package]
 name = "client"
-version = "1.5.5"
+version = "1.5.6"
 edition = "2021"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 readme = "../../readme.rst"
@@ -45,7 +45,9 @@ lto = true
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
+
 [package.metadata.wasm-pack.profile.dev]
 wasm-opt = false
+
 [package.metadata.wasm-pack.profile.profiling]
 wasm-opt = false

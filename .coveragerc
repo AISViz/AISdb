@@ -33,6 +33,9 @@ exclude_lines =
     # dont test for convenience type checks
     isinstance
 
+    # dont test for web assets
+    requests.get
+
 ignore_errors = True
 
 omit = 

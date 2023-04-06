@@ -31,7 +31,7 @@ RUN wasm-opt -O3 -o /src/aisdb_web/map/pkg/client_bg.wasm /src/aisdb_web/map/pkg
 
 
 
-FROM node:latest AS webserver
+FROM node:slim AS webserver
 WORKDIR /src
 RUN npm install --save-dev vite
 

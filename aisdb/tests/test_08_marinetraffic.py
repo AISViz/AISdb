@@ -41,7 +41,7 @@ def test_retrieve_marinetraffic_data(tmpdir):
                         'geometry': poly
                     }])
 
-    datapath = os.path.join(os.path.dirname(__file__),
+    datapath = os.path.join(os.path.dirname(__file__), 'testdata',
                             'test_data_20211101.nm4')
     dbpath = os.path.join(tmpdir, 'test_retrieve_marinetraffic_data.db')
     with DBConn() as dbconn:

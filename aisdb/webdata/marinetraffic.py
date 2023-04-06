@@ -128,6 +128,7 @@ def _insertvesselrow(elem, mmsi, trafficDB):  # pragma: no cover
 
 
 def _vessel_info_dict(trafficDBpath):
+    assert os.path.isfile(trafficDBpath)
     with DBConn() as dbconn:
         dbconn._attach(trafficDBpath)
         dbname = dbconn._get_dbname(trafficDBpath)

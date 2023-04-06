@@ -1,5 +1,3 @@
-#FROM rust:1.68-alpine
-#RUN apk add build-base
 FROM rust:slim
 RUN apt-get update -y && apt-get upgrade -y
 

@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.5.6
+------
+
+fix bugs, update testing, add new examples
+
+
 v1.5.5
 ------
 

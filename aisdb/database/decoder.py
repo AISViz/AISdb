@@ -105,9 +105,9 @@ class FileChecksums():
 
 
 def _decode_gz(file, tmp_dir, dbpath, psql_conn_string, source, verbose):
-    if dbpath is None:
+    if dbpath is None:  # pragma: no cover
         dbpath = ''
-    if psql_conn_string is None:
+    if psql_conn_string is None:  # pragma: no cover
         psql_conn_string = ''
     unzip_file = os.path.join(tmp_dir, file.rsplit(os.path.sep, 1)[-1][:-3])
     with gzip.open(file, 'rb') as f1, open(unzip_file, 'wb') as f2:
@@ -122,9 +122,9 @@ def _decode_gz(file, tmp_dir, dbpath, psql_conn_string, source, verbose):
 
 def _decode_ziparchive(file, tmp_dir, dbpath, psql_conn_string, source,
                        verbose):
-    if dbpath is None:
+    if dbpath is None:  # pragma: no cover
         dbpath = ''
-    if psql_conn_string is None:
+    if psql_conn_string is None:  # pragma: no cover
         psql_conn_string = ''
     zipf = zipfile.ZipFile(file)
     for item in zipf.namelist():
@@ -190,8 +190,8 @@ def decode_msgs(filepaths,
         >>> from aisdb import decode_msgs, DBConn
 
         >>> dbpath = os.path.join('testdata', 'doctest.db')
-        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
-        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
+        ...              'aisdb/tests/testdata/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath, source='TESTING')
         >>> os.remove(dbpath)
