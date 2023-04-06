@@ -110,7 +110,7 @@ For configuration, see the ``VITE_*`` environment variables in :ref:`environment
    /bin/bash ./build_website.sh
    npx vite --port 3000 ./map 
 
-Alternatively, configure and start the web application interface with the following Python code after building dependencies
+Windows users may alternatively configure and start the web application interface with the following Python code, after building and installing dependencies manually
 
 .. include:: ../../examples/start_web_interface.py
    :literal:

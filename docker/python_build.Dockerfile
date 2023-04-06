@@ -1,4 +1,4 @@
-FROM ghcr.io/pyo3/maturin:main AS aisdb-manylinux
+FROM ghcr.io/pyo3/maturin:v0.14.16 AS aisdb-manylinux
 
 # Updates
 RUN yum update -y && yum upgrade -y
@@ -19,7 +19,7 @@ RUN mkdir -p src receiver/src aisdb \
   && echo 'fn main(){}' > receiver/src/lib.rs \
   && touch aisdb/__init__.py
 RUN python3.9 -m venv /env_aisdb
-RUN /env_aisdb/bin/python -m pip install .[test,docs,web_api]
+RUN /env_aisdb/bin/python -m pip install --upgrade .[test,docs,web_api] pip wheel setuptools
 
 
 COPY receiver/ receiver/
