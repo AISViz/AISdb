@@ -34,8 +34,8 @@ AISDB Docs: Index
    intro
    readme
    install_from_source
-   webserver
    docker
+   webapp
    database
    receiver
 

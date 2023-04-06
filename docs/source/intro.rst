@@ -306,10 +306,10 @@ Detailed metadata from marinetraffic.com
 
 AIS data contained in the database may be viewed in a web map such as the one shown above.
 Requires nodejs and npm installed.
-Clone the project repo, and this script from inside the project root directory to start the web client and database server.
+Clone the project repo, and run this script inside the project root directory to start the user interface.
 Configuration options such as database path may be set by environment variables.
 
-.. literalinclude:: ../../examples/display.py
+.. literalinclude:: ../../examples/start_web_interface.py
    :language: python
 
 .. _data-sharing:

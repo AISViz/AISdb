@@ -8,7 +8,11 @@ Python Docker Quick Start
 
 .. _docker-quickstart:
 
-Alternative to installing with pip, a docker image is provided containing a Python environment with AISDB installed.
+For most users, the recommended way to use the AISDB Python package is by installing it with pip.
+The main purpose of the Python docker images in this repository is to provide a build environment for the Python wheel files that can be used for pip installation, as well as providing a reference and testing environment.
+The ``meridiancfi/aisdb:latest`` image is based on ``python:slim`` with the AISDB package wheel installed.
+In the ``meridiancfi/aisdb-manylinux:latest`` image, wheel binary files are compiled from Rust and Python source code using a ``manylinux`` base docker image.
+The `Manylinux project <https://github.com/pypa/manylinux>`__ aims to provide a convenient way to distribute binary Python extensions as wheels on Linux.
 To start the container, ensure that ``docker`` and ``docker-compose`` are installed, and enter into the command line:
 
 .. code-block:: sh
@@ -46,7 +50,7 @@ Services include:
 
   - AISDB Postgres database storage.
 
-* db-server
+* db-
 
   - Web application back-end. Serves vectorized AIS tracks from the Postgres database in response to JSON-formatted queries.
 
@@ -104,6 +108,8 @@ The following services are used for the development and deployment of AISDB
     + ``/coverage``: Alias of ``/docs/coverage``.
 
 
+.. _environment:
+
 Environment
 -----------
 
@@ -156,12 +162,17 @@ An example ``.env`` file is included here:
   AISDBPORT=9924
 
   # Python database path
-  #AISDBPATH='./AIS.sqlitedb'
+  AISDBPATH='./AIS.sqlitedb'
 
-  # Postgres database config
-  # For more info on postgres configs, see:
-  # https://github.com/docker-library/docs/blob/master/postgres/README.md#environment-variables
-  POSTGRES_PASSWORD='example'
+  # Postgres database client config
+  PGPASSFILE=$HOME/.pgpass
+  PGUSER="postgres"
+  PGHOST="[fc00::9]"
+  PGPORT="5432"
+
+  # Postgres database server config
+  # More info here: https://hub.docker.com/_/postgres/
+  POSTGRES_PASSWORD="example"
 
   # This volume will be mounted for the postgres data directory
   POSTGRES_VOLUME_DIR='./postgres_data'
@@ -178,5 +189,71 @@ An example ``.env`` file is included here:
   AISDBDATADIR='/RAID0/ais/'
   AISDBMARINETRAFFIC='/RAID0/ais/marinetraffic_V2.db'
 
+
+Interacting with Postgres Database
+----------------------------------
+
+In some cases, Postgres may preferred over SQLite. 
+Postgres offers improved concurrency and scalability over SQLite, at the cost of requiring more disk space and compute resources.
+The easiest and recommended way to use AISDB with the Postgresql database is via docker (to manually install depencies, see :ref:`webapp`). 
+To get started, navigate to the repository root directory, and ensure docker and docker-compose are installed. 
+Start the AIS receiver, database server, and postgres database docker images. 
+Sudo permissions may be required for Docker and docker-compose.
+
+Python API
+++++++++++
+
+The receiver will fetch live data streaming from the MERIDIAN AIS network, and store it in the postgres database.
+Start the AIS receiver and Postgres database services from the command line with docker-compose:
+
+.. code-block:: sh
+
+  export POSTGRES_PASSWORD="example"
+  docker-compose up --build receiver postgresdb
+
+
+The Postgres database may be interfaced using Python in the same manner as the default SQLite database by using :class:`aisdb.database.dbconn.PostgresDBConn` as a drop-in replacement for the default :class:`aisdb.database.dbconn.DBConn` that uses SQLite.
+
+.. code-block:: python
+
+    import os
+    from aisdb.database.dbconn import PostgresDBConn
+
+    # keyword arguments
+    dbconn = PostgresDBConn(
+        hostaddr='127.0.0.1',
+        user='postgres',
+        port=5432,
+        password=os.environ.get('POSTGRES_PASSWORD'),
+    )
+
+    # Alternatively, connect using a connection string:
+    dbconn = PostgresDBConn('Postgresql://localhost:5433')
+
+The resulting dbconn may then be used similar to how ``DBConn`` is used in the :ref:`Intro Doc <intro>`
+
+Web API
++++++++
+
+Start the AIS receiver, Postgres database, and database webserver services from the command line using the following command.
+See :ref:`docker` for more info on docker services.
+Alternatively, the services can be run in a local environment instead of a docker environment as described in :ref:`webapp`.
+
+.. code-block:: sh
+
+  docker-compose up --build receiver postgresdb db-server
+
+The receiver service will listen for new data from MERIDIAN's AIS receiver, and store it in the postgres database.
+The db-server service provides a web API for the AIS data stored in the postgres database.
+This listens for WebSocket connections on port 9924, and returns JSON-formatted vessel tracks in response to queries.
+The following Python code provides an example of how to asynchronously query AIS data from db-server.
+This code can either run in a local Python environment or in the aisdb-python docker image.
+While this example uses Python, the web API can be accessed using any language or package using the `Websocket Protocol <https://www.rfc-editor.org/rfc/rfc6455>`__, such as JavaScript, as long as requests are formatted as utf8-encoded JSON.
+
+.. include:: ../../examples/query_db_API.py
+   :literal:
+
+Interacting with the Map
+------------------------
 
 

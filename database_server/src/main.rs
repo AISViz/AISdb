@@ -5,6 +5,7 @@ use std::convert::From;
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 pub use std::ops::{Generator, GeneratorState, IndexMut};
+use std::path::Path;
 use std::pin::Pin;
 use std::thread::spawn;
 
@@ -641,6 +642,35 @@ fn default_zones() -> Vec<JsValue> {
 }
 
 fn handle_client(downstream: TcpStream, pg: &mut Client) -> Result<(), Box<dyn std::error::Error>> {
+    fn write_response(
+        tracks: GeneratorIteratorAdapter<impl Generator<Yield = Track, Return = ()>>,
+        websocket: &mut tungstenite::WebSocket<TcpStream>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut count = 0;
+        for track in tracks {
+            let response = json!(Response {
+                msgtype: "track_vector".to_string(),
+                x: track.vectors.get("longitude").unwrap(),
+                y: track.vectors.get("latitude").unwrap(),
+                t: track.vectors.get("time").unwrap(),
+                meta: track.meta,
+            });
+            websocket.write_message(Message::Binary(response.to_string().into()))?;
+            //websocket.write_message(Message::Binary(compress_string_zlib( response.to_string(),)?))?;
+            count += 1;
+        }
+
+        // websocket.write_pending()?; // flush write buffer
+
+        let status_response = format!(
+            "{{\"msgtype\":\"done\", \"status\":\"Done. Count: {}\"}}",
+            count
+        );
+        websocket.write_message(Message::Binary(status_response.into()))?;
+        //websocket.write_message(Message::Binary(compress_string_zlib(status_response)?))?;
+        Ok(())
+    }
+
     // timeouts and TLS are handled by gateway
     downstream.set_read_timeout(None)?;
     downstream.set_write_timeout(None)?;
@@ -674,32 +704,17 @@ fn handle_client(downstream: TcpStream, pg: &mut Client) -> Result<(), Box<dyn s
         let response_result = match req.msgtype.as_str() {
             "track_vectors" => {
                 let tracks = query_dynamic_tables(req, pg);
-                //let tracks = query_merged_tables(req, pg);
                 let compressed = compress_geometry_vectors(tracks, 0.0001);
                 let rounded = round_floats(compressed, 0.0001);
-                let mut count = 0;
-                for track in rounded {
-                    let response = json!(Response {
-                        msgtype: "track_vector".to_string(),
-                        x: track.vectors.get("longitude").unwrap(),
-                        y: track.vectors.get("latitude").unwrap(),
-                        t: track.vectors.get("time").unwrap(),
-                        meta: track.meta,
-                    });
-                    websocket.write_message(Message::Binary(response.to_string().into()))?;
-                    //websocket.write_message(Message::Binary(compress_string_zlib( response.to_string(),)?))?;
-                    count += 1;
-                }
+                write_response(rounded, &mut websocket)?;
+                Ok(())
+            }
 
-                // flush the write buffer to ensure that all messages are sent before the "done" message
-                // websocket.write_pending()?; // flush write buffer
-
-                let status_response = format!(
-                    "{{\"msgtype\":\"done\", \"status\":\"Done. Count: {}\"}}",
-                    count
-                );
-                websocket.write_message(Message::Binary(status_response.into()))?;
-                //websocket.write_message(Message::Binary(compress_string_zlib(status_response)?))?;
+            "track_vectors_extra" => {
+                let tracks = query_merged_tables(req, pg);
+                let compressed = compress_geometry_vectors(tracks, 0.0001);
+                let rounded = round_floats(compressed, 0.0001);
+                write_response(rounded, &mut websocket)?;
                 Ok(())
             }
 
@@ -722,13 +737,6 @@ fn handle_client(downstream: TcpStream, pg: &mut Client) -> Result<(), Box<dyn s
                 let vinfo = query_metadata(pg, start, end);
                 for obj in vinfo {
                     websocket.write_message(Message::Binary(obj.to_string().into()))?;
-                    /*
-                    let res = websocket.read_message()?;
-                    let ack = res.to_text()?;
-                    if ack != "ack" {
-                        eprintln!("got bad acknowledgement: {}", ack);
-                    }
-                    */
                 }
 
                 // flush the write buffer to ensure that all messages are sent before the "done" message
@@ -741,38 +749,57 @@ fn handle_client(downstream: TcpStream, pg: &mut Client) -> Result<(), Box<dyn s
 
             // Draw geojson polygons on client
             "zones" => {
-                //Err("TODO: return zone geometries")
-
                 for zone in default_zones() {
                     websocket.write_message(Message::binary(zone.to_string()))?;
                 }
                 websocket.write_message(Message::Binary(
                     "{\"msgtype\":\"doneZones\"}".as_bytes().to_vec(),
                 ))?;
-
                 Ok(())
             }
 
-            // Client acknowledgement
-            "ack" => Err("TODO: handle client ack"),
-
-            // other / unknown
             _unknown_query_type => Err("unknown query type"),
         };
+
         if let Err(e) = response_result {
-            if !e.contains("TODO") {
-                return Err(e.into());
-            }
+            return Err(e.into());
         }
     }
 }
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     // database connection config
-    let pgpass =
-        std::env::var("POSTGRES_PASSWORD").expect("$POSTGRES_PASSWORD not set in environment");
-    let dbhost = std::env::var("POSTGRES_ADDR").unwrap_or("[fc00::9]".to_string());
-    let postgres_connection_string = format!("postgresql://postgres:{}@{}:5432", pgpass, dbhost);
+    let pghost = std::env::var("PGHOST").unwrap_or("[fc00::9]".to_string());
+    let pguser = std::env::var("PGUSER").unwrap_or("postgres".to_string());
+    let pgport = std::env::var("PGPORT").unwrap_or("5432".to_string());
+
+    // read the database password from secret file
+    let default_pgpassfile = Path::join(
+        std::env::home_dir()
+            .expect("Could not get home directory for .pgpass file")
+            .as_path(),
+        &Path::new(".pgpass"),
+    )
+    .to_str()
+    .unwrap()
+    .to_string();
+    let pgpassfile = std::env::var("PGPASSFILE").unwrap_or(default_pgpassfile);
+    let mut pgpass = std::fs::read_to_string(Path::new(&pgpassfile))
+        .unwrap_or_else(|e| panic!("Reading {}: {}", pgpassfile, e));
+    if pgpass.ends_with('\n') {
+        pgpass.pop();
+        if pgpass.ends_with('\r') {
+            pgpass.pop();
+        }
+    }
+
+    let postgres_connection_string =
+        format!("postgresql://{}:{}@{}:{}", pguser, pgpass, pghost, pgport);
+
+    println!(
+        "initializing postgres connection to: postgresql://{}:******@{}:{}",
+        pguser, pghost, pgport
+    );
 
     // server config
     let allow_clients = std::env::var("AISDBHOSTALLOW").unwrap_or("[::]".to_string());
@@ -780,6 +807,11 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tcp_listen_address = format!("{}:{}", allow_clients, listen_port);
     let listener = TcpListener::bind(tcp_listen_address.clone())
         .unwrap_or_else(|_| panic!("Binding address {}", tcp_listen_address));
+
+    println!(
+        "listening on {} for incoming API connections...",
+        tcp_listen_address
+    );
 
     // spawn a thread to handle new clients
     for client in listener.incoming() {
