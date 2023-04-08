@@ -9,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
 from aisdb import sqlpath
-from aisdb.database.dbconn import DBConn
+from aisdb.database.dbconn import ConnectionType
 from aisdb.webdata._scraper import _scraper
 import sqlite3
 
@@ -127,17 +127,35 @@ def _insertvesselrow(elem, mmsi, trafficDB):  # pragma: no cover
         conn.execute(_insert_sql, insertrow).fetchall()
 
 
-def _vessel_info_dict(trafficDBpath):
-    assert os.path.isfile(trafficDBpath)
-    with DBConn() as dbconn:
-        dbconn._attach(trafficDBpath)
-        dbname = dbconn._get_dbname(trafficDBpath)
-        res = dbconn.execute(f'SELECT * FROM {dbname}.webdata_marinetraffic '
-                             'WHERE error404 != 1').fetchall()
-        return {r['mmsi']: r for r in res}
+def _vessel_info_dict(dbconn) -> dict:
+    if isinstance(dbconn, ConnectionType.SQLITE.value):
+        # raise ValueError(f"Invalid database connection type: {dbconn}")
+        if not hasattr(dbconn, 'trafficdb'):
+            raise ValueError(
+                'Database connection does not have an attached traffic database!'
+            )
+        dbname = dbconn._get_dbname(dbconn.trafficdb)
+        cur = dbconn.cursor()
+        cur.execute(
+            f'SELECT * FROM {dbname}.sqlite_master '
+            'WHERE type="table" AND name LIKE "ais\\_%\\_dynamic" ESCAPE "\\" '
+        )
+        alias = dbconn._get_dbname(dbconn.trafficdb) + '.'
+    elif isinstance(dbconn, sqlite3.Connection):
+        alias = ''
+    elif isinstance(dbconn, ConnectionType.POSTGRES.value):
+        alias = ''
+    else:
+        raise ValueError(f"Invalid connection type: {dbconn}")
+    cur = dbconn.cursor()
+    res = cur.execute(
+        f'SELECT * FROM {alias}webdata_marinetraffic WHERE error404 != 1'
+    ).fetchall()
+    info_dict = {r['mmsi']: r for r in res}
+    return info_dict
 
 
-def vessel_info(tracks, trafficDBpath):
+def vessel_info(tracks: iter, dbconn: sqlite3.Connection):
     ''' append metadata scraped from marinetraffic.com to track dictionaries.
 
         See :meth:`aisdb.database.dbqry.DBQuery.check_marinetraffic` for a
@@ -149,9 +167,16 @@ def vessel_info(tracks, trafficDBpath):
         args:
             tracks (iter)
                 collection of track dictionaries
-
+            dbconn (ConnectionType)
+                Either a :class:`aisdb.database.dbconn.SQLiteDBConn` or
+                :class:`aisdb.database.dbconn.PostgresDBConn` database
+                connection objects
     '''
-    meta = _vessel_info_dict(trafficDBpath)
+    if not isinstance(dbconn, sqlite3.Connection):
+        raise ValueError(
+            f"Invalid database connection type: {dbconn}. Requires: {sqlite3.Connection}"
+        )
+    meta = _vessel_info_dict(dbconn)
     for track in tracks:
         assert isinstance(track, dict)
         track['static'] = set(track['static']).union({'marinetraffic_info'})
@@ -176,8 +201,12 @@ class VesselInfo():  # pragma: no cover
         for scraping metadata for a given list of MMSIs
     '''
 
-    def __init__(self, trafficDBpath):
+    def __init__(self, trafficDBpath, verbose=False):
         self.driver = None
+        wd = os.path.dirname(trafficDBpath)
+        if not os.path.isdir(wd):  # pragma: no cover
+            if verbose: print(f'creating directory: {wd}')
+            os.makedirs(wd)
         self.trafficDB = sqlite3.Connection(trafficDBpath)
         self.trafficDB.row_factory = sqlite3.Row
 

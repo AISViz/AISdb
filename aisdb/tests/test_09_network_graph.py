@@ -95,8 +95,8 @@ def test_graph_minimal(tmpdir):
         graph(
             qry,
             outputfile=outputfile,
-            dbpath=testdbpath,
             data_dir=data_dir,
+            dbconn=aisdatabase,
             domain=domain,
             trafficDBpath=trafficDBpath,
             bathy_dir=bathy_dir,

@@ -22,6 +22,9 @@ class FileChecksums():
             assert len(dbconn.dbpaths) == 1, f'{dbconn.dbpaths}'
         self.dbconn = dbconn
         self.checksums_table()
+        if not os.path.isdir(
+                '/tmp') and os.name == 'posix':  # pragma: no cover
+            os.mkdir('/tmp')
         self.tmp_dir = tempfile.mkdtemp()
 
     def checksums_table(self):
@@ -189,7 +192,7 @@ def decode_msgs(filepaths,
         >>> import os
         >>> from aisdb import decode_msgs, DBConn
 
-        >>> dbpath = os.path.join('testdata', 'doctest.db')
+        >>> dbpath = 'test_decode_msgs.db'
         >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
         ...              'aisdb/tests/testdata/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:

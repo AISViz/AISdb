@@ -105,7 +105,7 @@ def TrackGen(rowgen: iter, decimate: False) -> dict:
         >>> from aisdb.database import sqlfcn_callbacks
 
         >>> # create example database file
-        >>> dbpath = './testdata/test.db'
+        >>> dbpath = 'track_gen_test.db'
         >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
         ...              'aisdb/tests/testdata/test_data_20211101.nm4']
 
@@ -331,7 +331,7 @@ def encode_greatcircledistance(
         >>> from aisdb import decode_msgs, encode_greatcircledistance, sqlfcn_callbacks
 
         >>> # create example database file
-        >>> dbpath = './testdata/test.db'
+        >>> dbpath = 'encoder_test.db'
         >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
         ...              'aisdb/tests/testdata/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:

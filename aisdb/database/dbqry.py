@@ -11,7 +11,7 @@ import numpy as np
 
 from aisdb.database import sqlfcn, sqlfcn_callbacks
 from aisdb.database.create_tables import aggregate_static_msgs
-from aisdb.database.dbconn import DBConn
+from aisdb.database.dbconn import DBConn, ConnectionType
 from aisdb.webdata.marinetraffic import VesselInfo
 
 
@@ -30,22 +30,12 @@ class DBQuery(UserDict):
                 anonymous function yielding SQL code specifying "WHERE"
                 clauses. common queries are included in
                 :mod:`aisdb.database.sqlfcn_callbacks`, e.g.
-
-                >>> import os
-                >>> dbpath = './testdata/test.db'
                 >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
-                >>> from aisdb import DBConn, DBQuery
+                >>> callback = in_timerange_validmmsi
 
                 this generates SQL code to apply filtering on columns (mmsi,
                 time), and requires (start, end) as arguments in datetime
                 format.
-
-                >>> start, end = datetime(2022, 1, 1), datetime(2022, 1, 7)
-                >>> with DBConn() as dbconn:
-                ...     q = DBQuery(dbconn=dbconn, dbpath=dbpath,
-                ...     callback=in_timerange_validmmsi, start=start, end=end)
-
-                Resulting SQL is then passed to the query function
 
             **kwargs (dict)
                 more arguments that will be supplied to the query function
@@ -83,20 +73,27 @@ class DBQuery(UserDict):
     '''
 
     def __init__(self, *, dbconn, dbpath=None, dbpaths=[], **kwargs):
-        if dbpaths == [] and dbpath is None:
-            raise ValueError(
-                'must supply either dbpaths list or dbpath string value')
-        elif dbpaths == []:  # pragma: no cover
-            dbpaths = [dbpath]
+        if isinstance(dbconn, ConnectionType.SQLITE.value):
+            if dbpaths == [] and dbpath is None:
+                raise ValueError(
+                    'must supply either dbpaths list or dbpath string value')
+            elif dbpaths == []:  # pragma: no cover
+                dbpaths = [dbpath]
+        elif isinstance(dbconn, ConnectionType.POSTGRES):
+            if dbpath is not None:
+                raise ValueError(
+                    "the dbpath argument may not be used with a Postgres connection"
+                )
         else:
-            assert dbpath is None
+            raise ValueError("Invalid database connection")
 
         for dbpath in dbpaths:
             dbconn._attach(dbpath)
-        if not isinstance(dbconn, DBConn):
-            raise ValueError(
-                'db argument must be a DBConn database connection.'
-                f'\tfound: {dbconn}')
+        if isinstance(dbconn, ConnectionType):
+            raise ValueError('Invalid database connection.'
+                             f' Got: {dbconn}.'
+                             f'Requires: {ConnectionType.SQLITE.value}'
+                             f' or {ConnectionType.POSTGRES.value}')
 
         self.data = kwargs
         self.dbconn = dbconn
@@ -124,9 +121,8 @@ class DBQuery(UserDict):
                 boundary (dict)
                     uses keys xmin, xmax, ymin, and ymax to denote the region
                     of vessels that should be checked.
-                    if using :class:`aisdb.gis.Domain`, the `Domain.boundary` attribute
-                    can be supplied here
-
+                    if using :class:`aisdb.gis.Domain`, the `Domain.boundary`
+                    attribute can be supplied here
         '''
         self.dbconn._attach(dbpath)
         vinfo = VesselInfo(trafficDBpath)

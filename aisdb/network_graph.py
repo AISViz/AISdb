@@ -27,12 +27,13 @@ from aisdb.track_gen import (
     fence_tracks,
     split_timedelta,
 )
+from aisdb.database.dbconn import ConnectionType
 from aisdb.interp import interp_time
 from aisdb.proc_util import _sanitize
 from aisdb.proc_util import _segment_rng
 from aisdb.webdata.bathymetry import Gebco
+from aisdb.webdata.marinetraffic import vessel_info, VesselInfo
 from aisdb.webdata.shore_dist import ShoreDist, PortDist
-from aisdb.webdata.marinetraffic import vessel_info
 from aisdb.wsa import wetted_surface_area
 
 
@@ -276,24 +277,26 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
             os.remove(picklefile)
 
 
-def graph(qry,
-          *,
-          outputfile,
-          domain,
-          dbpath,
-          data_dir,
-          trafficDBpath,
-          maxdelta=timedelta(weeks=1),
-          speed_threshold=50,
-          distance_threshold=200000,
-          interp_delta=timedelta(minutes=10),
-          minscore=0,
-          qryfcn=sqlfcn.crawl_dynamic_static,
-          bathy_dir=None,
-          shoredist_raster=None,
-          portdist_raster=None,
-          decimate=0.0001,
-          verbose=False):
+def graph(
+        qry,
+        *,
+        outputfile,
+        domain,
+        dbconn: ConnectionType,
+        data_dir: str,
+        #dbpath: str = None,
+        trafficDBpath: str or None,  # none if using PostgresDBConn
+        maxdelta: timedelta = timedelta(weeks=1),
+        speed_threshold: float = 50,
+        distance_threshold: float = 200000,
+        interp_delta: float = timedelta(minutes=10),
+        minscore: float = 0,
+        qryfcn=sqlfcn.crawl_dynamic_static,
+        bathy_dir: str = None,
+        shoredist_raster: str = None,
+        portdist_raster: str = None,
+        decimate: float = 0.0001,
+        verbose: bool = False):
     ''' Compute network graph of vessel movements within domain zones.
         Zone polygons will be used as network nodes, with graph edges
         represented by movements between zones.
@@ -304,8 +307,10 @@ def graph(qry,
             domain (:py:class:`aisdb.gis.Domain`)
                 collection of zones defined as polygons, these will
                 be used as nodes in the network graph
-            dbpath (string)
-                database filepath
+            dbconn (ConnectionType)
+                Either a :class:`aisdb.database.dbconn.SQLiteDBConn` or
+                :class:`aisdb.database.dbconn.PostgresDBConn` database
+                connection objects
             data_dir (string)
                 location of raster data
             trafficDBpath (string)
@@ -367,7 +372,7 @@ def graph(qry,
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
         ...     source='TESTING')
 
-        configure query area using Domain to compute region boundary
+        Next, configure query area using Domain to compute region boundary
 
         >>> zones = [{
         ...     'name': 'Zone1',
@@ -380,7 +385,7 @@ def graph(qry,
         >>> trafficDBpath = './testdata/marinetraffic_test.db'
         >>> data_dir = os.environ.get('AISDBDATADIR', '/tmp/ais/')
 
-        query db for points in domain
+        Then, query db for points in domain
 
         >>> with DBConn() as dbconn:
         ...     qry = DBQuery(
@@ -393,12 +398,15 @@ def graph(qry,
         ...         )
         ...     graph(qry,
         ...           outputfile=os.path.join('testdata', 'test_graph.csv'),
-        ...           dbpath=dbpath, data_dir=data_dir, domain=domain,
+        ...           dbconn=dbconn,
+        ...           domain=domain,
+        ...           data_dir=data_dir,
         ...           trafficDBpath=trafficDBpath)
 
-        delete the example database file
+        Afterwards, delete the example database file
 
         >>> os.remove(dbpath)
+        >>> os.remove(os.path.join('testdata', 'test_graph.csv'))
 
         process the vessel movement graph edges.
         caution: this may consume a large amount of memory
@@ -408,6 +416,18 @@ def graph(qry,
 
     assert isinstance(qry, aisdb.database.dbqry.DBQuery),\
             f'Not a DBQuery object! Got {qry}'
+
+    if not isinstance(dbconn, (
+            ConnectionType.SQLITE.value,
+            ConnectionType.POSTGRES.value,
+    )):
+        raise ValueError("Invalid dbconn connection type")
+    if isinstance(dbconn, ConnectionType.SQLITE.value):
+        assert trafficDBpath is not None
+        assert isinstance(trafficDBpath, str)
+        vinfoDB = VesselInfo(trafficDBpath).trafficDB
+    else:
+        vinfoDB = dbconn
 
     rowgen = qry.gen_qry(fcn=qryfcn, verbose=verbose)
     tracks = TrackGen(rowgen, decimate)
@@ -447,7 +467,7 @@ def graph(qry,
                                 minscore=minscore,
                                 speed_threshold=speed_threshold)
         timesplit = partial(split_timedelta, maxdelta=maxdelta)
-        vinfo = partial(vessel_info, trafficDBpath=trafficDBpath)
+        vinfo = partial(vessel_info, dbconn=vinfoDB)
 
         # pipeline execution order
         tracks = vinfo(tracks)

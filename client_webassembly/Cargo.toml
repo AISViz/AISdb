@@ -1,6 +1,6 @@
 [package]
 name = "client"
-version = "1.5.7"
+version = "1.5.8"
 edition = "2021"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 readme = "../../readme.rst"

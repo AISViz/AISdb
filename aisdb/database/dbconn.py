@@ -5,6 +5,7 @@
 
 from calendar import monthrange
 from datetime import datetime
+from enum import Enum
 import os
 import re
 import warnings
@@ -97,6 +98,15 @@ class SQLiteDBConn(_DBConn, sqlite3.Connection):
             self.dbpaths.append(dbpath)
         #cur.close()
 
+        # check if the database contains marinetraffic data
+        sql_qry_traffictable = (
+            f'SELECT * FROM {dbname}.sqlite_master '
+            'WHERE type="table" AND name = "webdata_marinetraffic"')
+        cur = self.execute(sql_qry_traffictable)
+        if len(cur.fetchall()) > 0:
+            self.trafficdb = dbpath
+        cur.close()
+
         # query the temporal range of monthly database tables
         # results will be stored as a dictionary attribute db_daterange
         #cur = self.cursor()
@@ -182,3 +192,9 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         sql = re.sub(r'\$[0-9][0-9]*', r'%s', sql)
         with self.cursor() as cur:
             cur.execute(sql, args)
+
+
+class ConnectionType(Enum):
+    ''' database connection types enum. used for static type hints '''
+    SQLITE = SQLiteDBConn
+    POSTGRES = PostgresDBConn

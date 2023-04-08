@@ -4,7 +4,7 @@ from datetime import datetime
 from shapely.geometry import Polygon
 
 from aisdb import track_gen, decode_msgs, DBQuery, sqlfcn_callbacks, Domain
-from aisdb.webdata.marinetraffic import vessel_info, _vessel_info_dict
+from aisdb.webdata.marinetraffic import vessel_info, _vessel_info_dict, VesselInfo
 from aisdb.tests.create_testing_data import sample_gulfstlawrence_bbox
 from aisdb import DBConn
 
@@ -44,7 +44,10 @@ def test_retrieve_marinetraffic_data(tmpdir):
     datapath = os.path.join(os.path.dirname(__file__), 'testdata',
                             'test_data_20211101.nm4')
     dbpath = os.path.join(tmpdir, 'test_retrieve_marinetraffic_data.db')
-    with DBConn() as dbconn:
+
+    vinfoDB = VesselInfo(trafficDBpath).trafficDB
+
+    with DBConn() as dbconn, vinfoDB as trafficDB:
         decode_msgs(filepaths=[datapath],
                     dbconn=dbconn,
                     dbpath=dbpath,
@@ -65,7 +68,7 @@ def test_retrieve_marinetraffic_data(tmpdir):
 
         try:
 
-            for track in vessel_info(tracks, trafficDBpath):
+            for track in vessel_info(tracks, trafficDB):
                 assert 'marinetraffic_info' in track.keys()
         except UserWarning:
             pass
@@ -74,4 +77,6 @@ def test_retrieve_marinetraffic_data(tmpdir):
 
 
 def test_marinetraffic_metadict():
-    meta = _vessel_info_dict(trafficDBpath)
+    trafficDB = VesselInfo(trafficDBpath).trafficDB
+    meta = _vessel_info_dict(trafficDB)
+    assert meta

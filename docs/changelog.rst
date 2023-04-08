@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.5.8
+------
+
+fix multiple bugs related to postgres database connections
+
+
 v1.5.7
 ------
 
