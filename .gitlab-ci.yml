@@ -1,4 +1,4 @@
-image: meridiancfi/aisdb-python:latest
+image: meridiancfi/aisdb:latest
 
 
 workflow:
