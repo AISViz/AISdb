@@ -1,4 +1,4 @@
-image: meridiancfi/aisdb-manylinux:latest
+image: meridiancfi/aisdb-python:latest
 
 
 workflow:
@@ -28,19 +28,21 @@ python-test:
   variables:
     VIRTUAL_ENV: "/home/ais_env/env"
     AISDBDATADIR: "data_dir"
-  before_script:
-    - export PATH="/env_aisdb/bin/:$PATH"
+  #before_script:
+  #  - export PATH="/env_aisdb/bin/:$PATH"
   script:
-    - mkdir -p data_dir testdata
-    - cargo test --color=always --release --lib --manifest-path=./aisdb_lib/Cargo.toml
-    - VIRTUAL_ENV="/env_aisdb/" maturin develop --release --extras=test --strip
-    - /env_aisdb/bin/python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not bathy and not raster and not marinetraffic and not postgres and not network_graph'
+    #- mkdir -p data_dir testdata
+    #- python -c 'import os; os.makedirs("data_dir", exist_ok=True); os.makedirs("testdata", exist_ok=True)'
+    #- cargo test --color=always --release --lib --manifest-path=./aisdb_lib/Cargo.toml
+    #- VIRTUAL_ENV="/env_aisdb/" maturin develop --release --extras=test --strip
+    #- /env_aisdb/bin/python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not bathy and not raster and not marinetraffic and not postgres and not network_graph'
+    - python -m pytest --durations=10 -k 'not ShoreDist and not PortDist and not bathy and not raster and not marinetraffic and not postgres and not network_graph' --doctest-modules --pyargs aisdb
     - python docker/coverage_ci.py
   #coverage: '/TOTAL.*\s+(\d+\%)/'
-  artifacts:
-    paths:
-      - /aisdb_src/target/wheels/*
-    expire_in: 4 weeks
+  #artifacts:
+  #  paths:
+  #    - /aisdb_src/target/wheels/*
+  #  expire_in: 4 weeks
   coverage: '/COVERAGE:.*\s+(\d+\%)/'
 
 

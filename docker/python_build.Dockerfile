@@ -1,6 +1,7 @@
-FROM ghcr.io/pyo3/maturin:v0.14.16 AS aisdb-manylinux
+FROM ghcr.io/pyo3/maturin:v0.14.17 AS aisdb-manylinux
 
 # Updates
+RUN rm /var/cache/yum/x86_64/7/timedhosts.txt
 RUN yum update -y && yum upgrade -y
 RUN yum install -y glibc postgresql-libs python-sphinx
 RUN rustup update
@@ -25,19 +26,29 @@ RUN /env_aisdb/bin/python -m pip install --upgrade .[test,docs,web_api] pip whee
 COPY receiver/ receiver/
 COPY src/ src/
 RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin build --release --strip --compatibility manylinux2014 --interpreter 3.11 --locked
+#RUN /env_aisdb/bin/python -m pip install -e . && exit 1
+
+#COPY aisdb/*.py aisdb/
+#COPY aisdb/database aisdb/database
+#COPY aisdb/tests/ /aisdb_src/aisdb/tests
+#COPY aisdb/webdata aisdb/webdata
 COPY aisdb/ aisdb/
 COPY examples/  examples/
 COPY docs/ docs/
 
 # build manylinux package wheels for distribution
-RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin build --release --strip --compatibility manylinux2014 --interpreter 3.9 3.10 3.11 3.12 --locked --offline
+RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin build --release --strip --compatibility manylinux2014 --interpreter 3.9 3.10 3.11 3.12 --locked
+#RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin sdist
 RUN RUST_BACKTRACE=1 CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse VIRTUAL_ENV=/env_aisdb/ maturin develop --release --extras=test,docs,web_api --locked --offline
+
+CMD ["build", "--release", "--strip", "--compatibility", "manylinux2014", "--interpreter", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
 
 
 # copy wheel file from aisdb-manylinux to a fresh python container and install AISDB
 FROM python:slim AS aisdb-python
 RUN apt-get update -y && apt-get upgrade -y
 RUN python -m pip install --upgrade pip packaging Pillow requests selenium tqdm numpy webdriver-manager pytest coverage pytest-cov pytest-dotenv psycopg[binary] orjson websockets
+COPY aisdb/tests/testdata/ /aisdb_src/aisdb/tests/testdata/
 WORKDIR /aisdb
 COPY --from=aisdb-manylinux /aisdb_src/target/wheels/* wheels/
 RUN python -m pip install "`ls wheels/aisdb-*-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl`[web_api,test]"
@@ -45,17 +56,17 @@ CMD ["python3", "-Iqu"]
 
 
 # install extras required for tests and sphinx docs
-FROM aisdb-manylinux AS aisdb-python-test
+FROM aisdb-manylinux AS aisdb-python-docs
 RUN cp readme.rst docs/changelog.rst docs/source/
 COPY aisdb_web/map/public/ aisdb_web/map/public/
 RUN source /env_aisdb/bin/activate && sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o docs/source/api aisdb aisdb/tests/*
 RUN source /env_aisdb/bin/activate && python -m sphinx -a -j auto -q -b=html docs/source docs/dist_sphinx
-ENTRYPOINT []
-CMD [ "/env_aisdb/bin/python" ]
+#ENTRYPOINT []
+#CMD [ "/env_aisdb/bin/python" ]
 
 
 # copy sphinx docs to node container
 FROM node:slim AS docserver
-COPY --from=aisdb-python-test /aisdb_src/docs docs
+COPY --from=aisdb-python-docs /aisdb_src/docs docs
 RUN cd docs && npm install
 CMD ["node", "docs/docserver.js"]

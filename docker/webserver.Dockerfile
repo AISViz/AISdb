@@ -38,7 +38,7 @@ RUN npm install --save-dev vite
 # minify source at runtime via entrypoint
 # this allows configuration of bundled JS code using environment variables defined at runtime
 # see more about env args in aisdb_web/map/constants.js
-RUN echo "#!/bin/sh\necho \"Packaging AISDB JavaScript assets...\"\nnpx vite build /src/aisdb_web/map --outDir /src/aisdb_web/dist_map\nexec \"\$@\"" > /src/entrypoint.sh
+RUN echo "#!/bin/sh\necho \"Packaging AISDB JavaScript assets...\"\nnpx vite build /src/aisdb_web/map --outDir /src/aisdb_web/dist_map\necho 'network hostname: `uname -n`'\nexec \"\$@\"" > /src/entrypoint.sh
 RUN chmod +x /src/entrypoint.sh
 
 

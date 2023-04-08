@@ -16,7 +16,6 @@
 **/target
 *.cookie
 *.crt
-*.csv
 *.d
 *.db
 *.db-journal
@@ -77,6 +76,5 @@ receiver/ais_rx.db*
 receiver/target
 release
 target
-testdata
+/testdata/
 testinput
-!aisdb/tests/testdata/*

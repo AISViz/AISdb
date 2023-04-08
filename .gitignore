@@ -66,6 +66,6 @@ prof
 profile
 release
 target
-testdata
+/testdata/
 testinput
 !aisdb/tests/testdata/

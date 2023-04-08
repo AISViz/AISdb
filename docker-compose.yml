@@ -5,7 +5,21 @@ secrets:
     file: ${PGPASSFILE:-$HOME/.pgpass}
 
 services:
+  # compile source code for linux builds, and build python wheels from compiled binary extensions.
+  # the wheel files output to ./target/wheels/ can then be installed with pip.
+  # e.g.
+  #   $ docker-compose run --build build-wheels
+  build-wheels:
+    image: meridiancfi/aisdb-manylinux:latest
+    container_name: aisdb-manylinux
+    build:
+      context: .
+      dockerfile: ./docker/python_build.Dockerfile
+      target: aisdb-manylinux
+    volumes:
+      - ./:/aisdb_src/
 
+  # reference version based on python:slim with aisdb installed
   aisdb-python:
     image: meridiancfi/aisdb:latest
     build:
@@ -14,21 +28,10 @@ services:
       dockerfile: ./docker/python_build.Dockerfile
     container_name: aisdb-python
 
-  # compile for manylinux targets and assemble python package wheels
-  pkgbuild:
-    container_name: pkgbuild
-    image: ghcr.io/pyo3/maturin:main
-    volumes:
-      - ./:/io
-    command: build --release --manylinux 2014 --strip  --interpreter 3.8 3.9 3.10 3.11
-
-  # build python package and run python tests
+  # run python tests using aisdb-python
   python-test:
-    init: true
-    image: meridiancfi/aisdb-manylinux:latest
     build:
-      target: aisdb-python-test
-      #target: aisdb-python
+      target: aisdb-python
       context: .
       dockerfile: ./docker/python_build.Dockerfile
     working_dir: /aisdb_src
@@ -38,19 +41,19 @@ services:
       - AISDBDATADIR=/aisdb_src/ais/
       - AISDBTESTDIR=/aisdb_src/testdata/
       - AISDBMARINETRAFFIC=/aisdb_src/testdata/marinetraffic_test.db
-      #- DEBUG=1
-      #- PDB=${PDB:-}
     volumes:
       - ${AISDBDATADIR:-./testdata}:/aisdb_src/ais/
-      - ./docs/dist_coverage:/aisdb_src/docs/dist_coverage
-      - ./testdata:/aisdb_src/testdata
-      - ./aisdb/tests/testdata:/aisdb_src/aisdb/tests/testdata
+      - ${AISDBTESTDIR:-./testdata}:/aisdb_src/testdata/
+      #- ./docs/dist_coverage:/aisdb_src/docs/dist_coverage
+      - /tmp:/tmp
     networks:
       ipv6_private:
         ipv6_address: "fc00::10"
     command: 
-      ["/env_aisdb/bin/python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not marinetraffic"]
-      #["python", "-m", "pytest",  "--durations=10", "-k", "not marinetraffic", "--pyargs", "aisdb", "$PDB"]
+      #["/env_aisdb/bin/python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not marinetraffic"]
+      ["python", "-m", "pytest",  "--durations=10", "--doctest-modules", "--pyargs", "aisdb", "-k", "not marinetraffic" ]
+      #["coverage", "run", "--module", "pytest", "--durations=10", "-k", "not marinetraffic and not Dist","--cov-report=term", "--doctest-modules", "--pyargs", "aisdb", "--pdb"]
+      #["python", "-m", "pytest",  "--durations=10", "-k", "not marinetraffic" "--pyargs", "aisdb", "--pdb", "--showlocals"]
       #"--doctest-modules",
 
   # webapp

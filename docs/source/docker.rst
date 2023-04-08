@@ -77,17 +77,13 @@ Development and Deployment
 
 The following services are used for the development and deployment of AISDB
 
+* build-wheels
+
+  - Build manylinux-compatible wheels for Python package distribution. The resulting wheel file is installed in aisdb-python.
+
 * python-test
 
-  - Run Python package integration tests
-
-* pkgbuild
-
-  - Build manylinux-compatible wheels for Python package distribution
-
-* certbot
-
-  - TLS/SSL certificate renewal service. Renews certificates used by the ``nginx`` service. ``privkey.pem`` and ``fullchain.pem`` certificates are mounted in the ``nginx`` container inside directory ``/etc/letsencrypt/live/$FQDN/``,  where ``$FQDN`` is the domain name, e.g. ``127.0.0.1``.
+  - Run Python package integration tests. Based on the aisdb-python docker image..
 
 * nginx
 
@@ -106,6 +102,10 @@ The following services are used for the development and deployment of AISDB
     + ``/stream``: Alias of port ``9922``. 
     + ``/stream-raw``: Alias of port ``9920``.
     + ``/coverage``: Alias of ``/docs/coverage``.
+
+* certbot
+
+  - TLS/SSL certificate renewal service. Renews certificates used by the ``nginx`` service. ``privkey.pem`` and ``fullchain.pem`` certificates are mounted in the ``nginx`` container inside directory ``/etc/letsencrypt/live/$FQDN/``,  where ``$FQDN`` is the domain name, e.g. ``127.0.0.1``.
 
 
 .. _environment:
