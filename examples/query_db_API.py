@@ -1,22 +1,26 @@
 # Python standard library packages
 from datetime import datetime, timedelta
 import asyncio
-import io
+import os
+import sys
 
 # These packages need to be installed with pip
-from websockets import client
-import aisdb
-import orjson  # fast JSON serialization
+import orjson
+import websockets.client
 
-# Database server IPv6 address and port number.
-# See docker-compose.yml or docker-compose.override.yml for
-# configuration
-db_hostname = 'ws://[fc00::6]:9924'
+# Query the MERIDIAN web API, or reconfigure the URL with an environment variable
+db_hostname = 'wss://aisdb.meridian.cs.dal.ca/ws'
+db_hostname = os.environ.get('AISDBHOST', db_hostname)
+
+# Default docker IPv6 address and port number.
+# See docker-compose.yml for configuration.
+# db_hostname = 'ws://[fc00::6]:9924'
 
 
 class DatabaseRequest():
     ''' Methods in this class are used to generate JSON-formatted AIS requests,
-        as an interface to the AISDB WebSocket API
+        as an interface to the AISDB WebSocket API.
+        The orjson library is used for fast utf8-encoded JSON serialization.
     '''
 
     def validrange() -> bytes:
@@ -43,10 +47,7 @@ class DatabaseRequest():
             option=orjson.OPT_SERIALIZE_NUMPY)
 
 
-async def query_valid_daterange(
-    db_socket: client,
-    response_buffer: io.BytesIO,
-) -> dict:
+async def query_valid_daterange(db_socket: websockets.client, ) -> dict:
     ''' Query the database server for minimum and maximum time range values.
         Values are formatted as unix epoch seconds, i.e. the total number of
         seconds since Jan 1 1970, 12am UTC.
@@ -56,67 +57,63 @@ async def query_valid_daterange(
     query = DatabaseRequest.validrange()
     await db_socket.send(query)
 
-    # Wait for server response, and save response data in a bytes buffer
-    response_buffer.write(await db_socket.recv())
-    response_buffer.flush()
-
-    # Parse JSON from the response binary data
-    response = orjson.loads(response_buffer.getvalue())
+    # Wait for server response, and parse JSON from the response binary
+    response = orjson.loads(await db_socket.recv())
     print(f'Received daterange response from server: {response}')
 
     # Print the server response
     start = datetime.fromtimestamp(response['start'])
     end = datetime.fromtimestamp(response['end'])
-    response_buffer.truncate()
 
     return {'start': start, 'end': end}
 
 
-async def query_tracks_24h(
-    db_socket: client,
-    response_buffer: io.BytesIO,
-):
+async def query_tracks_24h(db_socket: websockets.client, ):
     ''' query recent ship movements near Dalhousie '''
 
-    boundary = aisdb.gis.radial_coordinate_boundary(
-        x=-63.553,
-        y=44.468,
-        radius=100000,
-    )
+    boundary = {'x0': -64.8131, 'x1': -62.2928, 'y0': 43.5686, 'y1': 45.3673}
     query = DatabaseRequest.track_vectors(
-        x0=boundary['xmin'],
-        x1=boundary['xmax'],
-        y0=boundary['ymin'],
-        y1=boundary['ymax'],
         start=datetime.now() - timedelta(hours=24),
         end=datetime.now(),
+        **boundary,
     )
     await db_socket.send(query)
 
     response = orjson.loads(await db_socket.recv())
     while response['msgtype'] == 'track_vector':
-        print(f'got track vector data: {response}')
+        print(f'got track vector data:\n\t{response}')
         response = orjson.loads(await db_socket.recv())
+    print(response, end='\n\n\n')
 
-    print(response['status'])
+
+async def query_zones(db_socket: websockets.client, ):
+    await db_socket.send(DatabaseRequest.zones())
+
+    response = orjson.loads(await db_socket.recv())
+    while response['msgtype'] == 'zone':
+        print(f'got zone polygon data:\n\t{response}')
+        response = orjson.loads(await db_socket.recv())
+    print(response, end='\n\n\n')
 
 
 async def main():
-    async with client.connect(
-            db_hostname,
-            user_agent_header='AISDB WebSocket Client') as db_socket:
+    ''' asynchronously query the web API for valid timerange, 24 hours of
+        vectorized vessel data, and zone polygons
+    '''
+    useragent = 'AISDB WebSocket Client'
+    useragent += f' ({os.name} {sys.implementation.cache_tag})'
 
-        # server responses will be stored inside this memory buffer
-        response_buffer = io.BytesIO()
+    async with websockets.client.connect(db_hostname, useragent) as db_socket:
+        daterange = await query_valid_daterange(db_socket)
+        print(
+            f'start={daterange["start"].isoformat()}\t'
+            f'end={daterange["end"].isoformat()}',
+            end='\n\n\n')
 
-        # query the timerange of data in the database
-        daterange = await query_valid_daterange(db_socket, response_buffer)
+        await query_tracks_24h(db_socket)
 
-        print(f'start={daterange["start"].isoformat()}\t'
-              f'end={daterange["end"].isoformat()}')
-
-        await query_tracks_24h(db_socket, response_buffer)
+        await query_zones(db_socket)
 
 
-assert __name__ == '__main__'
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())

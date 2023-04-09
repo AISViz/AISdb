@@ -195,7 +195,7 @@ Interacting with Postgres Database
 
 In some cases, Postgres may preferred over SQLite. 
 Postgres offers improved concurrency and scalability over SQLite, at the cost of requiring more disk space and compute resources.
-The easiest and recommended way to use AISDB with the Postgresql database is via docker (to manually install depencies, see :ref:`webapp`). 
+The easiest and recommended way to use AISDB with the Postgresql database is via docker (to manually install dependencies, see :ref:`webapp`). 
 To get started, navigate to the repository root directory, and ensure docker and docker-compose are installed. 
 Start the AIS receiver, database server, and postgres database docker images. 
 Sudo permissions may be required for Docker and docker-compose.

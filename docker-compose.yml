@@ -39,22 +39,18 @@ services:
     environment:
       - RUST_BACKTRACE=1
       - AISDBDATADIR=/aisdb_src/ais/
-      - AISDBTESTDIR=/aisdb_src/testdata/
-      - AISDBMARINETRAFFIC=/aisdb_src/testdata/marinetraffic_test.db
+      #- AISDBMARINETRAFFIC=/aisdb_src/testdata/marinetraffic_test.db
+      #- AISDBTESTDIR=/aisdb_src/testdata/
     volumes:
-      - ${AISDBDATADIR:-./testdata}:/aisdb_src/ais/
-      - ${AISDBTESTDIR:-./testdata}:/aisdb_src/testdata/
+      - ${AISDBDATADIR:-$HOME/ais}:/aisdb_src/ais/
+      - /tmp/aisdb-python-test:/tmp
+      #- ${AISDBTESTDIR:-./testdata}:/aisdb_src/testdata/
       #- ./docs/dist_coverage:/aisdb_src/docs/dist_coverage
-      - /tmp:/tmp
     networks:
       ipv6_private:
         ipv6_address: "fc00::10"
     command: 
-      #["/env_aisdb/bin/python", "-m", "pytest", "aisdb/tests/", "aisdb/", "aisdb/database/", "aisdb/webdata/",  "--doctest-modules", "--durations=10", "-k", "not marinetraffic"]
       ["python", "-m", "pytest",  "--durations=10", "--doctest-modules", "--pyargs", "aisdb", "-k", "not marinetraffic" ]
-      #["coverage", "run", "--module", "pytest", "--durations=10", "-k", "not marinetraffic and not Dist","--cov-report=term", "--doctest-modules", "--pyargs", "aisdb", "--pdb"]
-      #["python", "-m", "pytest",  "--durations=10", "-k", "not marinetraffic" "--pyargs", "aisdb", "--pdb", "--showlocals"]
-      #"--doctest-modules",
 
   # webapp
   # connects to database server on $AISDBHOST:$AISDBPORT
