@@ -1,12 +1,14 @@
 FROM ghcr.io/pyo3/maturin:v0.14.17 AS aisdb-manylinux
 
 # Updates
-RUN rm /var/cache/yum/x86_64/7/timedhosts.txt
+RUN rm /var/cache/yum/*/7/timedhosts.txt
 RUN yum update -y && yum upgrade -y
 RUN yum install -y glibc postgresql-libs python-sphinx
 RUN rustup update
 
 WORKDIR /aisdb_src
+ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL="sparse"
+ENV VIRTUAL_ENV="/env_aisdb/"
 
 COPY Cargo.toml Cargo.lock .coveragerc pyproject.toml readme.rst ./
 COPY aisdb_lib/ aisdb_lib/
@@ -19,19 +21,13 @@ RUN mkdir -p src receiver/src aisdb \
   && echo 'fn main(){}' > src/lib.rs \
   && echo 'fn main(){}' > receiver/src/lib.rs \
   && touch aisdb/__init__.py
-RUN python3.9 -m venv /env_aisdb
-RUN /env_aisdb/bin/python -m pip install --upgrade .[test,docs,web_api] pip wheel setuptools
+RUN python3.9 -m venv $VIRTUAL_ENV
+RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade --verbose --no-warn-script-location .[test,docs,web_api] pip wheel setuptools maturin numpy
 
 
 COPY receiver/ receiver/
 COPY src/ src/
-RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin build --release --strip --compatibility manylinux2014 --interpreter 3.11 --locked
-#RUN /env_aisdb/bin/python -m pip install -e . && exit 1
-
-#COPY aisdb/*.py aisdb/
-#COPY aisdb/database aisdb/database
-#COPY aisdb/tests/ /aisdb_src/aisdb/tests
-#COPY aisdb/webdata aisdb/webdata
+RUN maturin build --release --strip --compatibility manylinux2014 --interpreter 3.11 --locked
 COPY aisdb/ aisdb/
 COPY examples/  examples/
 COPY docs/ docs/
@@ -51,7 +47,7 @@ RUN python -m pip install --upgrade pip packaging Pillow requests selenium tqdm 
 COPY aisdb/tests/testdata/ /aisdb_src/aisdb/tests/testdata/
 WORKDIR /aisdb
 COPY --from=aisdb-manylinux /aisdb_src/target/wheels/* wheels/
-RUN python -m pip install "`ls wheels/aisdb-*-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl`[web_api,test]"
+RUN python -m pip install "`ls wheels/aisdb-*-cp311-cp311-manylinux_2_17_*.manylinux2014_*.whl`[web_api,test]"
 CMD ["python3", "-Iqu"]
 
 
@@ -61,8 +57,6 @@ RUN cp readme.rst docs/changelog.rst docs/source/
 COPY aisdb_web/map/public/ aisdb_web/map/public/
 RUN source /env_aisdb/bin/activate && sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o docs/source/api aisdb aisdb/tests/*
 RUN source /env_aisdb/bin/activate && python -m sphinx -a -j auto -q -b=html docs/source docs/dist_sphinx
-#ENTRYPOINT []
-#CMD [ "/env_aisdb/bin/python" ]
 
 
 # copy sphinx docs to node container
