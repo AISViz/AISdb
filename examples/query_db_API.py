@@ -103,7 +103,8 @@ async def main():
     useragent = 'AISDB WebSocket Client'
     useragent += f' ({os.name} {sys.implementation.cache_tag})'
 
-    async with websockets.client.connect(db_hostname, useragent) as db_socket:
+    async with websockets.client.connect(
+            db_hostname, user_agent_header=useragent) as db_socket:
         daterange = await query_valid_daterange(db_socket)
         print(
             f'start={daterange["start"].isoformat()}\t'
