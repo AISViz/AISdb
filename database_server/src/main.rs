@@ -738,12 +738,6 @@ fn handle_client(downstream: TcpStream, pg: &mut Client) -> Result<(), Box<dyn s
                 for obj in vinfo {
                     websocket.write_message(Message::Binary(obj.to_string().into()))?;
                 }
-
-                // flush the write buffer to ensure that all messages are sent before the "done" message
-                // websocket.write_pending()?; // flush write buffer
-                websocket.write_message(Message::Binary(
-                    "{\"msgtype\":\"doneMetadata\"}".as_bytes().to_vec(),
-                ))?;
                 Ok(())
             }
 

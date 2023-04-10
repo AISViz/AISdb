@@ -71,7 +71,7 @@ class FileChecksums():
             dbconn = sqlite3.connect(self.dbconn.dbpaths[0])
         elif isinstance(self.dbconn, PostgresDBConn):
             dbconn = self.dbconn
-        dbconn.execute('INSERT INTO hashmap VALUES ($1,$2)',
+        dbconn.execute('INSERT INTO hashmap VALUES (?,?)',
                        [checksum, pickle.dumps(None)])
         dbconn.commit()
         if isinstance(self.dbconn, SQLiteDBConn):

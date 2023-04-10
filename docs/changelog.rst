@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.5.9
+------
+
+python 3.12 support and fix duplicate server status message
+
+
 v1.5.8
 ------
 
