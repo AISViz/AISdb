@@ -49,7 +49,7 @@ class DBQuery(UserDict):
 
         complete example:
 
-        >>> import os
+            >>> import os
         >>> from datetime import datetime
         >>> from aisdb import DBQuery, decode_msgs
         >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
@@ -59,7 +59,7 @@ class DBQuery(UserDict):
         >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
         ...              'aisdb/tests/testdata/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:
-        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
+            ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
         ...     source='TESTING')
         ...     q = DBQuery(dbconn=dbconn,
         ...                 dbpath=dbpath,
@@ -67,7 +67,7 @@ class DBQuery(UserDict):
         ...                 start=start,
         ...                 end=end)
         ...     for rows in q.gen_qry():
-        ...         print(str(dict(rows[0])))
+            ...         print(str(dict(rows[0])))
         ...         break
         {'mmsi': 204242000, 'time': 1625176725, 'longitude': -8.93166666667, 'latitude': 41.45, 'sog': 4.0, 'cog': 176.0}
     '''
@@ -76,14 +76,14 @@ class DBQuery(UserDict):
         if isinstance(dbconn, ConnectionType.SQLITE.value):
             if dbpaths == [] and dbpath is None:
                 raise ValueError(
-                    'must supply either dbpaths list or dbpath string value')
+                        'must supply either dbpaths list or dbpath string value')
             elif dbpaths == []:  # pragma: no cover
                 dbpaths = [dbpath]
         elif isinstance(dbconn, ConnectionType.POSTGRES):
             if dbpath is not None:
                 raise ValueError(
-                    "the dbpath argument may not be used with a Postgres connection"
-                )
+                        "the dbpath argument may not be used with a Postgres connection"
+                        )
         else:
             raise ValueError("Invalid database connection")
 
@@ -135,16 +135,16 @@ class DBQuery(UserDict):
 
             # skip missing tables
             if self.dbconn.execute(
-                (f'SELECT * FROM {dbname}.sqlite_master '
-                 'WHERE type="table" and name=?'),
-                [f'ais_{month}_dynamic']).fetchall() == 0:  # pragma: no cover
+                    (f'SELECT * FROM {dbname}.sqlite_master '
+                     'WHERE type="table" and name=?'),
+                    [f'ais_{month}_dynamic']).fetchall() == 0:  # pragma: no cover
                 continue
 
             # check unique mmsis
             sql = (
-                'SELECT DISTINCT(mmsi) '
-                f'FROM {dbname}.ais_{month}_dynamic AS d WHERE '
-                f'{sqlfcn_callbacks.in_validmmsi_bbox(alias="d", **boundary)}')
+                    'SELECT DISTINCT(mmsi) '
+                    f'FROM {dbname}.ais_{month}_dynamic AS d WHERE '
+                    f'{sqlfcn_callbacks.in_validmmsi_bbox(alias="d", **boundary)}')
             mmsis = self.dbconn.execute(sql).fetchall()
             print('.', end='', flush=True)  # first dot
 
@@ -189,7 +189,7 @@ class DBQuery(UserDict):
                 continue
             db_rng = self.dbconn.db_daterange[self.dbconn._get_dbname(dbpath)]
             if self['start'].date() > db_rng['end'] or self['end'].date(
-            ) < db_rng['start']:
+                    ) < db_rng['start']:
                 if verbose:
                     print(f'skipping query for {dbpath} (out of timerange)...')
                 continue
@@ -198,7 +198,7 @@ class DBQuery(UserDict):
                 month_date = datetime(int(month[:4]), int(month[4:]), 1)
                 qry_start = self["start"] - timedelta(days=self["start"].day)
                 assert qry_start <= month_date <= self[
-                    'end'], f'{month_date} not in range ({qry_start}->{self["end"]})'
+                        'end'], f'{month_date} not in range ({qry_start}->{self["end"]})'
 
                 rng_string = f'{db_rng["start"].year}-{db_rng["start"].month:02d}-{db_rng["start"].day:02d}'
                 rng_string += ' -> '
@@ -206,14 +206,14 @@ class DBQuery(UserDict):
 
                 # check if static tables exist
                 cur.execute(
-                    f'SELECT * FROM {self.dbconn._get_dbname(dbpath)}.sqlite_master '
-                    'WHERE type="table" AND name=?', [f'ais_{month}_static'])
+                        f'SELECT * FROM {self.dbconn._get_dbname(dbpath)}.sqlite_master '
+                        'WHERE type="table" AND name=?', [f'ais_{month}_static'])
                 if len(cur.fetchall()) == 0:
                     #sqlite_createtable_staticreport(self.dbconn, month, dbpath)
                     warnings.warn(
-                        'No static data for selected time range! '
-                        f'{self.dbconn._get_dbname(dbpath)} {month=} '
-                        f'{rng_string}')
+                            'No static data for selected time range! '
+                            f'{self.dbconn._get_dbname(dbpath)} {month=} '
+                            f'{rng_string}')
 
                 # check if aggregate tables exist
                 cur.execute((
@@ -230,14 +230,14 @@ class DBQuery(UserDict):
 
                 # check if dynamic tables exist
                 cur.execute(
-                    f'SELECT * FROM {self.dbconn._get_dbname(dbpath)}.sqlite_master WHERE '
-                    'type="table" and name=?', [f'ais_{month}_dynamic'])
+                        f'SELECT * FROM {self.dbconn._get_dbname(dbpath)}.sqlite_master WHERE '
+                        'type="table" and name=?', [f'ais_{month}_dynamic'])
                 if len(cur.fetchall()) == 0:  # pragma: no cover
                     # sqlite_createtable_dynamicreport(self.dbconn, month, dbpath)
                     warnings.warn(
-                        'No data for selected time range! '
-                        f'{self.dbconn._get_dbname(dbpath)} {month=} '
-                        f'{rng_string}')
+                            'No data for selected time range! '
+                            f'{self.dbconn._get_dbname(dbpath)} {month=} '
+                            f'{rng_string}')
 
             qry = fcn(dbpath=dbpath, **self.data)
             if verbose:
@@ -252,16 +252,17 @@ class DBQuery(UserDict):
             delta = datetime.now() - dt
             if verbose:
                 print(
-                    f'query time: {delta.total_seconds():.2f}s\nfetching rows...'
-                )
+                        f'query time: {delta.total_seconds():.2f}s\nfetching rows...'
+                        )
             if res == []:
-                raise SyntaxError(f'no results for query!\n{qry}')
+                # raise SyntaxError(f'no results for query!\n{qry}')
+                warnings.warn(f'No results for query!')
 
             while len(res) > 0:
                 mmsi_rows += res
                 ummsi_idx = np.where(
-                    np.array(mmsi_rows)[:-1, 0] != np.array(mmsi_rows)[1:, 0]
-                )[0] + 1
+                        np.array(mmsi_rows)[:-1, 0] != np.array(mmsi_rows)[1:, 0]
+                        )[0] + 1
                 ummsi_idx = reduce(np.append,
                                    ([0], ummsi_idx, [len(mmsi_rows)]))
                 for i in range(len(ummsi_idx) - 2):
