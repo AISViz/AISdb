@@ -1,4 +1,7 @@
-image: meridiancfi/aisdb-manylinux:latest
+image: 
+  name: meridiancfi/aisdb-manylinux:latest
+  entrypoint: [""]
+
 
 
 workflow:
