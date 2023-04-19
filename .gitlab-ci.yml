@@ -43,7 +43,7 @@ python-test:
     - maturin develop --release --extras=test --strip
     - /env_aisdb/bin/python -m pytest aisdb/tests/ --durations=5 -k 'not ShoreDist and not PortDist and not bathy and not raster and not marinetraffic and not postgres and not network_graph'
     #- python -I -u -m pytest --durations=10 -k 'not ShoreDist and not PortDist and not bathy and not raster and not marinetraffic and not postgres and not network_graph' --doctest-modules --pyargs aisdb
-    - python docker/coverage_ci.py
+    - /env_aisdb/bin/python docker/coverage_ci.py
   #coverage: '/TOTAL.*\s+(\d+\%)/'
   #artifacts:
   #  paths:
