@@ -71,6 +71,17 @@ async function parseUrl() {
   }
   */
 
+  if (urlParameters.get('python') !== undefined && urlParameters.get('python') !== null) {
+    const { waitForSocket, db_socket } = await import('./clientsocket.js');
+    await waitForSocket();
+    db_socket.addEventListener('close', async (event) => {
+      window.close();
+    });
+    db_socket.addEventListener('error', async (event) => {
+      window.close();
+    });
+  }
+
   if (urlParameters.get('search') !== null) {
     const { searchbtn } = await import('./selectform.js');
     await searchbtn.click();

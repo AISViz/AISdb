@@ -22,7 +22,7 @@ RUN mkdir -p src receiver/src aisdb \
   && echo 'fn main(){}' > receiver/src/lib.rs \
   && touch aisdb/__init__.py
 RUN python3.9 -m venv $VIRTUAL_ENV
-RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade --verbose --no-warn-script-location .[test,docs,web_api] pip wheel setuptools maturin numpy
+RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade --verbose --no-warn-script-location .[test,docs] pip wheel setuptools maturin numpy
 
 
 COPY receiver/ receiver/
@@ -35,7 +35,7 @@ COPY docs/ docs/
 # build manylinux package wheels for distribution
 RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin build --release --strip --compatibility manylinux2014 --interpreter 3.9 3.10 3.11 3.12 --locked
 #RUN VIRTUAL_ENV=/env_aisdb/ CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse maturin sdist
-RUN RUST_BACKTRACE=1 CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse VIRTUAL_ENV=/env_aisdb/ maturin develop --release --extras=test,docs,web_api --locked --offline
+RUN RUST_BACKTRACE=1 CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse VIRTUAL_ENV=/env_aisdb/ maturin develop --release --extras=test,docs --locked --offline
 
 CMD ["build", "--release", "--strip", "--compatibility", "manylinux2014", "--interpreter", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
 
@@ -47,7 +47,7 @@ RUN python -m pip install --upgrade pip packaging Pillow requests selenium tqdm 
 COPY aisdb/tests/testdata/ /aisdb_src/aisdb/tests/testdata/
 WORKDIR /aisdb
 COPY --from=aisdb-manylinux /aisdb_src/target/wheels/* wheels/
-RUN python -m pip install "`ls wheels/aisdb-*-cp311-cp311-manylinux_2_17_*.manylinux2014_*.whl`[web_api,test]"
+RUN python -m pip install "`ls wheels/aisdb-*-cp311-cp311-manylinux_2_17_*.manylinux2014_*.whl`[test]"
 CMD ["python3", "-Iqu"]
 
 

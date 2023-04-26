@@ -7,7 +7,7 @@ name = "aisdb"
 license-files = [ "license.txt",]
 requires-python = ">=3.8"
 requires-dist = [ "maturin>=0.14", "numpy", "wheel",]
-dependencies = [ "packaging", "pillow", "requests", "selenium", "shapely", "tqdm", "numpy", "webdriver-manager", "psycopg",]
+dependencies = [ "packaging", "pillow", "requests", "selenium", "shapely", "tqdm", "numpy", "webdriver-manager", "psycopg", "orjson", "websockets"]
 zip-safe = false
 version = "1.5.9"
 readme = "readme.rst"
@@ -25,8 +25,7 @@ repository = "https://git-dev.cs.dal.ca/meridian/aisdb"
 [project.optional-dependencies]
 test = [ "coverage", "pytest", "pytest-cov", "pytest-dotenv",]
 docs = [ "sphinx", "sphinx-rtd-theme",]
-devel = [ "psycopg",]
-web_api = [ "orjson", "websockets",]
+#devel = [ "psycopg",]
 
 [tool.maturin]
 sdist-include = [ "aisdb/*", "aisdb/aisdb_sql/*", "aisdb/database/*", "aisdb/tests/*.py", "aisdb/webdata/*", "aisdb_lib/*",]

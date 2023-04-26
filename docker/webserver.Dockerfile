@@ -26,7 +26,8 @@ WORKDIR /src
 
 # build wasm components
 COPY client_webassembly/ client_webassembly/
-RUN cd client_webassembly && CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse wasm-pack build --release --target web --out-dir /src/aisdb_web/map/pkg
+RUN cd client_webassembly && CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse wasm-pack build --target web --out-dir /src/aisdb_web/map/pkg --release
+#RUN cd client_webassembly && CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse wasm-pack build --target web --out-dir /src/aisdb_web/map/pkg --dev
 RUN wasm-opt -O3 -o /src/aisdb_web/map/pkg/client_bg.wasm /src/aisdb_web/map/pkg/client_bg.wasm 
 
 

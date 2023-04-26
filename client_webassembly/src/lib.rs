@@ -182,7 +182,8 @@ pub fn unzip(gzipped: JsString) {
 
 #[wasm_bindgen]
 pub fn process_response(txt: JsValue) -> JsValue {
-    //use std::panic;
+    #[cfg(debug_assertions)]
+    console_log!("info: debug hooks enabled");
     #[cfg(debug_assertions)]
     panic::set_hook(Box::new(console_error_panic_hook::hook));
 
