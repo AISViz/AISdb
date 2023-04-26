@@ -22,7 +22,11 @@ set -e
 # webassembly components build for map
 #[[ ! -f "$HOME/.cargo/bin/wasm-pack" ]] && echo "installing wasm-pack..." && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 cd "${WASMDIR}"
-wasm-pack build --release --target web --out-dir "${MAPDIR}/pkg" 
+if [[ -z "${DEBUG}" ]]; then
+  wasm-pack build --target web --out-dir "${MAPDIR}/pkg" --dev
+else 
+  wasm-pack build --target web --out-dir "${MAPDIR}/pkg" --release
+fi
 wasm-opt -O3 -o "${MAPDIR}/pkg/client_bg.wasm" "${MAPDIR}/pkg/client_bg.wasm"
 #wasm-pack build --target web --out-dir "${MAPDIR}/pkg" --dev
 

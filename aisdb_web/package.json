@@ -14,11 +14,10 @@
     "flatpickr": "^4.6.13",
     "html2canvas": ">=1.4.1",
     "ol": "^7.3.0",
-    "typescript": "^5.0.2",
-    "vite": "^4.2.1"
+    "typescript": "^5.0.2"
   },
   "devDependencies": {
-    "vite": "^4.2.1",
+    "vite": "^4.3.3",
     "vite-plugin-pwa": "^0.14.4"
   }
 }

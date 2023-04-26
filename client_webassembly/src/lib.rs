@@ -170,7 +170,7 @@ pub fn unzip(gzipped: JsString) {
     let c = gzipped.as_string().unwrap();
     let mut gz = GzDecoder::new(c.as_bytes());
 
-    let mut s = String::new();
+    //let s = String::new();
     let mut v: Vec<u8> = Vec::new();
     //gz.read_to_string(&mut s).unwrap();
     gz.read_to_end(&mut v).unwrap();
