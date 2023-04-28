@@ -49,3 +49,10 @@ VITE_AISDBHOST=localhost \
 VITE_AISDBPORT=9924 \
 npx vite build --outDir "${MAPDIR}/../dist_map"
 
+VITE_BINGMAPTILES=1 \
+VITE_TILESERVER=aisdb.meridian.cs.dal.ca \
+VITE_DISABLE_SSL_DB=1 \
+VITE_DISABLE_STREAM=1 \
+VITE_AISDBHOST=localhost \
+VITE_AISDBPORT=9924 \
+npx vite build --outDir "${MAPDIR}/../dist_map_bingmaps"

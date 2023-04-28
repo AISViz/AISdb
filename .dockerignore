@@ -53,6 +53,7 @@ aisdb_wasm/target
 aisdb_web/dist_cargodoc
 aisdb_web/dist_jsdoc
 aisdb_web/dist_map
+aisdb_web/dist_map_bingmaps
 aisdb_web/map/pkg
 aisdb_web/node_modules
 build

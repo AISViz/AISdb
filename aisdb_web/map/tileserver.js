@@ -19,10 +19,11 @@ import { get as getProjection, getTransformFromProjections } from 'ol/proj';
 
 import { tileserver_hostname } from './constants.js';
 
-class CustomOSM extends XYZ {
+//class CustomOSM extends XYZ {
   /**
    * @param {Options} [options] Open Street Map options.
    */
+/*
   constructor(options) {
     options = options || {};
 
@@ -57,6 +58,7 @@ class CustomOSM extends XYZ {
     });
   }
 }
+*/
 
 function quadKey(tileCoord) {
   const z = tileCoord[0];

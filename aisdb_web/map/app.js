@@ -7,6 +7,7 @@ window.addEventListener('load', async () => {
     { initialize_selectform },
     //{ initialize_stream_socket },
     { default: parseUrl },
+    { disable_stream },
     //{ },
   ] = await Promise.all([
     import('./map.js'),
@@ -14,6 +15,7 @@ window.addEventListener('load', async () => {
     import('./selectform.js'),
     import('./url.js'),
     import('./vessel_metadata.ts'),
+    import('./constants.js'),
   ]);
 
   /*
@@ -26,14 +28,10 @@ window.addEventListener('load', async () => {
     init_maplayers(),
     initialize_db_socket(),
     initialize_selectform(),
-    //import('./vessel_metadata.ts'),
-    parseUrl(),
   ]);
+  await parseUrl();
 
-  //await parseUrl();
-  //console.log(process.env.TESTENV);
-
-  const disable_stream = import.meta.env.VITE_DISABLE_STREAM;
+  console.log('stream disabled: ', disable_stream);
   if (disable_stream !== null && disable_stream !== undefined) {
     let { initialize_stream_socket } = await import('./livestream.js');
     await initialize_stream_socket();

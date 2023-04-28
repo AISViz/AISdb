@@ -28,7 +28,22 @@ docs = [ "sphinx", "sphinx-rtd-theme",]
 #devel = [ "psycopg",]
 
 [tool.maturin]
-include = [ "aisdb/*", "aisdb/aisdb_sql/*", "aisdb/database/*", "aisdb/tests/*.py", "aisdb/webdata/*", "aisdb_lib/*", "aisdb_web/dist_map/*", "aisdb_web/dist_map/assets/*" ]
+include = [ 
+  "aisdb/*.py", 
+  "aisdb/aisdb_sql/*.sql", 
+  "aisdb/database/*.py", 
+  "aisdb/tests/*.py", 
+  "aisdb/tests/testdata/test_data_20211101.nm4", 
+  "aisdb/tests/testdata/test_data_20210701.csv", 
+  "aisdb/webdata/*.py", 
+  "aisdb_lib/*", 
+  "aisdb_web/dist_map/index.html", 
+  "aisdb_web/dist_map/favicon.svg", 
+  "aisdb_web/dist_map/assets/*", 
+  "aisdb_web/dist_map_bingmaps/index.html", 
+  "aisdb_web/dist_map_bingmaps/favicon.svg", 
+  "aisdb_web/dist_map_bingmaps/assets/*",
+  ]
 bindings = "pyo3"
 compatability = "manylinux2014"
 
