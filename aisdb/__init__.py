@@ -10,6 +10,9 @@ if (sqlite3.sqlite_version_info[0] < 3
         f"An outdated version of SQLite was found ({sqlite3.sqlite_version})")
 
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
+wwwpath = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_web',
+                 'dist_map'))
 
 from .database.create_tables import (
     aggregate_static_msgs,

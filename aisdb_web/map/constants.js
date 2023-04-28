@@ -1,3 +1,5 @@
+//import { loadEnv } from 'vite';
+
 /**Socket server hostname as read from $VITE_AISDBHOST env variable
  * @constant {string} hostname
  */
@@ -30,6 +32,8 @@ const disable_ssl_db = import.meta.env.VITE_DISABLE_SSL_DB;
 const disable_ssl_stream = import.meta.env.VITE_DISABLE_SSL_STREAM;
 const no_db_limit = import.meta.env.VITE_NO_DB_LIMIT;
 const use_bingmaps = import.meta.env.VITE_BINGMAPTILES;
+
+//const env = loadEnv(0, process.cwd(), 'VITE_');
 
 export {
   database_hostname,

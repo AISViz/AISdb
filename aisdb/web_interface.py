@@ -1,27 +1,74 @@
 import asyncio
-import webbrowser
 import logging
+import os
+import subprocess
+import sys
+import webbrowser
 from datetime import datetime
-from functools import partial
+from functools import partial, reduce
 
 import orjson
 import websockets.server
 
+from aisdb import wwwpath
+
 logging.getLogger("websockets").setLevel(logging.WARNING)
+
+
+def start_webapp_docker():
+    check_install = subprocess.run(['docker', '--version'])
+    if check_install.returncode != 0:
+        raise RuntimeError(
+            'Could not find docker version! ',
+            'To start the web interface automatically, '
+            'ensure that docker is installed and running.')
+
+    already_running = reduce(
+        lambda a, b: a or b,
+        map(
+            lambda j: j['Image'].split(':')[0] ==
+            'meridiancfi/aisdb-web-interface' or 'aisdb-web-interface' in j[
+                'Names'],
+            map(
+                orjson.loads,
+                subprocess.run(['docker', 'ps', '--format', 'json'],
+                               capture_output=True).stdout.split(b'\n')[:-1])))
+
+    if not already_running:
+        # yapf: disable
+        docker_cmd = subprocess.run([
+            'docker', 'run',
+            '--detach',
+            '--rm',
+            '--publish', '3000:8080',
+            '--env', 'VITE_DISABLE_SSL_DB=1',
+            '--env', 'VITE_BINGMAPTILES=1',
+            '--env', 'VITE_TILESERVER=aisdb.meridian.cs.dal.ca',
+            '--env', 'VITE_AISDBHOST=localhost',
+            '--env', 'VITE_AISDBPORT=9924',
+            '--name', 'aisdb-web-interface',
+            'meridiancfi/aisdb-web-interface'
+            ], capture_output=True)
+        if not docker_cmd.returncode == 0:
+            raise RuntimeError(docker_cmd.stderr.decode())
+
+
+def start_webapp_python():
+    return subprocess.Popen([sys.executable, '-m', 'http.server', '-d', wwwpath, '3000'], env=os.environ)
 
 
 def serialize_track_json(track):
     vector = {
-        'msgtype': 'track_vector',
-        # currently, database_server sends all metadata to be strings
-        # reproduce this behaviour by coercion to string type, even for numbers
-        'meta': {
-            'mmsi': str(track['mmsi'])
-        },
-        't': track['time'],
-        'x': track['lon'],
-        'y': track['lat'],
-    }
+            'msgtype': 'track_vector',
+            # currently, database_server sends all metadata to be strings
+            # reproduce this behaviour by coercion to string type, even for numbers
+            'meta': {
+                'mmsi': str(track['mmsi'])
+                },
+            't': track['time'],
+            'x': track['lon'],
+            'y': track['lat'],
+            }
 
     meta = {k: track[k] for k in track['static'] if k != 'marinetraffic_info'}
     meta['msgtype'] = 'vesselinfo'
@@ -30,7 +77,7 @@ def serialize_track_json(track):
         meta.update({
             k: track['marinetraffic_info'][k]
             for k in track['marinetraffic_info'].keys()
-        })
+            })
 
     vector_json = orjson.dumps(vector, option=orjson.OPT_SERIALIZE_NUMPY)
     meta_json = orjson.dumps(meta)
@@ -80,8 +127,17 @@ async def visualize_async(tracks_json, host='localhost', port=9924):
         await asyncio.Future()
 
 
-def visualize(tracks, host='localhost', port=9924):
+def visualize(tracks, host='localhost', port=9924, start_app=True):
     ''' Synchronous wrapper for visualize_async().
         Display tracks in the web interface
     '''
-    asyncio.run(visualize_async(map(serialize_track_json, tracks), host, port))
+    if start_app:
+        #start_webapp_docker()
+        app = start_webapp_python()
+    try:
+        asyncio.run(visualize_async(map(serialize_track_json, tracks), host, port))
+
+    finally:
+        if start_app:
+            print('stopping webserver...')
+            app.terminate()

@@ -6,7 +6,7 @@ import aisdb
 import aisdb.web_interface
 from aisdb.tests.create_testing_data import sample_database_file
 
-# Ensure the web application front end is running before proceeding!
+# Ensure docker is installed and running before proceeding!
 
 with tempfile.TemporaryDirectory() as tmpdir:
     dbpath = os.path.join(tmpdir, 'test_trackgen.db')

@@ -2,7 +2,7 @@
 version = "1.5.9"
 name = "aisdb"
 edition = "2021"
-include = [ "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml",]
+include = [ "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml", "aisdb_web/dist_map/*", "aisdb_web/dist_map/assets/*"]
 
 [lib]
 crate-type = [ "cdylib", "rlib",]

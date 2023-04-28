@@ -72,6 +72,8 @@ async function parseUrl() {
   */
 
   if (urlParameters.get('python') !== undefined && urlParameters.get('python') !== null) {
+    document.getElementById('formDiv').style.display = 'none';
+    document.getElementById('mapDiv').style.height = '100%';
     const { waitForSocket, db_socket } = await import('./clientsocket.js');
     await waitForSocket();
     db_socket.addEventListener('close', async (event) => {

@@ -1,5 +1,5 @@
 [build-system]
-requires = [ "maturin>=0.14", "numpy", "wheel",]
+requires = [ "maturin>=0.14", "numpy", "wheel", "patchelf"]
 build-backend = "maturin"
 
 [project]
@@ -28,7 +28,7 @@ docs = [ "sphinx", "sphinx-rtd-theme",]
 #devel = [ "psycopg",]
 
 [tool.maturin]
-sdist-include = [ "aisdb/*", "aisdb/aisdb_sql/*", "aisdb/database/*", "aisdb/tests/*.py", "aisdb/webdata/*", "aisdb_lib/*",]
+include = [ "aisdb/*", "aisdb/aisdb_sql/*", "aisdb/database/*", "aisdb/tests/*.py", "aisdb/webdata/*", "aisdb_lib/*", "aisdb_web/dist_map/*", "aisdb_web/dist_map/assets/*" ]
 bindings = "pyo3"
 compatability = "manylinux2014"
 

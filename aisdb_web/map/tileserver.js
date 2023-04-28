@@ -1,4 +1,4 @@
-/** Web map tile server module
+/**Web map tile server module
 
     Create a custom bing maps class where the tileserver is overridden by
     the hostname set in $VITE_TILESERVER.
@@ -8,7 +8,8 @@
     https://github.com/openlayers/openlayers/blob/main/src/ol/source/BingMaps.js
     https://github.com/openlayers/openlayers/blob/main/src/ol/source/OSM.js
 */
-import OSM from 'ol/source/OSM';
+//import OSM from 'ol/source/OSM';
+import XYZ from 'ol/source/XYZ';
 import TileImage from 'ol/source/TileImage';
 import { applyTransform, intersects } from 'ol/extent';
 import { createFromTileUrlFunctions } from 'ol/tileurlfunction';
@@ -18,7 +19,7 @@ import { get as getProjection, getTransformFromProjections } from 'ol/proj';
 
 import { tileserver_hostname } from './constants.js';
 
-class CustomOSM extends OSM {
+class CustomOSM extends XYZ {
   /**
    * @param {Options} [options] Open Street Map options.
    */
@@ -31,7 +32,7 @@ class CustomOSM extends OSM {
       options.crossOrigin !== undefined ? options.crossOrigin : 'anonymous';
 
     let url = null;
-    // If (tileserver_hostname.includes('127.0.0.1')) {
+    //If (tileserver_hostname.includes('127.0.0.1')) {
     if (tileserver_hostname === '' || tileserver_hostname === '/') {
       url = options.url !== undefined ? options.url : '/{z}/{x}/{y}.png';
     } else {
@@ -39,11 +40,11 @@ class CustomOSM extends OSM {
     }
 
     super({
-      // Attributions: attributions,
+      //Attributions: attributions,
       attributionsCollapsible: true,
       cacheSize: options.cacheSize,
       crossOrigin: crossOrigin,
-      // Interpolate: options.interpolate,
+      //Interpolate: options.interpolate,
       interpolate: false,
       maxZoom: options.maxZoom !== undefined ? options.maxZoom : 19,
       opaque: options.opaque !== undefined ? options.opaque : true,
@@ -64,7 +65,7 @@ function quadKey(tileCoord) {
   let charCode = null;
   let i = null;
   for (i = 0; i < z; ++i) {
-    // 48 is charCode for 0 - '0'.charCodeAt(0)
+    //48 is charCode for 0 - '0'.charCodeAt(0)
     charCode = 48;
     if (tileCoord[1] & mask) {
       charCode = charCode + 1;
@@ -103,10 +104,10 @@ class CustomBingMaps extends TileImage {
       projection: getProjection('EPSG:3857'),
       reprojectionErrorThreshold: options.reprojectionErrorThreshold,
       state: 'loading',
-      // TileLoadFunction: options.tileLoadFunction,
+      //TileLoadFunction: options.tileLoadFunction,
       tileLoadFunction: function(imageTile, src) {
         const [ _target, tiles, jpeg, request ] = src.replace('https://', '').split(/[/?]+/);
-        // If (tileserver_hostname.includes('127.0.0.1')) {
+        //If (tileserver_hostname.includes('127.0.0.1')) {
         src = tileserver_hostname === '' || tileserver_hostname === '/' ? `/${tiles}/${jpeg}?${request}` : `https://${tileserver_hostname}/${tiles}/${jpeg}?${request}`;
 
         imageTile.src_ = src;
@@ -140,13 +141,13 @@ class CustomBingMaps extends TileImage {
      * @private
      * @type {string}
      */
-    // this.apiKey_ = options.key;
+    //this.apiKey_ = options.key;
 
     /**
      * @private
      * @type {string}
      */
-    // this.imagerySet_ = options.imagerySet;
+    //this.imagerySet_ = options.imagerySet;
     this.imagerySet_ = 'Aerial';
 
     /*
@@ -186,9 +187,9 @@ class CustomBingMaps extends TileImage {
    * @returns {string} The api key.
    * @api
    */
-  // getApiKey() {
-  //  return this.apiKey_;
-  // }
+  //getApiKey() {
+  //return this.apiKey_;
+  //}
 
   /**
    * Get the imagery set associated with this source.
@@ -238,7 +239,7 @@ class CustomBingMaps extends TileImage {
     const hidpi = this.hidpi_;
     this.tileUrlFunction = createFromTileUrlFunctions(
       resource.imageUrlSubdomains.map((subdomain) => {
-        /** @type {import('../tilecoord.js').TileCoord} */
+        /**@type {import('../tilecoord.js').TileCoord} */
         const quadKeyTileCoord = [ 0, 0, 0 ];
         const imageUrl = resource.imageUrl
           .replace('{subdomain}', subdomain)
