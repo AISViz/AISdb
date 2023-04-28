@@ -20,7 +20,7 @@ import { get as getProjection, getTransformFromProjections } from 'ol/proj';
 import { tileserver_hostname } from './constants.js';
 
 //class CustomOSM extends XYZ {
-  /**
+/**
    * @param {Options} [options] Open Street Map options.
    */
 /*
@@ -324,4 +324,4 @@ class CustomBingMaps extends TileImage {
   }
 }
 
-export { CustomOSM, CustomBingMaps };
+export { CustomBingMaps };

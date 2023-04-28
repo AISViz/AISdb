@@ -31,7 +31,6 @@ window.addEventListener('load', async () => {
   ]);
   await parseUrl();
 
-  console.log('stream disabled: ', disable_stream);
   if (disable_stream !== null && disable_stream !== undefined) {
     let { initialize_stream_socket } = await import('./livestream.js');
     await initialize_stream_socket();

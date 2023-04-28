@@ -5,6 +5,7 @@ fn main() {
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.ts");
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.html");
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.css");
+    println!("cargo:rerun-if-changed=./aisdb_web/*");
     println!("cargo:rerun-if-changed=./client_webassembly/src/*");
 
     let wasm_build = Command::new("wasm-pack")
@@ -18,6 +19,7 @@ fn main() {
         .output()
         .unwrap();
     eprintln!("{}", String::from_utf8_lossy(&wasm_build.stderr[..]));
+    assert!(wasm_build.status.code().unwrap() == 0);
 
     let wasm_opt = Command::new("wasm-opt")
         .current_dir("./client_webassembly/")
@@ -29,6 +31,7 @@ fn main() {
         .output()
         .unwrap();
     eprintln!("{}", String::from_utf8_lossy(&wasm_opt.stderr[..]));
+    assert!(wasm_opt.status.code().unwrap() == 0);
 
     let npm_install = Command::new("npm")
         .current_dir("./aisdb_web")
@@ -36,6 +39,7 @@ fn main() {
         .output()
         .unwrap();
     eprintln!("{}", String::from_utf8_lossy(&npm_install.stderr[..]));
+    assert!(npm_install.status.code().unwrap() == 0);
 
     let vite_build_1 = Command::new("npx")
         .current_dir("./aisdb_web/map")
@@ -48,6 +52,7 @@ fn main() {
         .output()
         .unwrap();
     eprintln!("{}", String::from_utf8_lossy(&vite_build_1.stderr[..]));
+    assert!(vite_build_1.status.code().unwrap() == 0);
 
     let vite_build_2 = Command::new("npx")
         .current_dir("./aisdb_web/map")
@@ -62,4 +67,5 @@ fn main() {
         .output()
         .unwrap();
     eprintln!("{}", String::from_utf8_lossy(&vite_build_2.stderr[..]));
+    assert!(vite_build_2.status.code().unwrap() == 0);
 }
