@@ -23,7 +23,18 @@ def start_webapp(visualearth=False):
     return Popen([sys.executable, '-m', 'http.server', '-d', path, '3000'])
 
 
-def serialize_track_json(track):
+def serialize_zone_json(zone):
+    zone_dict = {'msgtype': 'zone',
+                 'meta': {},
+                 'x': tuple(zone['geometry'].boundary.xy[0]),
+                 'y': tuple(zone['geometry'].boundary.xy[1]),
+                 't': [],
+                 }
+    #return orjson.dumps(zone_dict, option=orjson.OPT_SERIALIZE_NUMPY)
+    return orjson.dumps(zone_dict)
+
+
+def serialize_track_json(track) -> bytes:
     ''' serializes a single track dictionary to JSON format encoded as UTF8 '''
     vector = {
             'msgtype': 'track_vector',
@@ -49,7 +60,7 @@ def serialize_track_json(track):
     return (vector_json, meta_json)
 
 
-async def _send_tracks(websocket, tmp_vectors, tmp_meta):
+async def _send_tracks(websocket, tmp_vectors, tmp_meta, domain=None):
     ''' send tracks serialized as JSON to the connected websocket client '''
     done = {}
     async for message_json in websocket:
@@ -71,6 +82,12 @@ async def _send_tracks(websocket, tmp_vectors, tmp_meta):
 
         if 'validrange' in done.keys() and 'zones' in done.keys():
             assert len(done.keys()) == 2
+
+            if domain is not None:
+                for zone in domain.zones.values():
+                    zone_json = serialize_zone_json(zone)
+                    await websocket.send(zone_json)
+
             tmp_vectors.seek(0)
             for vector_json in tmp_vectors:
                 await websocket.send(vector_json)
@@ -82,7 +99,7 @@ async def _send_tracks(websocket, tmp_vectors, tmp_meta):
                 await websocket.send(meta_json)
 
 
-async def _visualize_async(tracks_json, display=True):
+async def _visualize_async(tracks_json, domain=None, open_browser=True):
     ''' Display tracks in the web interface. Serves data to the web client '''
     print('Querying database...', end='\t')
     with (SpooledTemporaryFile(max_size=512*1e6, newline=b'\n') as vectors,
@@ -95,19 +112,19 @@ async def _visualize_async(tracks_json, display=True):
 
         print('done query')
 
-        if display:
+        if open_browser:
             print('Opening a new browser window to display track data')
             print('Press Ctrl-C to close the webpage')
             url = f'http://localhost:3000/?python={int(datetime.now().timestamp())}&z=2'
             if not webbrowser.open_new_tab(url):
                 print(f'Failed to open webbrowser, instead use URL: {url}')
 
-        fcn = partial(_send_tracks, tmp_vectors=vectors, tmp_meta=meta)
+        fcn = partial(_send_tracks, tmp_vectors=vectors, tmp_meta=meta, domain=domain)
         async with websockets.server.serve(fcn, 'localhost', 9924):
             await asyncio.Future()
 
 
-def visualize(tracks, visualearth=False, display=True):
+def visualize(tracks, domain=None, visualearth=False, open_browser=True):
     ''' Synchronous wrapper for visualize_async().
         Tracks input to this function will be converted to JSON automatically.
         Display tracks in the web interface
@@ -115,6 +132,6 @@ def visualize(tracks, visualearth=False, display=True):
     app = start_webapp(visualearth)
 
     try:
-        asyncio.run(_visualize_async(map(serialize_track_json, tracks), display=display))
+        asyncio.run(_visualize_async(map(serialize_track_json, tracks), domain=domain, open_browser=open_browser))
     finally:
         app.terminate()
