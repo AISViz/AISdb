@@ -10,7 +10,8 @@ from shapely.geometry import Polygon
 import warnings
 
 from aisdb.database import sqlfcn, sqlfcn_callbacks
-from aisdb.database.dbqry import DBQuery, DBConn
+from aisdb.database.dbqry import DBQuery
+from aisdb.database.dbconn import DBConn
 from aisdb.gis import Domain
 from aisdb.network_graph import graph
 from aisdb.tests.create_testing_data import (

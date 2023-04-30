@@ -8,9 +8,9 @@ from aisdb import DBConn, DBQuery, sqlfcn_callbacks, Domain, sqlfcn
 
 from aisdb.database.create_tables import sqlite_createtable_dynamicreport
 from aisdb.tests.create_testing_data import (
-        sample_database_file,
-        sample_gulfstlawrence_bbox,
-        )
+    sample_database_file,
+    sample_gulfstlawrence_bbox,
+)
 
 
 def test_query_emptytable(tmpdir):
@@ -18,12 +18,12 @@ def test_query_emptytable(tmpdir):
     dbpath = os.path.join(tmpdir, 'test_query_emptytable.db')
     with DBConn() as dbconn:
         q = DBQuery(
-                dbconn=dbconn,
-                dbpath=dbpath,
-                start=datetime(2021, 1, 1),
-                end=datetime(2021, 1, 7),
-                callback=sqlfcn_callbacks.in_timerange_validmmsi,
-                )
+            dbconn=dbconn,
+            dbpath=dbpath,
+            start=datetime(2021, 1, 1),
+            end=datetime(2021, 1, 7),
+            callback=sqlfcn_callbacks.in_timerange_validmmsi,
+        )
         sqlite_createtable_dynamicreport(dbconn, month='202101', dbpath=dbpath)
         rows = q.gen_qry(reaggregate_static=True)
         assert list(rows) == []
@@ -39,13 +39,13 @@ def test_prepare_qry_domain(tmpdir):
     domain = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
     with DBConn() as aisdatabase:
         rowgen = DBQuery(
-                dbconn=aisdatabase,
-                dbpath=testdbpath,
-                start=start,
-                end=end,
-                **domain.boundary,
-                callback=sqlfcn_callbacks.in_timerange,
-                ).gen_qry(reaggregate_static=True)
+            dbconn=aisdatabase,
+            dbpath=testdbpath,
+            start=start,
+            end=end,
+            **domain.boundary,
+            callback=sqlfcn_callbacks.in_timerange,
+        ).gen_qry(reaggregate_static=True)
         next(rowgen)
 
 
@@ -65,15 +65,15 @@ def test_sql_query_strings(tmpdir):
                 sqlfcn_callbacks.in_timerange,
                 sqlfcn_callbacks.in_timerange_hasmmsi,
                 sqlfcn_callbacks.in_timerange_validmmsi,
-                ]:
+        ]:
             rowgen = DBQuery(
-                    dbconn=aisdatabase,
-                    dbpath=testdbpath,
-                    start=start,
-                    end=end,
-                    **domain.boundary,
-                    callback=callback,
-                    mmsi=316000000,
-                    mmsis=[316000000, 316000001],
-                    ).gen_qry(fcn=sqlfcn.crawl_dynamic_static)
+                dbconn=aisdatabase,
+                dbpath=testdbpath,
+                start=start,
+                end=end,
+                **domain.boundary,
+                callback=callback,
+                mmsi=316000000,
+                mmsis=[316000000, 316000001],
+            ).gen_qry(fcn=sqlfcn.crawl_dynamic_static)
             next(rowgen)

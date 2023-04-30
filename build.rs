@@ -1,11 +1,12 @@
 use std::process::Command;
 
 fn main() {
+    println!("cargo:rerun-if-changed=./aisdb_web/*.js");
+    println!("cargo:rerun-if-changed=./aisdb_web/*.json");
+    println!("cargo:rerun-if-changed=./aisdb_web/map/*.css");
+    println!("cargo:rerun-if-changed=./aisdb_web/map/*.html");
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.js");
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.ts");
-    println!("cargo:rerun-if-changed=./aisdb_web/map/*.html");
-    println!("cargo:rerun-if-changed=./aisdb_web/map/*.css");
-    println!("cargo:rerun-if-changed=./aisdb_web/*");
     println!("cargo:rerun-if-changed=./client_webassembly/src/*");
 
     let wasm_build = Command::new("wasm-pack")

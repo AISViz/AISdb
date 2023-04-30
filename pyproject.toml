@@ -33,16 +33,18 @@ include = [
   "aisdb/aisdb_sql/*.sql", 
   "aisdb/database/*.py", 
   "aisdb/tests/*.py", 
-  "aisdb/tests/testdata/test_data_20211101.nm4", 
   "aisdb/tests/testdata/test_data_20210701.csv", 
+  "aisdb/tests/testdata/test_data_20211101.nm4", 
   "aisdb/webdata/*.py", 
   "aisdb_lib/*", 
-  "aisdb_web/dist_map/index.html", 
-  "aisdb_web/dist_map/favicon.svg", 
   "aisdb_web/dist_map/assets/*", 
-  "aisdb_web/dist_map_bingmaps/index.html", 
-  "aisdb_web/dist_map_bingmaps/favicon.svg", 
+  "aisdb_web/dist_map/favicon.png", 
+  "aisdb_web/dist_map/favicon.svg", 
+  "aisdb_web/dist_map/index.html", 
   "aisdb_web/dist_map_bingmaps/assets/*",
+  "aisdb_web/dist_map_bingmaps/favicon.png", 
+  "aisdb_web/dist_map_bingmaps/favicon.svg", 
+  "aisdb_web/dist_map_bingmaps/index.html", 
   ]
 bindings = "pyo3"
 compatability = "manylinux2014"

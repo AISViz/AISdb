@@ -18,12 +18,6 @@ window.addEventListener('load', async () => {
     import('./constants.js'),
   ]);
 
-  /*
-  await initialize_selectform();
-  await init_maplayers();
-  await initialize_stream_socket();
-  await initialize_db_socket();
-  */
   await Promise.all([
     init_maplayers(),
     initialize_db_socket(),

@@ -256,21 +256,37 @@ class Domain():
         ])
 
     def _add_zone(self, name, x, y):
-        if name[-2:] == '_b' and (x0b := np.min(x)) < self.minX_b:
-            self.minX_b = x0b
-        elif name[-2:] != '_c' and (x0c := np.min(x)) > self.minX:
-            self.minX = x0c
+        if name[-2:] == '_b':
+            if (x0b := np.min(x)) < self.minX_b:
+                self.minX_b = x0b
+            if (x0c := np.min(x)) > self.minX:
+                self.minX = x0c
 
-        if name[-2:] == '_c' and (x1b := np.max(x)) < self.maxX_c:
-            self.maxX_c = x1b
-        elif name[-2:] != '_b' and (x1c := np.max(x)) > self.maxX:
-            self.maxX = x1c
+        elif name[-2:] == '_c':
+            if (x1b := np.max(x)) < self.maxX_c:
+                self.maxX_c = x1b
+            if (x1c := np.max(x)) > self.maxX:
+                self.maxX = x1c
+
+        else:
+            if ((x0a := np.min(x)) < self.minX):
+                self.minX = x0a
+            if ((x1a := np.max(x)) > self.maxX):
+                self.maxX = x1a
 
         if np.min(y) < self.minY:
             self.minY = np.min(y)
         if np.max(y) > self.maxY:
             self.maxY = np.max(y)
+        '''
+        if np.min(x) < self.minX:
+            self.minX = np.min(x)
+        if np.max(x) > self.maxX:
+            self.maxX = np.max(x)
+        '''
 
+        #assert self.minX < self.maxX
+        #assert self.minY < self.maxY
         assert -180 <= self.minX <= 180 and -180 <= self.maxX <= 180
         assert -90 <= self.minY <= 90 and -90 <= self.maxY <= 90
 

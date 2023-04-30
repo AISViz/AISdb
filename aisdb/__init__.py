@@ -19,6 +19,8 @@ wwwpath_alt = os.path.abspath(
     os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_web',
                  'dist_map_bingmaps'))
 
+import aisdb.web_interface
+
 from .database.create_tables import (
     aggregate_static_msgs,
     sqlite_createtable_dynamicreport,
