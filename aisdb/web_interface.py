@@ -23,14 +23,13 @@ def start_webapp(visualearth=False):
     return Popen([sys.executable, '-m', 'http.server', '-d', path, '3000'])
 
 
-def serialize_zone_json(zone):
+def serialize_zone_json(name, zone):
     zone_dict = {'msgtype': 'zone',
-                 'meta': {},
+                 'meta': {'name': name},
                  'x': tuple(zone['geometry'].boundary.xy[0]),
                  'y': tuple(zone['geometry'].boundary.xy[1]),
                  't': [],
                  }
-    #return orjson.dumps(zone_dict, option=orjson.OPT_SERIALIZE_NUMPY)
     return orjson.dumps(zone_dict)
 
 
@@ -84,8 +83,8 @@ async def _send_tracks(websocket, tmp_vectors, tmp_meta, domain=None):
             assert len(done.keys()) == 2
 
             if domain is not None:
-                for zone in domain.zones.values():
-                    zone_json = serialize_zone_json(zone)
+                for name, zone in domain.zones.items():
+                    zone_json = serialize_zone_json(name, zone)
                     await websocket.send(zone_json)
 
             tmp_vectors.seek(0)
@@ -99,11 +98,11 @@ async def _send_tracks(websocket, tmp_vectors, tmp_meta, domain=None):
                 await websocket.send(meta_json)
 
 
-async def _visualize_async(tracks_json, domain=None, open_browser=True):
+async def _visualize_async(tracks_json, domain=None, visualearth=False, open_browser=True):
     ''' Display tracks in the web interface. Serves data to the web client '''
     print('Querying database...', end='\t')
-    with (SpooledTemporaryFile(max_size=512*1e6, newline=b'\n') as vectors,
-          SpooledTemporaryFile(max_size=512*1e6, newline=b'\n') as meta):
+    with (SpooledTemporaryFile(max_size=1024*1e6, newline=b'\n') as vectors,
+          SpooledTemporaryFile(max_size=256*1e6, newline=b'\n') as meta):
         for t in tracks_json:
             vectors.write(t[0])
             vectors.write(b'\n')
@@ -115,7 +114,7 @@ async def _visualize_async(tracks_json, domain=None, open_browser=True):
         if open_browser:
             print('Opening a new browser window to display track data')
             print('Press Ctrl-C to close the webpage')
-            url = f'http://localhost:3000/?python={int(datetime.now().timestamp())}&z=2'
+            url = f'http://localhost:3000/?python={1 if not visualearth else 2}&z=2'
             if not webbrowser.open_new_tab(url):
                 print(f'Failed to open webbrowser, instead use URL: {url}')
 
@@ -132,6 +131,10 @@ def visualize(tracks, domain=None, visualearth=False, open_browser=True):
     app = start_webapp(visualearth)
 
     try:
-        asyncio.run(_visualize_async(map(serialize_track_json, tracks), domain=domain, open_browser=open_browser))
+        asyncio.run(_visualize_async(map(serialize_track_json, tracks),
+                                     domain=domain,
+                                     visualearth=visualearth,
+                                     open_browser=open_browser
+                                     ))
     finally:
         app.terminate()

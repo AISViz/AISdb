@@ -261,6 +261,7 @@ async function init_maplayers() {
     },
     projection: 'EPSG:4326',
   });
+  //mousePositionControl.on('mouseout', function() { });
 
   /**Scale bar display */
   const scaleControl = new ScaleLine({

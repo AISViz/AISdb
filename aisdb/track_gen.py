@@ -158,7 +158,7 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
                 **{k: track[k]
                    for k in track['static']},
                 **{
-                    k: np.array(track[k], dtype=object)[rng]
+                    k: np.array(track[k], dtype=type(track[k][0]))[rng]
                     for k in track['dynamic']
                 },
                 static=track['static'],
