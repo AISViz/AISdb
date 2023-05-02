@@ -1,11 +1,10 @@
 import os
 from datetime import datetime, timedelta
-import pickle
 
 import warnings
 
 from aisdb import track_gen, DBQuery, sqlfcn_callbacks, DBConn
-from aisdb.track_gen import encode_greatcircledistance
+from aisdb import encode_greatcircledistance
 from aisdb.wsa import wetted_surface_area
 from aisdb.database import sqlfcn
 from aisdb.webdata.marinetraffic import vessel_info, VesselInfo

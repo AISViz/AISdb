@@ -6,18 +6,16 @@ import sqlite3
 import types
 
 import numpy as np
-import warnings
 
-from aisdb.aisdb import simplify_linestring_idx, encoder_score_fcn
-from aisdb.gis import delta_knots, delta_meters
+from aisdb.aisdb import simplify_linestring_idx
+from aisdb.gis import delta_knots
 from aisdb.proc_util import _segment_rng
 from aisdb import Domain
-#from aisdb.denoising_encoder import encode_greatcircledistance
 
 staticcols = set([
     'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow',
     'dim_stern', 'dim_port', 'dim_star', 'imo', 'draught'
-    ])
+])
 
 
 def _segment_longitude(track, tolerance=300):
@@ -29,7 +27,7 @@ def _segment_longitude(track, tolerance=300):
         return
 
     diff = np.nonzero(
-            np.abs(track['lon'][1:] - track['lon'][:-1]) > tolerance)[0] + 1
+        np.abs(track['lon'][1:] - track['lon'][:-1]) > tolerance)[0] + 1
 
     if diff.size == 0:
         assert 'time' in track.keys()
@@ -39,15 +37,15 @@ def _segment_longitude(track, tolerance=300):
     segments_idx = reduce(np.append, ([0], diff, [track['time'].size]))
     for i in range(segments_idx.size - 1):
         tracksplit = dict(
-                **{k: track[k]
-                   for k in track['static']},
-                **{
-                    k: track[k][segments_idx[i]:segments_idx[i + 1]]
-                    for k in track['dynamic']
-                    },
-                static=track['static'],
-                dynamic=track['dynamic'],
-                )
+            **{k: track[k]
+               for k in track['static']},
+            **{
+                k: track[k][segments_idx[i]:segments_idx[i + 1]]
+                for k in track['dynamic']
+            },
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )
         assert 'time' in tracksplit.keys()
         yield tracksplit
 
@@ -63,16 +61,16 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001):
     else:
         idx = np.array(range(len(lon)))
     trackdict = dict(
-            **{col: rows[0][col]
-               for col in staticcols},
-            lon=lon[idx].astype(np.float32),
-            lat=lat[idx].astype(np.float32),
-            time=time[idx],
-            sog=np.array([r['sog'] for r in rows], dtype=np.float32)[idx],
-            cog=np.array([r['cog'] for r in rows], dtype=np.uint32)[idx],
-            static=staticcols,
-            dynamic=dynamiccols,
-            )
+        **{col: rows[0][col]
+           for col in staticcols},
+        lon=lon[idx].astype(np.float32),
+        lat=lat[idx].astype(np.float32),
+        time=time[idx],
+        sog=np.array([r['sog'] for r in rows], dtype=np.float32)[idx],
+        cog=np.array([r['cog'] for r in rows], dtype=np.uint32)[idx],
+        static=staticcols,
+        dynamic=dynamiccols,
+    )
     assert 'time' in trackdict.keys()
 
     for segment in _segment_longitude(trackdict):
@@ -156,16 +154,15 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
         for rng in _segment_rng(track, maxdelta):
             assert len(rng) > 0
             yield dict(
-                    **{k: track[k]
-                       for k in track['static']},
-                    **{
-                        k: np.array(track[k], dtype=type(track[k][0]))[rng]
-                        for k in track['dynamic']
-                        },
-                    static=track['static'],
-                    dynamic=track['dynamic'],
-                    )
-
+                **{k: track[k]
+                   for k in track['static']},
+                **{
+                    k: np.array(track[k], dtype=type(track[k][0]))[rng]
+                    for k in track['dynamic']
+                },
+                static=track['static'],
+                dynamic=track['dynamic'],
+            )
 
 
 def fence_tracks(tracks, domain):
@@ -181,12 +178,12 @@ def fence_tracks(tracks, domain):
         assert isinstance(track, dict)
         if 'in_zone' not in track.keys():
             track['in_zone'] = np.array(
-                    [
-                        domain.point_in_polygon(x, y)
-                        for x, y in zip(track['lon'], track['lat'])
-                        ],
-                    dtype=object,
-                    )
+                [
+                    domain.point_in_polygon(x, y)
+                    for x, y in zip(track['lon'], track['lat'])
+                ],
+                dtype=object,
+            )
             track['dynamic'] = set(track['dynamic']).union(set(['in_zone']))
         yield track
 
@@ -202,13 +199,13 @@ def zone_mask(tracks, domain):
     for track in fence_tracks(tracks, domain):
         mask = track['in_zone'] != 'Z0'
         yield dict(
-                **{k: track[k]
-                   for k in track['static']},
-                **{k: track[k][mask]
-                   for k in track['dynamic']},
-                static=track['static'],
-                dynamic=track['dynamic'],
-                )
+            **{k: track[k]
+               for k in track['static']},
+            **{k: track[k][mask]
+               for k in track['dynamic']},
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )
 
 
 def min_speed_filter(tracks, minspeed):
@@ -220,10 +217,10 @@ def min_speed_filter(tracks, minspeed):
         deltas = np.append(deltas, [deltas[-1]])
         mask = deltas >= minspeed
         yield dict(
-                **{k: track[k]
-                   for k in track['static']},
-                **{k: track[k][mask]
-                   for k in track['dynamic']},
-                static=track['static'],
-                dynamic=track['dynamic'],
-                )
+            **{k: track[k]
+               for k in track['static']},
+            **{k: track[k][mask]
+               for k in track['dynamic']},
+            static=track['static'],
+            dynamic=track['dynamic'],
+        )

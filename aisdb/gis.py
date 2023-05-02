@@ -390,12 +390,16 @@ class Domain():
                 f'\tdomain3 = aisdb.DomainFromTxts(domainName=\'east\', folder={str(zones_dir)}{os.path.sep}east))\n'
                 '\tdomain = [domain1, domain2, domain3]')
 
+        assert self.minX < self.maxX
+        assert self.minY < self.maxY
+
         self.boundary = {
             'xmin': self.minX,
             'xmax': self.maxX,
             'ymin': self.minY,
             'ymax': self.maxY
         }
+        '''
         if self.minX_b != 180 and self.boundary['xmin'] % 180 != 0:
             assert self.minX_b >= self.boundary[
                 'xmin'], f'{self.boundary=} {self.minX_b=}'
@@ -404,6 +408,7 @@ class Domain():
             assert self.maxX_c <= self.boundary[
                 'xmax'], f'{self.boundary=} {self.maxX_c=}'
             self.boundary.update({'xmax': self.maxX_c, 'xmax_alt': self.maxX})
+        '''
 
     def nearest_polygons_to_point(self, x, y):
         ''' compute great circle distance for this point to each polygon

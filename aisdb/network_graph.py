@@ -23,10 +23,10 @@ from aisdb.gis import (
 )
 from aisdb.track_gen import (
     TrackGen,
-    encode_greatcircledistance,
     fence_tracks,
     split_timedelta,
 )
+from aisdb.denoising_encoder import encode_greatcircledistance
 from aisdb.database.dbconn import ConnectionType
 from aisdb.interp import interp_time
 from aisdb.proc_util import _sanitize
