@@ -4,9 +4,36 @@ from shapely.geometry import Polygon
 import numpy as np
 import zipfile
 
-from aisdb.gis import Domain, DomainFromTxts, DomainFromPoints, shiftcoord, distance3D
+from aisdb.gis import (
+    Domain,
+    DomainFromPoints,
+    DomainFromTxts,
+    distance3D,
+    shiftcoord,
+)
 from aisdb.tests.create_testing_data import random_polygons_domain
 from aisdb.tests.create_testing_data import sample_gulfstlawrence_bbox
+
+
+def test_invalid_domain():
+    try:
+        Domain('errordomain', [{
+            'name':
+            'outofbounds0',
+            'geometry':
+            Polygon(zip([-200, -170, -170, -200, -200], [90, 90, 0, 0, 90]))
+        }, {
+            'name':
+            'outofbounds1',
+            'geometry':
+            Polygon(zip([200, 170, 170, 200, 200], [-90, -90, 0, 0, -90]))
+        }])
+    except ValueError:
+        return
+    except Exception as e:
+        raise (e)
+
+    raise RuntimeError('This test should fail with a ValueError')
 
 
 def test_domain():

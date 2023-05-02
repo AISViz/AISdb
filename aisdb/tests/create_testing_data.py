@@ -37,6 +37,10 @@ def sample_random_polygon(xscale=10, yscale=10):
                                                      (np.random.random() - .5))
         y = (np.random.random(vertices) * yscale) + (90 *
                                                      (np.random.random() - .5))
+        assert min(x) >= -180
+        assert max(x) <= 180
+        assert min(y) >= -90
+        assert max(y) <= 90
 
     return x, y
 
@@ -66,25 +70,11 @@ def sample_gulfstlawrence_bbox():
 
 
 def random_polygons_domain(count=10):
-    return Domain(
-        'testdomain', [{
-            'name': f'random_{i:03}',
-            'geometry': Polygon(zip(*sample_random_polygon()))
-        } for i in range(count)] + [
-            {
-                'name':
-                'outofbounds0',
-                'geometry':
-                Polygon(zip([-200, -170, -170, -200, -200],
-                            [90, 90, 0, 0, 90]))
-            },
-            {
-                'name':
-                'outofbounds1',
-                'geometry':
-                Polygon(zip([200, 170, 170, 200, 200], [-90, -90, 0, 0, -90]))
-            },
-        ])
+    return Domain('testdomain',
+                  [{
+                      'name': f'random_{i:03}',
+                      'geometry': Polygon(zip(*sample_random_polygon()))
+                  } for i in range(count)])
 
 
 def sample_database_file(dbpath):
