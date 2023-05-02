@@ -12,7 +12,6 @@ ENV VIRTUAL_ENV="/env_aisdb/"
 
 COPY Cargo.toml Cargo.lock .coveragerc pyproject.toml readme.rst ./
 COPY aisdb_lib/ aisdb_lib/
-COPY dispatcher/ dispatcher/
 
 # cache deps
 COPY aisdb/aisdb_sql aisdb/aisdb_sql

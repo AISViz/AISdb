@@ -1,7 +1,7 @@
 FROM rust:slim
 RUN apt-get update -y && apt-get upgrade -y
 
-COPY dispatcher/ dispatcher/
+#COPY dispatcher/ dispatcher/
 COPY aisdb/aisdb_sql/ aisdb/aisdb_sql/
 COPY aisdb_lib/ aisdb_lib/
 COPY receiver/Cargo.toml receiver/Cargo.lock receiver/
