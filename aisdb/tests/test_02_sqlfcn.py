@@ -75,8 +75,8 @@ def test_callbacks(tmpdir):
             sqlfcn_callbacks.in_timerange_inmmsi,
             sqlfcn_callbacks.in_timerange_validmmsi,
     ]:
-        box_x = np.random.random(2) * 360 - 180
-        box_y = np.random.random(2) * 180 - 90
+        box_x = sorted(np.random.random(2) * 360 - 180)
+        box_y = sorted(np.random.random(2) * 180 - 90)
         kwargs = dict(
             start=start,
             end=start + timedelta(days=7),
