@@ -4,28 +4,28 @@ import warnings
 
 import sqlite3
 if (sqlite3.sqlite_version_info[0] < 3
-        or (sqlite3.sqlite_version_info[0] <= 3
-            and sqlite3.sqlite_version_info[1] < 8)):
-    warnings.warn(
-        f"An outdated version of SQLite was found ({sqlite3.sqlite_version})")
+    or (sqlite3.sqlite_version_info[0] <= 3
+        and sqlite3.sqlite_version_info[1] < 8)):
+        warnings.warn(
+                f"An outdated version of SQLite was found ({sqlite3.sqlite_version})")
 
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
 wwwpath = os.path.abspath(
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_web',
-                 'dist_map'))
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_web',
+                     'dist_map'))
 
 wwwpath_alt = os.path.abspath(
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_web',
-                 'dist_map_bingmaps'))
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_web',
+                     'dist_map_bingmaps'))
 
 import aisdb.web_interface
 
 from .database.create_tables import (
-    aggregate_static_msgs,
-    sqlite_createtable_dynamicreport,
-    sqlite_createtable_staticreport,
-)
+        aggregate_static_msgs,
+        sqlite_createtable_dynamicreport,
+        sqlite_createtable_staticreport,
+        )
 
 from .database.dbconn import DBConn, SQLiteDBConn, PostgresDBConn
 
@@ -42,38 +42,42 @@ from .webdata.bathymetry import Gebco
 from .webdata.shore_dist import ShoreDist, PortDist
 
 from .gis import (
-    Domain,
-    DomainFromTxts,
-    DomainFromPoints,
-    delta_knots,
-    delta_meters,
-    delta_seconds,
-    distance3D,
-    dt_2_epoch,
-    epoch_2_dt,
-    radial_coordinate_boundary,
-    vesseltrack_3D_dist,
-)
+        Domain,
+        DomainFromTxts,
+        DomainFromPoints,
+        delta_knots,
+        delta_meters,
+        delta_seconds,
+        distance3D,
+        dt_2_epoch,
+        epoch_2_dt,
+        radial_coordinate_boundary,
+        vesseltrack_3D_dist,
+        )
 
 from .interp import (
-    interp_time, )
+        interp_time, )
 
 from .network_graph import graph
 
 from .receiver import start_receiver
 
 from .proc_util import (
-    glob_files,
-    write_csv,
-)
+        glob_files,
+        write_csv,
+        )
 
 from .track_gen import (
-    TrackGen,
-    split_timedelta,
-    fence_tracks,
-    encode_score,
-    encode_greatcircledistance,
-)
+        TrackGen,
+        split_timedelta,
+        fence_tracks,
+        #encode_score,
+        #encode_greatcircledistance,
+        )
+from .denoising_encoder import (
+        encode_score,
+        encode_greatcircledistance,
+        )
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',
