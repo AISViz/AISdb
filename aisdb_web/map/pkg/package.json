@@ -1,0 +1,24 @@
+{
+  "name": "client",
+  "collaborators": [
+    "MERIDIAN // Matt Smith matthew.smith@dal.ca"
+  ],
+  "description": "AIS Database and Processing Utils - Web Client WASM functions",
+  "version": "1.5.9",
+  "license": "SEE LICENSE IN ../../license.txt",
+  "repository": {
+    "type": "git",
+    "url": "https://git-dev.cs.dal.ca/meridian/aisdb"
+  },
+  "files": [
+    "client_bg.wasm",
+    "client.js",
+    "client.d.ts"
+  ],
+  "module": "client.js",
+  "homepage": "https://aisdb.meridian.cs.dal.ca/",
+  "types": "client.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

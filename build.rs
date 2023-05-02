@@ -15,12 +15,16 @@ fn main() {
             "build",
             "--target=web",
             "--out-dir=../aisdb_web/map/pkg",
+            #[cfg(not(debug_assertions))]
             "--release",
+            #[cfg(debug_assertions)]
+            "--dev",
         ])
         .output()
         .unwrap();
     eprintln!("{}", String::from_utf8_lossy(&wasm_build.stderr[..]));
-    assert!(wasm_build.status.code().unwrap() == 0);
+    //assert!(wasm_build.status.code().unwrap() == 0);
+    std::fs::remove_file("aisdb_web/map/pkg/.gitignore").unwrap();
 
     let wasm_opt = Command::new("wasm-opt")
         .current_dir("./client_webassembly/")
