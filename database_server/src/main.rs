@@ -264,11 +264,7 @@ fn track_generator(
                             "time" => {
                                 let v = TrackData::I(r.get(col.as_str()));
                                 current_track.vectors.get_mut(&col).unwrap().push(v);
-                                debug_assert_ne!(current_track
-                                    .vectors
-                                    .get(&col)
-                                    .unwrap()
-                                    .is_empty())
+                                debug_assert!(!current_track.vectors.get(&col).unwrap().is_empty())
                             }
 
                             // dynamic floats

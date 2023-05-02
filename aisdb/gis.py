@@ -1,6 +1,8 @@
 '''Geometry and GIS utilities'''
 
 import os
+import pathlib
+import tempfile
 from datetime import datetime, timedelta
 from functools import partial
 
@@ -176,7 +178,6 @@ def vesseltrack_3D_dist(tracks, x1, y1, z1, colname='distance_metres'):
             track dictionary key for which depth values will be set.
             by default, distances are appended to the 'distance_metres'
             key
-
     '''
     for track in tracks:
         track['dynamic'] = track['dynamic'].union(set([colname]))
@@ -256,6 +257,7 @@ class Domain():
         ])
 
     def _add_zone(self, name, x, y):
+        '''
         if name[-2:] == '_b':
             if (x0b := np.min(x)) < self.minX_b:
                 self.minX_b = x0b
@@ -269,10 +271,11 @@ class Domain():
                 self.maxX = x1c
 
         else:
-            if ((x0a := np.min(x)) < self.minX):
-                self.minX = x0a
-            if ((x1a := np.max(x)) > self.maxX):
-                self.maxX = x1a
+        '''
+        if ((x0a := np.min(x)) < self.minX):
+            self.minX = x0a
+        if ((x1a := np.max(x)) > self.maxX):
+            self.maxX = x1a
 
         if np.min(y) < self.minY:
             self.minY = np.min(y)
@@ -285,48 +288,107 @@ class Domain():
             self.maxX = np.max(x)
         '''
 
-        #assert self.minX < self.maxX
-        #assert self.minY < self.maxY
+        assert self.minX < self.maxX
+        assert self.minY < self.maxY
         assert -180 <= self.minX <= 180 and -180 <= self.maxX <= 180
         assert -90 <= self.minY <= 90 and -90 <= self.maxY <= 90
 
         geom = Polygon(zip(x, y))
-        maxradius = self._zone_max_radius(geom, x, y)
 
-        self.zones.update({name: {'geometry': geom, 'maxradius': maxradius}})
+        self.zones.update({
+            name: {
+                'geometry': geom,
+                'maxradius': self._zone_max_radius(geom, x, y)
+            }
+        })
 
         return
 
+    def _handle_outofbounds_zone(self, zone, zones_dir):
+        zones_west = zones_dir / 'west'
+        zones_east = zones_dir / 'east'
+        zones_corr = zones_dir / 'corrected'
+        stringify = lambda x, y: map(
+            ','.join, zip(map(str, x), map(lambda y: y + '\n', map(str, y))))
+
+        for g in self.split_geom(zone):
+            if g.centroid.x < -180:
+                x, y = np.array(g.boundary.coords.xy)
+                if not os.path.isdir(zones_west):
+                    os.mkdir(zones_west)
+                with open(os.path.join(zones_west, zone['name'] + '_west.txt'),
+                          'w') as w:
+                    w.writelines(stringify(shiftcoord(x), y))
+            elif g.centroid.x > 180:
+                x, y = np.array(g.boundary.coords.xy)
+                if not os.path.isdir(zones_east):
+                    os.mkdir(zones_east)
+                with open(os.path.join(zones_east, zone['name'] + '_east.txt'),
+                          'w') as w:
+                    w.writelines(stringify(shiftcoord(x), y))
+            else:
+                x, y = np.array(g.boundary.coords.xy)
+                if not os.path.isdir(zones_corr):
+                    os.mkdir(zones_corr)
+                with open(os.path.join(zones_corr, zone['name'] + '_corr.txt'),
+                          'w') as w:
+                    w.writelines(stringify(x, y))
+
     def __init__(self, name, zones=[], **kw):
         ''' Initialize the domain from zone geometries, dividing along the 180th meridian '''
+
         if len(zones) == 0:
             raise ValueError(
                 'domain needs to have atleast one polygon geometry')
         self.name = name
         self.zones = {}
         self.minX, self.maxX = 180, -180
-        self.minX_b = 180
+        # self.minX_b = 180
         self.minY, self.maxY = 90, -90
-        self.maxX_c = -180
+        # self.maxX_c = -180
+
+        valid_domain = True
+        #zones_dir = pathlib.Path(os.environ.get('AISDBZONES', os.path.join('.', 'output', 'zones')))
+        zones_dir = pathlib.Path(tempfile.mkdtemp(prefix='aisdb_zones_'))
 
         for zone in zones:
-            assert 'name' in zone.keys(), f'{zone=}'
-            assert 'geometry' in zone.keys(), f'{zone=}'
+            if 'name' not in zone.keys():
+                raise KeyError(f'Zone missing \'name\' key: {zone=}')
+            if 'geometry' not in zone.keys():
+                raise KeyError(f'Zone missing \'geometry\' key: {zone=}')
+
             x, y = zone['geometry'].boundary.coords.xy
             if not (np.min(x) >= -180 and np.max(x) <= 180):
-                warnings.warn(f'dividing geometry... {zone["name"]}')
-                for g in self.split_geom(zone):
-                    if g.centroid.x < -180:
-                        x, y = np.array(g.boundary.coords.xy)
-                        self._add_zone(zone['name'] + '_b', shiftcoord(x), y)
-                    elif g.centroid.x > 180:
-                        x, y = np.array(g.boundary.coords.xy)
-                        self._add_zone(zone['name'] + '_c', shiftcoord(x), y)
-                    else:
-                        x, y = np.array(g.boundary.coords.xy)
-                        self._add_zone(zone['name'] + '_a', x, y)
+                #warnings.warn(f'dividing geometry... {zone["name"]}')
+                valid_domain = False
+                self._handle_outofbounds_zone(zone, zones_dir)
             else:
                 self._add_zone(zone['name'], x, y)
+
+        if not valid_domain:
+            '''
+            if not os.path.isdir(os.path.dirname(
+                    zones_corr)) or not os.path.isdir(zones_corr):
+                print('Creating new output directory in ',
+                      os.path.dirname(zones_dir))
+                os.makedirs(zones_dir, exist_ok=True)
+            '''
+
+            for name, zone in self.zones.items():
+                zone['name'] = name
+                self._handle_outofbounds_zone(zone, zones_dir)
+
+            raise ValueError(
+                'Invalid zone geometry! '
+                'Exceeds longitude range -180 to 180. '
+                'If you want to query a bounding box spanning '
+                '180 deg longitude, consider a new query with '
+                'multiple domains.\n'
+                f'Saved modified geometries in {str(zones_dir)}, try using the following code instead:\n'
+                f'\tdomain1 = aisdb.DomainFromTxts(domainName=\'corr\', folder={str(zones_dir)}{os.path.sep}corrected)\n'
+                f'\tdomain2 = aisdb.DomainFromTxts(domainName=\'west\', folder={str(zones_dir)}{os.path.sep}west))\n'
+                f'\tdomain3 = aisdb.DomainFromTxts(domainName=\'east\', folder={str(zones_dir)}{os.path.sep}east))\n'
+                '\tdomain = [domain1, domain2, domain3]')
 
         self.boundary = {
             'xmin': self.minX,

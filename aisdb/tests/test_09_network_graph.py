@@ -39,24 +39,25 @@ lon, lat = sample_gulfstlawrence_bbox()
 z1 = Polygon(zip(lon, lat))
 z2 = Polygon(zip(lon - 145, lat))
 z3 = Polygon(zip(lon, lat - 45))
-domain = Domain('gulf domain',
-                zones=[
-                    {
-                        'name': 'z1',
-                        'geometry': z1
-                    },
-                    {
-                        'name': 'z2',
-                        'geometry': z2
-                    },
-                    {
-                        'name': 'z3',
-                        'geometry': z3
-                    },
-                ])
 
 
 def test_graph_minimal(tmpdir):
+    domain = Domain('gulf domain',
+                    zones=[
+                        {
+                            'name': 'z1',
+                            'geometry': z1
+                        },
+                        {
+                            'name': 'z2',
+                            'geometry': z2
+                        },
+                        {
+                            'name': 'z3',
+                            'geometry': z3
+                        },
+                    ])
+
     testdbpath = os.path.join(tmpdir, 'test_graph_minimal.db')
 
     months = sample_database_file(testdbpath)
