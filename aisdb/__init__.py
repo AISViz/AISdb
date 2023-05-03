@@ -11,14 +11,6 @@ if (sqlite3.sqlite_version_info[0] < 3
 
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
-wwwpath = os.path.abspath(
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_web',
-                 'dist_map'))
-
-wwwpath_alt = os.path.abspath(
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_web',
-                 'dist_map_bingmaps'))
-
 import aisdb.web_interface
 
 from .database.create_tables import (

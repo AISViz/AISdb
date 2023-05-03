@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 import os
-import tempfile
 
 import aisdb
 import aisdb.web_interface
@@ -11,6 +10,7 @@ domain = random_polygons_domain()
 example_dir = 'testdata'
 if not os.path.isdir(example_dir):
     os.mkdir(example_dir)
+
 dbpath = os.path.join(example_dir, 'example_visualize.db')
 months = sample_database_file(dbpath)
 start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
@@ -24,8 +24,14 @@ with aisdb.DBConn() as dbconn:
         end=end,
         callback=aisdb.sqlfcn_callbacks.valid_mmsi,
     )
-    rowgen = qry.gen_qry(fcn=aisdb.database.sqlfcn.crawl_dynamic_static, verbose=False)
+    rowgen = qry.gen_qry(fcn=aisdb.database.sqlfcn.crawl_dynamic_static,
+                         verbose=False)
     tracks = aisdb.track_gen.TrackGen(rowgen, decimate=False)
 
     if __name__ == '__main__':
-        aisdb.web_interface.visualize(tracks, domain=domain, visualearth=True, open_browser=True)
+        aisdb.web_interface.visualize(
+            tracks,
+            domain=domain,
+            visualearth=True,
+            open_browser=True,
+        )

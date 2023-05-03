@@ -1,9 +1,10 @@
 import asyncio
 import http.server
 import logging
+import multiprocessing
+import os
 import socketserver
 import webbrowser
-import multiprocessing
 from datetime import datetime
 from functools import partial
 from tempfile import SpooledTemporaryFile
@@ -11,60 +12,79 @@ from tempfile import SpooledTemporaryFile
 import orjson
 import websockets.server
 
-from aisdb import wwwpath, wwwpath_alt
-
 logging.getLogger("websockets").setLevel(logging.WARNING)
 logging.getLogger("shapely").setLevel(logging.WARNING)
+
+wwwpath = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_web',
+                 'dist_map'))
+
+wwwpath_visualearth = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), 'aisdb_web',
+                 'dist_map_bingmaps'))
 
 
 def _start_webclient(visualearth=False):
     if not visualearth:
         path = wwwpath
     else:
-        path = wwwpath_alt
+        path = wwwpath_visualearth
 
-    #return Popen([sys.executable, '-m', 'http.server', '-d', path + os.path.sep + 'index.html',  '3000'])
-        
     class AISDB_HTML(http.server.SimpleHTTPRequestHandler):
+
         extensions_map = {
-                '': 'application/octet-stream',
-                '.css':	'text/css',
-                '.html': 'text/html',
-                '.jpg': 'image/jpg',
-                '.js':	'application/x-javascript',
-                '.json': 'application/json',
-                '.png': 'image/png',
-                '.wasm': 'application/wasm',
+            '': 'application/octet-stream',
+            '.css': 'text/css',
+            '.html': 'text/html',
+            '.jpg': 'image/jpg',
+            '.js': 'application/x-javascript',
+            '.json': 'application/json',
+            '.png': 'image/png',
+            '.wasm': 'application/wasm',
         }
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=path, **kwargs)
 
+    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("localhost", 3000), AISDB_HTML) as httpd:
-        httpd.serve_forever()
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            httpd.server_close()
+            httpd.shutdown()
+        except Exception as e:
+            httpd.server_close()
+            httpd.shutdown()
+            raise e
 
 
 def serialize_zone_json(name, zone):
-    zone_dict = {'msgtype': 'zone',
-                 'meta': {'name': name},
-                 'x': tuple(zone['geometry'].boundary.xy[0]),
-                 'y': tuple(zone['geometry'].boundary.xy[1]),
-                 't': [],
-                 }
+    zone_dict = {
+        'msgtype': 'zone',
+        'meta': {
+            'name': name
+        },
+        'x': tuple(zone['geometry'].boundary.xy[0]),
+        'y': tuple(zone['geometry'].boundary.xy[1]),
+        't': [],
+    }
     return orjson.dumps(zone_dict)
 
 
 def serialize_track_json(track) -> bytes:
     ''' serializes a single track dictionary to JSON format encoded as UTF8 '''
     vector = {
-            'msgtype': 'track_vector',
-            # currently, database_server sends all metadata as strings
-            # reproduce this behaviour by coercion to string type, even for int
-            'meta': {'mmsi': str(track['mmsi'])},
-            't': track['time'],
-            'x': track['lon'],
-            'y': track['lat'],
-            }
+        'msgtype': 'track_vector',
+        # currently, database_server sends all metadata as strings
+        # reproduce this behaviour by coercion to string type, even for int
+        'meta': {
+            'mmsi': str(track['mmsi'])
+        },
+        't': track['time'],
+        'x': track['lon'],
+        'y': track['lat'],
+    }
 
     meta = {k: track[k] for k in track['static'] if k != 'marinetraffic_info'}
     meta['msgtype'] = 'vesselinfo'
@@ -73,7 +93,7 @@ def serialize_track_json(track) -> bytes:
         meta.update({
             k: track['marinetraffic_info'][k]
             for k in track['marinetraffic_info'].keys()
-            })
+        })
 
     vector_json = orjson.dumps(vector, option=orjson.OPT_SERIALIZE_NUMPY)
     meta_json = orjson.dumps(meta)
@@ -85,7 +105,9 @@ async def _send_tracks(websocket, tmp_vectors, tmp_meta, domain=None):
     done = {}
     async for message_json in websocket:
         message = orjson.loads(message_json)
-        print(f'{websocket.remote_address[0]}:{websocket.remote_address[1]} - received: {message}')
+        print(
+            f'{websocket.remote_address[0]}:{websocket.remote_address[1]} - received: {message}'
+        )
 
         if message == {"msgtype": "validrange"}:
             now = datetime.now().timestamp()
@@ -120,11 +142,14 @@ async def _send_tracks(websocket, tmp_vectors, tmp_meta, domain=None):
                 await websocket.send(meta_json)
 
 
-async def _start_webserver(tracks, domain=None, visualearth=False, open_browser=True):
+async def _start_webserver(tracks,
+                           domain=None,
+                           visualearth=False,
+                           open_browser=True):
     ''' Display tracks in the web interface. Serves data to the web client '''
     print('Querying database...', end='\t')
-    with SpooledTemporaryFile(max_size=1024*1e6, newline=b'\n') as vectors, \
-            SpooledTemporaryFile(max_size=256*1e6, newline=b'\n') as meta:
+    with SpooledTemporaryFile(max_size=1024 * 1e6, newline=b'\n') as vectors, \
+            SpooledTemporaryFile(max_size=256 * 1e6, newline=b'\n') as meta:
         for vector, info in map(serialize_track_json, tracks):
             vectors.write(vector)
             vectors.write(b'\n')
@@ -137,12 +162,15 @@ async def _start_webserver(tracks, domain=None, visualearth=False, open_browser=
             print('Opening a new browser window to display track data')
             print('Press Ctrl-C to close the webpage')
             tag = 1 if not visualearth else 2
-            tag = int(datetime.now().timestamp())
+            #tag = int(datetime.now().timestamp())  # unique GET request to invalidate cache. useful for debug
             url = f'http://localhost:3000/index.html?python={tag}&z=2'
             if not webbrowser.open_new_tab(url):
                 print(f'Failed to open webbrowser, instead use URL: {url}')
-                
-        fcn = partial(_send_tracks, tmp_vectors=vectors, tmp_meta=meta, domain=domain)
+
+        fcn = partial(_send_tracks,
+                      tmp_vectors=vectors,
+                      tmp_meta=meta,
+                      domain=domain)
         async with websockets.server.serve(fcn, 'localhost', 9924) as server:
             stop = asyncio.Future()
             await stop
@@ -151,7 +179,7 @@ async def _start_webserver(tracks, domain=None, visualearth=False, open_browser=
 
 def visualize(tracks, domain=None, visualearth=False, open_browser=True):
     ''' Display tracks using the web interface.
-    
+
         Starts the web client HTTP server in a separate process, and
         serves track data via websocket on port 9924.
 
@@ -167,7 +195,8 @@ def visualize(tracks, domain=None, visualearth=False, open_browser=True):
     proc = multiprocessing.Process(target=_start_webclient, args=[visualearth])
     proc.start()
     try:
-        asyncio.run(_start_webserver(tracks, domain, visualearth, open_browser))
+        asyncio.run(_start_webserver(tracks, domain, visualearth,
+                                     open_browser))
         proc.join()
     except KeyboardInterrupt:
         print('Received KeyboardInterrupt, stopping server...')
