@@ -307,7 +307,7 @@ class Domain():
     def _handle_outofbounds_zone(self, zone, zones_dir):
         zones_west = zones_dir / 'west'
         zones_east = zones_dir / 'east'
-        zones_corr = zones_dir / 'corrected'
+        zones_corr = zones_dir / 'corr'
         stringify = lambda x, y: map(
             ','.join, zip(map(str, x), map(lambda y: y + '\n', map(str, y))))
 
@@ -335,7 +335,7 @@ class Domain():
                     w.writelines(stringify(x, y))
 
     def __init__(self, name, zones=[], **kw):
-        ''' Initialize the domain from zone geometries, dividing along the 180th meridian '''
+        ''' Initialize the domain from zone geometries '''
 
         if len(zones) == 0:
             raise ValueError(
@@ -348,7 +348,6 @@ class Domain():
         # self.maxX_c = -180
 
         valid_domain = True
-        #zones_dir = pathlib.Path(os.environ.get('AISDBZONES', os.path.join('.', 'output', 'zones')))
         zones_dir = pathlib.Path(tempfile.mkdtemp(prefix='aisdb_zones_'))
 
         for zone in zones:
@@ -381,14 +380,13 @@ class Domain():
             raise ValueError(
                 'Invalid zone geometry! '
                 'Exceeds longitude range -180 to 180. '
-                'If you want to query a bounding box spanning '
-                '180 deg longitude, consider a new query with '
-                'multiple domains.\n'
-                f'Saved modified geometries in {str(zones_dir)}, try using the following code instead:\n'
-                f'\tdomain1 = aisdb.DomainFromTxts(domainName=\'corr\', folder={str(zones_dir)}{os.path.sep}corrected)\n'
-                f'\tdomain2 = aisdb.DomainFromTxts(domainName=\'west\', folder={str(zones_dir)}{os.path.sep}west))\n'
-                f'\tdomain3 = aisdb.DomainFromTxts(domainName=\'east\', folder={str(zones_dir)}{os.path.sep}east))\n'
-                '\tdomain = [domain1, domain2, domain3]')
+                'If you want to query a bounding box spanning 180 degrees '
+                'longitude, consider querying multiple times instead.\n'
+                f'Saved modified geometries in {str(zones_dir)}, try using these corrected domains:\n'
+                f'\tdomain1 = aisdb.DomainFromTxts(domainName=\'{name}_corr\', folder={str(zones_dir)}{os.path.sep}corrected)\n'
+                f'\tdomain2 = aisdb.DomainFromTxts(domainName=\'{name}_west\', folder={str(zones_dir)}{os.path.sep}west))\n'
+                f'\tdomain3 = aisdb.DomainFromTxts(domainName=\'{name}_east\', folder={str(zones_dir)}{os.path.sep}east))\n'
+            )
 
         assert self.minX < self.maxX
         assert self.minY < self.maxY
