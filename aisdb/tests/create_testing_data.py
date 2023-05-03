@@ -79,6 +79,7 @@ def random_polygons_domain(count=10):
 
 def sample_database_file(dbpath):
     ''' test data for date 2021-11-01 '''
+    assert os.path.isdir(os.path.join(os.path.dirname(__file__), 'testdata'))
     datapath_csv = os.path.join(os.path.dirname(__file__), 'testdata',
                                 'test_data_20210701.csv')
     # no static data in nm4
