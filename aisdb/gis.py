@@ -373,8 +373,8 @@ class Domain():
                 os.makedirs(zones_dir, exist_ok=True)
             '''
 
-            for name, zone in self.zones.items():
-                zone['name'] = name
+            for zonename, zone in self.zones.items():
+                zone['name'] = zonename
                 self._handle_outofbounds_zone(zone, zones_dir)
 
             raise ValueError(

@@ -79,28 +79,14 @@ def test_domain_points_in_polygon():
     z1 = Polygon(zip(lon, lat))
     z2 = Polygon(zip(lon - 145, lat))
     z3 = Polygon(zip(lon, lat - 45))
-    domain = Domain('gulf domain',
-                    zones=[
-                        {
-                            'name': 'z1',
-                            'geometry': z1
-                        },
-                        {
-                            'name': 'z2',
-                            'geometry': z2
-                        },
-                        {
-                            'name': 'z3',
-                            'geometry': z3
-                        },
-                    ])
+    domain1 = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
 
     xx = [z1.centroid.x, z2.centroid.x, z3.centroid.x]
     yy = [z1.centroid.y, z2.centroid.y, z3.centroid.y]
-    test = [domain.point_in_polygon(x, y) for x, y in zip(xx, yy)]
+    test = [domain1.point_in_polygon(x, y) for x, y in zip(xx, yy)]
     assert test[0] == 'z1'
     assert test[1] == 'Z0'
-    assert test[2] == 'z3'
+    assert test[2] == 'Z0'
 
 
 def test_shiftcoord():

@@ -102,14 +102,12 @@ def TrackGen(rowgen: iter, decimate: False) -> dict:
         >>> from datetime import datetime
         >>> from aisdb import DBConn, DBQuery, TrackGen, decode_msgs
         >>> from aisdb.database import sqlfcn_callbacks
-
         >>> # create example database file
         >>> dbpath = 'track_gen_test.db'
         >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
         ...              'aisdb/tests/testdata/test_data_20211101.nm4']
-
         >>> with DBConn() as dbconn:
-            ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
         ...     source='TESTING')
         ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
         ...             dbconn=dbconn,
@@ -118,7 +116,7 @@ def TrackGen(rowgen: iter, decimate: False) -> dict:
         ...             end=datetime(2021, 7, 7))
         ...     rowgen = q.gen_qry()
         ...     for track in TrackGen(rowgen, decimate=True):
-            ...         print(track['mmsi'], track['lon'], track['lat'], track['time'])
+        ...         print(track['mmsi'], track['lon'], track['lat'], track['time'])
         ...         break
         204242000 [-8.931666] [41.45] [1625176725]
         >>> os.remove(dbpath)

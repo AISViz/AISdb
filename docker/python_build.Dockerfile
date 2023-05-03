@@ -8,7 +8,7 @@ RUN rustup update
 
 WORKDIR /aisdb_src
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL="sparse"
-ENV VIRTUAL_ENV="/env_aisdb/"
+ENV VIRTUAL_ENV="/env_aisdb"
 
 COPY Cargo.toml Cargo.lock .coveragerc pyproject.toml readme.rst ./
 COPY aisdb_lib/ aisdb_lib/

@@ -37,7 +37,7 @@ data_dir = os.environ.get(
 
 lon, lat = sample_gulfstlawrence_bbox()
 z1 = Polygon(zip(lon, lat))
-z2 = Polygon(zip(lon - 145, lat))
+z2 = Polygon(zip(lon - 45, lat))
 z3 = Polygon(zip(lon, lat - 45))
 
 

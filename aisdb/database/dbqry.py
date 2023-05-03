@@ -51,7 +51,7 @@ class DBQuery(UserDict):
 
         >>> import os
         >>> from datetime import datetime
-        >>> from aisdb import DBQuery, decode_msgs
+        >>> from aisdb import DBConn, DBQuery, decode_msgs
         >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 
         >>> dbpath = './testdata/test.db'
