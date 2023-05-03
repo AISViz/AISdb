@@ -132,7 +132,7 @@ class Gebco():
 
             # ensure that each vector time slice has a value
             if len(raster_keys) != len(track['time']):
-                raise ValueError(f'no rasters found for track')
+                raise ValueError('no rasters found for track')
             bathy_segments = np.append(
                 np.append([0],
                           np.where(raster_keys[:-1] != raster_keys[:1])[0]),

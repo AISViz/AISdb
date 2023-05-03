@@ -48,15 +48,17 @@ with DBConn() as dbconn:
     rowgen = qry.gen_qry(fcn=aisdb.database.sqlfcn.crawl_dynamic_static)
 
     tracks = aisdb.track_gen.TrackGen(rowgen, decimate=True)
-
     tracks = aisdb.webdata.marinetraffic.vessel_info(tracks, vinfoDB)
-
     tracks = random_noise(tracks, boundary=domain.boundary)
+    tracks = aisdb.encode_greatcircledistance(tracks,
+                                              distance_threshold=50000,
+                                              minscore=1e-5,
+                                              speed_threshold=50)
 
-    tracks = aisdb.track_gen.encode_greatcircledistance(
-        tracks, distance_threshold=50000, minscore=1e-5, speed_threshold=50)
-
-    aisdb.web_interface.visualize(tracks,
-                                  domain=domain,
-                                  visualearth=True,
-                                  open_browser=False)
+    if __name__ == '__main__':
+        aisdb.web_interface.visualize(
+            tracks,
+            domain=domain,
+            visualearth=True,
+            open_browser=True,
+        )

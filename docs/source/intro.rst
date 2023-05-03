@@ -222,7 +222,7 @@ Data cleaning and MMSI deduplication
 
 
 A common issue with AIS is that the data is noisy, and databases may contain multiple vessels broadcasting with same identifier at the same time.
-The :func:`aisdb.track_gen.encode_greatcircledistance` function uses an encoder to check the approximate distance between each vessel's position, and then segments resulting vectors where a surface vessel couldn't reasonably travel there using the most direct path, e.g. above 50 knots.
+The :func:`aisdb.denoising_encoder.encode_greatcircledistance` function uses an encoder to check the approximate distance between each vessel's position, and then segments resulting vectors where a surface vessel couldn't reasonably travel there using the most direct path, e.g. above 50 knots.
 A distance threshold and speed threshold are used as a hard limit on the maximum delta distance or delta time allowed between messages to be considered continuous.
 A score is computed for each position delta, with sequential messages in close proximity at shorter intervals given a higher score, calculated by haversine distance divided by elapsed time.
 Any deltas with a score not reaching the minimum threshold are considered as the start of a new segment.
@@ -253,6 +253,13 @@ Processing functions may be executed in sequence as a processing chain or pipeli
         tracks = aisdb.TrackGen(qry.gen_qry())
         track_segments = aisdb.split_timedelta(tracks, maxdelta)
         tracks_encoded = aisdb.encode_greatcircledistance(track_segments, distance_threshold=distance_threshold, speed_threshold=speed_threshold, minscore=minscore)
+
+
+In this second example, artificial noise is introduced into the tracks as a hyperbolic demonstration of the denoising capability.
+The resulting cleaned tracks are then displayed in the web interface.
+
+.. literalinclude:: ../../examples/clean_random_noise.py
+   :language: python
 
 
 Interpolating, geofencing and filtering
@@ -289,11 +296,47 @@ The resulting processed voyage data can be exported in CSV format instead of bei
 4. Integration with external metadata
 -------------------------------------
 
+AISDB supports integration with external data sources such as bathymetric charts and other raster grids.
+
 Bathymetric charts
 ++++++++++++++++++
 
+To determine the approximate ocean depth at each vessel position, the :mod:`aisdb.webdata.bathymetry` module can be used.
+
+.. code-block:: python
+
+   import aisdb
+
+   # set the data storage directory
+   data_dir = './testdata/'
+
+   # download bathymetry grid from the internet
+   bathy = aisdb.webdata.bathymetry.Gebco(data_dir=data_dir)
+   bathy.fetch_bathymetry_grid()
+
+Once the data has been downloaded, the ``Gebco()`` class may be used to append bathymetric data to tracks in the context of a ``TrackGen`` processing pipeline in the same manner as the processing functions described above.
+
+.. code-block:: python
+
+   # ... 
+        tracks = aisdb.TrackGen(qry.gen_qry())
+        tracks_bathymetry = bathy.merge_tracks(tracks)
+
+
+Also see :class:`aisdb.webdata.shore_dist.ShoreDist` for determining approximate nearest distance to shore from vessel positions.
+
 Rasters
 +++++++
+
+Similarly, abritrary raster coordinate-gridded data may be appended to vessel tracks
+
+.. code-block:: python
+
+   # ... 
+        tracks = aisdb.TrackGen(qry.gen_qry())
+        raster_path './GMT_intermediate_coast_distance_01d.tif'
+        raster = aisdb.webdata.load_raster.RasterFile(raster_path)
+        tracks = raster.merge_tracks(tracks, new_track_key="coast_distance")
 
 Detailed metadata from marinetraffic.com
 ++++++++++++++++++++++++++++++++++++++++
@@ -304,12 +347,11 @@ Detailed metadata from marinetraffic.com
 5. Visualization
 ----------------
 
-AIS data contained in the database may be viewed in a web map such as the one shown above.
-Requires nodejs and npm installed.
-Clone the project repo, and run this script inside the project root directory to start the user interface.
-Configuration options such as database path may be set by environment variables.
+AIS data from the database may be overlayed on a map such as the one shown above by using the :func:`aisdb.web_interface.visualize` function.
+This function accepts a generator of track dictionaries such as those output by :func:`aisdb.track_gen.TrackGen`.
+The color of each vessel track is determined by vessel type metadata.
 
-.. literalinclude:: ../../examples/start_web_interface.py
+.. literalinclude:: ../../examples/visualize.py
    :language: python
 
 .. _data-sharing:

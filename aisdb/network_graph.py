@@ -323,17 +323,17 @@ def graph(
                 :func:`aisdb.track_gen.split_timedelta` for more info
             speed_threshold (int, float)
                 maximum speed in knots for encoder segmentation. See
-                :func:`aisdb.track_gen.encode_greatcircledistance` for
+                :func:`aisdb.denoising_encoder.encode_greatcircledistance` for
                 more info
             distance_threshold (int, float)
                 maximum distance in meters for encoder segmentation. See
-                :func:`aisdb.track_gen.encode_greatcircledistance` for
+                :func:`aisdb.denoising_encoder.encode_greatcircledistance` for
                 more info
             interp_delta (timedelta)
                 track positions will be interpolated to the given sample rate
             minscore (float)
                 minimum score for segments to be considered sequential. See
-                :func:`aisdb.track_gen.encode_greatcircledistance` for
+                :func:`aisdb.denoising_encoder.encode_greatcircledistance` for
                 more info
 
         Network graph activity is computed following these steps:
@@ -348,7 +348,7 @@ def graph(
             - Segment track vectors where time between messages exceeds
               maxdelta using :func:`aisdb.track_gen.split_timedelta`
             - Segment track vectors as encoded by
-              :py:func:`aisdb.track_gen.encode_greatcircledistance`
+              :py:func:`aisdb.denoising_encoder.encode_greatcircledistance`
             - Perform geofencing on track segments using
               :py:func:`aisdb.track_gen.fence_tracks` to determine zone
               containment

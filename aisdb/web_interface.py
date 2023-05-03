@@ -49,6 +49,7 @@ def _start_webclient(visualearth=False):
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("localhost", 3000), AISDB_HTML) as httpd:
         try:
+            print('Serving HTTP assets on localhost:3000')
             httpd.serve_forever()
         except KeyboardInterrupt:
             httpd.server_close()
@@ -159,10 +160,9 @@ async def _start_webserver(tracks,
         print('done query')
 
         if open_browser:
-            print('Opening a new browser window to display track data')
-            print('Press Ctrl-C to close the webpage')
+            print('Opening a new browser window to display track data. '
+                  'Press Ctrl-C to stop the server and close the webpage')
             tag = 1 if not visualearth else 2
-            #tag = int(datetime.now().timestamp())  # unique GET request to invalidate cache. useful for debug
             url = f'http://localhost:3000/index.html?python={tag}&z=2'
             if not webbrowser.open_new_tab(url):
                 print(f'Failed to open webbrowser, instead use URL: {url}')

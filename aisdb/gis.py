@@ -241,6 +241,7 @@ class Domain():
             self.minY
             self.maxX
             self.maxY
+
     '''
 
     _meridian = LineString(
@@ -397,16 +398,6 @@ class Domain():
             'ymin': self.minY,
             'ymax': self.maxY
         }
-        '''
-        if self.minX_b != 180 and self.boundary['xmin'] % 180 != 0:
-            assert self.minX_b >= self.boundary[
-                'xmin'], f'{self.boundary=} {self.minX_b=}'
-            self.boundary.update({'xmin': self.minX_b, 'xmin_alt': self.minX})
-        if self.maxX_c != -180 and self.boundary['xmax'] % 180 != 0:
-            assert self.maxX_c <= self.boundary[
-                'xmax'], f'{self.boundary=} {self.maxX_c=}'
-            self.boundary.update({'xmax': self.maxX_c, 'xmax_alt': self.maxX})
-        '''
 
     def nearest_polygons_to_point(self, x, y):
         ''' compute great circle distance for this point to each polygon

@@ -1,6 +1,5 @@
 use std::process::Command;
 
-//use wasm_pack;
 use wasm_opt::OptimizationOptions;
 
 fn main() {
@@ -25,13 +24,17 @@ fn main() {
             "--dev",
         ])
         .output()
-        .expect("Running wasm-pack. Is it installed? https://rustwasm.github.io/wasm-pack/installer/");
+        .expect(
+            "Running wasm-pack. Is it installed? https://rustwasm.github.io/wasm-pack/installer/",
+        );
     eprintln!("{}", String::from_utf8_lossy(&wasm_build.stderr[..]));
     assert!(wasm_build.status.code().unwrap() == 0);
 
     // compress wasm
     let wasm_opt_file = "./aisdb_web/map/pkg/client_bg.wasm";
-    OptimizationOptions::new_optimize_for_size().run(wasm_opt_file, wasm_opt_file).expect("running wasm-opt");
+    OptimizationOptions::new_optimize_for_size()
+        .run(wasm_opt_file, wasm_opt_file)
+        .expect("running wasm-opt");
 
     // install npm packages
     #[cfg(target_os = "windows")]
@@ -52,7 +55,6 @@ fn main() {
     let npx = "npx.cmd";
     #[cfg(not(target_os = "windows"))]
     let npx = "npx";
-    
 
     let vite_build_1 = Command::new(npx)
         .current_dir(webpath)
