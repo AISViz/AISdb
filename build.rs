@@ -11,6 +11,12 @@ fn main() {
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.ts");
     println!("cargo:rerun-if-changed=./client_webassembly/src/*");
 
+    let wasm_pack_install = Command::new("cargo")
+        .args(["install", "wasm-pack"])
+        .output()
+        .expect("installing wasm-pack");
+    assert!(wasm_pack_install.status.code().unwrap() == 0);
+
     // build wasm
     let wasm_build = Command::new("wasm-pack")
         .current_dir("./client_webassembly/")
