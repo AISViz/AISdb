@@ -2,10 +2,13 @@ import asyncio
 import logging
 import sys
 import webbrowser
+import http.server
+import socketserver
 from datetime import datetime
 from functools import partial
 from subprocess import Popen
 from tempfile import SpooledTemporaryFile
+from concurrent.futures import ProcessPoolExecutor
 
 import orjson
 import websockets.server
@@ -13,14 +16,33 @@ import websockets.server
 from aisdb import wwwpath, wwwpath_alt
 
 logging.getLogger("websockets").setLevel(logging.WARNING)
+logging.getLogger("shapely").setLevel(logging.WARNING)
 
 
-def start_webapp(visualearth=False):
+async def _start_webclient(visualearth=False):
     if not visualearth:
         path = wwwpath
     else:
         path = wwwpath_alt
-    return Popen([sys.executable, '-m', 'http.server', '-d', path, '3000'])
+        
+    class AISDB_HTML(http.server.SimpleHTTPRequestHandler):
+        extensions_map = {
+                '': 'application/octet-stream',
+                '.css':	'text/css',
+                '.html': 'text/html',
+                '.jpg': 'image/jpg',
+                '.js':	'application/x-javascript',
+                '.json': 'application/json',
+                '.png': 'image/png',
+                '.wasm': 'application/wasm',
+        }
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=path, **kwargs)
+
+    #return Popen([sys.executable, '-m', 'http.server', '-d', path + os.path.sep + 'index.html',  '3000'])
+    with socketserver.TCPServer(("localhost", 3000), AISDB_HTML) as httpd:
+        httpd.serve_forever()
 
 
 def serialize_zone_json(name, zone):
@@ -64,6 +86,7 @@ async def _send_tracks(websocket, tmp_vectors, tmp_meta, domain=None):
     done = {}
     async for message_json in websocket:
         message = orjson.loads(message_json)
+        print('got msg:', message)
 
         if message == {"msgtype": "validrange"}:
             now = datetime.now().timestamp()
@@ -98,43 +121,70 @@ async def _send_tracks(websocket, tmp_vectors, tmp_meta, domain=None):
                 await websocket.send(meta_json)
 
 
-async def _visualize_async(tracks_json, domain=None, visualearth=False, open_browser=True):
+async def _start(tracks, domain=None, visualearth=False, open_browser=True):
     ''' Display tracks in the web interface. Serves data to the web client '''
     print('Querying database...', end='\t')
-    with (SpooledTemporaryFile(max_size=1024*1e6, newline=b'\n') as vectors,
-          SpooledTemporaryFile(max_size=256*1e6, newline=b'\n') as meta):
-        for t in tracks_json:
-            vectors.write(t[0])
+    executor = ProcessPoolExecutor(1)
+    loop = asyncio.get_running_loop()
+    with SpooledTemporaryFile(max_size=1024*1e6, newline=b'\n') as vectors, \
+            SpooledTemporaryFile(max_size=256*1e6, newline=b'\n') as meta:
+        for vector, info in map(serialize_track_json, tracks):
+            vectors.write(vector)
             vectors.write(b'\n')
-            meta.write(t[1])
+            meta.write(info)
             meta.write(b'\n')
 
         print('done query')
 
+
         if open_browser:
             print('Opening a new browser window to display track data')
             print('Press Ctrl-C to close the webpage')
-            url = f'http://localhost:3000/?python={1 if not visualearth else 2}&z=2'
+            tag = 1 if not visualearth else 2
+            tag = int(datetime.now().timestamp())
+            url = f'http://localhost:3000/index.html?python={tag}&z=2'
             if not webbrowser.open_new_tab(url):
                 print(f'Failed to open webbrowser, instead use URL: {url}')
-
+                
         fcn = partial(_send_tracks, tmp_vectors=vectors, tmp_meta=meta, domain=domain)
-        async with websockets.server.serve(fcn, 'localhost', 9924):
-            await asyncio.Future()
+        async with websockets.server.serve(fcn, 'localhost', 9924) as server:
+            stop = asyncio.Future()
+            #a = asyncio.create_task(stop)
+            #server = asyncio.create_task()
+            client = asyncio.create_task(_start_webclient(visualearth))
+            #asyncio.gather([stop,client,server])
+            await asyncio.wait([
+                loop.run_in_executor(executor, client),
+                loop.run_in_executor(executor, server),
+                loop.run_in_executor(executor, stop),
+            ])
+            #await asyncio.wait([stop, server, client])
+            #await stop
+            #await server.close()
+            #return stop, server
+
+'''
+async def _start(tracks, domain=None, visualearth=False, open_browser=True):
+    stop, server = await _start_webserver(tracks, domain=None, visualearth=False, open_browser=True)
+    #client = asyncio.create_task(_start_webclient(visualearth))
+    client = _start_webclient(visualearth)
+    #await asyncio.wait([server, client])
+    await asyncio.wait([stop, server])
+    #await server.stop()
+'''
+
+
 
 
 def visualize(tracks, domain=None, visualearth=False, open_browser=True):
-    ''' Synchronous wrapper for visualize_async().
+    ''' Synchronous wrapper for _start_webclient_webserver().
         Tracks input to this function will be converted to JSON automatically.
         Display tracks in the web interface
     '''
-    app = start_webapp(visualearth)
-
     try:
-        asyncio.run(_visualize_async(map(serialize_track_json, tracks),
-                                     domain=domain,
-                                     visualearth=visualearth,
-                                     open_browser=open_browser
-                                     ))
-    finally:
-        app.terminate()
+        asyncio.run(_start(tracks, domain, visualearth, open_browser))
+        #_start(tracks, domain, visualearth, open_browser)
+    except KeyboardInterrupt:
+        pass
+    
+    

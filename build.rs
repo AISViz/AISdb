@@ -1,5 +1,8 @@
 use std::process::Command;
 
+//use wasm_pack;
+use wasm_opt::OptimizationOptions;
+
 fn main() {
     println!("cargo:rerun-if-changed=./aisdb_web/*.js");
     println!("cargo:rerun-if-changed=./aisdb_web/*.json");
@@ -9,6 +12,7 @@ fn main() {
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.ts");
     println!("cargo:rerun-if-changed=./client_webassembly/src/*");
 
+    // build wasm
     let wasm_build = Command::new("wasm-pack")
         .current_dir("./client_webassembly/")
         .args([
@@ -21,34 +25,39 @@ fn main() {
             "--dev",
         ])
         .output()
-        .unwrap();
+        .expect("Running wasm-pack. Is it installed? https://rustwasm.github.io/wasm-pack/installer/");
     eprintln!("{}", String::from_utf8_lossy(&wasm_build.stderr[..]));
     assert!(wasm_build.status.code().unwrap() == 0);
-    //std::fs::remove_file("aisdb_web/map/pkg/.gitignore").unwrap();
 
-    let wasm_opt = Command::new("wasm-opt")
-        .current_dir("./client_webassembly/")
-        .args([
-            "-O3",
-            "-o=../aisdb_web/map/pkg/client_bg.wasm",
-            "../aisdb_web/map/pkg/client_bg.wasm",
-        ])
-        .output()
-        .unwrap();
-    eprintln!("{}", String::from_utf8_lossy(&wasm_opt.stderr[..]));
-    assert!(wasm_opt.status.code().unwrap() == 0);
+    // compress wasm
+    let wasm_opt_file = "./aisdb_web/map/pkg/client_bg.wasm";
+    OptimizationOptions::new_optimize_for_size().run(wasm_opt_file, wasm_opt_file).expect("running wasm-opt");
 
-    let npm_install = Command::new("npm")
+    // install npm packages
+    #[cfg(target_os = "windows")]
+    let npm = "npm.cmd";
+    #[cfg(not(target_os = "windows"))]
+    let npm = "npm";
+    let npm_install = Command::new(npm)
         .current_dir("./aisdb_web")
         .arg("install")
         .output()
-        .unwrap();
+        .expect("running npm install");
     eprintln!("{}", String::from_utf8_lossy(&npm_install.stderr[..]));
     assert!(npm_install.status.code().unwrap() == 0);
 
-    let vite_build_1 = Command::new("npx")
-        .current_dir("./aisdb_web/map")
+    // bundle html
+    let webpath = std::path::Path::new("./aisdb_web/map");
+    #[cfg(target_os = "windows")]
+    let npx = "npx.cmd";
+    #[cfg(not(target_os = "windows"))]
+    let npx = "npx";
+    
+
+    let vite_build_1 = Command::new(npx)
+        .current_dir(webpath)
         .env_clear()
+        .env("PATH", std::env::var("PATH").unwrap())
         .env("VITE_DISABLE_SSL_DB", "1")
         .env("VITE_DISABLE_STREAM", "1")
         .env("VITE_AISDBHOST", "localhost")
@@ -59,9 +68,10 @@ fn main() {
     eprintln!("{}", String::from_utf8_lossy(&vite_build_1.stderr[..]));
     assert!(vite_build_1.status.code().unwrap() == 0);
 
-    let vite_build_2 = Command::new("npx")
-        .current_dir("./aisdb_web/map")
+    let vite_build_2 = Command::new(npx)
+        .current_dir(webpath)
         .env_clear()
+        .env("PATH", std::env::var("PATH").unwrap())
         .env("VITE_DISABLE_SSL_DB", "1")
         .env("VITE_DISABLE_STREAM", "1")
         .env("VITE_AISDBHOST", "localhost")
