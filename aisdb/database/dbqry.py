@@ -10,7 +10,9 @@ import warnings
 import numpy as np
 
 from aisdb.database import sqlfcn, sqlfcn_callbacks
-from aisdb.database.create_tables import aggregate_static_msgs
+from aisdb.database.create_tables import (aggregate_static_msgs,
+                                          sqlite_createtable_dynamicreport,
+                                          sqlite_createtable_staticreport)
 from aisdb.database.dbconn import ConnectionType
 from aisdb.webdata.marinetraffic import VesselInfo
 
@@ -210,10 +212,9 @@ class DBQuery(UserDict):
                     'WHERE type="table" AND name=?', [f'ais_{month}_static'])
                 if len(cur.fetchall()) == 0:
                     #sqlite_createtable_staticreport(self.dbconn, month, dbpath)
-                    warnings.warn(
-                        'No static data for selected time range! '
-                        f'{self.dbconn._get_dbname(dbpath)} {month=} '
-                        f'{rng_string}')
+                    warnings.warn('No static data for selected time range! '
+                                  f'{self.dbconn._get_dbname(dbpath)} '
+                                  f'{rng_string}')
 
                 # check if aggregate tables exist
                 cur.execute((
@@ -233,11 +234,13 @@ class DBQuery(UserDict):
                     f'SELECT * FROM {self.dbconn._get_dbname(dbpath)}.sqlite_master WHERE '
                     'type="table" and name=?', [f'ais_{month}_dynamic'])
                 if len(cur.fetchall()) == 0:  # pragma: no cover
-                    # sqlite_createtable_dynamicreport(self.dbconn, month, dbpath)
-                    warnings.warn(
-                        'No data for selected time range! '
-                        f'{self.dbconn._get_dbname(dbpath)} {month=} '
-                        f'{rng_string}')
+                    if isinstance(self.dbconn, ConnectionType.SQLITE.value):
+                        sqlite_createtable_dynamicreport(
+                            self.dbconn, month, dbpath)
+
+                    warnings.warn('No data for selected time range! '
+                                  f'{self.dbconn._get_dbname(dbpath)} '
+                                  f'{rng_string}')
 
             qry = fcn(dbpath=dbpath, **self.data)
             if verbose:
