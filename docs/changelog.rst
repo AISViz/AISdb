@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.6.0
+------
+
+merge feature branch for v1.6.0 #version:minor
+
+
 v1.5.9
 ------
 
