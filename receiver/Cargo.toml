@@ -21,7 +21,7 @@ aisdb-lib = { path = "../aisdb_lib" }
 mproxy-socket_dispatch = { version = "0.1" }
 mproxy-client = { version = "0.1" }
 mproxy-server = { version = "0.1" }
-mproxy-forward = { features = ["tls"], version = "0.1", path = "../dispatcher/proxy" }
+mproxy-forward = { features = ["tls"], version = "0.1" }
 mproxy-reverse = { version = "0.1" }
 
 nmea-parser = { version = "0.10" }

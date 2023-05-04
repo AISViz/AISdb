@@ -2,7 +2,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
-import { VitePWA } from 'vite-plugin-pwa';
+//import { VitePWA } from 'vite-plugin-pwa';
 
 const currentdir = dirname(fileURLToPath(import.meta.url));
 
@@ -18,6 +18,7 @@ export default defineConfig({
       },
     },
   },
+  /*
   plugins: [
     VitePWA({
       selfDestroying: true,
@@ -50,5 +51,6 @@ export default defineConfig({
       },
     }),
   ],
+  */
 
 });

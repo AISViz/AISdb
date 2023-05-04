@@ -26,7 +26,7 @@ def test_create_dynamic_table(tmpdir):
 def test_create_static_aggregate_table(tmpdir):
     warnings.filterwarnings('error')
     dbpath = os.path.join(tmpdir, 'test_create_static_aggregate_table.db')
-    testingdata_csv = os.path.join(os.path.dirname(__file__),
+    testingdata_csv = os.path.join(os.path.dirname(__file__), 'testdata',
                                    'test_data_20210701.csv')
     with DBConn() as dbconn:
         decode_msgs([testingdata_csv],
@@ -37,7 +37,7 @@ def test_create_static_aggregate_table(tmpdir):
 
 
 def test_create_from_CSV(tmpdir):
-    testingdata_csv = os.path.join(os.path.dirname(__file__),
+    testingdata_csv = os.path.join(os.path.dirname(__file__), 'testdata',
                                    'test_data_20210701.csv')
     dbpath = os.path.join(tmpdir, 'test_create_from_CSV.db')
     with DBConn() as dbconn:

@@ -2,6 +2,72 @@
 Changelog
 =========
 
+v1.6.0
+------
+
+merge feature branch for v1.6.0 #version:minor
+
+
+v1.5.9
+------
+
+python 3.12 support and fix duplicate server status message
+
+
+v1.5.8
+------
+
+fix multiple bugs related to postgres database connections
+
+
+v1.5.7
+------
+
+update docs
+
+
+v1.5.6
+------
+
+fix bugs, update testing, add new examples
+
+
+v1.5.5
+------
+
+fix timerange selection
+
+
+v1.5.4
+------
+
+improved fault tolerance in dispatcher proxy
+
+
+v1.5.3
+------
+
+update readme and docker docs; add python environment to introduction doc
+
+
+v1.5.2
+------
+
+update cloud services documentation
+
+
+v1.5.1
+------
+
+update docker build, lockfiles, and dispatcher docstrings
+
+
+v1.5.0
+------
+
+version bump #version:minor
+
+
 v1.4.41
 -------
 

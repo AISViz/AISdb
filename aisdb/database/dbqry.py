@@ -10,8 +10,10 @@ import warnings
 import numpy as np
 
 from aisdb.database import sqlfcn, sqlfcn_callbacks
-from aisdb.database.create_tables import aggregate_static_msgs
-from aisdb.database.dbconn import DBConn
+from aisdb.database.create_tables import (aggregate_static_msgs,
+                                          sqlite_createtable_dynamicreport,
+                                          sqlite_createtable_staticreport)
+from aisdb.database.dbconn import ConnectionType
 from aisdb.webdata.marinetraffic import VesselInfo
 
 
@@ -30,22 +32,12 @@ class DBQuery(UserDict):
                 anonymous function yielding SQL code specifying "WHERE"
                 clauses. common queries are included in
                 :mod:`aisdb.database.sqlfcn_callbacks`, e.g.
-
-                >>> import os
-                >>> dbpath = './testdata/test.db'
                 >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
-                >>> from aisdb import DBConn, DBQuery
+                >>> callback = in_timerange_validmmsi
 
                 this generates SQL code to apply filtering on columns (mmsi,
                 time), and requires (start, end) as arguments in datetime
                 format.
-
-                >>> start, end = datetime(2022, 1, 1), datetime(2022, 1, 7)
-                >>> with DBConn() as dbconn:
-                ...     q = DBQuery(dbconn=dbconn, dbpath=dbpath,
-                ...     callback=in_timerange_validmmsi, start=start, end=end)
-
-                Resulting SQL is then passed to the query function
 
             **kwargs (dict)
                 more arguments that will be supplied to the query function
@@ -61,13 +53,13 @@ class DBQuery(UserDict):
 
         >>> import os
         >>> from datetime import datetime
-        >>> from aisdb import DBQuery, decode_msgs
+        >>> from aisdb import DBConn, DBQuery, decode_msgs
         >>> from aisdb.database.sqlfcn_callbacks import in_timerange_validmmsi
 
         >>> dbpath = './testdata/test.db'
         >>> start, end = datetime(2021, 7, 1), datetime(2021, 7, 7)
-        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
-        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
+        ...              'aisdb/tests/testdata/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
         ...     source='TESTING')
@@ -83,20 +75,27 @@ class DBQuery(UserDict):
     '''
 
     def __init__(self, *, dbconn, dbpath=None, dbpaths=[], **kwargs):
-        if dbpaths == [] and dbpath is None:
-            raise ValueError(
-                'must supply either dbpaths list or dbpath string value')
-        elif dbpaths == []:  # pragma: no cover
-            dbpaths = [dbpath]
+        if isinstance(dbconn, ConnectionType.SQLITE.value):
+            if dbpaths == [] and dbpath is None:
+                raise ValueError(
+                    'must supply either dbpaths list or dbpath string value')
+            elif dbpaths == []:  # pragma: no cover
+                dbpaths = [dbpath]
+        elif isinstance(dbconn, ConnectionType.POSTGRES):
+            if dbpath is not None:
+                raise ValueError(
+                    "the dbpath argument may not be used with a Postgres connection"
+                )
         else:
-            assert dbpath is None
+            raise ValueError("Invalid database connection")
 
         for dbpath in dbpaths:
             dbconn._attach(dbpath)
-        if not isinstance(dbconn, DBConn):
-            raise ValueError(
-                'db argument must be a DBConn database connection.'
-                f'\tfound: {dbconn}')
+        if isinstance(dbconn, ConnectionType):
+            raise ValueError('Invalid database connection.'
+                             f' Got: {dbconn}.'
+                             f'Requires: {ConnectionType.SQLITE.value}'
+                             f' or {ConnectionType.POSTGRES.value}')
 
         self.data = kwargs
         self.dbconn = dbconn
@@ -124,9 +123,8 @@ class DBQuery(UserDict):
                 boundary (dict)
                     uses keys xmin, xmax, ymin, and ymax to denote the region
                     of vessels that should be checked.
-                    if using :class:`aisdb.gis.Domain`, the `Domain.boundary` attribute
-                    can be supplied here
-
+                    if using :class:`aisdb.gis.Domain`, the `Domain.boundary`
+                    attribute can be supplied here
         '''
         self.dbconn._attach(dbpath)
         vinfo = VesselInfo(trafficDBpath)
@@ -214,10 +212,9 @@ class DBQuery(UserDict):
                     'WHERE type="table" AND name=?', [f'ais_{month}_static'])
                 if len(cur.fetchall()) == 0:
                     #sqlite_createtable_staticreport(self.dbconn, month, dbpath)
-                    warnings.warn(
-                        'No static data for selected time range! '
-                        f'{self.dbconn._get_dbname(dbpath)} {month=} '
-                        f'{rng_string}')
+                    warnings.warn('No static data for selected time range! '
+                                  f'{self.dbconn._get_dbname(dbpath)} '
+                                  f'{rng_string}')
 
                 # check if aggregate tables exist
                 cur.execute((
@@ -237,11 +234,13 @@ class DBQuery(UserDict):
                     f'SELECT * FROM {self.dbconn._get_dbname(dbpath)}.sqlite_master WHERE '
                     'type="table" and name=?', [f'ais_{month}_dynamic'])
                 if len(cur.fetchall()) == 0:  # pragma: no cover
-                    # sqlite_createtable_dynamicreport(self.dbconn, month, dbpath)
-                    warnings.warn(
-                        'No data for selected time range! '
-                        f'{self.dbconn._get_dbname(dbpath)} {month=} '
-                        f'{rng_string}')
+                    if isinstance(self.dbconn, ConnectionType.SQLITE.value):
+                        sqlite_createtable_dynamicreport(
+                            self.dbconn, month, dbpath)
+
+                    warnings.warn('No data for selected time range! '
+                                  f'{self.dbconn._get_dbname(dbpath)} '
+                                  f'{rng_string}')
 
             qry = fcn(dbpath=dbpath, **self.data)
             if verbose:
@@ -259,7 +258,8 @@ class DBQuery(UserDict):
                     f'query time: {delta.total_seconds():.2f}s\nfetching rows...'
                 )
             if res == []:
-                raise SyntaxError(f'no results for query!\n{qry}')
+                # raise SyntaxError(f'no results for query!\n{qry}')
+                warnings.warn('No results for query!')
 
             while len(res) > 0:
                 mmsi_rows += res

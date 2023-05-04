@@ -28,28 +28,21 @@ def sample_dynamictable_insertdata(*, dbconn, dbpath):
     dbconn.commit()
 
 
-def sample_random_polygon(xscale=10, yscale=10):
-    vertices = 6
+def sample_random_polygon(xscale=50, yscale=50):
+    vertices = 5
 
     x, y = [0, 0, 0], [0, 0, 0]
     while not Polygon(zip(x, y)).is_valid:
-        x = (np.random.random(vertices) * xscale) + (180 *
-                                                     (np.random.random() - .5))
-        y = (np.random.random(vertices) * yscale) + (90 *
-                                                     (np.random.random() - .5))
-
-    return x, y
-
-
-def sample_invalid_polygon(xscale=10, yscale=10):
-    vertices = 6
-
-    x, y = [0, 0, 0], [0, 0, 0]
-    while not Polygon(zip(x, y)).is_valid:
-        x = (np.random.random(vertices) * xscale) + (3600 *
-                                                     (np.random.random() - .5))
-        y = (np.random.random(vertices) * yscale) + (1800 *
-                                                     (np.random.random() - .5))
+        x = np.random.random(vertices) * xscale
+        x += np.random.randint(360 - xscale)
+        x -= 180
+        y = np.random.random(vertices) * yscale
+        y += np.random.randint(180 - yscale)
+        y -= 90
+        assert min(x) >= -180, min(x)
+        assert max(x) <= 180, max(x)
+        assert min(y) >= -90, min(y)
+        assert max(y) <= 90, max(y)
 
     return x, y
 
@@ -75,10 +68,11 @@ def random_polygons_domain(count=10):
 
 def sample_database_file(dbpath):
     ''' test data for date 2021-11-01 '''
-    datapath_csv = os.path.join(os.path.dirname(__file__),
+    assert os.path.isdir(os.path.join(os.path.dirname(__file__), 'testdata'))
+    datapath_csv = os.path.join(os.path.dirname(__file__), 'testdata',
                                 'test_data_20210701.csv')
     # no static data in nm4
-    datapath_nm4 = os.path.join(os.path.dirname(__file__),
+    datapath_nm4 = os.path.join(os.path.dirname(__file__), 'testdata',
                                 'test_data_20211101.nm4')
     months = ["202107", "202111"]
     with DBConn() as dbconn:

@@ -36,7 +36,9 @@ async function parseUrl() {
   if (Date.parse(urlParameters.get('start')) > 0 &&
     Date.parse(urlParameters.get('end')) > 0) {
     const { setSearchValue } = await import('./selectform.js');
-    setSearchValue(urlParameters.get('start'), urlParameters.get('end'));
+    const t0 = new Date(urlParameters.get('start'));
+    const t1 = new Date(urlParameters.get('end'));
+    setSearchValue(t0.toISOString(), t1.toISOString());
   }
 
   if (isNumeric(urlParameters.get('xmin')) &&
@@ -69,6 +71,19 @@ async function parseUrl() {
   }
   */
 
+  if (urlParameters.get('python') !== undefined && urlParameters.get('python') !== null) {
+    document.getElementById('formDiv').style.display = 'none';
+    document.getElementById('mapDiv').style.height = '100%';
+    const { waitForSocket, db_socket } = await import('./clientsocket.js');
+    await waitForSocket();
+    db_socket.addEventListener('close', async (event) => {
+      window.close();
+    });
+    db_socket.addEventListener('error', async (event) => {
+      window.close();
+    });
+  }
+
   if (urlParameters.get('search') !== null) {
     const { searchbtn } = await import('./selectform.js');
     await searchbtn.click();
@@ -92,10 +107,13 @@ async function parseUrl() {
     }
 
     const daylength = 1 * 24 * 60 * 60 * 1000;
+    //const offset = new Date(1970, 0, 0);
     const yesterday = new Date(Date.now() - daylength);
-    const now = new Date(Date.now() + daylength);
-    const now_string = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
-    const yesterday_string = `${yesterday.getUTCFullYear()}-${String(yesterday.getUTCMonth() + 1).padStart(2, '0')}-${String(yesterday.getUTCDate()).padStart(2, '0')}`;
+    const now = new Date(Date.now() - 1000 * 60 * 5); //latest results may have a 5 minute delay or longer if the message buffers are not filled
+    //const now_string = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+    //const yesterday_string = `${yesterday.getUTCFullYear()}-${String(yesterday.getUTCMonth() + 1).padStart(2, '0')}-${String(yesterday.getUTCDate()).padStart(2, '0')}`;
+    const now_string = now.toISOString();
+    const yesterday_string = yesterday.toISOString();
 
     setSearchValue(yesterday_string, now_string);
 

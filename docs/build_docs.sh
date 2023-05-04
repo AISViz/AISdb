@@ -21,4 +21,4 @@ cp "$ROOTDIR/readme.rst" "${RSTSOURCEDIR}/readme.rst"
 cp "$ROOTDIR/docs/changelog.rst" "${RSTSOURCEDIR}/changelog.rst"
 export SPHINXDOC=1 && sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o "${RSTSOURCEDIR}/api" "${PKGDIR}" ${PKGDIR}/tests/*
 python -m sphinx -a -j auto -q -b=html "${RSTSOURCEDIR}" "${SPHINXDIR}"
-cp "${RSTSOURCEDIR}/scriptoutput.png" "$SPHINXDIR/_images/"
+cp "${ROOTDIR}/aisdb_web/map/public/readme_example.png" "$SPHINXDIR/_images/"

@@ -232,8 +232,16 @@ async function init_maplayers() {
     });
   } else {
     //Fall back to OSM if no API token was found by the build script
-    const { CustomOSM } = await import('./tileserver.js');
-    mapLayer = new TileLayer({ source: new CustomOSM({}) });
+    //const { CustomOSM } = await import('./tileserver.js');
+    //mapLayer = new TileLayer({ source: new CustomOSM({}) });
+
+    const { default: OSM } = await import('ol/source/OSM');
+    mapLayer = new TileLayer({
+      source: new OSM({
+        //url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+        url: 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'
+      }),
+    });
   }
 
   map = new _Map({
@@ -253,6 +261,7 @@ async function init_maplayers() {
     },
     projection: 'EPSG:4326',
   });
+  //mousePositionControl.on('mouseout', function() { });
 
   /**Scale bar display */
   const scaleControl = new ScaleLine({

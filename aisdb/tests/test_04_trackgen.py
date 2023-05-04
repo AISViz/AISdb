@@ -7,7 +7,8 @@ from aisdb import track_gen, sqlfcn_callbacks
 from aisdb.gis import vesseltrack_3D_dist, mask_in_radius_2D
 from aisdb.database.dbconn import DBConn
 from aisdb.database.dbqry import DBQuery
-from aisdb.track_gen import encode_greatcircledistance, min_speed_filter
+from aisdb import encode_greatcircledistance
+from aisdb.track_gen import min_speed_filter
 from aisdb.tests.create_testing_data import sample_database_file
 
 

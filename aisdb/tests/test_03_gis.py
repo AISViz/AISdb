@@ -4,9 +4,36 @@ from shapely.geometry import Polygon
 import numpy as np
 import zipfile
 
-from aisdb.gis import Domain, DomainFromTxts, DomainFromPoints, shiftcoord, distance3D
+from aisdb.gis import (
+    Domain,
+    DomainFromPoints,
+    DomainFromTxts,
+    distance3D,
+    shiftcoord,
+)
 from aisdb.tests.create_testing_data import random_polygons_domain
 from aisdb.tests.create_testing_data import sample_gulfstlawrence_bbox
+
+
+def test_invalid_domain():
+    try:
+        Domain('errordomain', [{
+            'name':
+            'outofbounds0',
+            'geometry':
+            Polygon(zip([-200, -170, -170, -200, -200], [90, 90, 0, 0, 90]))
+        }, {
+            'name':
+            'outofbounds1',
+            'geometry':
+            Polygon(zip([200, 170, 170, 200, 200], [-90, -90, 0, 0, -90]))
+        }])
+    except ValueError:
+        return
+    except Exception as e:
+        raise (e)
+
+    raise RuntimeError('This test should fail with a ValueError')
 
 
 def test_domain():
@@ -52,28 +79,14 @@ def test_domain_points_in_polygon():
     z1 = Polygon(zip(lon, lat))
     z2 = Polygon(zip(lon - 145, lat))
     z3 = Polygon(zip(lon, lat - 45))
-    domain = Domain('gulf domain',
-                    zones=[
-                        {
-                            'name': 'z1',
-                            'geometry': z1
-                        },
-                        {
-                            'name': 'z2',
-                            'geometry': z2
-                        },
-                        {
-                            'name': 'z3',
-                            'geometry': z3
-                        },
-                    ])
+    domain1 = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
 
     xx = [z1.centroid.x, z2.centroid.x, z3.centroid.x]
     yy = [z1.centroid.y, z2.centroid.y, z3.centroid.y]
-    test = [domain.point_in_polygon(x, y) for x, y in zip(xx, yy)]
+    test = [domain1.point_in_polygon(x, y) for x, y in zip(xx, yy)]
     assert test[0] == 'z1'
     assert test[1] == 'Z0'
-    assert test[2] == 'z3'
+    assert test[2] == 'Z0'
 
 
 def test_shiftcoord():

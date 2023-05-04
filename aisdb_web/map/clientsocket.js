@@ -58,23 +58,34 @@ const timeout = (prom, time) => {
 
 /**await until socket has returned timerange data */
 async function waitForTimerange() {
-  while (doneLoadingRange === false) {
-    await new Promise((resolve) => {
-      return setTimeout(resolve, 50);
-    });
+  async function _waittimerange() {
+    while (doneLoadingRange === false) {
+      await new Promise((resolve) => {
+        return setTimeout(resolve, 50);
+      });
+    }
   }
+  await timeout(_waittimerange(), 10000).catch((err) => {
+    console.error('timed out waiting for timerange from server');
+  });
 }
 
 /**Await until socket has returned zone polygons data */
 async function waitForZones() {
-  while (doneLoadingZones === false) {
-    await new Promise((resolve) => {
-      return setTimeout(resolve, 50);
-    });
+  async function _waitzones() {
+    while (doneLoadingZones === false) {
+      await new Promise((resolve) => {
+        return setTimeout(resolve, 50);
+      });
+    }
   }
+  await timeout(_waitzones(), 10000).catch((err) => {
+    console.error('timed out waiting for zones from server');
+  });
 }
 
 /**Await until socket has returned zone polygons data */
+/*
 async function waitForMetadata() {
   while (doneLoadingMetadata === false) {
     await new Promise((resolve) => {
@@ -82,13 +93,30 @@ async function waitForMetadata() {
     });
   }
 }
+*/
 
 async function waitForSocket() {
-  while (doneLoadingSocket === false) {
-    await new Promise((resolve) => {
-      return setTimeout(resolve, 50);
-    });
+  async function _waitsocket() {
+    while (doneLoadingSocket === false) {
+      await new Promise((resolve) => {
+        return setTimeout(resolve, 50);
+      });
+    }
   }
+  await timeout(_waitsocket(), 10000).catch((err) => {
+    console.error('timed out waiting for DB socket');
+  });
+  /*
+  timeout(async () => {
+    while (doneLoadingSocket === false) {
+      await new Promise((resolve) => {
+        return setTimeout(resolve, 50);
+      });
+    }
+  }, 5000).catch((err) => {
+    console.error('timed out waiting for DB socket');
+  });
+  */
 }
 
 /**Reset the zone polygons await state */
@@ -150,9 +178,15 @@ async function handle_server_response(event) {
 
   switch (response.msgtype) {
   case 'track_vector': {
+    const res_utf8 = convert_js_utf8(response);
+    const processed_utf8 = process_response({ rawdata: res_utf8 });
+    const processed = convert_utf8_js(processed_utf8);
+
+    /*
     const processed = convert_utf8_js(process_response({
       rawdata: convert_js_utf8(response),
     }));
+    */
     newTrackFeature(processed, response.meta.mmsi);
     break;
   }
@@ -279,8 +313,8 @@ async function initialize_db_socket() {
     await timeout(Promise.all([
       socket.send(JSON.stringify({ msgtype: 'validrange' })),
       socket.send(JSON.stringify({ msgtype: 'zones' })),
+      waitForTimerange(),
       waitForZones(),
-      waitForTimerange()
     ]), 15000).catch(() => {
       return console.log('timed out loading data from server!');
     });
@@ -311,7 +345,7 @@ export {
   socketHost as db_socket_host,
   timeout,
   vesselInfo,
-  waitForMetadata,
+  //waitForMetadata,
   waitForSocket,
   waitForTimerange,
   waitForZones,

@@ -11,6 +11,8 @@ if (sqlite3.sqlite_version_info[0] < 3
 
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
+import aisdb.web_interface
+
 from .database.create_tables import (
     aggregate_static_msgs,
     sqlite_createtable_dynamicreport,
@@ -61,6 +63,8 @@ from .track_gen import (
     TrackGen,
     split_timedelta,
     fence_tracks,
+)
+from .denoising_encoder import (
     encode_score,
     encode_greatcircledistance,
 )

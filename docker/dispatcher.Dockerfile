@@ -1,9 +1,8 @@
-FROM rust:1.68-alpine
+FROM rust:slim
+RUN apt-get update -y && apt-get upgrade -y
 
-RUN apk add build-base
-
-COPY dispatcher/ dispatcher/
-RUN cargo install --path dispatcher/client
-RUN cargo install --path dispatcher/server
-RUN cargo install --path dispatcher/proxy
-RUN cargo install --path dispatcher/reverse_proxy
+ARG CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+RUN cargo install mproxy-client
+RUN cargo install mproxy-server
+RUN cargo install mproxy-forward
+RUN cargo install mproxy-reverse

@@ -1,34 +1,53 @@
-FROM node:19-alpine
+#FROM node:19-alpine
+#RUN apk add binaryen build-base clang wasm-pack
+#FROM node:latest
+#RUN apt-get update -y \
+#  && apt-get install -y build-essential binaryen clang
+#RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+#RUN echo 'echo . $HOME/.cargo/env' >> /etc/profile
+#RUN . $HOME/.cargo/env && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y
+#ENV PATH="$PATH:/root/.cargo/bin"
 
-RUN apk add binaryen build-base clang wasm-pack
+
+
+FROM rust:slim AS build_client_webassembly
+RUN apt-get update -y
+RUN apt-get install -y binaryen clang curl libssl-dev pkg-config
+RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y
+ENV PATH="$PATH:/root/.cache/.wasm-pack/.wasm-bindgen-cargo-install-0.2.84/bin"
+
+WORKDIR /src
 
 # compile wasm component dependencies
-#COPY client_webassembly/Cargo.toml client_webassembly/Cargo.lock client_webassembly/
-#RUN mkdir -p client_webassembly/src && echo 'fn main(){}' > client_webassembly/src/lib.rs
-#RUN cd client_webassembly && CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse wasm-pack build --release --target web --out-dir /aisdb_web/map/pkg
+#COPY client_webassembly/Cargo.toml client_webassembly/Cargo.lock /src/client_webassembly/
+#RUN mkdir -p /src/client_webassembly/src && echo 'fn main(){}' > /src/client_webassembly/src/lib.rs
+#RUN cd /src/client_webassembly && CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse wasm-pack build --release --target web --out-dir /src/aisdb_web/map/pkg
 
-# install nodejs dependencies
-#COPY aisdb_web/package.json aisdb_web/package-lock.json aisdb_web/
-#RUN npm install --prefix /aisdb_web
 
 # build wasm components
 COPY client_webassembly/ client_webassembly/
-RUN cd client_webassembly && CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse wasm-pack build --release --target web --out-dir /aisdb_web/map/pkg
-RUN wasm-opt -O3 -o /aisdb_web/map/pkg/client_bg.wasm /aisdb_web/map/pkg/client_bg.wasm 
+RUN cd client_webassembly && CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse wasm-pack build --target web --out-dir /src/aisdb_web/map/pkg --release
+#RUN cd client_webassembly && CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse wasm-pack build --target web --out-dir /src/aisdb_web/map/pkg --dev
+RUN wasm-opt -O3 -o /src/aisdb_web/map/pkg/client_bg.wasm /src/aisdb_web/map/pkg/client_bg.wasm 
 
+
+
+FROM node:slim AS webserver
+WORKDIR /src
+RUN npm install --save-dev vite
+
+# minify source at runtime via entrypoint
+# this allows configuration of bundled JS code using environment variables defined at runtime
 # see more about env args in aisdb_web/map/constants.js
-ARG VITE_AISDBHOST
-ARG VITE_AISDBPORT
-ARG VITE_BINGMAPTILES
-ARG VITE_TILESERVER
-ARG VITE_DISABLE_SSL_DB
-ARG VITE_DISABLE_SSL_STREAM
-ARG VITE_BINGMAPTILES
-ARG VITE_NO_DB_LIMIT
+RUN echo "#!/bin/sh\necho \"Packaging AISDB JavaScript assets...\"\nnpx vite build /src/aisdb_web/map --outDir /src/aisdb_web/dist_map\necho 'network hostname: `uname -n`'\nexec \"\$@\"" > /src/entrypoint.sh
+RUN chmod +x /src/entrypoint.sh
+
 
 # bundle and minify website content
-COPY aisdb_web/ aisdb_web/
-RUN npm install --prefix /aisdb_web
-RUN cd aisdb_web && npx vite build map --outDir /aisdb_web/dist_map #--assetsInlineLimit 8192
+COPY aisdb_web/ /src/aisdb_web/
+COPY --from=build_client_webassembly /src/aisdb_web/map/pkg /src/aisdb_web/map/pkg
+RUN npm install --prefix /src/aisdb_web --include=dev
 
-CMD ["npm", "--prefix", "/aisdb_web", "start"]
+ENTRYPOINT ["/bin/sh", "/src/entrypoint.sh"]
+
+CMD ["npm", "--prefix", "/src/aisdb_web", "start"]

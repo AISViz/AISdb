@@ -1,10 +1,7 @@
-FROM rust:1.68-alpine
+FROM rust:slim
+RUN apt-get update -y && apt-get upgrade -y
 
-RUN apk update && apk upgrade --available
-RUN apk add build-base
-
-
-COPY dispatcher/ dispatcher/
+#COPY dispatcher/ dispatcher/
 COPY aisdb/aisdb_sql/ aisdb/aisdb_sql/
 COPY aisdb_lib/ aisdb_lib/
 COPY receiver/Cargo.toml receiver/Cargo.lock receiver/

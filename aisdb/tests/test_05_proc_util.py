@@ -9,7 +9,7 @@ from aisdb.database.dbconn import DBConn
 from aisdb.database.dbqry import DBQuery
 from aisdb.database import sqlfcn
 from aisdb.tests.create_testing_data import sample_database_file
-from aisdb.webdata.marinetraffic import vessel_info
+from aisdb.webdata.marinetraffic import vessel_info, VesselInfo
 
 testdir = os.environ.get(
     'AISDBTESTDIR',
@@ -81,7 +81,9 @@ def test_write_csv_fromdict_marinetraffic(tmpdir):
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
 
-    with DBConn() as dbconn:
+    vinfo_db = VesselInfo(trafficDBpath).trafficDB
+
+    with DBConn() as dbconn, vinfo_db as trafficDB:
         qry = DBQuery(
             dbconn=dbconn,
             dbpath=dbpath,
@@ -100,7 +102,7 @@ def test_write_csv_fromdict_marinetraffic(tmpdir):
 
         rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, verbose=True)
         tracks = vessel_info(track_gen.TrackGen(rowgen, decimate=True),
-                             trafficDBpath)
+                             trafficDB)
         aisdb.proc_util.write_csv(tracks,
                                   fpath=os.path.join(tmpdir,
                                                      'test_write_csv.csv'))
@@ -112,9 +114,11 @@ def test_glob_files():
 
 def test_getfiledate():
     aisdb.proc_util.getfiledate(
-        os.path.join(os.path.dirname(__file__), 'test_data_20211101.nm4'))
+        os.path.join(os.path.dirname(__file__), 'testdata',
+                     'test_data_20211101.nm4'))
     aisdb.proc_util.getfiledate(
-        os.path.join(os.path.dirname(__file__), 'test_data_20210701.csv'))
+        os.path.join(os.path.dirname(__file__), 'testdata',
+                     'test_data_20210701.csv'))
 
 
 def test_binarysearch():

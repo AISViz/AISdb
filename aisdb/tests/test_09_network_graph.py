@@ -10,7 +10,8 @@ from shapely.geometry import Polygon
 import warnings
 
 from aisdb.database import sqlfcn, sqlfcn_callbacks
-from aisdb.database.dbqry import DBQuery, DBConn
+from aisdb.database.dbqry import DBQuery
+from aisdb.database.dbconn import DBConn
 from aisdb.gis import Domain
 from aisdb.network_graph import graph
 from aisdb.tests.create_testing_data import (
@@ -36,26 +37,27 @@ data_dir = os.environ.get(
 
 lon, lat = sample_gulfstlawrence_bbox()
 z1 = Polygon(zip(lon, lat))
-z2 = Polygon(zip(lon - 145, lat))
+z2 = Polygon(zip(lon - 45, lat))
 z3 = Polygon(zip(lon, lat - 45))
-domain = Domain('gulf domain',
-                zones=[
-                    {
-                        'name': 'z1',
-                        'geometry': z1
-                    },
-                    {
-                        'name': 'z2',
-                        'geometry': z2
-                    },
-                    {
-                        'name': 'z3',
-                        'geometry': z3
-                    },
-                ])
 
 
 def test_graph_minimal(tmpdir):
+    domain = Domain('gulf domain',
+                    zones=[
+                        {
+                            'name': 'z1',
+                            'geometry': z1
+                        },
+                        {
+                            'name': 'z2',
+                            'geometry': z2
+                        },
+                        {
+                            'name': 'z3',
+                            'geometry': z3
+                        },
+                    ])
+
     testdbpath = os.path.join(tmpdir, 'test_graph_minimal.db')
 
     months = sample_database_file(testdbpath)
@@ -95,8 +97,8 @@ def test_graph_minimal(tmpdir):
         graph(
             qry,
             outputfile=outputfile,
-            dbpath=testdbpath,
             data_dir=data_dir,
+            dbconn=aisdatabase,
             domain=domain,
             trafficDBpath=trafficDBpath,
             bathy_dir=bathy_dir,

@@ -22,6 +22,9 @@ class FileChecksums():
             assert len(dbconn.dbpaths) == 1, f'{dbconn.dbpaths}'
         self.dbconn = dbconn
         self.checksums_table()
+        if not os.path.isdir(
+                '/tmp') and os.name == 'posix':  # pragma: no cover
+            os.mkdir('/tmp')
         self.tmp_dir = tempfile.mkdtemp()
 
     def checksums_table(self):
@@ -68,7 +71,7 @@ class FileChecksums():
             dbconn = sqlite3.connect(self.dbconn.dbpaths[0])
         elif isinstance(self.dbconn, PostgresDBConn):
             dbconn = self.dbconn
-        dbconn.execute('INSERT INTO hashmap VALUES ($1,$2)',
+        dbconn.execute('INSERT INTO hashmap VALUES (?,?)',
                        [checksum, pickle.dumps(None)])
         dbconn.commit()
         if isinstance(self.dbconn, SQLiteDBConn):
@@ -105,9 +108,9 @@ class FileChecksums():
 
 
 def _decode_gz(file, tmp_dir, dbpath, psql_conn_string, source, verbose):
-    if dbpath is None:
+    if dbpath is None:  # pragma: no cover
         dbpath = ''
-    if psql_conn_string is None:
+    if psql_conn_string is None:  # pragma: no cover
         psql_conn_string = ''
     unzip_file = os.path.join(tmp_dir, file.rsplit(os.path.sep, 1)[-1][:-3])
     with gzip.open(file, 'rb') as f1, open(unzip_file, 'wb') as f2:
@@ -122,9 +125,9 @@ def _decode_gz(file, tmp_dir, dbpath, psql_conn_string, source, verbose):
 
 def _decode_ziparchive(file, tmp_dir, dbpath, psql_conn_string, source,
                        verbose):
-    if dbpath is None:
+    if dbpath is None:  # pragma: no cover
         dbpath = ''
-    if psql_conn_string is None:
+    if psql_conn_string is None:  # pragma: no cover
         psql_conn_string = ''
     zipf = zipfile.ZipFile(file)
     for item in zipf.namelist():
@@ -189,9 +192,9 @@ def decode_msgs(filepaths,
         >>> import os
         >>> from aisdb import decode_msgs, DBConn
 
-        >>> dbpath = os.path.join('testdata', 'doctest.db')
-        >>> filepaths = ['aisdb/tests/test_data_20210701.csv',
-        ...              'aisdb/tests/test_data_20211101.nm4']
+        >>> dbpath = 'test_decode_msgs.db'
+        >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
+        ...              'aisdb/tests/testdata/test_data_20211101.nm4']
         >>> with DBConn() as dbconn:
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath, source='TESTING')
         >>> os.remove(dbpath)

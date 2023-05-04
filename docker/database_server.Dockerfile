@@ -1,8 +1,7 @@
-FROM rust:1.68-alpine
+FROM rust:slim
+RUN apt-get update -y && apt-get upgrade -y
+RUN apt-get install -y openssl 
 
-RUN apk add \
-  build-base \
-  openssl
 RUN rustup default nightly
 
 # build application dependencies

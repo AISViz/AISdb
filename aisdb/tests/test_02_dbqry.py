@@ -26,12 +26,7 @@ def test_query_emptytable(tmpdir):
         )
         sqlite_createtable_dynamicreport(dbconn, month='202101', dbpath=dbpath)
         rows = q.gen_qry(reaggregate_static=True)
-        try:
-            next(rows)
-        except StopIteration:
-            pass
-        except Exception as err:
-            raise err
+        assert list(rows) == []
 
 
 def test_prepare_qry_domain(tmpdir):
@@ -51,12 +46,7 @@ def test_prepare_qry_domain(tmpdir):
             **domain.boundary,
             callback=sqlfcn_callbacks.in_timerange,
         ).gen_qry(reaggregate_static=True)
-        try:
-            next(rowgen)
-        except SyntaxError:
-            pass
-        except Exception as err:
-            raise err
+        next(rowgen)
 
 
 def test_sql_query_strings(tmpdir):
@@ -86,10 +76,4 @@ def test_sql_query_strings(tmpdir):
                 mmsi=316000000,
                 mmsis=[316000000, 316000001],
             ).gen_qry(fcn=sqlfcn.crawl_dynamic_static)
-            try:
-                next(rowgen)
-            except SyntaxError:
-                pass
-            except Exception as err:
-                raise err
-    return
+            next(rowgen)
