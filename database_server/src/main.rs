@@ -578,7 +578,7 @@ fn compress_geometry_vectors(
 
             let mut mask: Vec<bool> = Vec::new();
             let mut idx_deque =
-                VecDeque::from_iter(LineString(coords).simplifyvw_idx(&precision).into_iter());
+                VecDeque::from_iter(LineString(coords).simplify_vw_idx(&precision).into_iter());
             for i in 0..count_orig {
                 if i == idx_deque[0] {
                     mask.push(true);
