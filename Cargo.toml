@@ -9,13 +9,13 @@ crate-type = [ "cdylib", "rlib",]
 path = "src/lib.rs"
 
 [dependencies]
-geo = "0.23.0"
+geo = "0.24"
 geo-types = "*"
 nmea-parser = "0.10"
 
 [build-dependencies]
-wasm-opt = "0.112.0"
-wasm-pack = "0.2"
+wasm-opt = "0.112"
+wasm-pack = "0.11"
 
 [dependencies.aisdb-lib]
 path = "aisdb_lib"
@@ -25,5 +25,5 @@ features = [ "sqlite", "postgres",]
 path = "receiver"
 
 [dependencies.pyo3]
-version = "0.17.3"
+version = "0.18.3"
 features = [ "extension-module", "generate-import-lib",]
