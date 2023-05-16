@@ -1,0 +1,47 @@
+[package]
+version = "1.6.0"
+name = "aisdb-lib"
+authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
+edition = "2021"
+include = [ "../aisdb/aisdb_sql", "/src/*",]
+build = "build.rs"
+readme = "readme.rst"
+description = "AIS Database and Processing Utils"
+homepage = "https://aisdb.meridian.cs.dal.ca/"
+documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
+repository = "https://git-dev.cs.dal.ca/meridian/aisdb"
+license-file = "license.txt"
+
+[features]
+default = [ "sqlite", "postgres",]
+sqlite = [ "dep:rusqlite",]
+postgres = [ "dep:postgres",]
+
+[lib]
+
+[dependencies]
+geo = "*"
+geo-types = "*"
+include_dir = "0.7.2"
+
+[dependencies.postgres]
+version = "0.19"
+optional = true
+
+[dependencies.chrono]
+version = "0.4.21"
+
+[dependencies.csv]
+version = "1.1"
+
+[dependencies.nmea-parser]
+version = "0.10"
+
+[dependencies.rusqlite]
+version = "0.28"
+features = [ "bundled",]
+optional = true
+
+[profile.release]
+lto = true
+opt-level = 3
