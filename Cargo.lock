@@ -544,9 +544,9 @@ dependencies = [
 
 [[package]]
 name = "curl-sys"
-version = "0.4.61+curl-8.0.1"
+version = "0.4.62+curl-8.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14d05c10f541ae6f3bc5b3d923c20001f47db7d5f0b2bc6ad16490133842db79"
+checksum = "274ef7ef7c1113c7611af49ce248a700afa1171045a1aaa40137030773f993b8"
 dependencies = [
  "cc",
  "libc",
@@ -1096,7 +1096,7 @@ dependencies = [
  "os_info",
  "serde",
  "serde_derive",
- "toml 0.7.3",
+ "toml 0.7.4",
  "uuid",
 ]
 
@@ -1423,7 +1423,7 @@ dependencies = [
 [[package]]
 name = "mproxy-client"
 version = "0.1.6"
-source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#f70df77a587c8061d863033000320c9f0c07c070"
 dependencies = [
  "mproxy-socket_dispatch",
  "pico-args",
@@ -1432,7 +1432,7 @@ dependencies = [
 [[package]]
 name = "mproxy-forward"
 version = "0.1.6"
-source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#f70df77a587c8061d863033000320c9f0c07c070"
 dependencies = [
  "mproxy-client",
  "mproxy-server",
@@ -1445,7 +1445,7 @@ dependencies = [
 [[package]]
 name = "mproxy-reverse"
 version = "0.1.6"
-source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#f70df77a587c8061d863033000320c9f0c07c070"
 dependencies = [
  "mproxy-client",
  "mproxy-forward",
@@ -1457,7 +1457,7 @@ dependencies = [
 [[package]]
 name = "mproxy-server"
 version = "0.1.6"
-source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#f70df77a587c8061d863033000320c9f0c07c070"
 dependencies = [
  "mproxy-socket_dispatch",
  "pico-args",
@@ -1466,7 +1466,7 @@ dependencies = [
 [[package]]
 name = "mproxy-socket_dispatch"
 version = "0.1.6"
-source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#f70df77a587c8061d863033000320c9f0c07c070"
 
 [[package]]
 name = "native-tls"
@@ -2201,9 +2201,9 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0efd8caf556a6cebd3b285caf480045fcc1ac04f6bd786b09a6f11af30c4fcf4"
+checksum = "93107647184f6027e3b7dcb2e11034cf95ffa1e3a682c67951963ac69c1c007d"
 dependencies = [
  "serde",
 ]
@@ -2594,9 +2594,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b403acf6f2bb0859c93c7f0d967cb4a75a7ac552100f9322faf64dc047669b21"
+checksum = "d6135d499e69981f9ff0ef2167955a5333c35e36f6937d382974566b3d5b94ec"
 dependencies = [
  "serde",
  "serde_spanned",
@@ -2606,18 +2606,18 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ab8ed2edee10b50132aed5f331333428b011c99402b5a534154ed15746f9622"
+checksum = "5a76a9312f5ba4c2dec6b9161fdf25d87ad8a09256ccea5a556fef03c706a10f"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "toml_edit"
-version = "0.19.8"
+version = "0.19.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "239410c8609e8125456927e6707163a3b1fdb40561e4b803bc041f466ccfdc13"
+checksum = "92d964908cec0d030b812013af25a0e57fddfadb1e066ecc6681d86253129d4f"
 dependencies = [
  "indexmap",
  "serde",
