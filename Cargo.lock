@@ -1423,8 +1423,7 @@ dependencies = [
 [[package]]
 name = "mproxy-client"
 version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "370174e3a10d4e7f5d4e6a705b5d2c37d31e630583557b16704c113deafcb3a1"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
 dependencies = [
  "mproxy-socket_dispatch",
  "pico-args",
@@ -1433,8 +1432,7 @@ dependencies = [
 [[package]]
 name = "mproxy-forward"
 version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1751d7fa83ff307569dd5a35c5db8eec49f05053b8969e45fa4bd7e57c55aa7"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
 dependencies = [
  "mproxy-client",
  "mproxy-server",
@@ -1447,8 +1445,7 @@ dependencies = [
 [[package]]
 name = "mproxy-reverse"
 version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bab1147a5a1cbcc0d8bda31e272a2db624cad127180ec39725990805f0b3a85"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
 dependencies = [
  "mproxy-client",
  "mproxy-forward",
@@ -1460,8 +1457,7 @@ dependencies = [
 [[package]]
 name = "mproxy-server"
 version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fb4f28099d8b8e4b67f08a02fc7ebd433f1a37ad75afe1a429d2bc429e758b5"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
 dependencies = [
  "mproxy-socket_dispatch",
  "pico-args",
@@ -1470,11 +1466,7 @@ dependencies = [
 [[package]]
 name = "mproxy-socket_dispatch"
 version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bd697af478223ddc83e280062e9a24759d086e6d2906bc684411623b685dfe5"
-dependencies = [
- "socket2 0.4.9",
-]
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
 
 [[package]]
 name = "native-tls"
