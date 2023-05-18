@@ -3,6 +3,9 @@ use std::process::Command;
 use wasm_opt::OptimizationOptions;
 
 fn main() {
+    if std::env::consts::OS == "macos" {
+        std::process::exit(0);
+    }
     println!("cargo:rerun-if-changed=./aisdb_web/*.js");
     println!("cargo:rerun-if-changed=./aisdb_web/*.json");
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.css");
