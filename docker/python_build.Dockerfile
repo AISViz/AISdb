@@ -35,7 +35,7 @@ RUN mkdir -p src receiver/src aisdb \
   && echo 'fn main(){}' > receiver/src/lib.rs \
   && touch aisdb/__init__.py
 RUN python3.9 -m venv $VIRTUAL_ENV
-RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade --verbose --no-warn-script-location .[test,docs] pip wheel setuptools maturin numpy
+RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade --verbose --no-warn-script-location .[test,docs] pip wheel setuptools numpy
 
 
 #COPY client_webassembly/ client_webassembly/

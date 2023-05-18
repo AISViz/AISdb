@@ -15,7 +15,7 @@ nmea-parser = "0.10"
 
 [build-dependencies]
 wasm-opt = "0.112.0"
-wasm-pack = "0.2"
+wasm-pack = "0.11"
 
 [dependencies.aisdb-lib]
 path = "aisdb_lib"

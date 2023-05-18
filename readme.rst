@@ -48,13 +48,15 @@ Install
 
 .. _install-pip:
   
-Requires Python version 3.9 or newer installed on the system.
-Optionally requires SQLite (included by default in most versions of Python).
-The AISDB Python package can be installed with pip in a virtual Python environment from the command line:
+Requires Python version 3.8 or newer.
+Optionally requires SQLite (included in Python) or PostgresQL server (installed separately).
+The AISDB Python package can be installed using pip.
+It is recommended to install the package in a virtual Python environment such as ``venv``.
 
 .. code-block:: sh
 
-   python -m venv env_ais && source ./env_ais/*/activate
+   python -m venv env_ais 
+   source ./env_ais/*/activate
    pip install aisdb
 
 .. _install-src:
