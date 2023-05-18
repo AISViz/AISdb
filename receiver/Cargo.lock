@@ -229,6 +229,11 @@ dependencies = [
  "memchr",
 ]
 
+[[package]]
+name = "data-encoding"
+version = "2.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23d8666cb01533c39dde32bcbab8e227b4ed6679b2c925eba05feabea39508fb"
 
 [[package]]
 name = "digest"
@@ -346,9 +351,9 @@ dependencies = [
 
 [[package]]
 name = "geo"
-version = "0.24.1"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7d640a4dd1d1c98b45f4653c841a8ec15f461a71b86bc30533ae64c6f20f268"
+checksum = "c07ac450e9e7d8c08e58d2723d46bd0328bb6cc1d7b18f4f37a1e15a311098b0"
 dependencies = [
  "float_next_after",
  "geo-types",
@@ -612,6 +617,50 @@ dependencies = [
 name = "mproxy-client"
 version = "0.1.6"
 source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
+dependencies = [
+ "mproxy-socket_dispatch",
+ "pico-args",
+]
+
+[[package]]
+name = "mproxy-forward"
+version = "0.1.6"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
+dependencies = [
+ "mproxy-client",
+ "mproxy-server",
+ "mproxy-socket_dispatch",
+ "pico-args",
+ "rustls 0.20.8",
+ "webpki-roots 0.22.6",
+]
+
+[[package]]
+name = "mproxy-reverse"
+version = "0.1.6"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
+dependencies = [
+ "mproxy-client",
+ "mproxy-forward",
+ "mproxy-server",
+ "mproxy-socket_dispatch",
+ "pico-args",
+]
+
+[[package]]
+name = "mproxy-server"
+version = "0.1.6"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
+dependencies = [
+ "mproxy-socket_dispatch",
+ "pico-args",
+]
+
+[[package]]
+name = "mproxy-socket_dispatch"
+version = "0.1.6"
+source = "git+https://github.com/matt24smith/mproxy-dispatcher.git?branch=testing_no_socket2#12b39eb8a6a51fa9c3e64ad67d7d62ca9e3a3d13"
+
 [[package]]
 name = "nmea-parser"
 version = "0.10.0"
@@ -770,6 +819,15 @@ name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
+
+[[package]]
+name = "proc-macro2"
+version = "1.0.58"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa1fb82fc0c281dd9671101b66b771ebbe1eaf967b96ac8740dcba4b70005ca8"
+dependencies = [
+ "unicode-ident",
+]
 
 [[package]]
 name = "quote"

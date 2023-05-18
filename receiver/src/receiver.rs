@@ -82,20 +82,24 @@ fn epoch_time() -> u64 {
         .as_secs()
 }
 
+fn default_udp_listen_addr() -> String {
+    "0.0.0.0:9921".to_string()
+}
+
 #[derive(Clone, Debug)]
 pub struct ReceiverArgs {
     pub sqlite_dbpath: Option<PathBuf>,
     pub postgres_connection_string: Option<String>,
     pub tcp_connect_addr: Option<String>,
     pub tcp_listen_addr: Option<String>,
-    pub udp_listen_addr: String,
+    pub udp_listen_addr: Option<String>,
     pub multicast_addr_parsed: Option<String>,
     pub multicast_addr_rawdata: Option<String>,
     pub tcp_output_addr: Option<String>,
     pub udp_output_addr: Option<String>,
     pub dynamic_msg_bufsize: Option<usize>,
     pub static_msg_bufsize: Option<usize>,
-    pub tee: bool,
+    pub tee: Option<bool>,
 }
 
 fn parse_args() -> Result<ReceiverArgs, pico_args::Error> {
@@ -113,14 +117,14 @@ fn parse_args() -> Result<ReceiverArgs, pico_args::Error> {
         postgres_connection_string: pargs.opt_value_from_str("--postgres-connect")?,
         tcp_connect_addr: pargs.opt_value_from_str("--tcp-connect-addr")?,
         tcp_listen_addr: pargs.opt_value_from_str("--tcp-listen-addr")?,
-        udp_listen_addr: pargs.value_from_str("--udp-listen-addr")?,
+        udp_listen_addr: pargs.opt_value_from_str("--udp-listen-addr")?,
         multicast_addr_parsed: pargs.opt_value_from_str("--multicast-addr-parsed")?,
         multicast_addr_rawdata: pargs.opt_value_from_str("--multicast-addr-rawdata")?,
         tcp_output_addr: pargs.opt_value_from_str("--tcp-output-addr")?,
         udp_output_addr: pargs.opt_value_from_str("--udp-output-addr")?,
         dynamic_msg_bufsize: pargs.opt_value_from_str("--dynamic-msg-bufsize")?,
         static_msg_bufsize: pargs.opt_value_from_str("--static-msg-bufsize")?,
-        tee: pargs.contains(["-t", "--tee"]),
+        tee: Some(pargs.contains(["-t", "--tee"])),
     };
 
     let remaining = pargs.finish();
@@ -251,9 +255,18 @@ fn serialize_dynamic_buffer(
 /// SQLite database at dbpath, and sent to outgoing websocket
 /// clients in JSON format.
 fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
-    println!("Decoding messages incoming on {}", args.udp_listen_addr);
-    let (_udp_listen_addr, listen_socket) =
-        upstream_socket_interface(args.udp_listen_addr.clone()).unwrap();
+    println!(
+        "Decoding messages incoming on {}",
+        args.udp_listen_addr
+            .clone()
+            .unwrap_or(default_udp_listen_addr())
+    );
+    let (_udp_listen_addr, listen_socket) = upstream_socket_interface(
+        args.udp_listen_addr
+            .clone()
+            .unwrap_or(default_udp_listen_addr()),
+    )
+    .unwrap();
 
     // downstream UDP multicast channel for raw data
     let mut target_raw: Option<(SocketAddr, UdpSocket)> = None;
@@ -338,7 +351,7 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
                             if let Some((addr_parsed, socket_parsed)) = &target_parsed {
                                 match msg {
                                     VesselPing::Dynamic(m) => {
-                                        let vdata: VesselPositionPing = m.into();
+                                        let vdata: VesselPositionPing = m;
                                         socket_parsed
                                             .send_to(
                                                 to_string(&vdata).unwrap().as_bytes(),
@@ -349,7 +362,7 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
                                             );
                                     }
                                     VesselPing::Static(m) => {
-                                        let vdata: VesselStaticPing = m.into();
+                                        let vdata: VesselStaticPing = m;
                                         socket_parsed
                                             .send_to(
                                                 to_string(&vdata).unwrap().as_bytes(),
@@ -362,7 +375,7 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
                                 }
                             }
                         }
-                        if args.tee {
+                        if args.tee.is_some_and(|t| t) {
                             let _o = output_buffer
                                 .write(&buf[0..c])
                                 .expect("writing to output buffer");
@@ -471,12 +484,20 @@ pub fn start_receiver(args: ReceiverArgs) -> Vec<JoinHandle<()>> {
     // forward upstream TCP to the UDP input channel
     // TODO: SSL
     if let Some(tcpconn) = args.tcp_connect_addr {
-        threads.push(proxy_tcp_udp(tcpconn, args.udp_listen_addr.clone()));
+        threads.push(proxy_tcp_udp(
+            tcpconn,
+            args.udp_listen_addr
+                .clone()
+                .unwrap_or(default_udp_listen_addr()),
+        ));
     }
 
     // listen for inbound TCP connections and forward to UDP input
     if let Some(tcpaddr) = args.tcp_listen_addr {
-        threads.push(reverse_proxy_tcp_udp(tcpaddr, args.udp_listen_addr));
+        threads.push(reverse_proxy_tcp_udp(
+            tcpaddr,
+            args.udp_listen_addr.unwrap_or(default_udp_listen_addr()),
+        ));
     }
 
     // bind UDP output socket to send raw input from multicast channel
@@ -497,7 +518,7 @@ pub fn start_receiver(args: ReceiverArgs) -> Vec<JoinHandle<()>> {
         threads.push(listen_websocket_clients(
             multicast_parsed,
             tcpout,
-            tee_parsed,
+            tee_parsed.is_some_and(|t| t),
         ));
     }
 
