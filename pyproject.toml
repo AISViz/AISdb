@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "aisdb"
-license-files = [ "license.txt",]
+license-files.paths = [ "license.txt",]
 requires-python = ">=3.8"
 requires-dist = [ "maturin>=0.14", "numpy", "wheel",]
 dependencies = [ "packaging", "pillow", "requests", "selenium", "shapely", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "orjson", "websockets",]
