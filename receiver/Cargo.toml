@@ -30,3 +30,10 @@ serde_json = "1"
 tungstenite = {version = "0.18", features = ["rustls-tls-webpki-roots"]}
 pico-args = { version = "0.5.0", features = [ "eq-separator",]}
 
+
+[patch.crates-io]
+mproxy-socket_dispatch = { git = "https://github.com/matt24smith/mproxy-dispatcher.git", branch="testing_no_socket2" }
+mproxy-client = { git = "https://github.com/matt24smith/mproxy-dispatcher.git", branch="testing_no_socket2" }
+mproxy-server = { git = "https://github.com/matt24smith/mproxy-dispatcher.git", branch="testing_no_socket2" }
+mproxy-forward = { git = "https://github.com/matt24smith/mproxy-dispatcher.git", branch="testing_no_socket2" }
+mproxy-reverse = { git = "https://github.com/matt24smith/mproxy-dispatcher.git", branch="testing_no_socket2" }

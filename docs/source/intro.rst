@@ -56,12 +56,7 @@ Index
    :start-after: _install-pip:
    :end-before: _readme-docs:
 
-.. include:: docker.rst
-   :start-after: _docker-quickstart:
-   :end-before: _docker-compose:
-
-AISDB cloud services are documented in the :ref:`AISDB Docker docs <docker>`.
-
+AISDB may also be used with docker-compose to run as services, for more info see :ref:`AISDB Docker docs <docker>`.
 The Python code in the rest of this document can then be run in the new Python environment.
 When using an interpreter such as `Jupyter <https://jupyter.org/>`__, ensure that jupyter is installed in the same environment as AISDB.
 

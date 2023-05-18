@@ -20,7 +20,7 @@ postgres = [ "dep:postgres",]
 [lib]
 
 [dependencies]
-geo = "*"
+geo = "0.25"
 geo-types = "*"
 include_dir = "0.7.2"
 

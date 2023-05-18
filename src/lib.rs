@@ -5,9 +5,9 @@ use std::process::exit;
 use std::thread::sleep;
 use std::time::Duration;
 
-use geo::algorithm::simplifyvw::SimplifyVwIdx;
 use geo::point;
 use geo::HaversineDistance;
+use geo::SimplifyVwIdx;
 use geo_types::{Coord, LineString};
 use nmea_parser::NmeaParser;
 use pyo3::ffi::PyErr_CheckSignals;
@@ -136,7 +136,7 @@ pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<
     let coords = zip!(&x, &y)
         .map(|(xx, yy)| Coord { x: *xx, y: *yy })
         .collect();
-    let line = LineString(coords).simplifyvw_idx(&precision);
+    let line = LineString(coords).simplify_vw_idx(&precision);
     line.into_iter().collect::<Vec<usize>>()
 }
 
