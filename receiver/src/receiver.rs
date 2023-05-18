@@ -513,12 +513,12 @@ pub fn start_receiver(args: ReceiverArgs) -> Vec<JoinHandle<()>> {
         #[cfg(not(debug_assertions))]
         let tee_parsed = false;
         #[cfg(debug_assertions)]
-        let tee_parsed = args.tee;
+        let tee_parsed = args.tee.is_some_and(|t| t);
 
         threads.push(listen_websocket_clients(
             multicast_parsed,
             tcpout,
-            tee_parsed.is_some_and(|t| t),
+            tee_parsed,
         ));
     }
 
