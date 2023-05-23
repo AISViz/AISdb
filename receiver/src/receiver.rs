@@ -534,3 +534,31 @@ pub fn main() {
         thread.join().unwrap();
     }
 }
+
+#[test]
+fn test_receiver() {
+    let args: ReceiverArgs = ReceiverArgs {
+        dynamic_msg_bufsize: None,
+        multicast_addr_parsed: None,
+        multicast_addr_rawdata: None,
+        postgres_connection_string: None,
+        sqlite_dbpath: Some(PathBuf::from("./test_receiver.db")),
+        static_msg_bufsize: None,
+        tcp_connect_addr: None,
+        tcp_listen_addr: None,
+        tcp_output_addr: None,
+        tee: None,
+        udp_listen_addr: Some(default_udp_listen_addr()),
+        udp_output_addr: None,
+    };
+    let threads = start_receiver(args);
+
+    std::thread::sleep(std::time::Duration::from_millis(1000));
+
+    for thread in threads {
+        //thread.join().unwrap();
+        assert!(!thread.is_finished());
+    }
+
+    std::fs::remove_file("./test_receiver.db").unwrap();
+}
