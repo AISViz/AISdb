@@ -375,7 +375,7 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
                                 }
                             }
                         }
-                        if args.tee.is_some_and(|t| t) {
+                        if args.tee.is_some() && args.tee.unwrap() {
                             let _o = output_buffer
                                 .write(&buf[0..c])
                                 .expect("writing to output buffer");
@@ -513,7 +513,7 @@ pub fn start_receiver(args: ReceiverArgs) -> Vec<JoinHandle<()>> {
         #[cfg(not(debug_assertions))]
         let tee_parsed = false;
         #[cfg(debug_assertions)]
-        let tee_parsed = args.tee.is_some_and(|t| t);
+        let tee_parsed = args.tee.is_some() && args.tee.unwrap();
 
         threads.push(listen_websocket_clients(
             multicast_parsed,
