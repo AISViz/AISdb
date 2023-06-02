@@ -282,14 +282,14 @@ pub fn receiver(
     postgres_connection_string: Option<String>,
     tcp_connect_addr: Option<String>,
     tcp_listen_addr: Option<String>,
-    udp_listen_addr: String,
+    udp_listen_addr: Option<String>,
     multicast_addr_parsed: Option<String>,
     multicast_addr_raw: Option<String>,
     tcp_output_addr: Option<String>,
     udp_output_addr: Option<String>,
     dynamic_msg_bufsize: Option<usize>,
     static_msg_bufsize: Option<usize>,
-    tee: bool,
+    tee: Option<bool>,
 ) {
     let threads = start_receiver(ReceiverArgs {
         sqlite_dbpath: sqlite_dbpath.map(PathBuf::from),

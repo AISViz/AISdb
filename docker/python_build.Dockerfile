@@ -1,4 +1,4 @@
-FROM ghcr.io/pyo3/maturin:v0.14.17 AS aisdb-manylinux
+FROM ghcr.io/pyo3/maturin:v1.0.0 AS aisdb-manylinux
 
 # Updates
 RUN rm /var/cache/yum/*/7/timedhosts.txt
