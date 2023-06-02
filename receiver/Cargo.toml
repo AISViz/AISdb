@@ -18,7 +18,6 @@ path = "src/receiver.rs"
 
 [dependencies]
 aisdb-lib = { path = "../aisdb_lib" }
-mproxy-socket_dispatch = { version = "0.1" }
 mproxy-client = { version = "0.1" }
 mproxy-server = { version = "0.1" }
 mproxy-forward = { features = ["tls"], version = "0.1" }
@@ -29,11 +28,3 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 tungstenite = {version = "0.19", features = ["rustls-tls-webpki-roots"]}
 pico-args = { version = "0.5", features = [ "eq-separator",]}
-
-
-[patch.crates-io]
-mproxy-socket_dispatch = { git = "https://github.com/matt24smith/mproxy-dispatcher.git", branch="testing_no_socket2" }
-mproxy-client = { git = "https://github.com/matt24smith/mproxy-dispatcher.git", branch="testing_no_socket2" }
-mproxy-server = { git = "https://github.com/matt24smith/mproxy-dispatcher.git", branch="testing_no_socket2" }
-mproxy-forward = { git = "https://github.com/matt24smith/mproxy-dispatcher.git", branch="testing_no_socket2" }
-mproxy-reverse = { git = "https://github.com/matt24smith/mproxy-dispatcher.git", branch="testing_no_socket2" }

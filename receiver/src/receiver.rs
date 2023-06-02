@@ -6,28 +6,27 @@ use std::process::exit;
 use std::thread::{spawn, Builder, JoinHandle};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-// local
 use aisdb_lib::db::{
     get_db_conn, get_postgresdb_conn, postgres_prepare_tx_dynamic, postgres_prepare_tx_static,
     sqlite_prepare_tx_dynamic, sqlite_prepare_tx_static,
 };
 use aisdb_lib::db::{PGClient, SqliteConnection};
 use aisdb_lib::decode::VesselData;
+
+// external
 use mproxy_client::target_socket_interface;
 use mproxy_forward::proxy_tcp_udp;
 use mproxy_reverse::{reverse_proxy_tcp_udp, reverse_proxy_udp};
 use mproxy_server::upstream_socket_interface;
-use mproxy_socket_dispatch::BUFSIZE;
-
-// external
 use nmea_parser::{NmeaParser, ParsedMessage};
 use pico_args::Arguments;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string;
 use tungstenite::{accept, Message};
 
-// need to redefine these structs from nmea_parser to allow serde to deserialize them
+const BUFSIZE: usize = 8096;
 
+// need to redefine these structs from nmea_parser to allow serde to deserialize them
 #[derive(Serialize, Deserialize)]
 struct VesselPositionPing {
     mmsi: u32,
