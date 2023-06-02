@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.6.1
+------
+
+update maturin version in pyproject.toml
+
+
 v1.6.0
 ------
 

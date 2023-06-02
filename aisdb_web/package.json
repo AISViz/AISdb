@@ -1,6 +1,6 @@
 {
   "name": "AISDB",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "AIS database and processing utils",
   "main": "server.js",
   "type": "module",

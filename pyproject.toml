@@ -1,21 +1,23 @@
 [build-system]
-requires = [ "maturin>=0.15", "numpy", "wheel", "patchelf",]
+requires = [ "maturin>=1.0", "numpy", "wheel", "patchelf",]
 build-backend = "maturin"
 
 [project]
 name = "aisdb"
-license-files.paths = [ "license.txt",]
 requires-python = ">=3.8"
-requires-dist = [ "maturin>=0.14", "numpy", "wheel",]
+requires-dist = [ "maturin>=1.0", "numpy", "wheel",]
 dependencies = [ "packaging", "pillow", "requests", "selenium", "shapely", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "orjson", "websockets",]
 zip-safe = false
-version = "1.6.0"
+version = "1.6.1"
 readme = "readme.rst"
 description = "AIS Database and Processing Utils"
 classifiers = [ "Intended Audience :: Developers", "Intended Audience :: Science/Research", "License :: OSI Approved :: MIT License", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Rust", "Programming Language :: SQL", "Programming Language :: JavaScript", "Topic :: Communications :: Ham Radio", "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends", "Topic :: Scientific/Engineering :: GIS", "Topic :: Scientific/Engineering :: Information Analysis", "Topic :: Utilities",]
 [[project.authors]]
 name = "Matthew Smith"
 email = "matthew.smith@dal.ca"
+
+[project.license-files]
+paths = [ "license.txt",]
 
 [project.urls]
 homepage = "https://aisdb.meridian.cs.dal.ca/"
