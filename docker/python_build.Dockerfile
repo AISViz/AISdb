@@ -1,4 +1,4 @@
-FROM ghcr.io/pyo3/maturin:v0.14.17 AS aisdb-manylinux
+FROM ghcr.io/pyo3/maturin:v1.0.0 AS aisdb-manylinux
 
 # Updates
 RUN rm /var/cache/yum/*/7/timedhosts.txt
@@ -35,7 +35,7 @@ RUN mkdir -p src receiver/src aisdb \
   && echo 'fn main(){}' > receiver/src/lib.rs \
   && touch aisdb/__init__.py
 RUN python3.9 -m venv $VIRTUAL_ENV
-RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade --verbose --no-warn-script-location .[test,docs] pip wheel setuptools maturin numpy
+RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade --verbose --no-warn-script-location .[test,docs] pip wheel setuptools numpy
 
 
 #COPY client_webassembly/ client_webassembly/

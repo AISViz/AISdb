@@ -3,6 +3,9 @@ use std::process::Command;
 use wasm_opt::OptimizationOptions;
 
 fn main() {
+    if std::env::consts::OS == "macos" {
+        std::process::exit(0);
+    }
     println!("cargo:rerun-if-changed=./aisdb_web/*.js");
     println!("cargo:rerun-if-changed=./aisdb_web/*.json");
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.css");
@@ -10,12 +13,6 @@ fn main() {
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.js");
     println!("cargo:rerun-if-changed=./aisdb_web/map/*.ts");
     println!("cargo:rerun-if-changed=./client_webassembly/src/*");
-
-    let wasm_pack_install = Command::new("cargo")
-        .args(["install", "wasm-pack"])
-        .output()
-        .expect("installing wasm-pack");
-    assert!(wasm_pack_install.status.code().unwrap() == 0);
 
     // build wasm
     let wasm_build = Command::new("wasm-pack")
@@ -34,7 +31,7 @@ fn main() {
             "Running wasm-pack. Is it installed? https://rustwasm.github.io/wasm-pack/installer/",
         );
     eprintln!("{}", String::from_utf8_lossy(&wasm_build.stderr[..]));
-    assert!(wasm_build.status.code().unwrap() == 0);
+    assert!(wasm_build.status.code() == Some(0));
 
     // compress wasm
     let wasm_opt_file = "./aisdb_web/map/pkg/client_bg.wasm";
