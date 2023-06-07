@@ -14,8 +14,8 @@ fn main() {
     //println!("cargo:rerun-if-changed=./aisdb_web/map/*.ts");
     //println!("cargo:rerun-if-changed=./client_webassembly/src/*");
 
-    // download web assets from gitlab CD artifacts if it doesn't exist
-    if !std::path::Path::new("artifacts.zip").try_exists().unwrap() {
+    // download web assets from gitlab CD artifacts
+    if std::env::var("GITLAB_CI").is_err() {
         let branch = "master";
         let url = format!(
             "https://git-dev.cs.dal.ca/api/v4/projects/132/jobs/artifacts/{}/download?job=wasm-assets",
@@ -30,19 +30,19 @@ fn main() {
         zipfile
             .write(&zipfile_bytes)
             .expect("writing zipfile bytes");
+
+        // unzip web assets into project
+        let unzip = Command::new("unzip")
+            .arg("-o")
+            .arg("artifacts.zip")
+            .output()
+            .expect("unzip command");
+        eprintln!("{}", String::from_utf8_lossy(&unzip.stderr[..]));
+        assert!(unzip.status.code().unwrap() == 0);
+
+        // remove zipfile
+        remove_file("artifacts.zip").expect("deleting zip");
     }
-
-    // unzip web assets into project
-    let unzip = Command::new("unzip")
-        .arg("-o")
-        .arg("artifacts.zip")
-        .output()
-        .expect("unzip command");
-    eprintln!("{}", String::from_utf8_lossy(&unzip.stderr[..]));
-    assert!(unzip.status.code().unwrap() == 0);
-
-    // remove zipfile
-    remove_file("artifacts.zip").expect("deleting zip");
 
     // build wasm
     /*
