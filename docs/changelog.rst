@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.6.3
+------
+
+support offline package builds from source
+
+
 v1.6.2
 ------
 
