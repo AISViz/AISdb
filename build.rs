@@ -14,21 +14,23 @@ fn main() {
     //println!("cargo:rerun-if-changed=./aisdb_web/map/*.ts");
     //println!("cargo:rerun-if-changed=./client_webassembly/src/*");
 
-    // download web assets from gitlab CD artifacts
-    let branch = "master";
-    let url = format!(
-        "https://git-dev.cs.dal.ca/api/v4/projects/132/jobs/artifacts/{}/download?job=wasm-assets",
-        branch
-    );
-    let mut zipfile = File::create("artifacts.zip").expect("creating empty zipfile");
-    let zipfile_bytes = get(url)
-        .expect("downloading web asset artifacts")
-        .bytes()
-        .expect("get asset bytes");
-    assert!(zipfile_bytes.len() > 64); // make sure we didnt get error 404
-    zipfile
-        .write(&zipfile_bytes)
-        .expect("writing zipfile bytes");
+    // download web assets from gitlab CD artifacts if it doesn't exist
+    if !std::path::Path::new("artifacts.zip").try_exists().unwrap() {
+        let branch = "master";
+        let url = format!(
+            "https://git-dev.cs.dal.ca/api/v4/projects/132/jobs/artifacts/{}/download?job=wasm-assets",
+            branch
+        );
+        let mut zipfile = File::create("artifacts.zip").expect("creating empty zipfile");
+        let zipfile_bytes = get(url)
+            .expect("downloading web asset artifacts")
+            .bytes()
+            .expect("get asset bytes");
+        assert!(zipfile_bytes.len() > 64); // make sure we didnt get error 404
+        zipfile
+            .write(&zipfile_bytes)
+            .expect("writing zipfile bytes");
+    }
 
     // unzip web assets into project
     let unzip = Command::new("unzip")
