@@ -3,16 +3,17 @@ FROM ghcr.io/pyo3/maturin:v1.0.0 AS aisdb-manylinux
 # Updates
 RUN rm /var/cache/yum/*/7/timedhosts.txt
 RUN ulimit -n 1024000 && yum update -y && yum upgrade -y
-RUN ulimit -n 1024000 && yum install -y glibc postgresql-libs python-sphinx nodejs npm
+#RUN ulimit -n 1024000 && yum install -y glibc postgresql-libs python-sphinx nodejs npm
+RUN ulimit -n 1024000 && yum install -y postgresql-libs python-sphinx
 
 # Build a recent version of clang for wasm-pack
-RUN git clone --depth=1 https://github.com/llvm/llvm-project.git /llvm-project
-RUN mkdir /llvm-project/build
-WORKDIR /llvm-project/build
-RUN cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" ../llvm
-RUN make -j8 clang
-ARG PATH=$PATH:/llvm-project/build/bin
-ENV PATH=$PATH:/llvm-project/build/bin
+#RUN git clone --depth=1 https://github.com/llvm/llvm-project.git /llvm-project
+#RUN mkdir /llvm-project/build
+#WORKDIR /llvm-project/build
+#RUN cmake -DLLVM_ENABLE_PROJECTS=clang -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" ../llvm
+#RUN make -j8 clang
+#ARG PATH=$PATH:/llvm-project/build/bin
+#ENV PATH=$PATH:/llvm-project/build/bin
 
 RUN rustup update
 
@@ -22,7 +23,7 @@ ENV VIRTUAL_ENV="/env_aisdb"
 ARG CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
-RUN cargo install wasm-pack
+#RUN cargo install wasm-pack
 
 COPY Cargo.toml Cargo.lock .coveragerc pyproject.toml readme.rst ./
 COPY aisdb_lib/ aisdb_lib/

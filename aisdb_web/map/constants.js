@@ -16,9 +16,10 @@ if (database_port === undefined) {
   database_port = '9924';
 }
 
-const tileserver_hostname = import.meta.env.VITE_TILESERVER;
+let tileserver_hostname = import.meta.env.VITE_TILESERVER;
 if (tileserver_hostname === undefined) {
-  console.log('tileserver hostname undefined');
+  console.log('tileserver hostname undefined, defaulting to localhost');
+  tileserver_hostname = 'localhost';
 }
 
 /**

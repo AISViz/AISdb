@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.6.2
+------
+
+improved mac compatability and faster docker builds #9
+
+
 v1.6.1
 ------
 

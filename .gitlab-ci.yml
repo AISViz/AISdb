@@ -12,21 +12,52 @@ workflow:
 
 
 stages:
+  - artifacts
   - python-test
-  #- build-website
   - publish
 
 
-#build-website:
-#  stage: build-website
-#  only: 
-#    - master
-#  script:
-#    - cd aisdb_web && npm install
-#    - /bin/bash ./build_website.sh
+wasm-assets:
+  stage: artifacts
+  #rules:
+  #  - if: $CI_COMMIT_TAG
+  #    when: always
+  image: 
+    name: node:latest
+  before_script:
+    - apt update -y && apt-get install clang -y
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y --profile=minimal --target=wasm32-unknown-unknown
+    - npm install -g wasm-pack
+  script:
+    - cd client_webassembly
+    - source ~/.cargo/env && wasm-pack build --target=web --release --out-dir=$CI_PROJECT_DIR/aisdb_web/map/pkg
+    - cd ../aisdb_web 
+    - npm install
+    - cd map 
+    - export VITE_DISABLE_SSL_DB=1 
+    - export VITE_DISABLE_STREAM=1 
+    - export VITE_AISDBHOST=localhost 
+    - export VITE_AISDBPORT=9924 
+    - npx vite build --outDir=$CI_PROJECT_DIR/aisdb_web/dist_map
+    - export VITE_BINGMAPTILES=1 
+    - export VITE_TILESERVER=aisdb.meridian.cs.dal.ca
+    - npx vite build --outDir=$CI_PROJECT_DIR/aisdb_web/dist_map_bingmaps
+  # artifacts can be downloaded here:
+  # https://git-dev.cs.dal.ca/api/v4/projects/132/jobs/artifacts/<branch_name>/download?job=wasm-assets
+  artifacts:
+    when: always
+    paths: 
+      - aisdb_web/map/pkg
+      - aisdb_web/dist_map
+      - aisdb_web/dist_map_bingmaps
 
 
 python-test:
+  dependencies:
+    - wasm-assets
+  #needs:
+  #  - job: wasm-assets
+  #    artifacts: true
   stage: python-test
   variables:
     #VIRTUAL_ENV: "/home/ais_env/env"
