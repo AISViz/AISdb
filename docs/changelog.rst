@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.6.4
+------
+
+fix issue when inserting checksum into postgres database
+
+
 v1.6.3
 ------
 

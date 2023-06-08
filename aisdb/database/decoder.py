@@ -69,10 +69,12 @@ class FileChecksums():
     def insert_checksum(self, checksum):
         if isinstance(self.dbconn, SQLiteDBConn):
             dbconn = sqlite3.connect(self.dbconn.dbpaths[0])
+            dbconn.execute('INSERT INTO hashmap VALUES (?,?)',
+                           [checksum, pickle.dumps(None)])
         elif isinstance(self.dbconn, PostgresDBConn):
             dbconn = self.dbconn
-        dbconn.execute('INSERT INTO hashmap VALUES (?,?)',
-                       [checksum, pickle.dumps(None)])
+            dbconn.execute('INSERT INTO hashmap VALUES ($1,$2)',
+                           [checksum, pickle.dumps(None)])
         dbconn.commit()
         if isinstance(self.dbconn, SQLiteDBConn):
             dbconn.close()
