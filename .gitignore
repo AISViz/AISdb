@@ -6,6 +6,7 @@
 **.pytest_cache
 **.sqlitedb
 **.sqlitedb*
+**.zip
 **/*.repair
 **/__pycache__
 **/node_modules/*

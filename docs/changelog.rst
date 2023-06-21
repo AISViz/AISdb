@@ -2,6 +2,36 @@
 Changelog
 =========
 
+v1.6.5
+------
+
+add track color customization to web_interface
+
+
+v1.6.4
+------
+
+fix issue when inserting checksum into postgres database
+
+
+v1.6.3
+------
+
+support offline package builds from source
+
+
+v1.6.2
+------
+
+improved mac compatability and faster docker builds #9
+
+
+v1.6.1
+------
+
+update maturin version in pyproject.toml
+
+
 v1.6.0
 ------
 

@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::io::Read;
-use std::io::Write;
+//use std::io::Write;
 
 //use flate2::write::GzDecoder;
 use flate2::read::GzDecoder;
@@ -40,6 +40,7 @@ struct GzipMsg {
 /// Track vector data from postgres queries may contain these types
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
+#[allow(dead_code)]
 enum TrackData {
     I(i32),
     F(f64),

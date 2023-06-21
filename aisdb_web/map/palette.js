@@ -293,4 +293,5 @@ export {
   vesselStyles,
   vessellabels,
   vesseltypes,
+  zoom_line_width,
 };

@@ -48,6 +48,7 @@ VITE_DISABLE_STREAM=1 \
 VITE_AISDBHOST=localhost \
 VITE_AISDBPORT=9924 \
 npx vite build --outDir "${MAPDIR}/../dist_map"
+#zip -ru9 aisdb_web/dist_map.zip aisdb_web/dist_map/
 
 VITE_BINGMAPTILES=1 \
 VITE_TILESERVER=aisdb.meridian.cs.dal.ca \
@@ -56,3 +57,4 @@ VITE_DISABLE_STREAM=1 \
 VITE_AISDBHOST=localhost \
 VITE_AISDBPORT=9924 \
 npx vite build --outDir "${MAPDIR}/../dist_map_bingmaps"
+#zip -ru9 aisdb_web/dist_map_bingmaps.zip aisdb_web/dist_map_bingmaps/

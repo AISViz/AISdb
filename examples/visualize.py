@@ -19,6 +19,14 @@ months = sample_database_file(dbpath)
 start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
 end = datetime(int(months[1][0:4]), int(months[1][4:6]) + 1, 1)
 
+
+def color_tracks(tracks):
+    ''' set the color of each vessel track using a color name or RGB value '''
+    for track in tracks:
+        track['color'] = 'red' or 'rgb(255,0,0)'
+        yield track
+
+
 with aisdb.SQLiteDBConn() as dbconn:
     qry = aisdb.DBQuery(
         dbconn=dbconn,
@@ -29,11 +37,13 @@ with aisdb.SQLiteDBConn() as dbconn:
     )
     rowgen = qry.gen_qry()
     tracks = aisdb.track_gen.TrackGen(rowgen, decimate=False)
-    tracks = aisdb.track_gen.split_timedelta(tracks, timedelta(weeks=4))
+    tracks_segment = aisdb.track_gen.split_timedelta(tracks,
+                                                     timedelta(weeks=4))
+    tracks_colored = color_tracks(tracks_segment)
 
     if __name__ == '__main__':
         aisdb.web_interface.visualize(
-            tracks,
+            tracks_colored,
             domain=domain,
             visualearth=True,
             open_browser=True,

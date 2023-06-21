@@ -1,5 +1,5 @@
 [package]
-version = "1.6.0"
+version = "1.6.5"
 name = "aisdb-lib"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
 edition = "2021"
@@ -20,7 +20,7 @@ postgres = [ "dep:postgres",]
 [lib]
 
 [dependencies]
-geo = "*"
+geo = "0.25"
 geo-types = "*"
 include_dir = "0.7.2"
 
