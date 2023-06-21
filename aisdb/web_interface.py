@@ -88,6 +88,10 @@ def serialize_track_json(track) -> bytes:
     }
 
     meta = {k: track[k] for k in track['static'] if k != 'marinetraffic_info'}
+
+    if 'color' in track.keys():
+        meta['color'] = track['color']
+
     meta['msgtype'] = 'vesselinfo'
 
     if 'marinetraffic_info' in track.keys():
@@ -191,6 +195,16 @@ def visualize(tracks, domain=None, visualearth=False, open_browser=True):
 
         If open_browser is True, python will attempt to open the web application
         in a new tab using the default browser.
+
+        To customize the color of each vessel track, set the 'color' value to
+        a color string or RGB value string:
+
+        >>> def color_tracks(tracks):
+        ...     for track in tracks:
+        ...         track['color'] = 'red' or 'rgb(255,0,0)'
+        ...         yield track
+        ...
+        ... tracks_colored = color_tracks(tracks)
     '''
     proc = multiprocessing.Process(target=_start_webclient, args=[visualearth])
     proc.start()

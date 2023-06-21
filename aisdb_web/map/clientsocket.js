@@ -21,7 +21,6 @@ import {
   disable_ssl_db
 } from './constants.js';
 
-//import { vesselInfoDB, waitForDB } from './db.js';
 
 import init, { process_response } from './pkg/client.js?init';
 
@@ -29,9 +28,14 @@ import init, { process_response } from './pkg/client.js?init';
 window.statusmsg = null;
 let doneLoadingRange = false;
 let doneLoadingZones = false;
-let doneLoadingMetadata = false;
+//let doneLoadingMetadata = false;
 let doneLoadingSocket = false;
 
+/**
+  vesselInfo contains the metadata for each vessel sent by the server:
+  e.g. vesselInfo[205535690]:
+        Object { mmsi: 205535690, msgtype: "vesselinfo", meta_string: "MMSI: 205535690<br>" }
+*/
 let vesselInfo = {};
 window.vesselInfo = vesselInfo;
 

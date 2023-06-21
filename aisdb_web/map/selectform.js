@@ -2,6 +2,8 @@
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 
+import { Fill, Stroke, Style } from 'ol/style';
+
 import { debug, no_db_limit } from './constants.js';
 import { db_socket, waitForTimerange, vesselInfo, waitForSocket } from './clientsocket.js';
 import {
@@ -18,6 +20,7 @@ import {
   vesselStyles,
   vessellabels,
   vesseltypes,
+  zoom_line_width,
 } from './palette.js';
 
 /**@constant {element} searchbtn start new database search button */
@@ -185,7 +188,24 @@ function set_track_style(ft) {
   }
 
   if (selectedType === 'All' || label.includes(selectedType)) {
-    ft.setStyle(vesselStyles[label]);
+    //if the track contains 'color' key in metadata, use this color
+    if (ft.getId() in vesselInfo && 'color' in vinfo) {
+      ft.setStyle((feature, zoom) => {
+        return new Style({
+          fill: new Fill({
+            color: vinfo.color,
+          }),
+          stroke: new Stroke({
+            color: vinfo.color,
+            width: zoom_line_width(zoom),
+          }),
+
+        });
+      });
+    //otherwise, default to a specific color for each type of vessel
+    } else {
+      ft.setStyle(vesselStyles[label]);
+    }
   } else {
     ft.setStyle(hiddenStyle);
   }

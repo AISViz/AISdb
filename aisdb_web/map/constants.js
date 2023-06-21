@@ -42,6 +42,7 @@ if (debug !== null && debug !== undefined) {
   console.log('VITE_AISDBPORT', database_port);
   console.log('VITE_BINGMAPTILES', use_bingmaps);
   console.log('VITE_DEBUG', debug);
+  console.log('VITE_DISABLE_SSL_DB', disable_ssl_db);
   console.log('VITE_DISABLE_SSL_STREAM', disable_ssl_stream);
   console.log('VITE_DISABLE_STREAM', disable_stream);
   console.log('VITE_NO_DB_LIMIT', no_db_limit);

@@ -18,7 +18,16 @@ fn main() {
     // if GITLAB_CI is set, it is expected that artifacts will be passed from previous job
     // if OFFLINE_BUILD is set, see below
     if std::env::var("GITLAB_CI").is_err() && std::env::var("OFFLINE_BUILD").is_err() {
-        let branch = "master";
+        //let branch = "master";
+        let branch = String::from_utf8(
+            Command::new("git")
+                .args(["rev-parse", "--abbrev-ref", "HEAD"])
+                .output()
+                .expect("getting current git branch")
+                .stdout,
+        )
+        .unwrap();
+
         let url = format!(
             "https://git-dev.cs.dal.ca/api/v4/projects/132/jobs/artifacts/{}/download?job=wasm-assets",
             branch

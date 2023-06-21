@@ -15,6 +15,10 @@ async function waitForDB() {
   }
 }
 
+interface DictInterface{
+    [index: string]: string;
+} 
+
 const meta_keys_display = {
   mmsi: 'MMSI',
   imo: 'IMO',
@@ -28,12 +32,15 @@ const meta_keys_display = {
   year_built: 'Year',
   summer_dwt: 'Summer DWT',
   gross_tonnage: 'Gross Tonnage',
-};
+} as DictInterface;
 
-function handle_vesselinfo(response: Record<string, unknown>) {
+interface ResponseInterface { [key: string]: any }
+
+function handle_vesselinfo(response: ResponseInterface) {
   //console.log(debug_count);
   //debug_count = debug_count + 1;
-  let meta_string = '';
+  //let meta_string ;
+  let meta_string: string;
 
   for (const key in meta_keys_display) {
     //Const value = meta_keys_display[key];
@@ -53,7 +60,7 @@ function handle_vesselinfo(response: Record<string, unknown>) {
       continue;
     }
 
-    if ((value === '0' || value === 0) && key !== 'mmsi') {
+    if ((value === '0') && key !== 'mmsi') {
       continue;
     }
 
@@ -64,11 +71,12 @@ function handle_vesselinfo(response: Record<string, unknown>) {
     //Meta_string = `${meta_string}${meta_keys_display[key]}: ${value}&emsp;`;
 
     meta_string = 
-      `${meta_string}${meta_keys_display[key]}: ${value}<br>`;
+      `${meta_keys_display[key]}: ${value}<br>`;
   }
-  response.meta_string = meta_string;
-  vesselInfo[response.mmsi] = response;
-  let ft = lineSource.getFeatureById(response.mmsi);
+  //response.meta_string = meta_string;
+  const idx: string = response.mmsi;
+  vesselInfo[idx] = response;
+  const ft = lineSource.getFeatureById(response.mmsi);
   if (ft !== null) {
     set_track_style(ft);
   }
