@@ -38,6 +38,7 @@ AISDB Docs: Index
    webapp
    database
    receiver
+   tutorials
 
 
 .. toctree::
