@@ -19,7 +19,7 @@ fn main() {
     // if OFFLINE_BUILD is set, see below
     if std::env::var("GITLAB_CI").is_err() && std::env::var("OFFLINE_BUILD").is_err() {
         //let branch = "master";
-        let branch = String::from_utf8(
+        let mut branch = String::from_utf8(
             Command::new("git")
                 .args(["rev-parse", "--abbrev-ref", "HEAD"])
                 .output()
@@ -27,6 +27,9 @@ fn main() {
                 .stdout,
         )
         .unwrap();
+        if branch == "" {
+            branch = "master".to_string();
+        }
 
         let url = format!(
             "https://git-dev.cs.dal.ca/api/v4/projects/132/jobs/artifacts/{}/download?job=wasm-assets",
@@ -36,7 +39,11 @@ fn main() {
             .expect("downloading web asset artifacts")
             .bytes()
             .expect("get asset bytes");
-        assert!(zipfile_bytes.len() > 64); // make sure we didnt get error 404
+        //assert!(zipfile_bytes.len() > 64); // make sure we didnt get error 404
+        if zipfile_bytes.len() <= 64 {
+            eprintln!("branch:{}, result: {:#?}", branch, zipfile_bytes);
+            assert!(zipfile_bytes.len() > 64); // make sure we didnt get error 404
+        }
 
         let mut zipfile = File::create("artifacts.zip").expect("creating empty zipfile");
         zipfile
