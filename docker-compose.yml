@@ -223,6 +223,8 @@ services:
         ipv6_address: "fc00::9"
     volumes:
       - ${POSTGRES_VOLUME_DIR:-postgres_data}:/var/lib/postgresql/data
+    command: 
+      ["postgres", "-c", "max_wal_size=32GB", "-c", "max_stack_depth=7000", "-c", "wal_writer_flush_after=2GB", "-c", "work_mem=1GB"]
 
 networks:
   ipv6_private:
