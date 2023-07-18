@@ -39,6 +39,7 @@ AISDB Docs: Index
    database
    receiver
    tutorials
+   tutorials2
 
 
 .. toctree::
