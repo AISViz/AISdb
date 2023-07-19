@@ -9,6 +9,7 @@ from enum import Enum
 import os
 import re
 import warnings
+import ipaddress
 
 from aisdb import sqlite3, sqlpath
 
@@ -172,10 +173,55 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
     '''
 
     def __init__(self, libpq_connstring=None, **kwargs):
+
+        # store the connection string as an attribute
+        # this info will be passed to rust when possible
         if libpq_connstring is not None:
             self.conn = psycopg.connect(libpq_connstring)
+            self.connection_string = libpq_connstring
         else:
             self.conn = psycopg.connect(**kwargs)
+            self.connection_string = 'postgresql://'
+
+            if 'user' in kwargs.keys():
+                self.connection_string += kwargs.pop('user')
+            else:
+                self.connection_string += 'postgres'
+
+            if 'password' in kwargs.keys():
+                self.connection_string += ':'
+                self.connection_string += kwargs.pop('password')
+            self.connection_string += '@'
+
+            if 'hostaddr' in kwargs.keys():
+                ip = ipaddress.ip_address(kwargs.pop('hostaddr'))
+                if ip.version == 4:
+                    self.connection_string += str(ip)
+                elif ip.version == 6:
+                    self.connection_string += '['
+                    self.connection_string += str(ip)
+                    self.connection_string += ']'
+                else:
+                    raise ValueError(str(ip))
+            else:
+                self.connection_string += 'localhost'
+            self.connection_string += ':'
+
+            if 'port' in kwargs.keys():
+                self.connection_string += str(kwargs.pop('port'))
+            else:
+                self.connection_string += '5432'
+
+            if 'dbname' in kwargs.keys():
+                self.connection_string += '/'
+                self.connection_string += kwargs.pop('dbname')
+
+            if len(kwargs) > 0:
+                self.connection_string += '?'
+                for key, val in kwargs.items():
+                    self.connection_string += f'{key}={val}&'
+                self.connection_string = self.connection_string[:-1]
+
         self.cursor = self.conn.cursor
         self.commit = self.conn.commit
         self.rollback = self.conn.rollback
@@ -186,7 +232,38 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         #self = conn
 
         #self.dbpaths = []
-        self.db_daterange = {}
+        cur = self.cursor()
+
+        coarsetype_qry = ("select table_name from information_schema.tables "
+                          "where table_name = 'coarsetype_ref'")
+
+        cur.execute(coarsetype_qry)
+        coarsetype_exists = cur.fetchone()
+
+        if not coarsetype_exists:
+            self._create_table_coarsetype()
+
+        dynamic_tables_qry = (
+            "select table_name from information_schema.tables "
+            "where table_name LIKE 'ais\_______\_dynamic' ORDER BY table_name")
+        cur.execute(dynamic_tables_qry)
+        res = cur.fetchall()
+
+        if not res:
+            self.db_daterange = {}
+        else:
+            first = res[0][0]
+            last = res[-1][0]
+
+            min_qry = f'SELECT MIN(time) FROM {first}'
+            cur.execute(min_qry)
+            min_time = datetime.utcfromtimestamp(cur.fetchone()[0])
+
+            max_qry = f'SELECT MAX(time) FROM {last}'
+            cur.execute(max_qry)
+            max_time = datetime.utcfromtimestamp(cur.fetchone()[0])
+
+            self.db_daterange = {'main': {'start': min_time, 'end': max_time}}
 
     def execute(self, sql, args=[]):
         sql = re.sub(r'\$[0-9][0-9]*', r'%s', sql)

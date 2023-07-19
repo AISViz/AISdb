@@ -13,7 +13,7 @@ from aisdb.database import sqlfcn, sqlfcn_callbacks
 from aisdb.database.create_tables import (aggregate_static_msgs,
                                           sqlite_createtable_dynamicreport,
                                           sqlite_createtable_staticreport)
-from aisdb.database.dbconn import ConnectionType
+from aisdb.database.dbconn import ConnectionType, PostgresDBConn, SQLiteDBConn
 from aisdb.webdata.marinetraffic import VesselInfo
 
 
@@ -75,13 +75,17 @@ class DBQuery(UserDict):
     '''
 
     def __init__(self, *, dbconn, dbpath=None, dbpaths=[], **kwargs):
-        if isinstance(dbconn, ConnectionType.SQLITE.value):
+        #uif isinstance(dbconn, ConnectionType.SQLITE.value):
+
+        if isinstance(dbconn, SQLiteDBConn):
             if dbpaths == [] and dbpath is None:
                 raise ValueError(
                     'must supply either dbpaths list or dbpath string value')
             elif dbpaths == []:  # pragma: no cover
                 dbpaths = [dbpath]
-        elif isinstance(dbconn, ConnectionType.POSTGRES):
+            # elif isinstance(dbconn, ConnectionType.POSTGRES):
+
+        elif isinstance(dbconn, PostgresDBConn):
             if dbpath is not None:
                 raise ValueError(
                     "the dbpath argument may not be used with a Postgres connection"
@@ -186,15 +190,29 @@ class DBQuery(UserDict):
         assert 'dbpath' not in self.data.keys()
         cur = self.dbconn.cursor()
 
-        for dbpath in self.dbconn.dbpaths:
-            if self.dbconn._get_dbname(dbpath) not in self.dbconn.db_daterange:
-                continue
+        if isinstance(self.dbconn, PostgresDBConn):
+            iter_names = ['main']
+        elif isinstance(self.dbconn, SQLiteDBConn):
+            iter_names = [
+                f for f in self.dbconn.dbpaths
+                if self.dbconn._get_dbname(f) in self.dbconn.db_daterange
+            ]
+        else:
+            assert False
+
+        #for dbpath in self.dbconn.dbpaths:
+        for dbpath in iter_names:
+            #if self.dbconn._get_dbname(dbpath) not in self.dbconn.db_daterange:
+            #    continue
+
             db_rng = self.dbconn.db_daterange[self.dbconn._get_dbname(dbpath)]
+
             if self['start'].date() > db_rng['end'] or self['end'].date(
             ) < db_rng['start']:
                 if verbose:
                     print(f'skipping query for {dbpath} (out of timerange)...')
                 continue
+
             for month in self.data['months']:
 
                 month_date = datetime(int(month[:4]), int(month[4:]), 1)
@@ -264,8 +282,9 @@ class DBQuery(UserDict):
             while len(res) > 0:
                 mmsi_rows += res
                 ummsi_idx = np.where(
-                    np.array(mmsi_rows)[:-1, 0] != np.array(mmsi_rows)[1:, 0]
-                )[0] + 1
+                    np.array(mmsi_rows)[:-1,
+                                        0] != np.array(mmsi_rows)[1:,
+                                                                  0])[0] + 1
                 ummsi_idx = reduce(np.append,
                                    ([0], ummsi_idx, [len(mmsi_rows)]))
                 for i in range(len(ummsi_idx) - 2):

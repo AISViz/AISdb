@@ -9,9 +9,7 @@ def test_postgres():
 
     # keyword arguments
     with PostgresDBConn(
-            #host='db',
-            #hostaddr='127.0.0.1/postgres',
-            hostaddr='fc00::9',
+            hostaddr='fc00::17',
             user='postgres',
             port=5432,
             password=os.environ.get('POSTGRES_PASSWORD', 'devel'),

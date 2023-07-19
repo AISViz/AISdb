@@ -145,14 +145,15 @@ def _decode_ziparchive(file, tmp_dir, dbpath, psql_conn_string, source,
     zipf.close()
 
 
-def decode_msgs(filepaths,
-                dbconn,
-                source,
-                dbpath=None,
-                psql_conn_string=None,
-                vacuum=False,
-                skip_checksum=False,
-                verbose=False):
+def decode_msgs(
+        filepaths,
+        dbconn,
+        source,
+        dbpath=None,
+        #psql_conn_string=None,
+        vacuum=False,
+        skip_checksum=False,
+        verbose=False):
     ''' Decode NMEA format AIS messages and store in an SQLite database.
         To speed up decoding, create the database on a different hard drive
         from where the raw data is stored.
@@ -171,9 +172,6 @@ def decode_msgs(filepaths,
             dbpath (string)
                 SQLite database filepath to store results in. If dbconn is a
                 Postgres database connection, set this to ``None``.
-            psql_conn_string (string)
-                Postgres connection string. If dbconn is an SQLite database
-                connection, set this to ``None``.
             source (string)
                 data source name or description. will be used as a primary key
                 column, so duplicate messages from different sources will not
@@ -201,6 +199,9 @@ def decode_msgs(filepaths,
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath, source='TESTING')
         >>> os.remove(dbpath)
     '''
+    #        psql_conn_string (string)
+    #            Postgres connection string. If dbconn is an SQLite database
+    #            connection, set this to ``None``.
     if not isinstance(dbconn,
                       (SQLiteDBConn, PostgresDBConn)):  # pragma: no cover
         raise ValueError('db argument must be a DBConn database connection. '
@@ -212,10 +213,11 @@ def decode_msgs(filepaths,
     if isinstance(dbconn, SQLiteDBConn):
         dbconn._attach(dbpath)
         assert dbpath is not None
-        assert psql_conn_string is None
+        #assert psql_conn_string is None
         psql_conn_string = ''
     else:
-        assert psql_conn_string is not None
+        #assert psql_conn_string is not None
+        psql_conn_string = dbconn.connection_string
         assert dbpath is None
         dbpath = ''
 
@@ -254,13 +256,29 @@ def decode_msgs(filepaths,
 
     if vacuum is not False:
         print("finished parsing data\nvacuuming...")
-        if vacuum is True:
-            dbconn.execute('VACUUM')
-        elif isinstance(vacuum, str):
-            assert not os.path.isfile(vacuum)
-            dbconn.execute(f"VACUUM INTO '{vacuum}'")
+        if isinstance(dbconn, SQLiteDBConn):
+            if vacuum is True:
+                dbconn.execute('VACUUM')
+            elif isinstance(vacuum, str):
+                assert not os.path.isfile(vacuum)
+                dbconn.execute(f"VACUUM INTO '{vacuum}'")
+            else:
+                raise ValueError(
+                    'vacuum arg must be boolean or filepath string')
+            dbconn.commit()
+        elif isinstance(dbconn, PostgresDBConn):
+            if vacuum is True:
+                previous = dbconn.conn.autocommit
+                dbconn.conn.autocommit = True
+                dbconn.execute('VACUUM')
+                dbconn.conn.autocommit = previous
+            elif isinstance(vacuum, str):
+                raise ValueError(
+                    'vacuum parameter must be True or False for PostgresDBConn'
+                )
+            else:
+                assert vacuum is False
         else:
-            raise ValueError('vacuum arg must be boolean or filepath string')
-        dbconn.commit()
+            raise RuntimeError
 
     return

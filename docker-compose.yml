@@ -51,6 +51,17 @@ services:
         ipv6_address: "fc00::10"
     command: 
       ["python", "-m", "pytest",  "--durations=10", "--doctest-modules", "--pyargs", "aisdb", "-k", "not marinetraffic" ]
+    depends_on:
+      - python-test-postgresdb
+
+  python-test-postgresdb:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: devel
+    hostname: python-test-postgresdb
+    networks:
+      ipv6_private:
+        ipv6_address: "fc00::17"
 
   # webapp
   # connects to database server on $AISDBHOST:$AISDBPORT

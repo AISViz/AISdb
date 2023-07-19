@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.6.6
+------
+
+improved parity between SQLite and Postgres database backends
+
+
 v1.6.5
 ------
 

@@ -204,7 +204,11 @@ def visualize(tracks, domain=None, visualearth=False, open_browser=True):
         ...         track['color'] = 'red' or 'rgb(255,0,0)'
         ...         yield track
         ...
-        ... tracks_colored = color_tracks(tracks)
+        >>> tracks = [
+        ...     {'mmsi': 204242000, 'lon': [-8.931666], 'lat':[41.45], 'time': [1625176725]},
+        ...     {'mmsi': 204814000, 'lon': [-25.668333], 'lat': [37.736668], 'time': [1625147353]},
+        ... ]
+        >>> tracks_colored = color_tracks(tracks)
     '''
     proc = multiprocessing.Process(target=_start_webclient, args=[visualearth])
     proc.start()
