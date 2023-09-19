@@ -2,6 +2,12 @@
 Changelog
 =========
 
+v1.7.0
+------
+
+merge development branch for v1.7.0 #version:minor
+
+
 v1.6.6
 ------
 

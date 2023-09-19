@@ -1,5 +1,5 @@
-import os
 from aisdb.database.dbconn import PostgresDBConn
+from aisdb.tests.create_testing_data import postgres_test_conn
 
 #import dotenv
 #dotenv.load_dotenv()
@@ -8,12 +8,7 @@ from aisdb.database.dbconn import PostgresDBConn
 def test_postgres():
 
     # keyword arguments
-    with PostgresDBConn(
-            hostaddr='fc00::17',
-            user='postgres',
-            port=5432,
-            password=os.environ.get('POSTGRES_PASSWORD', 'devel'),
-    ) as dbconn:
+    with PostgresDBConn(**postgres_test_conn) as dbconn:
         cur = dbconn.cursor()
         cur.execute('select * from coarsetype_ref;')
         res = cur.fetchall()

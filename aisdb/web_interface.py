@@ -60,7 +60,7 @@ def _start_webclient(visualearth=False):
             raise e
 
 
-def serialize_zone_json(name, zone):
+def serialize_zone_json(name, zone) -> bytes:
     zone_dict = {
         'msgtype': 'zone',
         'meta': {
@@ -73,7 +73,7 @@ def serialize_zone_json(name, zone):
     return orjson.dumps(zone_dict)
 
 
-def serialize_track_json(track) -> bytes:
+def serialize_track_json(track) -> (bytes, bytes):
     ''' serializes a single track dictionary to JSON format encoded as UTF8 '''
     vector = {
         'msgtype': 'track_vector',

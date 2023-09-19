@@ -1,11 +1,39 @@
+#[cfg(not(debug_assertions))]
 use std::fs::{remove_file, File};
+#[cfg(not(debug_assertions))]
 use std::io::Write;
+use std::path::PathBuf;
 use std::process::Command;
 
+#[cfg(not(debug_assertions))]
 use reqwest::blocking::get;
 use wasm_opt::OptimizationOptions;
 
-fn main() {
+#[cfg(not(debug_assertions))]
+fn download_gitlab_artifacts(branch: &str) -> Result<PathBuf, String> {
+    let url = format!(
+        "https://git-dev.cs.dal.ca/api/v4/projects/132/jobs/artifacts/{}/download?job=wasm-assets",
+        branch
+    );
+    let zipfile_bytes = get(url)
+        .expect("downloading web asset artifacts")
+        .bytes()
+        .expect("get asset bytes");
+    //assert!(zipfile_bytes.len() > 64); // make sure we didnt get error 404
+    if zipfile_bytes.len() <= 64 {
+        eprintln!("branch:{}, result: {:#?}", branch, zipfile_bytes);
+        return Err("assert!(zipfile_bytes.len() > 64)".to_string()); // make sure we didnt get error 404
+    }
+
+    let zipfilepath = PathBuf::from("artifacts.zip");
+    let mut zipfile = File::create(&zipfilepath).expect("creating empty zipfile");
+    zipfile
+        .write_all(&zipfile_bytes)
+        .expect("writing zipfile bytes");
+    Ok(zipfilepath)
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     //println!("cargo:rerun-if-changed=./aisdb_web/*.js");
     //println!("cargo:rerun-if-changed=./aisdb_web/*.json");
     //println!("cargo:rerun-if-changed=./aisdb_web/map/*.css");
@@ -14,6 +42,8 @@ fn main() {
     //println!("cargo:rerun-if-changed=./aisdb_web/map/*.ts");
     //println!("cargo:rerun-if-changed=./client_webassembly/src/*");
 
+    // only do this for release builds
+    #[cfg(not(debug_assertions))]
     // download web assets from gitlab CD artifacts
     // if GITLAB_CI is set, it is expected that artifacts will be passed from previous job
     // if OFFLINE_BUILD is set, see below
@@ -27,33 +57,25 @@ fn main() {
                 .stdout,
         )
         .unwrap();
-        if branch == "" {
+        if branch.is_empty() {
             branch = "master".to_string();
         }
 
-        let url = format!(
-            "https://git-dev.cs.dal.ca/api/v4/projects/132/jobs/artifacts/{}/download?job=wasm-assets",
-            branch
+        // do download
+        let mut zipfilepath = download_gitlab_artifacts(&branch);
+        if let Err(_e) = zipfilepath {
+            eprintln!(
+                "warning: no artifacts found on {}, falling back to master branch...",
+                branch
             );
-        let zipfile_bytes = get(url)
-            .expect("downloading web asset artifacts")
-            .bytes()
-            .expect("get asset bytes");
-        //assert!(zipfile_bytes.len() > 64); // make sure we didnt get error 404
-        if zipfile_bytes.len() <= 64 {
-            eprintln!("branch:{}, result: {:#?}", branch, zipfile_bytes);
-            assert!(zipfile_bytes.len() > 64); // make sure we didnt get error 404
+            zipfilepath = download_gitlab_artifacts("master");
         }
-
-        let mut zipfile = File::create("artifacts.zip").expect("creating empty zipfile");
-        zipfile
-            .write(&zipfile_bytes)
-            .expect("writing zipfile bytes");
+        let zipfilepath = zipfilepath?;
 
         // unzip web assets into project
         let unzip = Command::new("unzip")
             .arg("-o")
-            .arg("artifacts.zip")
+            .arg(zipfilepath.display().to_string())
             .output()
             .expect("unzip command");
         eprintln!("{}", String::from_utf8_lossy(&unzip.stderr[..]));
@@ -61,6 +83,10 @@ fn main() {
 
         // remove zipfile
         remove_file("artifacts.zip").expect("deleting zip");
+    }
+
+    if std::env::var("GITLAB_CI").is_ok() {
+        assert!(PathBuf::from("./aisdb_web/map/pkg").exists())
     }
 
     // web assets may also be built locally if OFFLINE_BUILD is set
@@ -158,4 +184,6 @@ fn main() {
     OptimizationOptions::new_optimize_for_size()
         .run(wasm_opt_file, wasm_opt_file)
         .expect("running wasm-opt");
+
+    Ok(())
 }

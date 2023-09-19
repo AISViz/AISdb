@@ -26,14 +26,14 @@ pub fn sql_from_file(fname: &str) -> &str {
 
 #[cfg(feature = "sqlite")]
 /// open a new database connection at the specified path
-pub fn get_db_conn(path: &std::path::Path) -> SqliteResult<SqliteConnection> {
+pub fn get_db_conn(path: std::path::PathBuf) -> SqliteResult<SqliteConnection> {
     let conn = match path.to_str().unwrap() {
         x if x.contains("file:") => SqliteConnection::open_with_flags(
-            path,
+            &path,
             OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_READ_WRITE,
         )?,
         ":memory:" => SqliteConnection::open_in_memory().unwrap(),
-        _ => SqliteConnection::open(path).unwrap(),
+        _ => SqliteConnection::open(&path).unwrap(),
     };
 
     let version_string = rusqlite::version();
@@ -69,6 +69,7 @@ pub fn get_db_conn(path: &std::path::Path) -> SqliteResult<SqliteConnection> {
 pub fn get_postgresdb_conn(connect_str: &str) -> Result<PGClient, Box<dyn std::error::Error>> {
     // TLS is handled by gateway router
     let client = PGClient::connect(connect_str, NoTls)?;
+    #[cfg(debug_assertions)]
     println!("Connected to postgres server");
     Ok(client)
 }
@@ -92,13 +93,9 @@ pub fn sqlite_createtable_dynamicreport(
 pub fn postgres_createtable_dynamicreport(
     tx: &mut PGTransaction,
     mstr: &str,
-) -> Result<usize, Box<dyn std::error::Error>> {
-    let sql = sql_from_file("createtable_dynamic_clustered.sql").replace("{}", mstr);
-    Ok(tx
-        .execute(&sql, &[])
-        .unwrap_or_else(|e| panic!("creating dynamic table\n{}\n{}", sql, e))
-        .try_into()
-        .unwrap())
+) -> Result<u64, postgres::Error> {
+    let sql = sql_from_file("psql_createtable_dynamic_noindex.sql").replace("{}", mstr);
+    tx.execute(&sql, &[])
 }
 
 #[cfg(feature = "sqlite")]
@@ -116,13 +113,9 @@ pub fn sqlite_createtable_staticreport(
 pub fn postgres_createtable_staticreport(
     tx: &mut PGTransaction,
     mstr: &str,
-) -> Result<usize, Box<dyn std::error::Error>> {
+) -> Result<u64, postgres::Error> {
     let sql = sql_from_file("createtable_static.sql").replace("{}", mstr);
-    Ok(tx
-        .execute(&sql, &[])
-        .expect("creating static table")
-        .try_into()
-        .unwrap())
+    tx.execute(&sql, &[])
 }
 
 #[cfg(feature = "sqlite")]
@@ -172,7 +165,7 @@ pub fn postgres_insert_static(
     msgs: Vec<VesselData>,
     mstr: &str,
     source: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), postgres::Error> {
     let sql = sql_from_file("insert_static.sql").replace("{}", mstr);
 
     let stmt = tx.prepare(&sql)?;
@@ -197,10 +190,22 @@ pub fn postgres_insert_static(
                 &p.destination.unwrap_or_default(),
                 &(p.ais_version_indicator as i32),
                 &p.equipment_vendor_id.unwrap_or_default(),
-                &eta.format("%m").to_string().parse::<i32>()?,
-                &eta.format("%d").to_string().parse::<i32>()?,
-                &eta.format("%H").to_string().parse::<i32>()?,
-                &eta.format("%M").to_string().parse::<i32>()?,
+                &eta.format("%m")
+                    .to_string()
+                    .parse::<i32>()
+                    .unwrap_or_default(),
+                &eta.format("%d")
+                    .to_string()
+                    .parse::<i32>()
+                    .unwrap_or_default(),
+                &eta.format("%H")
+                    .to_string()
+                    .parse::<i32>()
+                    .unwrap_or_default(),
+                &eta.format("%M")
+                    .to_string()
+                    .parse::<i32>()
+                    .unwrap_or_default(),
                 &source,
             ],
         )?;
@@ -251,33 +256,29 @@ pub fn postgres_insert_dynamic(
     msgs: Vec<VesselData>,
     mstr: &str,
     source: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), postgres::Error> {
     let sql = sql_from_file("insert_dynamic_clusteredidx.sql").replace("{}", mstr);
 
-    let stmt = tx
-        .prepare(sql.as_str())
-        .unwrap_or_else(|e| panic!("preparing SQL statement:\n{}\n{}", sql, e));
+    let stmt = tx.prepare(&sql)?;
 
     for msg in msgs {
         let (p, e) = msg.dynamicdata();
-        let _ = tx
-            .execute(
-                &stmt,
-                &[
-                    &(p.mmsi as i32),
-                    &(e as i32),
-                    &(p.longitude.unwrap_or_default() as f32),
-                    &(p.latitude.unwrap_or_default() as f32),
-                    &(p.rot.unwrap_or_default() as f32),
-                    &(p.sog_knots.unwrap_or_default() as f32),
-                    &(p.cog.unwrap_or_default() as f32),
-                    &(p.heading_true.unwrap_or_default() as f32),
-                    &p.special_manoeuvre.unwrap_or_default(),
-                    &(p.timestamp_seconds as i32),
-                    &source,
-                ],
-            )
-            .unwrap_or_else(|e| panic!("executing prepared row:\n{}", e));
+        let _ = tx.execute(
+            &stmt,
+            &[
+                &(p.mmsi as i32),
+                &(e as i32),
+                &(p.longitude.unwrap_or_default() as f32),
+                &(p.latitude.unwrap_or_default() as f32),
+                &(p.rot.unwrap_or_default() as f32),
+                &(p.sog_knots.unwrap_or_default() as f32),
+                &(p.cog.unwrap_or_default() as f32),
+                &(p.heading_true.unwrap_or_default() as f32),
+                &p.special_manoeuvre.unwrap_or_default(),
+                &(p.timestamp_seconds as i32),
+                &source,
+            ],
+        )?;
     }
 
     Ok(())
@@ -309,9 +310,9 @@ pub fn postgres_prepare_tx_dynamic(
     let mstr = epoch_2_dt(*positions[positions.len() - 1].epoch.as_ref().unwrap() as i64)
         .format("%Y%m")
         .to_string();
-    let mut t = c.transaction().unwrap();
-    postgres_createtable_dynamicreport(&mut t, &mstr).expect("creating dynamic table");
-    postgres_insert_dynamic(&mut t, positions, &mstr, source).expect("insert dynamic");
+    let mut t = c.transaction()?;
+    //postgres_createtable_dynamicreport(&mut t, &mstr)?;
+    postgres_insert_dynamic(&mut t, positions, &mstr, source)?;
     t.commit()
 }
 
@@ -347,10 +348,9 @@ pub fn postgres_prepare_tx_static(
     )
     .format("%Y%m")
     .to_string();
-    let mut t = c.transaction().unwrap();
-    postgres_createtable_staticreport(&mut t, &mstr).expect("create static table");
-    postgres_insert_static(&mut t, stat_msgs, &mstr, source)
-        .unwrap_or_else(|e| panic!("insert static: {}", e));
+    let mut t = c.transaction()?;
+    //postgres_createtable_staticreport(&mut t, &mstr)?;
+    postgres_insert_static(&mut t, stat_msgs, &mstr, source)?;
     t.commit()
 }
 

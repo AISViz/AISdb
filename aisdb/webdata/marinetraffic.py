@@ -9,8 +9,8 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
 from aisdb import sqlpath
-from aisdb.database.dbconn import ConnectionType
 from aisdb.webdata._scraper import _scraper
+from aisdb.database.dbconn import PostgresDBConn, SQLiteDBConn
 import sqlite3
 
 baseurl = 'https://www.marinetraffic.com/'
@@ -128,22 +128,21 @@ def _insertvesselrow(elem, mmsi, trafficDB):  # pragma: no cover
 
 
 def _vessel_info_dict(dbconn) -> dict:
-    if isinstance(dbconn, ConnectionType.SQLITE.value):
+    if isinstance(dbconn, SQLiteDBConn):
         # raise ValueError(f"Invalid database connection type: {dbconn}")
         if not hasattr(dbconn, 'trafficdb'):
             raise ValueError(
                 'Database connection does not have an attached traffic database!'
             )
-        dbname = dbconn._get_dbname(dbconn.trafficdb)
         cur = dbconn.cursor()
         cur.execute(
-            f'SELECT * FROM {dbname}.sqlite_master '
+            'SELECT * FROM sqlite_master '
             'WHERE type="table" AND name LIKE "ais\\_%\\_dynamic" ESCAPE "\\" '
         )
         alias = dbconn._get_dbname(dbconn.trafficdb) + '.'
     elif isinstance(dbconn, sqlite3.Connection):
         alias = ''
-    elif isinstance(dbconn, ConnectionType.POSTGRES.value):
+    elif isinstance(dbconn, SQLiteDBConn):
         alias = ''
     else:
         raise ValueError(f"Invalid connection type: {dbconn}")

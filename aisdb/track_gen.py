@@ -79,6 +79,10 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001):
         yield segment
 
 
+class EmptyRowsException(Exception):
+    pass
+
+
 def TrackGen(rowgen: iter, decimate: False) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
@@ -99,33 +103,38 @@ def TrackGen(rowgen: iter, decimate: False) -> dict:
             scalar values
 
         >>> import os
+        >>> import numpy as np
         >>> from datetime import datetime
-        >>> from aisdb import DBConn, DBQuery, TrackGen, decode_msgs
+        >>> from aisdb import SQLiteDBConn, DBQuery, TrackGen, decode_msgs
         >>> from aisdb.database import sqlfcn_callbacks
         >>> # create example database file
         >>> dbpath = 'track_gen_test.db'
         >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
         ...              'aisdb/tests/testdata/test_data_20211101.nm4']
-        >>> with DBConn() as dbconn:
-        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
-        ...     source='TESTING')
+        >>> with SQLiteDBConn(dbpath) as dbconn:
+        ...     decode_msgs(filepaths, dbconn=dbconn, source='TESTING', verbose=False)
         ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
-        ...             dbconn=dbconn,
-        ...             dbpath=dbpath,
-        ...             start=datetime(2021, 7, 1),
-        ...             end=datetime(2021, 7, 7))
+        ...                 dbconn=dbconn,
+        ...                 start=datetime(2021, 7, 1),
+        ...                 end=datetime(2021, 7, 7))
         ...     rowgen = q.gen_qry()
         ...     for track in TrackGen(rowgen, decimate=True):
-        ...         print(track['mmsi'], track['lon'], track['lat'], track['time'])
+        ...         result = (track['mmsi'], track['lon'], track['lat'], track['time'])
+        ...         assert result == (204242000, np.array([-8.931666], dtype=np.float32),
+        ...                           np.array([41.45], dtype=np.float32), np.array([1625176725], dtype=np.uint32))
         ...         break
-        204242000 [-8.931666] [41.45] [1625176725]
+
+    '''
+    '''
         >>> os.remove(dbpath)
     '''
     firstrow = True
     assert isinstance(rowgen, types.GeneratorType)
     for rows in rowgen:
-        assert not (rows is None or len(rows) == 0), 'rows cannot be empty'
-        assert isinstance(rows[0], (sqlite3.Row, dict))
+        if (rows is None or len(rows) == 0):
+            raise EmptyRowsException('rows cannot be empty')
+        assert isinstance(
+            rows[0], (sqlite3.Row, dict)), f'unknown row type: {type(rows[0])}'
         if firstrow:
             keys = set(rows[0].keys())
             static = keys.intersection(set(staticcols))

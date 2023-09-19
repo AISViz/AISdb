@@ -1,5 +1,5 @@
 [package]
-version = "1.6.6"
+version = "1.7.0"
 name = "aisdb"
 edition = "2021"
 include = [ "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml", "aisdb_web/dist_map/index.html", "aisdb_web/dist_map/favicon.svg", "aisdb_web/dist_map/favicon.png", "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map_bingmaps/index.html", "aisdb_web/dist_map_bingmaps/favicon.svg", "aisdb_web/dist_map_bingmaps/favicon.png", "aisdb_web/dist_map_bingmaps/assets/*",]
@@ -9,14 +9,19 @@ crate-type = [ "cdylib", "rlib",]
 path = "src/lib.rs"
 
 [dependencies]
-geo = "0.25"
+geo = "0.26"
 geo-types = "*"
 nmea-parser = "0.10"
+sysinfo = "0.29"
 
 [build-dependencies]
 wasm-opt = "0.112"
 wasm-pack = "0.11"
 reqwest = "0.11"
+
+[dependencies.futures]
+version = "0.3"
+features = [ "executor", "thread-pool",]
 
 [dependencies.aisdb-lib]
 path = "aisdb_lib"

@@ -27,7 +27,7 @@ from aisdb.track_gen import (
     split_timedelta,
 )
 from aisdb.denoising_encoder import encode_greatcircledistance
-from aisdb.database.dbconn import ConnectionType
+from aisdb.database.dbconn import PostgresDBConn, SQLiteDBConn, ConnectionType
 from aisdb.interp import interp_time
 from aisdb.proc_util import _sanitize
 from aisdb.proc_util import _segment_rng
@@ -284,7 +284,6 @@ def graph(
         domain,
         dbconn: ConnectionType,
         data_dir: str,
-        #dbpath: str = None,
         trafficDBpath: str or None,  # none if using PostgresDBConn
         maxdelta: timedelta = timedelta(weeks=1),
         speed_threshold: float = 50,
@@ -361,16 +360,16 @@ def graph(
         >>> import os
         >>> import shapely
         >>> from datetime import datetime
-        >>> from aisdb import DBConn, DBQuery, Domain, graph, decode_msgs
+        >>> from aisdb import SQLiteDBConn, DBQuery, Domain, graph, decode_msgs
         >>> from aisdb.database.sqlfcn_callbacks import in_bbox_time
 
         >>> # create example database file
         >>> dbpath = './example.sqlitedb'
         >>> filepaths = ['./aisdb/tests/testdata/test_data_20210701.csv',
         ...              './aisdb/tests/testdata/test_data_20211101.nm4']
-        >>> with DBConn() as dbconn:
-        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn, dbpath=dbpath,
-        ...     source='TESTING')
+        >>> with SQLiteDBConn(dbpath) as dbconn:
+        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn,
+        ...     source='TESTING', verbose=False)
 
         Next, configure query area using Domain to compute region boundary
 
@@ -387,10 +386,9 @@ def graph(
 
         Then, query db for points in domain
 
-        >>> with DBConn() as dbconn:
+        >>> with SQLiteDBConn(dbpath) as dbconn:
         ...     qry = DBQuery(
         ...             dbconn=dbconn,
-        ...             dbpath=dbpath,
         ...             callback=in_bbox_time,
         ...             start=datetime(2021, 7, 1),
         ...             end=datetime(2021, 7, 3),

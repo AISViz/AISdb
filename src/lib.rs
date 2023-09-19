@@ -1,19 +1,19 @@
 //! Rust exports for python API
-use std::cmp::max;
+use std::cmp::{max, min};
+use std::fs::metadata;
 use std::path::PathBuf;
-use std::process::exit;
-use std::thread::sleep;
+use std::sync::mpsc::channel;
+use std::thread::{available_parallelism, sleep};
 use std::time::Duration;
 
-use geo::point;
-use geo::HaversineDistance;
-use geo::SimplifyVwIdx;
+use futures::executor::ThreadPool;
+use geo::{point, HaversineDistance, SimplifyVwIdx};
 use geo_types::{Coord, LineString};
 use nmea_parser::NmeaParser;
-use pyo3::ffi::PyErr_CheckSignals;
-use pyo3::prelude::*;
+use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, PyResult, Python};
+use sysinfo::{RefreshKind, System, SystemExt};
 
-use aisdb_lib::csvreader::decodemsgs_ee_csv;
+use aisdb_lib::csvreader::{postgres_decodemsgs_ee_csv, sqlite_decodemsgs_ee_csv};
 use aisdb_lib::decode::{postgres_decode_insert_msgs, sqlite_decode_insert_msgs};
 use aisdb_receiver::{start_receiver, ReceiverArgs};
 
@@ -47,15 +47,17 @@ pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
     p1.haversine_distance(&p2)
 }
 
-/// Parse NMEA-formatted strings, and create SQLite database
+/// Parse NMEA-formatted strings, and create databases
 /// from raw AIS transmissions
 ///
 /// args:
-///     dbpath (&str)
-///         output database file
-///     files (array of &str)
+///     dbpath (str)
+///         Output SQLite database path. Set this to an empty string to only use Postgres
+///     psql_conn_string (str)
+///         Postgres database connection string. Set this to an empty string to only use SQLite
+///     files (array of str)
 ///         array of .nm4 raw data filepath strings
-///     source (&str)
+///     source (str)
 ///         data source text. Will be used as a primary key index in database
 ///     verbose (bool)
 ///         enables logging
@@ -64,46 +66,187 @@ pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 ///     None
 ///
 #[pyfunction]
+#[pyo3(text_signature = "(dbpath, psql_conn_string, files, source, verbose)")]
 pub fn decoder(
-    dbpath: &str,
-    psql_conn_string: &str,
-    files: Vec<&str>,
-    source: &str,
+    dbpath: PathBuf,
+    psql_conn_string: String,
+    files: Vec<PathBuf>,
+    source: String,
     verbose: bool,
-) {
-    // array tuples containing (dbpath, filepath)
-    let mut path_arr = vec![];
-    for file in files {
-        path_arr.push((
-            std::path::PathBuf::from(&dbpath),
-            std::path::PathBuf::from(file),
-        ));
+    py: Python,
+) -> Vec<PathBuf> {
+    // tuples containing (dbpath, filepath)
+    let mut path_arr: Vec<(PathBuf, PathBuf)> = Vec::new();
+    for file in &files {
+        path_arr.push((dbpath.clone(), file.to_path_buf()));
     }
+
+    // check average file size for memory allocations and multiply by 2
+    let mut bytesize: u64 = 0;
+    for file in &files {
+        bytesize += metadata(file).expect("getting file size").len();
+    }
+    bytesize /= files.len() as u64;
+    bytesize *= 2;
+
+    // keep track of memory use before spawning new parallel workers
+    let mut sys = System::new_with_specifics(RefreshKind::new().with_memory());
+    sys.refresh_memory();
+
+    // reserve atleast 3.5GB of available memory for each worker thread,
+    // up to a maximum of one worker per CPU
+    let worker_count = min(
+        min(
+            max(1, (sys.available_memory() - bytesize) / bytesize),
+            min(32, available_parallelism().expect("CPU count").get() as u64),
+        ),
+        files.len() as u64,
+    );
+    let pool = ThreadPool::builder()
+        .pool_size(worker_count as usize)
+        .name_prefix("aisdb-decode-")
+        .create()
+        .expect("creating pool");
+
+    // when each worker is done they will send "true" to the receiver
+    let (sender, receiver) = channel::<Result<PathBuf, PathBuf>>();
+    let mut completed = Vec::new();
+    let mut errored = Vec::new();
+
+    fn update_done_files(
+        completed: &mut Vec<PathBuf>,
+        errored: &mut Vec<PathBuf>,
+        next: Result<PathBuf, PathBuf>,
+    ) {
+        match next {
+            Ok(p) => completed.push(p),
+            Err(p) => errored.push(p),
+        }
+    }
+
+    // count workers in progress
+    let mut in_process: u64 = 0;
+
+    println!(
+        "Memory: {:.2}GB remaining.  CPUs: {}.  Average file size: {:.2}MB  Spawning {} workers",
+        sys.available_memory() as f64 * 1e-9_f64,
+        available_parallelism().expect("CPU count"),
+        bytesize as f64 * 1e-6_f64,
+        worker_count
+    );
 
     // check file extensions and begin decode
     let mut parser = NmeaParser::new();
-    for (d, f) in &path_arr {
+    for (d, f) in path_arr.iter() {
+        let f = f.clone();
+        let source = source.clone();
+        let psql_conn_string = psql_conn_string.clone();
+
+        py.check_signals().expect("checking signals");
+        sleep(System::MINIMUM_CPU_UPDATE_INTERVAL);
+        sys.refresh_memory();
+
+        // wait until the system has some available memory
+        while (in_process * bytesize > sys.total_memory() - bytesize
+            || sys.available_memory() < bytesize)
+            && in_process != 0
+        {
+            sleep(System::MINIMUM_CPU_UPDATE_INTERVAL + Duration::from_millis(50));
+            // check if keyboardinterrupt was sent
+            py.check_signals()
+                .expect("Decoder interrupted while spawning workers");
+            // check if worker completed a file
+            match receiver.try_recv() {
+                Ok(r) => {
+                    update_done_files(&mut completed, &mut errored, r);
+                    in_process -= 1;
+                }
+                Err(_r) => {
+                    sleep(std::time::Duration::from_millis(100));
+                }
+            }
+
+            sys.refresh_memory();
+        }
+        if verbose {
+            println!("processing {}", f.display());
+        }
+
         match f.extension() {
             Some(ext_os_str) => match ext_os_str.to_str() {
                 Some("nm4") | Some("NM4") | Some("nmea") | Some("NMEA") | Some("rx")
                 | Some("txt") | Some("RX") | Some("TXT") => {
-                    if !dbpath.is_empty() {
-                        parser = sqlite_decode_insert_msgs(d, f, source, parser, verbose)
-                            .expect("decoding NM4");
-                    }
-                    if !psql_conn_string.is_empty() {
-                        parser = postgres_decode_insert_msgs(
-                            psql_conn_string,
-                            f,
-                            source,
+                    if !dbpath.to_str().unwrap().is_empty() {
+                        parser = sqlite_decode_insert_msgs(
+                            d.to_path_buf(),
+                            f.clone(),
+                            &source,
                             parser,
                             verbose,
                         )
                         .expect("decoding NM4");
                     }
+                    if !psql_conn_string.is_empty() {
+                        let sender = sender.clone();
+                        let future = async move {
+                            let parser = NmeaParser::new();
+                            match postgres_decode_insert_msgs(
+                                &psql_conn_string,
+                                f.clone(),
+                                &source,
+                                parser,
+                                verbose,
+                            ) {
+                                Err(_) => {
+                                    sender
+                                        .send(Err(f))
+                                        .expect("sending errored filepath from worker");
+                                }
+                                Ok(_) => sender
+                                    .send(Ok(f))
+                                    .expect("sending completed filepath from worker"),
+                            };
+                        };
+                        pool.spawn_ok(future);
+                        in_process += 1;
+                    }
                 }
                 Some("csv") | Some("CSV") => {
-                    decodemsgs_ee_csv(d, f, source, verbose).expect("decoding CSV");
+                    if dbpath != PathBuf::from("") {
+                        sqlite_decodemsgs_ee_csv(d.to_path_buf(), f.clone(), &source, verbose)
+                            .expect("decoding CSV");
+                    }
+                    if !psql_conn_string.is_empty() {
+                        let sender = sender.clone();
+                        let future = async move {
+                            match postgres_decodemsgs_ee_csv(
+                                &psql_conn_string,
+                                &f,
+                                &source,
+                                verbose,
+                            ) {
+                                Err(e) => {
+                                    eprintln!("CSV decoder error: {}\n", e);
+                                    sender.send(Err(f.clone())).unwrap_or_else(|e| {
+                                        eprintln!(
+                                            "sending errored CSV filepath from worker {}\n{}",
+                                            f.display(),
+                                            e
+                                        )
+                                    });
+                                }
+                                Ok(_) => sender.send(Ok(f.clone())).unwrap_or_else(|e| {
+                                    eprintln!(
+                                        "sending completed CSV filepath from worker {}\n{}",
+                                        f.display(),
+                                        e
+                                    )
+                                }),
+                            };
+                        };
+                        pool.spawn_ok(future);
+                        in_process += 1;
+                    }
                 }
                 _ => {
                     panic!("unknown file type! {:?}", &f);
@@ -114,6 +257,30 @@ pub fn decoder(
             }
         }
     }
+    while in_process > 0 {
+        if let Err(e) = py.check_signals() {
+            eprintln!(
+                "Decoder interrupted while waiting for worker threads. Remaining: {}/{}\n{}",
+                in_process,
+                files.len(),
+                e
+            );
+            eprintln!("Completed: {:#?}", completed);
+            eprintln!("Completed with errors: {:#?}", errored);
+            break;
+        };
+        match receiver.try_recv() {
+            Ok(r) => {
+                update_done_files(&mut completed, &mut errored, r);
+                in_process -= 1;
+            }
+            Err(_r) => {
+                sleep(std::time::Duration::from_millis(100));
+            }
+        }
+    }
+
+    completed
 }
 
 /// linear curve decimation using visvalingam-whyatt algorithm.
@@ -140,6 +307,8 @@ pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<
     line.into_iter().collect::<Vec<usize>>()
 }
 
+/// This function is used internally by :func:`aisdb.denoising_encoder.encode_score`.
+///
 /// Assigns a score for likelihood of two points being part of a sequential
 /// vessel trajectory. A hard cutoff will be applied at distance_threshold,
 /// after which all scores will be set to -1.
@@ -290,6 +459,7 @@ pub fn receiver(
     dynamic_msg_bufsize: Option<usize>,
     static_msg_bufsize: Option<usize>,
     tee: Option<bool>,
+    py: Python<'_>,
 ) {
     let threads = start_receiver(ReceiverArgs {
         sqlite_dbpath: sqlite_dbpath.map(PathBuf::from),
@@ -305,32 +475,27 @@ pub fn receiver(
         static_msg_bufsize,
         tee,
     });
-    unsafe {
-        while threads
-            .iter()
-            .map(|t| t.is_finished())
-            .filter(|b| !(*b))
-            .count()
-            > 0
-        {
-            let signal = PyErr_CheckSignals();
-            if signal != 0 {
-                eprintln!("exiting...");
-                exit(signal);
-            }
-            sleep(Duration::from_millis(500));
-        }
+    while threads
+        .iter()
+        .map(|t| t.is_finished())
+        .filter(|b| !(*b))
+        .count()
+        > 0
+    {
+        py.check_signals().expect("Receiver interrupted");
+        sleep(Duration::from_millis(500));
     }
 }
 
 /// Functions imported from Rust
 #[pymodule]
-pub fn aisdb(_py: Python, module: &PyModule) -> PyResult<()> {
-    module.add_wrapped(wrap_pyfunction!(haversine))?;
+#[allow(unused_variables)]
+pub fn aisdb(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(decoder))?;
-    module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
-    module.add_wrapped(wrap_pyfunction!(encoder_score_fcn))?;
     module.add_wrapped(wrap_pyfunction!(binarysearch_vector))?;
+    module.add_wrapped(wrap_pyfunction!(encoder_score_fcn))?;
+    module.add_wrapped(wrap_pyfunction!(haversine))?;
     module.add_wrapped(wrap_pyfunction!(receiver))?;
+    module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
     Ok(())
 }

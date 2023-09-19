@@ -289,7 +289,7 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
     let mut output_buffer = BufWriter::new(stdout());
     let mut sqlite_dbconn = args
         .sqlite_dbpath
-        .map(|dbp| get_db_conn(dbp.as_path()).expect("getting sqlite db connection"));
+        .map(|dbp| get_db_conn(dbp).expect("getting sqlite db connection"));
     let mut postgres_dbconn = args
         .postgres_connection_string
         .as_ref()

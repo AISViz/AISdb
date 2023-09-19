@@ -14,10 +14,9 @@ def test_interp(tmpdir):
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
 
-    with DBConn() as dbconn:
+    with DBConn(dbpath) as dbconn:
         qry = DBQuery(
             dbconn=dbconn,
-            dbpath=dbpath,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,

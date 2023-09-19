@@ -95,23 +95,8 @@ Navigate to the ``database_server`` folder in the project repository, install it
 Web Application Front End
 -------------------------
 
-`Vite <https://vitejs.dev/>`__ can be used for local development and deployment bundling. 
-JavaScript dependencies can be installed with the Node Package Manager (NPM) included with NodeJS. 
-Navigate to the aisdb_web directory, and install the dependencies with NPM. 
-Use the build script included in the repository to compile WebAssembly targets, and embed them in JavaScript.
-Then start a development instance of the web application interface.
-The web application can then be viewed at `<http://localhost:3000>`__.
-For configuration, see the ``VITE_*`` environment variables in :ref:`environment`.
+A web interface client is included in the AISDB python package. 
 
-.. code-block:: sh
-
-   cd aisdb_web
-   npm install
-   /bin/bash ./build_website.sh
-   npx vite --port 3000 ./map 
-
-Windows users may alternatively configure and start the web application interface with the following Python code, after building and installing dependencies manually
-
-.. include:: ../../examples/start_web_interface.py
+.. include:: ../../examples/visualize.py
    :literal:
 

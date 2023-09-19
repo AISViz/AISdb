@@ -53,20 +53,20 @@ This streamlined approach allows you to focus directly on exploring the data, ru
 
 If you're interested in learning how to import AIS data into a database, we encourage you to refer to Tutorial 1, where we provide a step-by-step demonstration of the import process.
 
-.. code-block:: python
+.. code-block:: bash
 
     # Download the data file automatically
-    !wget https://www.dropbox.com/s/09blsyzcumjol52/MERIDIAN_AIS_ESRF_databases.zip
+    wget https://www.dropbox.com/s/09blsyzcumjol52/MERIDIAN_AIS_ESRF_databases.zip
 
     # Or, you can download the data file manually from the following link:
     # https://drive.google.com/drive/folders/1DXT88-Fl0dbZfzeNTO7G_7__1xbGcGgu
     # and place it in the same folder as this notebook
 
     # unzip the data file
-    !unzip MERIDIAN_AIS_ESRF_databases.zip
+    unzip MERIDIAN_AIS_ESRF_databases.zip
 
     # list all the files in the MERIDIAN_AIS_ESRF_databases folder
-    !ls MERIDIAN_AIS_ESRF_databases
+    ls MERIDIAN_AIS_ESRF_databases
 
 
 .. code-block:: python

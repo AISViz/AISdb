@@ -6,9 +6,9 @@ build-backend = "maturin"
 name = "aisdb"
 requires-python = ">=3.8"
 requires-dist = [ "maturin>=1.0", "numpy", "wheel",]
-dependencies = [ "packaging", "pillow", "requests", "selenium", "shapely", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "orjson", "websockets",]
+dependencies = [ "flask", "packaging", "pillow", "requests", "selenium", "shapely", "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "python-dateutil", "orjson", "websockets",]
 zip-safe = false
-version = "1.6.6"
+version = "1.7.0"
 readme = "readme.rst"
 description = "AIS Database and Processing Utils"
 classifiers = [ "Intended Audience :: Developers", "Intended Audience :: Science/Research", "License :: OSI Approved :: MIT License", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Rust", "Programming Language :: SQL", "Programming Language :: JavaScript", "Topic :: Communications :: Ham Radio", "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends", "Topic :: Scientific/Engineering :: GIS", "Topic :: Scientific/Engineering :: Information Analysis", "Topic :: Utilities",]
@@ -30,10 +30,10 @@ docs = [ "sphinx", "sphinx-rtd-theme",]
 devel = []
 
 [tool.maturin]
-include = [ "aisdb/*.py", "aisdb/aisdb_sql/*.sql", "aisdb/database/*.py", "aisdb/tests/*.py", "aisdb/tests/testdata/test_data_20210701.csv", "aisdb/tests/testdata/test_data_20211101.nm4", "aisdb/webdata/*.py", "aisdb_lib/*", "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map/favicon.png", "aisdb_web/dist_map/favicon.svg", "aisdb_web/dist_map/index.html", "aisdb_web/dist_map_bingmaps/assets/*", "aisdb_web/dist_map_bingmaps/favicon.png", "aisdb_web/dist_map_bingmaps/favicon.svg", "aisdb_web/dist_map_bingmaps/index.html",]
+include = [ "pyproject.toml", "aisdb/*.py", "aisdb/aisdb_sql/*.sql", "aisdb/database/*.py", "aisdb/tests/*.py", "aisdb/tests/testdata/test_data_20210701.csv", "aisdb/tests/testdata/test_data_20211101.nm4", "aisdb/webdata/*.py", "aisdb_lib/*", "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map/favicon.png", "aisdb_web/dist_map/favicon.svg", "aisdb_web/dist_map/index.html", "aisdb_web/dist_map_bingmaps/assets/*", "aisdb_web/dist_map_bingmaps/favicon.png", "aisdb_web/dist_map_bingmaps/favicon.svg", "aisdb_web/dist_map_bingmaps/index.html",]
 bindings = "pyo3"
 compatability = "manylinux2014"
 
 [tool.pytest.ini_options]
 testpaths = [ "aisdb/tests",]
-addopts = "--color=yes --tb=native --cov-report term --cov-report html:docs/dist_coverage --cov=aisdb --doctest-modules --envfile .env"
+addopts = "--color=yes --cov-report term --cov-report html:docs/dist_coverage --cov=aisdb --doctest-modules --envfile .env"

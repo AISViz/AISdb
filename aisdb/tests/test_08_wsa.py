@@ -30,12 +30,12 @@ def test_wetted_surface_area_regression_marinetraffic(tmpdir):
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
     vinfoDB = VesselInfo(trafficDBpath).trafficDB
-    with DBConn() as dbconn, warnings.catch_warnings(), vinfoDB as trafficDB:
+    with DBConn(
+            dbpath) as dbconn, warnings.catch_warnings(), vinfoDB as trafficDB:
         warnings.simplefilter('ignore')
 
         qry = DBQuery(
             dbconn=dbconn,
-            dbpath=dbpath,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,

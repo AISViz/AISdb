@@ -4,7 +4,7 @@ pub use std::{
     time::{Duration, Instant},
 };
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, TimeZone, Utc};
 use csv::StringRecord;
 use nmea_parser::ais::{
     AisClass, CargoType, NavigationStatus, ShipType, Station, VesselDynamicData, VesselStaticData,
@@ -14,8 +14,10 @@ use nmea_parser::ParsedMessage;
 #[cfg(feature = "sqlite")]
 use crate::db::{get_db_conn, sqlite_prepare_tx_dynamic, sqlite_prepare_tx_static};
 #[cfg(feature = "postgres")]
-//use crate::db::{get_postgresdb_conn, postgres_prepare_tx_dynamic, postgres_prepare_tx_static};
+use crate::db::{get_postgresdb_conn, postgres_prepare_tx_dynamic, postgres_prepare_tx_static};
 use crate::decode::VesselData;
+
+const BATCHSIZE: usize = 50000;
 
 /// convert time string to epoch seconds
 pub fn csvdt_2_epoch(dt: &str) -> i64 {
@@ -26,7 +28,7 @@ pub fn csvdt_2_epoch(dt: &str) -> i64 {
     if let Err(e) = utctime {
         panic!("parsing timestamp from '{}': {}", dt, e);
     }
-    DateTime::<Utc>::from_utc(utctime.unwrap(), Utc).timestamp()
+    Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
 }
 
 /// filter everything but vessel data, sort vessel data into static and dynamic vectors
@@ -55,23 +57,20 @@ pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringReco
         _ => None,
     }
 }
-
 /// perform database input
-pub fn decodemsgs_ee_csv(
-    dbpath: &std::path::Path,
-    filename: &std::path::PathBuf,
+#[cfg(feature = "sqlite")]
+pub fn sqlite_decodemsgs_ee_csv(
+    dbpath: std::path::PathBuf,
+    filename: std::path::PathBuf,
     source: &str,
     verbose: bool,
 ) -> Result<(), Error> {
-    assert_eq!(
-        &filename.to_str().unwrap()[&filename.to_str().unwrap().len() - 4..],
-        ".csv"
-    );
+    assert_eq!(&filename.extension().expect("getting file ext"), &"csv");
 
     let start = Instant::now();
 
     let mut reader = csv::Reader::from_reader(
-        File::open(filename).unwrap_or_else(|_| panic!("cannot open file {:?}", filename)),
+        File::open(&filename).unwrap_or_else(|_| panic!("cannot open file {:?}", filename)),
     );
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
@@ -149,11 +148,11 @@ pub fn decodemsgs_ee_csv(
             stat_msgs.push(message);
         }
 
-        if positions.len() >= 500000 {
+        if positions.len() >= BATCHSIZE {
             let _d = sqlite_prepare_tx_dynamic(&mut c, source, positions);
             positions = vec![];
         };
-        if stat_msgs.len() >= 500000 {
+        if stat_msgs.len() >= BATCHSIZE {
             let _s = sqlite_prepare_tx_static(&mut c, source, stat_msgs);
             stat_msgs = vec![];
         }
@@ -195,10 +194,146 @@ pub fn decodemsgs_ee_csv(
     Ok(())
 }
 
+/// perform database input
+#[cfg(feature = "postgres")]
+pub fn postgres_decodemsgs_ee_csv(
+    connect_str: &str,
+    filename: &std::path::PathBuf,
+    source: &str,
+    verbose: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    assert_eq!(&filename.extension().expect("getting file ext"), &"csv");
+
+    let start = Instant::now();
+
+    let mut reader = csv::Reader::from_reader(File::open(filename)?);
+    let mut stat_msgs = <Vec<VesselData>>::new();
+    let mut positions = <Vec<VesselData>>::new();
+    let mut count = 0;
+
+    let mut c = get_postgresdb_conn(connect_str)?;
+
+    for (row, epoch, is_dynamic) in reader
+        .records()
+        .filter_map(|r| filter_vesseldata_csv(r.ok()))
+    {
+        count += 1;
+        if is_dynamic {
+            let payload = VesselDynamicData {
+                own_vessel: true,
+                station: Station::BaseStation,
+                ais_type: AisClass::Unknown,
+                mmsi: row.get(0).unwrap().parse().unwrap(),
+                nav_status: NavigationStatus::NotDefined,
+                rot: row.get(25).unwrap().parse::<f64>().ok(),
+                rot_direction: None,
+                sog_knots: row.get(26).unwrap().parse::<f64>().ok(),
+                high_position_accuracy: false,
+                latitude: row.get(29).unwrap().parse().ok(),
+                longitude: row.get(28).unwrap().parse().ok(),
+                cog: row.get(30).unwrap().parse().ok(),
+                heading_true: row.get(31).unwrap().parse().ok(),
+                timestamp_seconds: row.get(42).unwrap().parse::<u8>().unwrap_or(0),
+                positioning_system_meta: None,
+                current_gnss_position: None,
+                special_manoeuvre: None,
+                raim_flag: false,
+                class_b_unit_flag: None,
+                class_b_display: None,
+                class_b_dsc: None,
+                class_b_band_flag: None,
+                class_b_msg22_flag: None,
+                class_b_mode_flag: None,
+                class_b_css_flag: None,
+                radio_status: None,
+            };
+            let message = VesselData {
+                epoch: Some(epoch),
+                payload: Some(ParsedMessage::VesselDynamicData(payload)),
+            };
+            positions.push(message);
+        } else {
+            let payload = VesselStaticData {
+                own_vessel: true,
+                ais_type: AisClass::Unknown,
+                mmsi: row.get(0).unwrap().parse().unwrap(),
+                ais_version_indicator: row.get(23).unwrap().parse().unwrap_or_default(),
+                imo_number: row.get(15).unwrap().parse().ok(),
+                call_sign: row.get(14).unwrap().parse().ok(),
+                name: Some(row.get(13).unwrap_or("").to_string()),
+                ship_type: ShipType::new(row.get(16).unwrap().parse().unwrap_or_default()),
+                cargo_type: CargoType::Undefined,
+                equipment_vendor_id: None,
+                equipment_model: None,
+                equipment_serial_number: None,
+                dimension_to_bow: row.get(17).unwrap_or_default().parse().ok(),
+                dimension_to_stern: row.get(18).unwrap_or_default().parse().ok(),
+                dimension_to_port: row.get(19).unwrap_or_default().parse().ok(),
+                dimension_to_starboard: row.get(20).unwrap_or_default().parse().ok(),
+                position_fix_type: None,
+                eta: None,
+                draught10: row.get(21).unwrap_or_default().parse().ok(),
+                destination: row.get(22).unwrap_or_default().parse().ok(),
+                mothership_mmsi: row.get(131).unwrap_or_default().parse().ok(),
+            };
+            let message = VesselData {
+                epoch: Some(epoch),
+                payload: Some(ParsedMessage::VesselStaticData(payload)),
+            };
+            stat_msgs.push(message);
+        }
+
+        if positions.len() >= BATCHSIZE {
+            postgres_prepare_tx_dynamic(&mut c, source, positions)?;
+            positions = vec![];
+        };
+        if stat_msgs.len() >= BATCHSIZE {
+            postgres_prepare_tx_static(&mut c, source, stat_msgs)?;
+            stat_msgs = vec![];
+        }
+    }
+
+    if !positions.is_empty() {
+        postgres_prepare_tx_dynamic(&mut c, source, positions)?;
+    }
+
+    if !stat_msgs.is_empty() {
+        postgres_prepare_tx_static(&mut c, source, stat_msgs)?;
+    }
+
+    let elapsed = start.elapsed();
+    let fname = filename
+        .to_str()
+        .unwrap()
+        .rsplit_once(std::path::MAIN_SEPARATOR)
+        .unwrap()
+        .1;
+    let fname1 = format!("{:<1$}", fname, 64);
+    let elapsed1 = format!(
+        "elapsed: {:>1$}s",
+        format!("{:.2 }", elapsed.as_secs_f32()),
+        7
+    );
+    let rate1 = format!(
+        "rate: {:>1$} msgs/s",
+        format!("{:.0}", count as f32 / elapsed.as_secs_f32()),
+        8
+    );
+
+    if verbose {
+        println!(
+            "{} count:{: >8}    {}    {}",
+            fname1, count, elapsed1, rate1,
+        );
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 pub mod tests {
 
-    use super::{decodemsgs_ee_csv, Error};
+    use super::{sqlite_decodemsgs_ee_csv, Error};
     use std::fs::File;
     use std::io::Write;
     pub use std::{
@@ -272,7 +407,7 @@ MMSI,Message_ID,Repeat_indicator,Time,Millisecond,Region,Country,Base_station,On
 
         let fpath = std::path::PathBuf::from("testdata/testingdata.csv");
 
-        let _ = decodemsgs_ee_csv(
+        let _ = sqlite_decodemsgs_ee_csv(
             &std::path::Path::new("testdata/test.db").to_path_buf(),
             &fpath,
             "TESTDATA",
