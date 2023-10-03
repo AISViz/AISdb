@@ -6,7 +6,7 @@ build-backend = "maturin"
 name = "aisdb"
 requires-python = ">=3.8"
 requires-dist = [ "maturin>=1.0", "numpy", "wheel",]
-dependencies = [ "flask", "packaging", "pillow", "requests", "selenium", "shapely", "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "python-dateutil", "orjson", "websockets",]
+dependencies = [ "MarkupSafe", "flask", "packaging", "pillow", "requests", "selenium", "shapely", "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "python-dateutil", "orjson", "websockets",]
 zip-safe = false
 version = "1.7.0"
 readme = "readme.rst"
@@ -36,4 +36,4 @@ compatability = "manylinux2014"
 
 [tool.pytest.ini_options]
 testpaths = [ "aisdb/tests",]
-addopts = "--color=yes --cov-report term --cov-report html:docs/dist_coverage --cov=aisdb --doctest-modules --envfile .env"
+addopts = "--color=yes --cov-report term --cov-report html:docs/dist_coverage --cov=aisdb --cov=examples --doctest-modules --envfile .env"

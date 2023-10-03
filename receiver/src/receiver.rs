@@ -25,6 +25,7 @@ use serde_json::to_string;
 use tungstenite::{accept, Message};
 
 const BUFSIZE: usize = 8096;
+const DEFAULT_UDP_LISTEN_ADDR: &str = "0.0.0.0:9921";
 
 // need to redefine these structs from nmea_parser to allow serde to deserialize them
 #[derive(Serialize, Deserialize)]
@@ -79,10 +80,6 @@ fn epoch_time() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs()
-}
-
-fn default_udp_listen_addr() -> String {
-    "0.0.0.0:9921".to_string()
 }
 
 #[derive(Clone, Debug)]
@@ -183,7 +180,11 @@ fn parse_filter_vesseldata(
             };
             Some((VesselPing::from(static_ping), insert_msg))
         }
-        _other => None,
+        _other => {
+            #[cfg(debug_assertions)]
+            eprintln!("WARNING: invalid message {:?}", _other);
+            None
+        }
     }
 }
 
@@ -203,6 +204,9 @@ fn split_parse_filter_msgs(
         }
         if let Some((ping, vdata)) = parse_filter_vesseldata(raw, parser) {
             msgs.push((ping, vdata));
+        } else {
+            #[cfg(debug_assertions)]
+            eprintln!("Not a static/dynamic message! {}", raw);
         }
     }
     msgs
@@ -258,12 +262,12 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
         "Decoding messages incoming on {}",
         args.udp_listen_addr
             .clone()
-            .unwrap_or(default_udp_listen_addr())
+            .unwrap_or(DEFAULT_UDP_LISTEN_ADDR.to_string())
     );
     let (_udp_listen_addr, listen_socket) = upstream_socket_interface(
         args.udp_listen_addr
             .clone()
-            .unwrap_or(default_udp_listen_addr()),
+            .unwrap_or(DEFAULT_UDP_LISTEN_ADDR.to_string()),
     )
     .unwrap();
 
@@ -487,7 +491,7 @@ pub fn start_receiver(args: ReceiverArgs) -> Vec<JoinHandle<()>> {
             tcpconn,
             args.udp_listen_addr
                 .clone()
-                .unwrap_or(default_udp_listen_addr()),
+                .unwrap_or(DEFAULT_UDP_LISTEN_ADDR.to_string()),
         ));
     }
 
@@ -495,7 +499,8 @@ pub fn start_receiver(args: ReceiverArgs) -> Vec<JoinHandle<()>> {
     if let Some(tcpaddr) = args.tcp_listen_addr {
         threads.push(reverse_proxy_tcp_udp(
             tcpaddr,
-            args.udp_listen_addr.unwrap_or(default_udp_listen_addr()),
+            args.udp_listen_addr
+                .unwrap_or(DEFAULT_UDP_LISTEN_ADDR.to_string()),
         ));
     }
 
@@ -534,30 +539,92 @@ pub fn main() {
     }
 }
 
-#[test]
-fn test_receiver() {
-    let args: ReceiverArgs = ReceiverArgs {
-        dynamic_msg_bufsize: None,
-        multicast_addr_parsed: None,
-        multicast_addr_rawdata: None,
-        postgres_connection_string: None,
-        sqlite_dbpath: Some(PathBuf::from("./test_receiver.db")),
-        static_msg_bufsize: None,
-        tcp_connect_addr: None,
-        tcp_listen_addr: None,
-        tcp_output_addr: None,
-        tee: None,
-        udp_listen_addr: Some(default_udp_listen_addr()),
-        udp_output_addr: None,
-    };
-    let threads = start_receiver(args);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::read;
+    use std::fs::read_to_string;
 
-    std::thread::sleep(std::time::Duration::from_millis(1000));
+    #[test]
+    fn test_receiver() {
+        //let test_out_tcp: Result<SocketAddr, AddrParseError> = "localhost:9922".parse();
+        let args: ReceiverArgs = ReceiverArgs {
+            dynamic_msg_bufsize: Some(8),
+            multicast_addr_parsed: None,
+            multicast_addr_rawdata: Some("localhost:9921".to_string()),
+            postgres_connection_string: None,
+            sqlite_dbpath: Some(PathBuf::from("./test_receiver.db")),
+            static_msg_bufsize: Some(1),
+            tcp_connect_addr: None,
+            tcp_listen_addr: None,
+            tcp_output_addr: None,
+            tee: Some(false),
+            udp_listen_addr: Some(DEFAULT_UDP_LISTEN_ADDR.to_string()),
+            //udp_output_addr: Some("localhost:9921".to_string()),
+            udp_output_addr: None,
+        };
+        let threads = start_receiver(args);
 
-    for thread in threads {
-        //thread.join().unwrap();
-        assert!(!thread.is_finished());
+        let testfile = PathBuf::from("../aisdb/tests/testdata/test_data_20211101.nm4");
+
+        // skip message header while reading: assume timestamps are incoming live
+        let testfile_bytes: Vec<u8> = read_to_string(&testfile)
+            .unwrap()
+            .lines()
+            .filter_map(|l| {
+                let mut splits = l.splitn(3, "\\");
+                splits.next()?;
+                splits.next()?;
+                Some(splits.next()?.as_bytes().to_vec())
+            })
+            .reduce(|mut a, mut b| {
+                a.append(&mut b);
+                a.push(b'\r');
+                a.push(b'\n');
+                a
+            })
+            .unwrap();
+        //.collect();
+        let test_downstream =
+            mproxy_server::upstream_socket_interface("localhost:9922".to_string()).unwrap();
+        let test_upstream =
+            mproxy_client::target_socket_interface(&DEFAULT_UDP_LISTEN_ADDR.to_string()).unwrap();
+
+        /*
+        let test_upstream_client = mproxy_client::client_socket_stream(
+        &testfile,
+        vec![DEFAULT_UDP_LISTEN_ADDR.to_string()],
+        false,
+        )
+        .unwrap();
+        */
+
+        let mut buf: Vec<u8> = Vec::new();
+
+        test_upstream
+            .1
+            .send_to(&testfile_bytes, test_upstream.0)
+            .unwrap();
+
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+
+        //let _bytes_read = test_downstream.1.recv_from(&mut buf).unwrap();
+        let _bytes_read = test_downstream.1.recv(&mut buf).unwrap();
+        eprintln!("TRACER2");
+
+        std::mem::drop(test_downstream);
+        //std::mem::drop(test_upstream_client);
+
+        for thread in threads {
+            //thread.join().unwrap();
+            assert!(!thread.is_finished());
+        }
+
+        std::fs::remove_file("./test_receiver.db").unwrap();
+
+        let original_input = read(testfile).unwrap();
+        assert_eq!(original_input, buf);
+
+        //panic!("{}", String::from_utf8_lossy(&buf));
     }
-
-    std::fs::remove_file("./test_receiver.db").unwrap();
 }

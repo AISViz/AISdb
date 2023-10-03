@@ -16,10 +16,11 @@ from aisdb import PostgresDBConn, DBQuery
 
 from flask import (
     Flask,
-    Markup,
+    #Markup,
     Response,
     request,
 )
+from markupsafe import Markup
 
 # Maximum bytes for client CSV files stored in memory before spilling to disk.
 # Set the directory for files exceeding this value with $TMPDIR

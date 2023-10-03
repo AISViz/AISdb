@@ -44,14 +44,33 @@ CMD ["build", "--release", "--strip", "--compatibility", "manylinux2014", "--int
 
 # copy wheel file from aisdb-manylinux to a fresh python container and install AISDB
 FROM python:slim AS aisdb-python
+ENV VIRTUAL_ENV="/env_aisdb"
 RUN apt-get update -y && apt-get upgrade -y
-RUN python -m pip install --upgrade pip packaging Pillow requests selenium tqdm numpy webdriver-manager pytest coverage pytest-cov pytest-dotenv psycopg[binary] orjson websockets
-RUN python -m pip install gunicorn
+RUN python -m venv $VIRTUAL_ENV
+RUN $VIRTUAL_ENV/bin/python -m pip install --upgrade \
+  Flask \
+  MarkupSafe \
+  Pillow \
+  coverage \
+  gunicorn \
+  numpy \
+  orjson \
+  packaging \
+  pip \
+  psycopg[binary] \
+  pytest \
+  pytest-cov \
+  pytest-dotenv \
+  requests \
+  selenium \
+  tqdm \
+  webdriver-manager \
+  websockets
 COPY aisdb/tests/testdata/ /aisdb_src/aisdb/tests/testdata/
 WORKDIR /aisdb
 COPY --from=aisdb-manylinux /aisdb_src/target/wheels/* wheels/
-RUN python -m pip install "`ls wheels/aisdb-*-cp311-cp311-manylinux_2_17_*.manylinux2014_*.whl`[test]"
-CMD ["python3", "-Iqu"]
+RUN $VIRTUAL_ENV/bin/python -m pip install "`ls wheels/aisdb-*-cp311-cp311-manylinux_2_17_*.manylinux2014_*.whl`[test]"
+CMD ["$VIRTUAL_ENV/bin/python3", "-Iqu"]
 
 
 # install extras required for tests and sphinx docs
