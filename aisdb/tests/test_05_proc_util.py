@@ -35,10 +35,9 @@ def test_write_csv_rows(tmpdir):
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
 
-    with DBConn() as dbconn:
+    with DBConn(dbpath) as dbconn:
         qry = DBQuery(
             dbconn=dbconn,
-            dbpath=dbpath,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
@@ -59,10 +58,9 @@ def test_write_csv_fromdict(tmpdir):
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
 
-    with DBConn() as dbconn:
+    with DBConn(dbpath) as dbconn:
         qry = DBQuery(
             dbconn=dbconn,
-            dbpath=dbpath,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
@@ -83,16 +81,14 @@ def test_write_csv_fromdict_marinetraffic(tmpdir):
 
     vinfo_db = VesselInfo(trafficDBpath).trafficDB
 
-    with DBConn() as dbconn, vinfo_db as trafficDB:
+    with DBConn(dbpath) as dbconn, vinfo_db as trafficDB:
         qry = DBQuery(
             dbconn=dbconn,
-            dbpath=dbpath,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
-        qry.check_marinetraffic(dbpath,
-                                trafficDBpath,
+        qry.check_marinetraffic(trafficDBpath=trafficDBpath,
                                 boundary={
                                     'xmin': -45,
                                     'xmax': -25,

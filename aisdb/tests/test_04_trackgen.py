@@ -18,10 +18,9 @@ def test_TrackGen(tmpdir):
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
 
-    with DBConn() as dbconn:
+    with DBConn(dbpath) as dbconn:
         qry = DBQuery(
             dbconn=dbconn,
-            dbpath=dbpath,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.valid_mmsi,
@@ -46,22 +45,18 @@ def test_min_speed_filter(tmpdir):
 
     target_xy = [44.51204273779117, -63.47468122107318][::-1]
 
-    with DBConn() as dbconn:
+    with DBConn(dbpath) as dbconn:
         qry = DBQuery(
             dbconn=dbconn,
-            dbpath=dbpath,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
         rowgen = qry.gen_qry(verbose=True)
-        tracks = vesseltrack_3D_dist(
-            mask_in_radius_2D(min_speed_filter(encode_greatcircledistance(
-                track_gen.TrackGen(rowgen, decimate=True),
-                distance_threshold=250000,
-            ),
-                                               minspeed=5),
-                              target_xy,
-                              distance_meters=100000), *target_xy, 0)
+        tracks = track_gen.TrackGen(rowgen, decimate=True)
+        tracks = encode_greatcircledistance(tracks, distance_threshold=250000)
+        tracks = min_speed_filter(tracks, minspeed=5)
+        tracks = mask_in_radius_2D(tracks, target_xy, distance_meters=100000)
+        tracks = vesseltrack_3D_dist(tracks, *target_xy, 0)
         for track in tracks:
             assert 'time' in track.keys()
