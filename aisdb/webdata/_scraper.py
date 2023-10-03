@@ -20,7 +20,7 @@ def _scraper():
 
     # configs
     opt = Options()
-    opt.headless = True if not os.environ.get('DEBUG') else False
+    #opt.headless = True if not os.environ.get('DEBUG') else False
     opt.set_preference('permissions.default.image', 2)
     opt.set_preference('extensions.contentblocker.enabled', True)
     opt.set_preference('media.autoplay.default', 2)
@@ -32,6 +32,8 @@ def _scraper():
     opt.set_preference('ui.context_menus.after_mouseup', False)
     opt.set_preference('privacy.sanitize.sanitizeOnShutdown', True)
     opt.set_preference('dom.disable_beforeunload', True)
+    if not os.environ.get('DEBUG') and not os.environ.get('HEADLESS') == '0':
+        opt.add_argument('-headless')
     """ chrome args
     opt.add_argument('--headless')
     opt.add_argument(f'user-data-dir={data_dir}')
@@ -49,8 +51,8 @@ def _scraper():
     """
 
     driver = webdriver.Firefox(
-            service=Service(executable_path=GeckoDriverManager().install()),
-            options=opt)
+        service=Service(executable_path=GeckoDriverManager().install()),
+        options=opt)
 
     if os.environ.get('DEBUG'):
         driver.maximize_window()

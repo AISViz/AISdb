@@ -47,19 +47,14 @@ def test_retrieve_marinetraffic_data(tmpdir):
 
     vinfoDB = VesselInfo(trafficDBpath).trafficDB
 
-    with DBConn() as dbconn, vinfoDB as trafficDB:
-        decode_msgs(filepaths=[datapath],
-                    dbconn=dbconn,
-                    dbpath=dbpath,
-                    source='TESTING')
+    with DBConn(dbpath) as dbconn, vinfoDB as trafficDB:
+        decode_msgs(filepaths=[datapath], dbconn=dbconn, source='TESTING')
 
         qry = DBQuery(dbconn=dbconn,
-                      dbpath=dbpath,
                       start=start,
                       end=end,
                       callback=sqlfcn_callbacks.in_timerange_validmmsi)
-        qry.check_marinetraffic(dbpath=dbpath,
-                                trafficDBpath=trafficDBpath,
+        qry.check_marinetraffic(trafficDBpath=trafficDBpath,
                                 boundary=domain.boundary,
                                 retry_404=False)
         rowgen = qry.gen_qry(verbose=True)

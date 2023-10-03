@@ -64,10 +64,9 @@ def test_graph_minimal(tmpdir):
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=1)
 
-    with DBConn() as aisdatabase:
+    with DBConn(testdbpath) as aisdatabase:
         qry = DBQuery(
             dbconn=aisdatabase,
-            dbpath=testdbpath,
             start=start,
             end=end,
             callback=sqlfcn_callbacks.in_bbox,

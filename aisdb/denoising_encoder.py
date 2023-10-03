@@ -54,8 +54,9 @@ def _append_highscore(track, *, highscoreidx, pathways, i, segments_idx):
         **{k: track[k]
            for k in track['static']},
         **{
-            k: np.append(pathways[highscoreidx][k],
-                         track[k][segments_idx[i]:segments_idx[i + 1]])
+            k:
+            np.append(pathways[highscoreidx][k],
+                      track[k][segments_idx[i]:segments_idx[i + 1]])
             for k in track['dynamic']
         },
         static=track['static'],
@@ -150,7 +151,7 @@ def encode_greatcircledistance(
     speed_threshold=50,
     minscore=1e-6,
 ):
-    ''' partitions tracks where delta speeds exceed speed_threshold or
+    ''' Partitions tracks where delta speeds exceed speed_threshold or
         delta_meters exceeds distance_threshold.
         concatenates track segments with the highest likelihood of being
         sequential, as encoded by the encode_score function
@@ -161,14 +162,20 @@ def encode_greatcircledistance(
             distance_threshold (int)
                 distance in meters that will be used as a
                 speed score numerator
-            time_threshold (datetime.timedelta)
+            speed_threshold (float)
+                maximum speed in knots that should be considered a continuous
+                trajectory
             minscore (float)
                 minimum score threshold at which to allow track
-                segments to be linked
+                segments to be linked. Value range: (0, 1).
+                A minscore closer to 0 will be less restrictive towards
+                trajectory grouping. A reasonable value for this is 1e-6.
+                This score is computed by the function
+                :func:`aisdb.denoising_encoder.encode_score`
 
         >>> import os
         >>> from datetime import datetime, timedelta
-        >>> from aisdb import DBConn, DBQuery, TrackGen
+        >>> from aisdb import SQLiteDBConn, DBQuery, TrackGen
         >>> from aisdb import decode_msgs, encode_greatcircledistance, sqlfcn_callbacks
 
         >>> # create example database file
@@ -176,14 +183,13 @@ def encode_greatcircledistance(
         >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
         ...              'aisdb/tests/testdata/test_data_20211101.nm4']
 
-        >>> with DBConn() as dbconn:
+        >>> with SQLiteDBConn(dbpath) as dbconn:
         ...     decode_msgs(filepaths=filepaths, dbconn=dbconn,
-        ...     dbpath=dbpath, source='TESTING')
+        ...                 source='TESTING', verbose=False)
 
-        >>> with DBConn() as dbconn:
+        >>> with SQLiteDBConn(dbpath) as dbconn:
         ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
         ...             dbconn=dbconn,
-        ...             dbpath=dbpath,
         ...             start=datetime(2021, 7, 1),
         ...             end=datetime(2021, 7, 7))
         ...     tracks = TrackGen(q.gen_qry(), decimate=True)
@@ -198,8 +204,10 @@ def encode_greatcircledistance(
         ...         break
         204242000
         [-8.931666] [41.45]
-        >>> os.remove(dbpath)
 
+    '''
+    '''
+        >>> os.remove(dbpath)
     '''
     for track in tracks:
         assert isinstance(track, dict), f'got {type(track)} {track}'
