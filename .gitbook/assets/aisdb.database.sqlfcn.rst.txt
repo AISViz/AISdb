@@ -1,7 +1,0 @@
-aisdb.database.sqlfcn module
-============================
-
-.. automodule:: aisdb.database.sqlfcn
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -1,7 +1,0 @@
-aisdb.webdata.bathymetry module
-===============================
-
-.. automodule:: aisdb.webdata.bathymetry
-   :members:
-   :undoc-members:
-   :show-inheritance:

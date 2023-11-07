@@ -1,7 +1,0 @@
-aisdb.database.create\_tables module
-====================================
-
-.. automodule:: aisdb.database.create_tables
-   :members:
-   :undoc-members:
-   :show-inheritance:
