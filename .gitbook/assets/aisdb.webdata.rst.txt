@@ -1,0 +1,18 @@
+aisdb.webdata package
+=====================
+
+.. automodule:: aisdb.webdata
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   aisdb.webdata.bathymetry
+   aisdb.webdata.load_raster
+   aisdb.webdata.marinetraffic
+   aisdb.webdata.shore_dist
