@@ -1,0 +1,52 @@
+# Index
+
+* [aggregate\_static\_msgs() (aisdb.database.dbconn.PostgresDBConn method)](about:blank/api/aisdb.database.dbconn.html#aisdb.database.dbconn.PostgresDBConn.aggregate\_static\_msgs)
+  * [(aisdb.database.dbconn.SQLiteDBConn method)](about:blank/api/aisdb.database.dbconn.html#aisdb.database.dbconn.SQLiteDBConn.aggregate\_static\_msgs)
+* aisdb
+  * [module](about:blank/api/aisdb.html#module-aisdb)
+* aisdb.aisdb
+  * [module](about:blank/api/aisdb.aisdb.html#module-aisdb.aisdb)
+* aisdb.database
+  * [module](about:blank/api/aisdb.database.html#module-aisdb.database)
+* aisdb.database.create\_tables
+  * [module](about:blank/api/aisdb.database.create\_tables.html#module-aisdb.database.create\_tables)
+* aisdb.database.dbconn
+  * [module](about:blank/api/aisdb.database.dbconn.html#module-aisdb.database.dbconn)
+* aisdb.database.dbqry
+  * [module](about:blank/api/aisdb.database.dbqry.html#module-aisdb.database.dbqry)
+* aisdb.database.decoder
+  * [module](about:blank/api/aisdb.database.decoder.html#module-aisdb.database.decoder)
+* aisdb.database.sql\_query\_strings
+  * [module](about:blank/api/aisdb.database.sql\_query\_strings.html#module-aisdb.database.sql\_query\_strings)
+* aisdb.database.sqlfcn
+  * [module](about:blank/api/aisdb.database.sqlfcn.html#module-aisdb.database.sqlfcn)
+* aisdb.database.sqlfcn\_callbacks
+  * [module](about:blank/api/aisdb.database.sqlfcn\_callbacks.html#module-aisdb.database.sqlfcn\_callbacks)
+* aisdb.denoising\_encoder
+  * [module](about:blank/api/aisdb.denoising\_encoder.html#module-aisdb.denoising\_encoder)
+* aisdb.gis
+  * [module](about:blank/api/aisdb.gis.html#module-aisdb.gis)
+* aisdb.interp
+  * [module](about:blank/api/aisdb.interp.html#module-aisdb.interp)
+* aisdb.network\_graph
+  * [module](about:blank/api/aisdb.network\_graph.html#module-aisdb.network\_graph)
+* aisdb.proc\_util
+  * [module](about:blank/api/aisdb.proc\_util.html#module-aisdb.proc\_util)
+* aisdb.receiver
+  * [module](about:blank/api/aisdb.receiver.html#module-aisdb.receiver)
+* aisdb.track\_gen
+  * [module](about:blank/api/aisdb.track\_gen.html#module-aisdb.track\_gen)
+* aisdb.web\_interface
+  * [module](about:blank/api/aisdb.web\_interface.html#module-aisdb.web\_interface)
+* aisdb.webdata
+  * [module](about:blank/api/aisdb.webdata.html#module-aisdb.webdata)
+* aisdb.webdata.bathymetry
+  * [module](about:blank/api/aisdb.webdata.bathymetry.html#module-aisdb.webdata.bathymetry)
+* aisdb.webdata.load\_raster
+  * [module](about:blank/api/aisdb.webdata.load\_raster.html#module-aisdb.webdata.load\_raster)
+* aisdb.webdata.marinetraffic
+  * [module](about:blank/api/aisdb.webdata.marinetraffic.html#module-aisdb.webdata.marinetraffic)
+* aisdb.webdata.shore\_dist
+  * [module](about:blank/api/aisdb.webdata.shore\_dist.html#module-aisdb.webdata.shore\_dist)
+* aisdb.wsa
+  * [module](about:blank/api/aisdb.wsa.html#module-aisdb.wsa)

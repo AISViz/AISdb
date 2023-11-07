@@ -1,0 +1,21 @@
+aisdb.database package
+======================
+
+.. automodule:: aisdb.database
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   aisdb.database.create_tables
+   aisdb.database.dbconn
+   aisdb.database.dbqry
+   aisdb.database.decoder
+   aisdb.database.sql_query_strings
+   aisdb.database.sqlfcn
+   aisdb.database.sqlfcn_callbacks

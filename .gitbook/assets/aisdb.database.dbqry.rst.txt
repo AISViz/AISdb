@@ -1,0 +1,7 @@
+aisdb.database.dbqry module
+===========================
+
+.. automodule:: aisdb.database.dbqry
+   :members:
+   :undoc-members:
+   :show-inheritance:
