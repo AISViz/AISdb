@@ -1,7 +1,0 @@
-aisdb.database.sqlfcn\_callbacks module
-=======================================
-
-.. automodule:: aisdb.database.sqlfcn_callbacks
-   :members:
-   :undoc-members:
-   :show-inheritance:

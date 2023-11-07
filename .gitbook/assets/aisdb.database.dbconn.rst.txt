@@ -1,7 +1,0 @@
-aisdb.database.dbconn module
-============================
-
-.. automodule:: aisdb.database.dbconn
-   :members:
-   :undoc-members:
-   :show-inheritance:

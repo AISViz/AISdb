@@ -1,7 +1,0 @@
-aisdb.database.sql\_query\_strings module
-=========================================
-
-.. automodule:: aisdb.database.sql_query_strings
-   :members:
-   :undoc-members:
-   :show-inheritance:
