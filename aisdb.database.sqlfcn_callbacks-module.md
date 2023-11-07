@@ -1,5 +1,0 @@
-# aisdb.database.sqlfcn\_callbacks module
-
-redefinitions of functions in [`aisdb.database.sql_query_strings`](about:blank/aisdb.database.sql\_query\_strings.html#module-aisdb.database.sql\_query\_strings), combined into lambdas for convenience
-
-aisdb.database.sqlfcn\_callbacks.dt2monthstr(_start_, _end_, _\*\*\__)aisdb.database.sqlfcn\_callbacks.in\_bbox\_time(_\*\*kwargs_)aisdb.database.sqlfcn\_callbacks.in\_bbox\_time\_validmmsi(_\*\*kwargs_)aisdb.database.sqlfcn\_callbacks.in\_time\_bbox(_\*\*kwargs_)aisdb.database.sqlfcn\_callbacks.in\_time\_bbox\_hasmmsi(_\*\*kwargs_)aisdb.database.sqlfcn\_callbacks.in\_time\_bbox\_inmmsi(_\*\*kwargs_)aisdb.database.sqlfcn\_callbacks.in\_time\_bbox\_validmmsi(_\*\*kwargs_)aisdb.database.sqlfcn\_callbacks.in\_time\_mmsi(_\*\*kwargs_)aisdb.database.sqlfcn\_callbacks.in\_timerange\_hasmmsi(_\*\*kwargs_)aisdb.database.sqlfcn\_callbacks.in\_timerange\_inmmsi(_\*\*kwargs_)aisdb.database.sqlfcn\_callbacks.in\_timerange\_validmmsi(_\*\*kwargs_)aisdb.database.sqlfcn\_callbacks.in\_validmmsi\_bbox(_\*\*kwargs_)
