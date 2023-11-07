@@ -1,0 +1,34 @@
+aisdb package
+=============
+
+.. automodule:: aisdb
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   aisdb.database
+   aisdb.webdata
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   aisdb.aisdb
+   aisdb.denoising_encoder
+   aisdb.gis
+   aisdb.interp
+   aisdb.network_graph
+   aisdb.proc_util
+   aisdb.receiver
+   aisdb.rest_api
+   aisdb.track_gen
+   aisdb.web_interface
+   aisdb.wsa
