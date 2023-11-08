@@ -180,10 +180,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // compress wasm
-    let wasm_opt_file = "./aisdb_web/map/pkg/client_bg.wasm";
-    OptimizationOptions::new_optimize_for_size()
-        .run(wasm_opt_file, wasm_opt_file)
-        .expect("running wasm-opt");
-
-    Ok(())
+    // let wasm_opt_file = "./aisdb_web/map/pkg/client_bg.wasm";
+    // OptimizationOptions::new_optimize_for_size()
+    //     .run(wasm_opt_file, wasm_opt_file)
+    //     .expect("running wasm-opt");
+    //
+    // Ok(())
 }
