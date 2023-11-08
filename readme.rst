@@ -1,6 +1,5 @@
 Readme
 ======
-[![Package Installation](https://github.com/AISViz/aisdb-client/actions/workflows/test-installation.yml/badge.svg)](https://github.com/AISViz/aisdb-client/actions/workflows/test-installation.yml)
 
 .. image:: https://git-dev.cs.dal.ca/meridian/aisdb/badges/master/pipeline.svg
 
