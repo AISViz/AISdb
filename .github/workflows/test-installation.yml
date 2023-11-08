@@ -1,0 +1,44 @@
+name: Test Package Installation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Install Rust Toolchain
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Create and Activate Python Virtual Environment
+      run: |
+        python -m venv AISdb
+        source ./AISdb/bin/activate
+
+    - name: Install Maturin
+      run: python -m pip install maturin
+
+    - name: Build and Install aisdb
+      run: |
+        source ./AISdb/bin/activate
+        maturin develop --release --extras=test,docs
+
+    - name: Verify Installation
+      run: |
+        source ./AISdb/bin/activate
+        python -c "import aisdb; assert aisdb.__version__ >= '1.7.0', f'Unexpected aisdb version: {aisdb.__version__}'"
