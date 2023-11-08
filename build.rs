@@ -185,5 +185,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //     .run(wasm_opt_file, wasm_opt_file)
     //     .expect("running wasm-opt");
     //
-    // Ok(())
+    Ok(())
 }
