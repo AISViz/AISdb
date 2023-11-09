@@ -9,7 +9,7 @@ requires-dist = [ "maturin>=1.0", "numpy", "wheel",]
 dependencies = [ "MarkupSafe", "flask", "packaging", "pillow", "requests", "selenium", "shapely", "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "python-dateutil", "orjson", "websockets",]
 zip-safe = false
 version = "1.7.0"
-readme = "./readme.rst"
+readme = "readme.rst"
 description = "AIS Database and Processing Utils"
 classifiers = [ "Intended Audience :: Developers", "Intended Audience :: Science/Research", "License :: OSI Approved :: MIT License", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Rust", "Programming Language :: SQL", "Programming Language :: JavaScript", "Topic :: Communications :: Ham Radio", "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends", "Topic :: Scientific/Engineering :: GIS", "Topic :: Scientific/Engineering :: Information Analysis", "Topic :: Utilities",]
 
