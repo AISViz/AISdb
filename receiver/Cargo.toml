@@ -3,11 +3,11 @@ name = "aisdb-receiver"
 version = "0.0.1"
 edition = "2021"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
-readme = "../../readme.rst"
+readme = "../readme.rst"
 description = "AISDB Receiver"
 homepage = "https://aisdb.meridian.cs.dal.ca/"
 documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
-license-file = "../../license.txt"
+license-file = "../license.txt"
 
 [lib]
 
