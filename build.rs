@@ -7,7 +7,7 @@ use std::process::Command;
 
 #[cfg(not(debug_assertions))]
 use reqwest::blocking::get;
-use wasm_opt::OptimizationOptions;
+// use wasm_opt::OptimizationOptions;
 
 #[cfg(not(debug_assertions))]
 fn download_gitlab_artifacts(branch: &str) -> Result<PathBuf, String> {
