@@ -3,12 +3,12 @@ name = "client"
 version = "1.7.0"
 edition = "2021"
 authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
-readme = "../../readme.rst"
+readme = "../readme.rst"
 description = "AIS Database and Processing Utils - Web Client WASM functions"
 homepage = "https://aisdb.meridian.cs.dal.ca/"
 documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
 repository = "https://git-dev.cs.dal.ca/meridian/aisdb"
-license-file = "../../license.txt"
+license-file = "../license.txt"
 
 [lib]
 crate-type = [ "cdylib",]
