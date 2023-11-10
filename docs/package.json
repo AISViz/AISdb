@@ -1,8 +1,0 @@
-{"name": "AISDB-Doc", 
-  "version": "1.0.0", 
-  "description": "AISDB Documentation", 
-  "main": "docserver.js", 
-  "type": "module", 
-  "author": "MERIDIAN / Matt Smith", 
-  "dependencies": {"express": ">=4.18.1"}
-}
