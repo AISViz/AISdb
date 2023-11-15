@@ -2,6 +2,7 @@ pub use std::{
     fs::{create_dir_all, read_dir, File},
     io::{BufRead, BufReader, Error, Write},
     time::{Duration, Instant},
+    path::{Path},
 };
 
 use chrono::{NaiveDateTime, TimeZone, Utc};
@@ -166,12 +167,15 @@ pub fn sqlite_decodemsgs_ee_csv(
     }
 
     let elapsed = start.elapsed();
-    let fname = filename
-        .to_str()
-        .unwrap()
-        .rsplit_once(std::path::MAIN_SEPARATOR)
-        .unwrap()
-        .1;
+    let f3 = filename.to_str().unwrap();
+    let f4 = Path::new(f3);
+    let fname = f4.file_name().unwrap().to_str().unwrap();
+//     let fname = filename
+//         .to_str()
+//         .unwrap()
+//         .rsplit_once(std::path::MAIN_SEPARATOR)
+//         .unwrap()
+//         .1;
     let fname1 = format!("{:<1$}", fname, 64);
     let elapsed1 = format!(
         "elapsed: {:>1$}s",
@@ -302,12 +306,15 @@ pub fn postgres_decodemsgs_ee_csv(
     }
 
     let elapsed = start.elapsed();
-    let fname = filename
-        .to_str()
-        .unwrap()
-        .rsplit_once(std::path::MAIN_SEPARATOR)
-        .unwrap()
-        .1;
+    let f3 = filename.to_str().unwrap();
+    let f4 = Path::new(f3);
+    let fname = f4.file_name().unwrap().to_str().unwrap();
+//     let fname = filename
+//         .to_str()
+//         .unwrap()
+//         .rsplit_once(std::path::MAIN_SEPARATOR)
+//         .unwrap()
+//         .1;
     let fname1 = format!("{:<1$}", fname, 64);
     let elapsed1 = format!(
         "elapsed: {:>1$}s",
