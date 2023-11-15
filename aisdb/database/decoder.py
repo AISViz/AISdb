@@ -254,7 +254,7 @@ def decode_msgs(filepaths,
         unzipped = []
 
     raw_files = not_zipped + unzipped
-    raw_files
+    # raw_files
 
     if not raw_files:
         print('All files returned an existing checksum.',
