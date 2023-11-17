@@ -7,7 +7,7 @@ use std::process::Command;
 
 #[cfg(not(debug_assertions))]
 use reqwest::blocking::get;
-// use wasm_opt::OptimizationOptions;
+use wasm_opt::OptimizationOptions;
 
 #[cfg(not(debug_assertions))]
 fn download_gitlab_artifacts(branch: &str) -> Result<PathBuf, String> {
@@ -45,9 +45,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // only do this for release builds
     #[cfg(not(debug_assertions))]
     // download web assets from gitlab CD artifacts
-    // if GITLAB_CI is set, it is expected that artifacts will be passed from previous job
-    // if OFFLINE_BUILD is set, see below
-    if std::env::var("GITLAB_CI").is_err() && std::env::var("OFFLINE_BUILD").is_err() {
+    // if OFFLINE_BUILD is not set, it is expected that artifacts will be passed from previous job
+    if std::env::var("OFFLINE_BUILD").is_err() {
         //let branch = "master";
         let mut branch = String::from_utf8(
             Command::new("git")
@@ -83,10 +82,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // remove zipfile
         remove_file("artifacts.zip").expect("deleting zip");
-    }
 
-    if std::env::var("GITLAB_CI").is_ok() {
-        assert!(PathBuf::from("./aisdb_web/map/pkg").exists())
+        assert!(PathBuf::from("./aisdb_web/map/pkg").exists());
     }
 
     // web assets may also be built locally if OFFLINE_BUILD is set
@@ -180,10 +177,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // compress wasm
-    // let wasm_opt_file = "./aisdb_web/map/pkg/client_bg.wasm";
-    // OptimizationOptions::new_optimize_for_size()
-    //     .run(wasm_opt_file, wasm_opt_file)
-    //     .expect("running wasm-opt");
-    //
+    let wasm_opt_file = "./aisdb_web/map/pkg/client_bg.wasm";
+    OptimizationOptions::new_optimize_for_size()
+        .run(wasm_opt_file, wasm_opt_file)
+        .expect("running wasm-opt");
+
     Ok(())
 }
