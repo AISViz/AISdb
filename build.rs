@@ -82,8 +82,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // remove zipfile
         remove_file("artifacts.zip").expect("deleting zip");
-
-        assert!(PathBuf::from("./aisdb_web/map/pkg").exists());
     }
 
     // web assets may also be built locally if OFFLINE_BUILD is set
@@ -175,6 +173,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("{}", String::from_utf8_lossy(&vite_build_2.stderr[..]));
         assert!(vite_build_2.status.code().unwrap() == 0);
     }
+
+    assert!(PathBuf::from("./aisdb_web/map/pkg").exists());
 
     // compress wasm
     let wasm_opt_file = "./aisdb_web/map/pkg/client_bg.wasm";
