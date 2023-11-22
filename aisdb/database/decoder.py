@@ -51,7 +51,7 @@ class FileChecksums():
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS
                 hashmap(
-                    hash INTEGER PRIMARY KEY,
+                    hash TEXT PRIMARY KEY,
                     bytes BLOB
                 )
                 ''')

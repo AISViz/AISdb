@@ -3,6 +3,7 @@ pub use std::{
     fs::{create_dir_all, metadata, read_dir, File},
     io::{BufRead, BufReader, Error, Write},
     time::{Duration, Instant},
+    path::{Path},
 };
 
 use nmea_parser::{
@@ -193,12 +194,15 @@ fn print_status_info(
     count: usize,
     verbose: bool,
 ) {
-    let fname = filename
-        .to_str()
-        .unwrap()
-        .rsplit_once(std::path::MAIN_SEPARATOR)
-        .unwrap()
-        .1;
+    let f3 = filename.to_str().unwrap();
+    let f4 = Path::new(f3);
+    let fname = f4.file_name().unwrap().to_str().unwrap();
+//     let fname = filename
+//         .to_str()
+//         .unwrap()
+//         .rsplit_once(std::path::MAIN_SEPARATOR)
+//         .unwrap()
+//         .1;
     let fname1 = format!("{:<1$}", fname, 64);
     let elapsed1 = format!(
         "elapsed: {:>1$}s",
