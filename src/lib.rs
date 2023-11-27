@@ -185,6 +185,7 @@ pub fn decoder(
                             verbose,
                         )
                         .expect("decoding NM4");
+                        update_done_files(&mut completed, &mut errored, Ok(f.clone() ) );
                     }
                     if !psql_conn_string.is_empty() {
                         let sender = sender.clone();
@@ -215,6 +216,7 @@ pub fn decoder(
                     if dbpath != PathBuf::from("") {
                         sqlite_decodemsgs_ee_csv(d.to_path_buf(), f.clone(), &source, verbose)
                             .expect("decoding CSV");
+                        update_done_files(&mut completed, &mut errored, Ok(f.clone() ) );
                     }
                     if !psql_conn_string.is_empty() {
                         let sender = sender.clone();
