@@ -54,8 +54,8 @@ jobs:
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.0', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install pytest pytest-dotenv pytest-cov
-          pytest ./aisdb/tests/test_02_sqlfcn.py ./aisdb/tests/test_03_gis.py ./aisdb/tests/test_04_trackgen.py ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_06_interp.py
-          pytest ./aisdb/tests/test_01_createtables.py
+          pytest ./aisdb/tests/test_01_createtables.py ./aisdb/tests/test_02_sqlfcn.py ./aisdb/tests/test_03_gis.py ./aisdb/tests/test_04_trackgen.py ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_06_interp.py
+          pytest ./aisdb/tests/test_05_proc_util.py
 
   linux:
     runs-on:  ubuntu-latest
