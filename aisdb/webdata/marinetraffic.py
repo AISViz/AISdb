@@ -125,10 +125,8 @@ def _insertvesselrow(elem, mmsi, trafficDB):  # pragma: no cover
         return
     insertrow = _getrow(vessel)
 
-    print("\n ==>", insertrow)
-
     with trafficDB as conn:
-        if isinstance(conn, SQLiteDBConn):
+        if isinstance(conn, sqlite3.Connection):
             conn.execute(_insert_sqlite_sql, insertrow).fetchall()
         else:
             conn.execute(_insert_sql, insertrow).fetchall()
