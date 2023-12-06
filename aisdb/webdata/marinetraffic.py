@@ -27,6 +27,10 @@ _insert_sqlfile = os.path.join(sqlpath, 'insert_webdata_marinetraffic.sql')
 with open(_insert_sqlfile, 'r') as f:
     _insert_sql = f.read()
 
+_insert_sqlite_sqlfile = os.path.join(sqlpath, 'insert_webdata_marinetraffic_sqlite.sql')
+with open(_insert_sqlite_sqlfile, 'r') as f:
+    _insert_sqlite_sql = f.read()
+
 
 def _nullinfo(track):
     return {
@@ -121,10 +125,13 @@ def _insertvesselrow(elem, mmsi, trafficDB):  # pragma: no cover
         return
     insertrow = _getrow(vessel)
 
-    print(insertrow)
+    print("\n ==>", insertrow)
 
     with trafficDB as conn:
-        conn.execute(_insert_sql, insertrow).fetchall()
+        if isinstance(conn, SQLiteDBConn):
+            conn.execute(_insert_sqlite_sql, insertrow).fetchall()
+        else:
+            conn.execute(_insert_sql, insertrow).fetchall()
 
 
 def _vessel_info_dict(dbconn) -> dict:
