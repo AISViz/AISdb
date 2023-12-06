@@ -70,7 +70,7 @@ class FileChecksums():
 
     def insert_checksum(self, checksum):
         if isinstance(self.dbconn, SQLiteDBConn):
-            self.dbconn.execute('INSERT INTO hashmap VALUES (?,?)',
+            self.dbconn.execute('INSERT OR IGNORE INTO hashmap VALUES (?,?)',
                                 [checksum, pickle.dumps(None)])
         elif isinstance(self.dbconn, PostgresDBConn):
             self.dbconn.execute(
