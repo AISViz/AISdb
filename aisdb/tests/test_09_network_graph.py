@@ -104,7 +104,7 @@ def test_graph_minimal(tmpdir):
             portdist_raster=portdist_raster,
             shoredist_raster=shoredist_raster,
         )
-
+    aisdatabase.close()
     if os.path.isfile(outputfile):
         os.remove(outputfile)
     else:
