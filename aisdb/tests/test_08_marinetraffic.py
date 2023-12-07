@@ -24,13 +24,6 @@ if not os.path.isdir(testdir):
 trafficDBpath = os.path.join(testdir, 'marinetraffic_test.db')
 
 
-def test_init_scraper():
-    from aisdb.webdata._scraper import _scraper
-    _driver = _scraper()
-    _driver.close()
-    _driver.quit()
-
-
 def test_retrieve_marinetraffic_data(tmpdir):
     #domain = random_polygons_domain(count=10)
     coords = sample_gulfstlawrence_bbox()
@@ -44,11 +37,15 @@ def test_retrieve_marinetraffic_data(tmpdir):
     datapath = os.path.join(os.path.dirname(__file__), 'testdata',
                             'test_data_20211101.nm4')
     dbpath = os.path.join(tmpdir, 'test_retrieve_marinetraffic_data.db')
-
+    print("dbpath: {0}".format(dbpath))
+    print("datapath: {0}".format(datapath))
+    print("trafficDBpath: {0}".format(trafficDBpath))
     vinfoDB = VesselInfo(trafficDBpath).trafficDB
 
+    with DBConn(dbpath) as dbconn:
+        decode_msgs(filepaths=[datapath], dbconn=dbconn, source='TESTING', verbose=True)
+
     with DBConn(dbpath) as dbconn, vinfoDB as trafficDB:
-        decode_msgs(filepaths=[datapath], dbconn=dbconn, source='TESTING')
 
         qry = DBQuery(dbconn=dbconn,
                       start=start,
@@ -59,7 +56,9 @@ def test_retrieve_marinetraffic_data(tmpdir):
                                 retry_404=False)
         rowgen = qry.gen_qry(verbose=True)
         trackgen = track_gen.TrackGen(rowgen, decimate=True)
-        tracks = [next(trackgen), next(trackgen)]
+        tracks = []
+        tracks.append(next(trackgen))
+        tracks.append(next(trackgen))
 
         try:
 
@@ -71,7 +70,16 @@ def test_retrieve_marinetraffic_data(tmpdir):
             raise err
 
 
+
+def test_init_scraper():
+    from aisdb.webdata._scraper import _scraper
+    _driver = _scraper()
+    _driver.close()
+    _driver.quit()
+
+
 def test_marinetraffic_metadict():
-    trafficDB = VesselInfo(trafficDBpath).trafficDB
+    ves_info = VesselInfo(trafficDBpath)
+    trafficDB = ves_info.trafficDB
     meta = _vessel_info_dict(trafficDB)
     assert meta

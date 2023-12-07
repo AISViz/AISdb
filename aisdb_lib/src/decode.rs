@@ -76,19 +76,19 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
                 {
                     return Some((payload.to_string(), i.try_into().unwrap()));
                 } else {
-                    #[cfg(debug_assertions)]
-                    println!(
-                        "skipped- tag:{:?}\tmeta:{:?}\tpayload:{:?}",
-                        tag, meta, payload
-                    );
+//                     #[cfg(debug_assertions)]
+//                     println!(
+//                         "skipped- tag:{:?}\tmeta:{:?}\tpayload:{:?}",
+//                         tag, meta, payload
+//                     );
                     return None;
                 }
             }
         }
     }
     if meta.contains(' ') {
-        #[cfg(debug_assertions)]
-        println!("{:?}", meta);
+//         #[cfg(debug_assertions)]
+//         println!("{:?}", meta);
         let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap_or(0);
         if ii == 0 {
             return None;
@@ -101,16 +101,16 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
         if 946731600 < ii && ii <= now {
             Some((payload.to_string(), ii.try_into().unwrap()))
         } else {
-            #[cfg(debug_assertions)]
-            println!(
-                "skipped- ii:{:?}\tmeta:{:?}\tpayload:{:?}",
-                ii, meta, payload
-            );
+//             #[cfg(debug_assertions)]
+//             println!(
+//                 "skipped- ii:{:?}\tmeta:{:?}\tpayload:{:?}",
+//                 ii, meta, payload
+//             );
             None
         }
     } else {
-        #[cfg(debug_assertions)]
-        println!("skipped- meta:{:?}\tpayload:{:?}", meta, payload);
+//         #[cfg(debug_assertions)]
+//         println!("skipped- meta:{:?}\tpayload:{:?}", meta, payload);
         None
     }
 }
@@ -124,11 +124,11 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
     if cols.len() < 6 {
         return Some((msg.to_string(), *epoch));
     }
-    #[cfg(debug_assertions)]
-    println!(
-        "{:?} {:?} {:?} {:?} {:?} {:?}",
-        cols[0], cols[1], cols[2], cols[3], cols[4], cols[5]
-    );
+//     #[cfg(debug_assertions)]
+//     println!(
+//         "{:?} {:?} {:?} {:?} {:?} {:?}",
+//         cols[0], cols[1], cols[2], cols[3], cols[4], cols[5]
+//     );
     let count = str::parse::<u8>(cols[1]).unwrap_or(1);
     let fragment_no = str::parse::<u8>(cols[2]).unwrap_or(1);
     match (cols[0], count, fragment_no, cols[3], cols[4], cols[5]) {
@@ -151,8 +151,8 @@ pub fn filter_vesseldata(
     epoch: &i32,
     parser: &mut NmeaParser,
 ) -> Option<(ParsedMessage, i32, bool)> {
-    #[cfg(debug_assertions)]
-    println!("{:?} {:?}", epoch, sentence);
+//     #[cfg(debug_assertions)]
+//     println!("{:?} {:?}", epoch, sentence);
 
     match parser.parse_sentence(sentence).ok()? {
         ParsedMessage::VesselDynamicData(vdd) => {
