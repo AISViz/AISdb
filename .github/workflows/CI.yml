@@ -24,11 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres
+        image: "postgres:15.3"
         env:
           POSTGRES_PASSWORD: bigdata1
         options: >-
-          --health-cmd pg-isready
+          --health-cmd pg-isready -U loopkey
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
