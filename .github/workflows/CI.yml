@@ -22,14 +22,10 @@ permissions:
 jobs:
   build-and-test-windows:
     runs-on: windows-latest
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: bigdata1
-        ports:
-          - 5432:5432
     steps:
+      - uses: ikalnytskyi/action-setup-postgres@v4
+        with:
+          password: bigdata1
       - name: Checkout Repository
         uses: actions/checkout@v3
 
