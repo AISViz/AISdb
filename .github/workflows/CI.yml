@@ -28,12 +28,12 @@ jobs:
         env:
           POSTGRES_PASSWORD: bigdata1
         options: >-
-          --health-cm pg-isready
+          --health-cmd pg-isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5431:5431
+          - 5432:5432
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
