@@ -15,7 +15,6 @@ from aisdb import (
 from aisdb.database.create_tables import sql_createtable_dynamic
 from aisdb.database.decoder import decode_msgs
 from aisdb.tests.create_testing_data import (
-    postgres_test_conn,
     sample_database_file,
     sample_gulfstlawrence_bbox,
 )
