@@ -13,7 +13,6 @@ from aisdb import (
 )
 from aisdb.database.decoder import decode_msgs
 from aisdb.tests.create_testing_data import (
-    postgres_test_conn,
     sample_database_file,
     sample_gulfstlawrence_bbox,
 )
@@ -21,6 +20,10 @@ from aisdb.track_gen import TrackGen
 #import dotenv
 #dotenv.load_dotenv()
 
+postgres_test_conn = dict(hostaddr='127.0.0.1',
+                          user='postgres',
+                          port=5432,
+                          password='bigdata1')
 
 def test_postgres():
 
