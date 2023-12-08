@@ -7,7 +7,7 @@ from aisdb.database.create_tables import (
     sql_createtable_dynamic,
     sql_createtable_static,
 )
-from aisdb.tests.create_testing_data import postgres_test_conn
+
 
 
 def test_create_static_table(tmpdir):
