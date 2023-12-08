@@ -275,6 +275,7 @@ def _aggregate_output(outputfile, tmp_dir, filters=[lambda row: False]):
                 output.write('\n'.join(results) + '\n')
 
             os.remove(picklefile)
+        output.close()
 
 
 def graph(

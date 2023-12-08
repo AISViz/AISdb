@@ -28,13 +28,17 @@ track1K = [
         dynamic=set(['time']),
     )
 ]
-
-
 def test_fetch_bathygrid():
     print(f'ENV: {os.getenv("AISDBDATADIR")=}')
     print(f'checking bathymetry rasters: {data_dir=}')
     bathy = Gebco(data_dir=data_dir)
     assert bathy
+
+def test_bathymetry_1K_pillow():
+    with Gebco(data_dir=data_dir) as bathy:
+        for updated in bathy.merge_tracks(track1K):
+            assert 'depth_metres' in updated.keys()
+
 
 
 def test_bathymetry_single_pillow():
@@ -45,7 +49,3 @@ def test_bathymetry_single_pillow():
         print(test[0]['depth_metres'])
 
 
-def test_bathymetry_1K_pillow():
-    with Gebco(data_dir=data_dir) as bathy:
-        for updated in bathy.merge_tracks(track1K):
-            assert 'depth_metres' in updated.keys()
