@@ -4,7 +4,7 @@ from functools import reduce
 from datetime import timedelta
 import sqlite3
 import types
-
+import warnings
 import numpy as np
 
 from aisdb.aisdb import simplify_linestring_idx
@@ -132,7 +132,9 @@ def TrackGen(rowgen: iter, decimate: False) -> dict:
     assert isinstance(rowgen, types.GeneratorType)
     for rows in rowgen:
         if (rows is None or len(rows) == 0):
-            raise EmptyRowsException('rows cannot be empty')
+            warnings.warn('No results for query!')
+            return dict()
+            # raise EmptyRowsException('rows cannot be empty')
         assert isinstance(
             rows[0], (sqlite3.Row, dict)), f'unknown row type: {type(rows[0])}'
         if firstrow:
