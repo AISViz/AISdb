@@ -88,7 +88,7 @@ def test_write_csv_fromdict_marinetraffic(tmpdir):
             end=end,
             callback=sqlfcn_callbacks.in_timerange_validmmsi,
         )
-        qry.check_marinetraffic(trafficDBpath=trafficDBpath,
+        qry.check_marinetraffic (trafficDBpath=trafficDBpath,
                                 boundary={
                                     'xmin': -45,
                                     'xmax': -25,
