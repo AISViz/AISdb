@@ -58,6 +58,25 @@ class ShoreDist(RasterFile):
         super().__init__(imgpath)
 
     def get_distance(self, tracks):
+        '''
+
+        args:
+
+        .. example:
+
+        >>> y1, x1 = 48.271185186388735, -61.10595523571155
+        >>>  # creating a sample track
+        >>> tracks_short = [ dict(
+        ...    lon=np.array([x1]), lat=np.array([y1]),
+        ...     time=[0], dynamic=set(['time']), ) ]
+
+        >>> with ShoreDist(data_dir="./testdata/") as sdist:
+        >>> # getting distance from shore for each point in the track
+        >>>     for track in sdist.get_distance(tracks_short):
+        >>>         assert 'km_from_shore' in track.keys()
+        >>>         assert 'km_from_shore' in track['dynamic']
+        >>>         print(track['km_from_shore'])
+        '''
         assert hasattr(self, 'imgpath')
         return self.merge_tracks(tracks, new_track_key='km_from_shore')
 
