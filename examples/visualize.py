@@ -27,7 +27,7 @@ def color_tracks(tracks):
         yield track
 
 
-with aisdb.SQLiteDBConn() as dbconn:
+with aisdb.SQLiteDBConn(dbpath) as dbconn:
     qry = aisdb.DBQuery(
         dbconn=dbconn,
         dbpath=dbpath,

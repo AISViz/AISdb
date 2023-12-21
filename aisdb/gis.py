@@ -74,6 +74,21 @@ def delta_meters(track, rng=None):
                 track vector dictionary
             rng (range)
                 optionally restrict computed values to given index range
+
+        Example:
+            >>> import numpy as np
+            >>> import aisdb
+            >>> y1, x1 = -66.84683, 44.96421
+            >>> y2, x2 = -66.83036, 44.9679
+            >>> y3, x3 = -66.81388, 44.9716
+
+            >>> # creating a sample track
+            >>> tracks_short = [
+               >>> dict( lon=np.array([x1,x2,x3]),
+               >>> lat=np.array([y1,y2,y3]),
+               >>> time=[0,1,2], dynamic=set(['time']), ) ]
+            >>> trk_1 = tracks_short[0]
+            >>> rt_ = aisdb.gis.delta_meters(trk_1)
     '''
     rng = range(len(track['time'])) if rng is None else rng
     return np.array(
