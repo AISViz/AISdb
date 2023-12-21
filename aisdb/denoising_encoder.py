@@ -202,8 +202,6 @@ def encode_greatcircledistance(
         ...         print(track['mmsi'])
         ...         print(track['lon'], track['lat'])
         ...         break
-        204242000
-        [-8.931666] [41.45]
 
     '''
     '''
