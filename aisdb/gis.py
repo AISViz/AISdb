@@ -84,9 +84,9 @@ def delta_meters(track, rng=None):
 
             >>> # creating a sample track
             >>> tracks_short = [
-               >>> dict( lon=np.array([x1,x2,x3]),
-               >>> lat=np.array([y1,y2,y3]),
-               >>> time=[0,1,2], dynamic=set(['time']), ) ]
+            ...     dict( lon=np.array([x1,x2,x3]),
+            ...     lat=np.array([y1,y2,y3]),
+            ...     time=[0,1,2], dynamic=set(['time']), ) ]
             >>> trk_1 = tracks_short[0]
             >>> rt_ = aisdb.gis.delta_meters(trk_1)
     '''
