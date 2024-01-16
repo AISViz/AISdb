@@ -137,9 +137,9 @@ class SQLiteDBConn(_DBConn, sqlite3.Connection):
 
             sql_select = '''
               SELECT
-                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type,
-                s.call_sign, s.dim_bow, s.dim_stern, s.dim_port, s.dim_star,
-                s.draught
+                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type, s.call_sign,
+                s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.draught, s.destination,
+                s.eta_month, s.eta_day, s.eta_hour, s.eta_minute
               FROM ais_{}_static AS s WHERE s.mmsi = ?
             '''.format(month)
 
@@ -452,9 +452,9 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
             sql_select = psycopg.sql.SQL(f'''
               SELECT
-                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type,
-                s.call_sign, s.dim_bow, s.dim_stern, s.dim_port, s.dim_star,
-                s.draught
+                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type, s.call_sign,
+                s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.draught, s.destination,
+                s.eta_month, s.eta_day, s.eta_hour, s.eta_minute
               FROM ais_{month}_static AS s WHERE s.mmsi = %s
             ''')
 
@@ -483,7 +483,7 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
                 ]
 
                 agg_rows.append(aggregated)
-
+            
             cur.execute(sql_aggregate.format(month))
 
             if len(agg_rows) == 0:

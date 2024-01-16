@@ -13,8 +13,9 @@ from aisdb.proc_util import _segment_rng
 from aisdb import Domain
 
 staticcols = set([
-    'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow',
-    'dim_stern', 'dim_port', 'dim_star', 'imo', 'draught'
+    'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'maneuver',
+    'dim_stern', 'dim_port', 'dim_star', 'imo', 'draught', 'heading', 'rot',
+    'destination', 'eta_month', 'eta_day', 'eta_hour', 'eta_minute',
 ])
 
 
