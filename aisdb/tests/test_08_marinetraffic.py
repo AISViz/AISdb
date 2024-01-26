@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 from shapely.geometry import Polygon
-
+from aisdb.webdata._scraper import *
 from aisdb import track_gen, decode_msgs, DBQuery, sqlfcn_callbacks, Domain
 from aisdb.webdata.marinetraffic import vessel_info, _vessel_info_dict, VesselInfo
 from aisdb.tests.create_testing_data import sample_gulfstlawrence_bbox
@@ -83,3 +83,11 @@ def test_marinetraffic_metadict():
     trafficDB = ves_info.trafficDB
     meta = _vessel_info_dict(trafficDB)
     assert meta
+
+def test_vessel_finder():
+    MMSI = 240927000
+    dict_ = search_metadata_vesselfinder(MMSI)
+    dict_2 = search_metadata_marinetraffic(MMSI)
+
+    assert dict_
+    assert dict_2

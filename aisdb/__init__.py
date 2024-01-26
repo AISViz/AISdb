@@ -67,6 +67,7 @@ from .track_gen import (
 from .denoising_encoder import (
     encode_score,
     encode_greatcircledistance,
+    remove_pings_wrt_speed
 )
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')

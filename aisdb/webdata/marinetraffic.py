@@ -101,19 +101,20 @@ def _getrow(vessel: dict) -> tuple:  # pragma: no cover
         vessel['Summer DWT'] = int(vessel['Summer DWT'].split()[0])
     if 'Year Built' not in vessel.keys() or vessel['Year Built'] == '-':
         vessel['Year Built'] = 0
+    print(vessel.keys())
     return (
         int(vessel['MMSI']),
         int(vessel['IMO']),
         vessel['Name'],
-        vessel['Vessel Type - Generic'],
-        vessel['Vessel Type - Detailed'],
+        vessel['General vessel type'],
+        vessel['Detailed vessel type'],
         vessel['Call Sign'],
         vessel['Flag'],
         int(vessel['Gross Tonnage']),
         int(vessel['Summer DWT']),
         vessel['Length Overall x Breadth Extreme'],
         int(vessel['Year Built']),
-        vessel['Home Port'],
+        vessel['Port of registry'],
     )
 
 
@@ -326,3 +327,4 @@ if searchimo != 0:
 else:
     checksum = '0'
 '''
+
