@@ -202,8 +202,6 @@ def encode_greatcircledistance(
         ...         print(track['mmsi'])
         ...         print(track['lon'], track['lat'])
         ...         break
-        204242000
-        [-8.931666] [41.45]
 
     '''
     '''
@@ -214,3 +212,33 @@ def encode_greatcircledistance(
         for path in encode_score(track, distance_threshold, speed_threshold,
                                  minscore):
             yield path
+
+def remove_pings_wrt_speed(tracks, speed_threshold):
+    '''
+        Remove pings from tracks where the speed of a vessel
+        is lesser than equal to speed_threshold.
+        In most cases, the archored vessel tracks are removed through this technique
+
+        args:
+            tracks (aisdb.track_gen.TrackGen)
+                track vectors generator
+
+        return generator
+    '''
+
+    tr1_ = next(tracks)
+    columns_ = [ky for ky,vall in tr1_.items() if isinstance(vall, np.ndarray)]
+    def update_dict_(tr_):
+        indexes_ = np.where(tr_['sog'] <= speed_threshold)
+        if len(tr_['sog'])  != len(indexes_[0]):
+            if len(indexes_[0]) > 0:
+                for col in columns_:
+                    tr_[col] = np.delete( tr_[col], indexes_)
+
+            yield tr_
+
+    yield from update_dict_(tr1_)
+    for tr__ in tracks:
+        assert isinstance(tr__, dict), f'got {type(tr__)} {tr__}'
+        yield from update_dict_(tr__)
+

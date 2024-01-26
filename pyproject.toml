@@ -6,7 +6,7 @@ build-backend = "maturin"
 name = "aisdb"
 requires-python = ">=3.8"
 requires-dist = [ "maturin>=1.0", "numpy", "wheel",]
-dependencies = [ "MarkupSafe", "flask", "packaging", "pillow", "requests", "selenium", "shapely", "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "python-dateutil", "orjson", "websockets",]
+dependencies = [ "MarkupSafe", "flask", "packaging", "pillow", "requests", "selenium", "shapely", "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "python-dateutil", "orjson", "websockets","beautifulsoup4", "pyproj"]
 zip-safe = false
 version = "1.7.0"
 readme = "readme.rst"
