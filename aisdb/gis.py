@@ -37,7 +37,34 @@ def shiftcoord(x, rng=180):
 
 
 def dt_2_epoch(dt_arr, t0=datetime(1970, 1, 1, 0, 0, 0)):
-    ''' convert datetime.datetime to epoch minutes '''
+    ''' convert datetime.datetime to epoch minutes
+
+    example:
+        >>> import numpy as np
+        >>> from datetime import timedelta, datetime
+
+        >>> y1, x1 = -66.84683, -61.10595523571155
+        >>> y2, x2 = -66.83036, -61.11595523571155
+        >>> y3, x3 = -66.82036, -61.12595523571155
+        >>> t1 = dt_2_epoch( datetime(2021, 1, 1, 1) )
+        >>> t2 = dt_2_epoch( datetime(2021, 1, 1, 2) )
+        >>> t3 = dt_2_epoch(datetime(2021, 1, 1, 3))
+
+        >>> # creating a sample track
+        >>> tracks_short = [
+        ...    dict(
+        ...        lon=np.array([x1, x2, x3]),
+        ...        lat=np.array([y1, y2, y3]),
+        ...        time=np.array([t1, t2, t3]),
+        ...        dynamic=set(['lon', 'lat', 'time']),
+        ...        static = set()
+        ...    )
+        ... ]
+
+        >>> tracks__ = aisdb.interp.interp_time(tracks_short, timedelta(minutes=10))
+
+    '''
+
     delta = lambda dt: (dt - t0).total_seconds()
     if isinstance(dt_arr, (list, np.ndarray)):
         return np.array(list(map(float, map(delta, dt_arr))))
@@ -74,6 +101,21 @@ def delta_meters(track, rng=None):
                 track vector dictionary
             rng (range)
                 optionally restrict computed values to given index range
+
+        Example:
+            >>> import numpy as np
+            >>> import aisdb
+            >>> y1, x1 = -66.84683, 44.96421
+            >>> y2, x2 = -66.83036, 44.9679
+            >>> y3, x3 = -66.81388, 44.9716
+
+            >>> # creating a sample track
+            >>> tracks_short = [
+            ...     dict( lon=np.array([x1,x2,x3]),
+            ...     lat=np.array([y1,y2,y3]),
+            ...     time=[0,1,2], dynamic=set(['time']), ) ]
+            >>> trk_1 = tracks_short[0]
+            >>> rt_ = aisdb.gis.delta_meters(trk_1)
     '''
     rng = range(len(track['time'])) if rng is None else rng
     return np.array(
@@ -107,6 +149,27 @@ def delta_knots(track, rng=None):
                 track vector dictionary
             rng (range)
                 optionally restrict computed values to given index range
+
+        Example:
+
+            >>> import numpy as np
+            >>> import aisdb
+            >>> y1, x1 = -66.84683, 44.96421
+            >>> y2, x2 = -66.83036, 44.9679
+            >>> y3, x3 = -66.81388, 44.9716
+
+            >>> # creating a sample track
+            >>> tracks_short = [
+            ...   dict(
+            ...            lon=np.array([x1,x2,x3]),
+            ...            lat=np.array([y1,y2,y3]),
+            ...            time=[0,1,2],
+            ...            dynamic=set(['time']),
+            ...        )
+            ... ]
+
+            >>> trk_1 = tracks_short[0]
+            >>> rt_ = aisdb.gis.delta_knots(trk_1)
     '''
     rng = range(len(track['time'])) if rng is None else rng
     ds = np.array([np.max((1, s)) for s in delta_seconds(track, rng)],
@@ -132,6 +195,8 @@ def radial_coordinate_boundary(x, y, radius=100000):
                 latitude
             radius (int, float)
                 minimum radial distance
+        returns:
+        dict({xmin, xmax, ymin, ymax})
     '''
     # radians
     earth_radius_m = 6371088
@@ -462,6 +527,18 @@ class Domain():
 class DomainFromTxts(Domain):
     ''' subclass of :class:`aisdb.gis.Domain`. used for convenience to load
         zone geometry from .txt files directly
+
+        example:
+
+        >>> folder = os.path.join('aisdb/tests/test_zones')
+        >>> zipf = os.path.join(folder, 'test_zones.zip')
+
+        >>> with zipfile.ZipFile(zipf, 'r') as zip_ref:
+        ...    members = list(
+        ...        set(zip_ref.namelist()) - set(sorted(os.listdir(folder))))
+        >>>    zip_ref.extractall(path=folder, members=members)
+
+        >>> domain = DomainFromTxts(domainName='test', folder=folder)
     '''
 
     def __init__(self, domainName, folder, ext='txt'):
@@ -506,6 +583,10 @@ class DomainFromPoints(Domain):
                     box boundaries
                 names (list)
                     optionally assign a zone name for each point
+
+            example:
+
+            >>> domain = DomainFromPoints([(-45, 50), (-50, 35), (-40, 55)], [10000, 1000, 100000])
 
 
         '''

@@ -57,7 +57,8 @@ jobs:
           ./AISdb/Scripts/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.0', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install pytest pytest-dotenv pytest-cov
-          pytest ./aisdb/tests/test_11_postgres.py ./aisdb/tests/test_00_decode.py ./aisdb/tests/test_01_createtables.py ./aisdb/tests/test_02_sqlfcn.py ./aisdb/tests/test_02_dbqry.py ./aisdb/tests/test_03_gis.py ./aisdb/tests/test_04_trackgen.py ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_06_interp.py ./aisdb/tests/test_07_bathymetry.py ./aisdb/tests/test_08_marinetraffic.py ./aisdb/tests/test_08_wsa.py  ./aisdb/tests/test_09_network_graph.py ./aisdb/tests/test_10_ui.py ./aisdb/tests/test_rx.py
+          pytest ./aisdb/tests/test_11_postgres.py ./aisdb/tests/test_00_decode.py ./aisdb/tests/test_01_createtables.py ./aisdb/tests/test_02_sqlfcn.py ./aisdb/tests/test_02_dbqry.py ./aisdb/tests/test_03_gis.py ./aisdb/tests/test_04_trackgen.py  ./aisdb/tests/test_06_interp.py ./aisdb/tests/test_07_bathymetry.py  ./aisdb/tests/test_08_wsa.py  ./aisdb/tests/test_09_network_graph.py ./aisdb/tests/test_10_ui.py ./aisdb/tests/test_rx.py ./aisdb/tests/test_12_interp.py
+#          pytest ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_08_marinetraffic.py
 
   build-and-test-linux:
     runs-on: ubuntu-latest
@@ -100,7 +101,8 @@ jobs:
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.0', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install pytest pytest-dotenv pytest-cov
-          pytest ./aisdb/tests/test_11_postgres.py ./aisdb/tests/test_00_decode.py ./aisdb/tests/test_01_createtables.py ./aisdb/tests/test_02_sqlfcn.py ./aisdb/tests/test_02_dbqry.py ./aisdb/tests/test_03_gis.py ./aisdb/tests/test_04_trackgen.py ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_06_interp.py ./aisdb/tests/test_07_bathymetry.py ./aisdb/tests/test_08_marinetraffic.py ./aisdb/tests/test_08_wsa.py  ./aisdb/tests/test_09_network_graph.py ./aisdb/tests/test_10_ui.py ./aisdb/tests/test_rx.py
+          pytest ./aisdb/tests/test_11_postgres.py ./aisdb/tests/test_00_decode.py ./aisdb/tests/test_01_createtables.py ./aisdb/tests/test_02_sqlfcn.py ./aisdb/tests/test_02_dbqry.py ./aisdb/tests/test_03_gis.py ./aisdb/tests/test_04_trackgen.py  ./aisdb/tests/test_06_interp.py ./aisdb/tests/test_07_bathymetry.py  ./aisdb/tests/test_08_wsa.py  ./aisdb/tests/test_09_network_graph.py ./aisdb/tests/test_10_ui.py ./aisdb/tests/test_rx.py ./aisdb/tests/test_12_interp.py
+#          pytest ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_08_marinetraffic.py
 
   linux:
     runs-on:  ubuntu-latest

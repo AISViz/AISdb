@@ -98,6 +98,7 @@ def tracks_csv(tracks, skipcols: list = ['label', 'in_zone']):
         See write_csv() for more info
     '''
     tracks_dt = _datetime_column(tracks)
+    track_ID = 1
     tr1 = next(tracks_dt)
     colnames = [
         c for c in _columns_order + list(
@@ -107,7 +108,7 @@ def tracks_csv(tracks, skipcols: list = ['label', 'in_zone']):
     ]
     colnames = [col for col in colnames if col not in skipcols]
 
-    yield colnames
+    yield colnames  +["Track_ID"]
 
     if 'marinetraffic_info' in tr1.keys():
         colnames += tuple(tr1['marinetraffic_info'].keys())
@@ -130,7 +131,7 @@ def tracks_csv(tracks, skipcols: list = ['label', 'in_zone']):
         'submerged_hull_m^2': 0,
     }
 
-    def _append(track, colnames=colnames, decimals=decimals):
+    def _append(track, colnames=colnames, decimals=decimals, track_id= 0):
         if 'marinetraffic_info' in track.keys():
             for key, val in dict(track['marinetraffic_info']).items():
                 if key in ('error404', 'mmsi', 'imo'):
@@ -146,12 +147,14 @@ def tracks_csv(tracks, skipcols: list = ['label', 'in_zone']):
                 if colnames[ci] in decimals.keys() and r != '':
                     row[ci] = f'{float(r):.{decimals[colnames[ci]]}f}'
 
-            #writer.writerow(row)
-            return row
+            row.append(track_id)
+            # writer.writerow(row)
+            yield row
 
-    yield _append(tr1, colnames, decimals)
+    yield from _append(tr1, colnames, decimals, track_id=track_ID)
     for track in tracks_dt:
-        yield _append(track, colnames, decimals)
+        track_ID+=1
+        yield from _append(track, colnames, decimals, track_id=track_ID)
 
 
 def write_csv(
