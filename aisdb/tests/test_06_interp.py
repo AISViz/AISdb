@@ -5,7 +5,7 @@ from aisdb import track_gen, sqlfcn, sqlfcn_callbacks
 from aisdb.database.dbconn import DBConn
 from aisdb.database.dbqry import DBQuery
 from aisdb.tests.create_testing_data import sample_database_file
-from aisdb.interp import interp_time
+from aisdb.interp import interp_time, geo_interp_time
 
 
 def test_interp(tmpdir):
@@ -27,7 +27,17 @@ def test_interp(tmpdir):
             step=timedelta(hours=0.5),
         )
 
+        geo_tracks = geo_interp_time(
+            track_gen.TrackGen(rowgen, decimate=True),
+            step=timedelta(hours=0.5),
+        )
+
         for track in tracks:
+            assert 'time' in track.keys()
+            if len(track['time']) >= 3:
+                print(track)
+
+        for track in geo_tracks:
             assert 'time' in track.keys()
             if len(track['time']) >= 3:
                 print(track)
