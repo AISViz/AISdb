@@ -124,7 +124,7 @@ def geo_interp_time(tracks, step=timedelta(minutes=10), original_crs = 4269):
     new_crs = 3857
     fwd_trans = Transformer.from_crs(original_crs, new_crs, always_xy=True)
     back_trans = Transformer.from_crs(new_crs,original_crs, always_xy=True)
-
+    geod = Geod(ellps="WGS84")
     for track in tracks:
         if track['time'].size <= 1:
             # yield track
@@ -156,7 +156,6 @@ def geo_interp_time(tracks, step=timedelta(minutes=10), original_crs = 4269):
                           fp=y.astype(float))
             itr['lon'], itr['lat'] = back_trans.transform(x,y)
             if 'cog' in track['dynamic']:
-                geod = Geod(ellps="WGS84")
                 courses, _, _ = geod.inv(itr['lon'][:-1], itr['lat'][:-1], itr['lon'][1:], itr['lat'][1:])
                 itr['cog'] = np.append(courses, track['cog'][-1])
         for key in track['dynamic']:
@@ -211,7 +210,10 @@ def interp_spacing(spacing : int, tracks, crs = 4269):
     crs2 = 3857
     transformer = Transformer.from_crs(crs, crs2, always_xy=True)
     inv_transformer = Transformer.from_crs(crs2, crs, always_xy=True)
+    geod = Geod(ellps="WGS84")
+
     #loop over files if vessel not read into memory, better for large data
+
     for track in tracks:
         if track['time'].size <= 1:
             # yield track
@@ -235,8 +237,11 @@ def interp_spacing(spacing : int, tracks, crs = 4269):
         # t = np.linspace(0, total_dist, int(number_of_points))
         #interpolate the other attributes back
         track['lon'], track['lat']  = inv_transformer.transform( np.interp(t, u, lon),np.interp(t, u, lat))
+        courses, _, _ = geod.inv(track['lon'][:-1], track['lat'][:-1], track['lon'][1:], track['lat'][1:])
+        if 'cog' in track:
+            track['cog'] = np.append(courses, track['cog'][-1])
         for k in track['dynamic']:
-            if k == 'lon' or k=='lat':
+            if k == 'lon' or k=='lat' or k == 'cog':
                 continue
             track[k] = np.interp(t, u,track[k])
 
