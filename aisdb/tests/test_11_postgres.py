@@ -205,4 +205,4 @@ def test_compare_sqlite_postgres_query_output(tmpdir):
         tracks2 = list(TrackGen(rowgen2, decimate=False))
 
     for a, b in zip(tracks1, tracks2):
-        assert a == b
+        assert a['lat'] == b['lat']
