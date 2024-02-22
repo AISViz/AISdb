@@ -26,5 +26,5 @@ mproxy-reverse = { version = "0.1" }
 nmea-parser = { version = "0.10" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
-tungstenite = {version = "0.19", features = ["rustls-tls-webpki-roots"]}
+tungstenite = {version = "0.20", features = ["rustls-tls-webpki-roots"]}
 pico-args = { version = "0.5", features = [ "eq-separator",]}
