@@ -295,12 +295,8 @@ def decode_msgs(filepaths,
         for month in months:
             dbconn.execute(create_dynamic_table_stmt.format(month))
             dbconn.execute(create_static_table_stmt.format(month))
-            dbconn.execute(
-                f'ALTER TABLE ais_{month}_dynamic '
-                f'DROP CONSTRAINT IF EXISTS ais_{month}_dynamic_pkey')
-            for idx_name in ('mmsi', 'time', 'lon', 'lat', 'cluster'):
-                dbconn.execute(
-                    f'DROP INDEX IF EXISTS idx_ais_{month}_dynamic_{idx_name}')
+            for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
+                dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name} ; ")
         dbconn.commit()
         completed_files = decoder(dbpath='',
                                   psql_conn_string=dbconn.connection_string,
@@ -346,7 +342,12 @@ def decode_msgs(filepaths,
         if verbose:
             print('rebuilding indexes...')
         for month in months:
-            dbconn.rebuild_indexes(month, verbose)
+            dbconn.execute(create_dynamic_table_stmt.format(month))
+            dbconn.execute(create_static_table_stmt.format(month))
+            for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
+                dbconn.execute(f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} ON ais_{month}_dynamic ({idx_name}) ;")
+    #     for month in months:
+    #         dbconn.rebuild_indexes(month, verbose)
         dbconn.execute('ANALYZE')
         dbconn.commit()
 
