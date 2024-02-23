@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: ikalnytskyi/action-setup-postgres@v4
         with:
-          password: bigdata1
+          password: pgrootpwd
       - name: Checkout Repository
         uses: actions/checkout@v3
 
