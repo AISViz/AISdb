@@ -11,8 +11,8 @@ SELECT
     s.draught, 
     s.destination,
     s.eta_month, 
-    s.eta_hour,
     s.eta_day, 
+    s.eta_hour,
     s.eta_minute
 FROM ais_{}_static AS s
 WHERE s.mmsi = $7 ;
