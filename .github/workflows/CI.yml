@@ -4,6 +4,8 @@
 #    maturin generate-ci github
 #
 name: CI
+variables:
+  pgdbpass: pgrootpwd
 
 on:
   push:
@@ -25,7 +27,7 @@ jobs:
     steps:
       - uses: ikalnytskyi/action-setup-postgres@v4
         with:
-          password: pgrootpwd
+          password: ${{ variables.pgdbpass }}
       - name: Checkout Repository
         uses: actions/checkout@v3
 
@@ -66,7 +68,7 @@ jobs:
       postgres:
         image: postgres
         env:
-          POSTGRES_PASSWORD: pgrootpwd
+          POSTGRES_PASSWORD: ${{ variables.pgdbpass }}
         ports:
           - 5432:5432
     steps:
