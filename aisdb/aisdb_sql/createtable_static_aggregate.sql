@@ -8,5 +8,10 @@ CREATE TABLE static_{}_aggregate (
     dim_stern INTEGER,
     dim_port INTEGER,
     dim_star INTEGER,
-    draught INTEGER
+    draught INTEGER,
+    destination TEXT,
+    eta_month INTEGER,
+    eta_day INTEGER,
+    eta_hour INTEGER,
+    eta_minute INTEGER
 );
