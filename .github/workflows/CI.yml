@@ -66,7 +66,7 @@ jobs:
       postgres:
         image: postgres
         env:
-          POSTGRES_PASSWORD: bigdata1
+          POSTGRES_PASSWORD: pgrootpwd
         ports:
           - 5432:5432
     steps:
