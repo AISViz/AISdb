@@ -344,10 +344,10 @@ def decode_msgs(filepaths,
         for month in months:
             dbconn.execute(create_dynamic_table_stmt.format(month))
             dbconn.execute(create_static_table_stmt.format(month))
-            for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
-                dbconn.execute(f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} ON ais_{month}_dynamic ({idx_name}) ;")
+            # for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
+            #     dbconn.execute(f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} ON ais_{month}_dynamic ({idx_name}) ;")
     #     for month in months:
-    #         dbconn.rebuild_indexes(month, verbose)
+            dbconn.rebuild_indexes(month, verbose)
         dbconn.execute('ANALYZE')
         dbconn.commit()
 
