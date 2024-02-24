@@ -13,6 +13,7 @@ on:
       - main
       - master
       - master-jk-working
+      - web-integration
     tags:
       - '*'
   pull_request:
