@@ -23,7 +23,7 @@ from aisdb.track_gen import TrackGen
 postgres_test_conn = dict(hostaddr='127.0.0.1',
                           user='postgres',
                           port=5432,
-                          password='bigdata1')
+                          password='pgrootpwd')
 
 def test_postgres():
 
