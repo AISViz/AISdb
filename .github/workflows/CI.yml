@@ -108,16 +108,10 @@ jobs:
     runs-on:  Ubuntu
     strategy:
       matrix:
-        # target: [x86_64, x86, aarch64, armv7, s390x, ppc64le]
-        # Do not build for s390x and ppc64le at the moment.
-        #
-        # ring v0.16.20 is a dependency rsutlst
-        # rustls is a dependency of tungstenite, which is a dependency of the receiver.
-        #
-        # The newest version of ring is 0.17.0, but it will support s390x and ppc64le.
+        # Can't build for aarch64 (Apple M1/M2 chips).
+        # ring v0.17.xx yields an error when building the package.
         # We will fix this issue when the newest version of the dependencies is released.
-        #
-        target: [x86_64, x86, armv7]#, aarch64]
+        target: [x86_64, x86]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
