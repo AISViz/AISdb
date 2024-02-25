@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   build-and-test-windows:
-    runs-on: Windows
+    runs-on: windows-latest
     steps:
       - uses: ikalnytskyi/action-setup-postgres@v4
         with:
@@ -61,7 +61,7 @@ jobs:
 #          pytest ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_08_marinetraffic.py
 
   build-and-test-linux:
-    runs-on: Ubuntu
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres
@@ -105,7 +105,7 @@ jobs:
 #          pytest ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_08_marinetraffic.py ./aisdb/tests/test_07_bathymetry.py
 
   linux:
-    runs-on:  Ubuntu
+    runs-on:  ubuntu-latest
     strategy:
       matrix:
         # Can't build for aarch64 (Apple M1/M2 chips).
@@ -145,7 +145,7 @@ jobs:
           path: dist
 
   windows:
-    runs-on: Windows
+    runs-on: windows-latest
     strategy:
       matrix:
         target: [x64, x86]
@@ -192,7 +192,7 @@ jobs:
           path: dist
 
   sdist:
-    runs-on: Ubuntu
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Build sdist
@@ -208,7 +208,7 @@ jobs:
 
   release:
     name: Release
-    runs-on: Ubuntu
+    runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [linux, windows, macos, sdist]
     steps:
