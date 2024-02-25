@@ -74,8 +74,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // download web assets from gitlab CD artifacts
     // if OFFLINE_BUILD is not set, it is expected that artifacts will be passed from previous job
     
-    std::env::set_var("OFFLINE_BUILD", "1");
-
     let (download_type, file_name, build_type) = match std::env::var("OFFLINE_BUILD") {
         Ok(_) => (DownloadType::SourceCode, "main.zip", "OFFLINE_BUILD"),
         Err(_) => (DownloadType::Build, "aisdb_web.zip", "ONLINE_BUILD"),
