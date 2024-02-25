@@ -4,8 +4,6 @@
 #    maturin generate-ci github
 #
 name: CI
-variables:
-  pgdbpass: pgrootpwd
 
 on:
   push:
@@ -23,11 +21,11 @@ permissions:
 
 jobs:
   build-and-test-windows:
-    runs-on: windows-latest
+    runs-on: Windows
     steps:
       - uses: ikalnytskyi/action-setup-postgres@v4
         with:
-          password: ${{ variables.pgdbpass }}
+          password: ${{ secrets.PGDBPASS }}
       - name: Checkout Repository
         uses: actions/checkout@v3
 
@@ -63,12 +61,12 @@ jobs:
 #          pytest ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_08_marinetraffic.py
 
   build-and-test-linux:
-    runs-on: ubuntu-latest
+    runs-on: Ubuntu
     services:
       postgres:
         image: postgres
         env:
-          POSTGRES_PASSWORD: ${{ variables.pgdbpass }}
+          POSTGRES_PASSWORD: ${{ secrets.PGDBPASS }}
         ports:
           - 5432:5432
     steps:
@@ -107,7 +105,7 @@ jobs:
 #          pytest ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_08_marinetraffic.py ./aisdb/tests/test_07_bathymetry.py
 
   linux:
-    runs-on:  ubuntu-latest
+    runs-on:  Ubuntu
     strategy:
       matrix:
         # target: [x86_64, x86, aarch64, armv7, s390x, ppc64le]
@@ -153,7 +151,7 @@ jobs:
           path: dist
 
   windows:
-    runs-on: windows-latest
+    runs-on: Windows
     strategy:
       matrix:
         target: [x64, x86]
@@ -200,7 +198,7 @@ jobs:
           path: dist
 
   sdist:
-    runs-on: ubuntu-latest
+    runs-on: Ubuntu
     steps:
       - uses: actions/checkout@v3
       - name: Build sdist
@@ -216,7 +214,7 @@ jobs:
 
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: Ubuntu
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [linux, windows, macos, sdist]
     steps:
