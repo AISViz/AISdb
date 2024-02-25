@@ -117,7 +117,7 @@ jobs:
         # The newest version of ring is 0.17.0, but it will support s390x and ppc64le.
         # We will fix this issue when the newest version of the dependencies is released.
         #
-        target: [x86_64, x86, aarch64, armv7]
+        target: [x86_64, x86, armv7]#, aarch64]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
