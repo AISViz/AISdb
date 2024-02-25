@@ -181,7 +181,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     remove_source_code_folder();
 
-    assert!(PathBuf::from("./aisdb_web/map/pkg").exists());
+    assert!(PathBuf::from(format!("{}/aisdb_web/map/pkg", env!("CARGO_MANIFEST_DIR"))).exists());
 
     // compress wasm
     let wasm_opt_file = "./aisdb_web/map/pkg/client_bg.wasm";
