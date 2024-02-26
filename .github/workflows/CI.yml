@@ -19,6 +19,9 @@ on:
 permissions:
   contents: read
 
+env:
+  pgpass: ${{ secrets.PGDBPASS }}
+
 jobs:
   build-and-test-windows:
     runs-on: windows-latest
