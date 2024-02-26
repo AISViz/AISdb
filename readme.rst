@@ -1,11 +1,15 @@
 Readme
 ======
 
-.. image:: https://git-dev.cs.dal.ca/meridian/aisdb/badges/master/pipeline.svg
-
-.. image:: https://img.shields.io/gitlab/coverage/meridian/aisdb/master?gitlab_url=https%3A%2F%2Fgit-dev.cs.dal.ca&job_name=python-test
-
-.. image:: https://img.shields.io/gitlab/v/release/meridian/aisdb?gitlab_url=https%3A%2F%2Fgit-dev.cs.dal.ca&include_prereleases&sort=semver
+.. image:: https://github.com/AISViz/AISdb/actions/workflows/CI.yml/badge.svg
+   :target: https://github.com/AISViz/AISdb/actions/workflows/CI.yml
+   :alt: CI status
+.. image:: https://github.com/AISViz/AISdb/actions/workflows/github-code-scanning/codeql/badge.svg
+   :target: https://github.com/AISViz/AISdb/actions/workflows/github-code-scanning/codeql
+   :alt: CodeQL status
+.. image:: https://github.com/AISViz/AISdb/actions/workflows/test-installation.yml/badge.svg
+   :target: https://github.com/AISViz/AISdb/actions/workflows/test-installation.yml
+   :alt: Test installation status
 
 .. description:
 
