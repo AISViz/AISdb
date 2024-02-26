@@ -11,128 +11,112 @@ on:
       - main
       - master
       - master-jk-working
-      - web-integration
     tags:
       - '*'
   pull_request:
   workflow_dispatch:
 
-env:
-  PGDB_PASSWORD: pgrootpwd
-
 permissions:
   contents: read
 
 jobs:
-#   build-and-test-windows:
-#     runs-on: windows-latest
-#     steps:
-#       - uses: ikalnytskyi/action-setup-postgres@v4
-#         with:
-#           password: $PGDB_PASSWORD
-#       - name: Checkout Repository
-#         uses: actions/checkout@v3
+  build-and-test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: ikalnytskyi/action-setup-postgres@v4
+        with:
+          password: ${{ secrets.PGDBPASS }}
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-#       - name: Set up Python
-#         uses: actions/setup-python@v4
-#         with:
-#           python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-#       - name: Install Rust Toolchain
-#         uses: actions-rs/toolchain@v1
-#         with:
-#           toolchain:  stable
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain:  stable
 
-#       - name: Create and Activate Python Virtual Environment
-#         run: |
-#           python -m venv AISdb
-#           ./AISdb/Scripts/activate
+      - name: Create and Activate Python Virtual Environment
+        run: |
+          python -m venv AISdb
+          ./AISdb/Scripts/activate
 
-#       - name: Install Maturin
-#         run: python -m pip install maturin
+      - name: Install Maturin
+        run: python -m pip install maturin
 
-#       - name: Build and Install aisdb
-#         run: |
-#           ./AISdb/Scripts/activate
-#           maturin develop --release --extras=test,docs
+      - name: Build and Install aisdb
+        run: |
+          ./AISdb/Scripts/activate
+          maturin develop --release --extras=test,docs
 
-#       - name: Verify Installation
-#         run: |
-#           ./AISdb/Scripts/activate
-#           python -c "import aisdb; assert aisdb.__version__ >= '1.7.0', f'Unexpected aisdb version: {aisdb.__version__}'"
-#           python -m pip install pytest pytest-dotenv pytest-cov
-#           pytest ./aisdb/tests/test_11_postgres.py ./aisdb/tests/test_00_decode.py ./aisdb/tests/test_01_createtables.py ./aisdb/tests/test_02_sqlfcn.py ./aisdb/tests/test_02_dbqry.py ./aisdb/tests/test_03_gis.py ./aisdb/tests/test_04_trackgen.py  ./aisdb/tests/test_06_interp.py ./aisdb/tests/test_07_bathymetry.py  ./aisdb/tests/test_08_wsa.py  ./aisdb/tests/test_09_network_graph.py ./aisdb/tests/test_10_ui.py ./aisdb/tests/test_rx.py ./aisdb/tests/test_12_interp.py
-# #          pytest ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_08_marinetraffic.py
+      - name: Verify Installation
+        run: |
+          ./AISdb/Scripts/activate
+          python -c "import aisdb; assert aisdb.__version__ >= '1.7.0', f'Unexpected aisdb version: {aisdb.__version__}'"
+          python -m pip install pytest pytest-dotenv pytest-cov
+          pytest ./aisdb/tests/test_11_postgres.py ./aisdb/tests/test_00_decode.py ./aisdb/tests/test_01_createtables.py ./aisdb/tests/test_02_sqlfcn.py ./aisdb/tests/test_02_dbqry.py ./aisdb/tests/test_03_gis.py ./aisdb/tests/test_04_trackgen.py  ./aisdb/tests/test_06_interp.py ./aisdb/tests/test_07_bathymetry.py  ./aisdb/tests/test_08_wsa.py  ./aisdb/tests/test_09_network_graph.py ./aisdb/tests/test_10_ui.py ./aisdb/tests/test_rx.py ./aisdb/tests/test_12_interp.py
+#          pytest ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_08_marinetraffic.py
 
-#   build-and-test-linux:
-#     runs-on: ubuntu-latest
-#     services:
-#       postgres:
-#         image: postgres
-#         env:
-#           POSTGRES_PASSWORD: $PGDB_PASSWORD
-#         ports:
-#           - 5432:5432
-#     steps:
-#       - name: Checkout Repository
-#         uses: actions/checkout@v3
+  build-and-test-linux:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.PGDBPASS }}
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-#       - name: Set up Python
-#         uses: actions/setup-python@v4
-#         with:
-#           python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-#       - name: Install Rust Toolchain
-#         run: |
-#           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-#           source $HOME/.cargo/env
+      - name: Install Rust Toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
 
-#       - name: Create and Activate Python Virtual Environment
-#         run: |
-#           python -m venv AISdb
-#           source ./AISdb/bin/activate
+      - name: Create and Activate Python Virtual Environment
+        run: |
+          python -m venv AISdb
+          source ./AISdb/bin/activate
 
-#       - name: Install Maturin
-#         run: python -m pip install maturin
+      - name: Install Maturin
+        run: python -m pip install maturin
 
-#       - name: Build and Install aisdb
-#         run: |
-#           source ./AISdb/bin/activate
-#           maturin develop --release --extras=test,docs
+      - name: Build and Install aisdb
+        run: |
+          source ./AISdb/bin/activate
+          maturin develop --release --extras=test,docs
 
-#       - name: Verify Installation
-#         run: |
-#           source ./AISdb/bin/activate
-#           python -c "import aisdb; assert aisdb.__version__ >= '1.7.0', f'Unexpected aisdb version: {aisdb.__version__}'"
-#           python -m pip install pytest pytest-dotenv pytest-cov
-#           pytest ./aisdb/tests/test_11_postgres.py ./aisdb/tests/test_00_decode.py ./aisdb/tests/test_01_createtables.py ./aisdb/tests/test_02_sqlfcn.py ./aisdb/tests/test_02_dbqry.py ./aisdb/tests/test_03_gis.py ./aisdb/tests/test_04_trackgen.py  ./aisdb/tests/test_06_interp.py  ./aisdb/tests/test_08_wsa.py  ./aisdb/tests/test_09_network_graph.py ./aisdb/tests/test_10_ui.py ./aisdb/tests/test_rx.py ./aisdb/tests/test_12_interp.py
-# #          pytest ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_08_marinetraffic.py ./aisdb/tests/test_07_bathymetry.py
+      - name: Verify Installation
+        run: |
+          source ./AISdb/bin/activate
+          python -c "import aisdb; assert aisdb.__version__ >= '1.7.0', f'Unexpected aisdb version: {aisdb.__version__}'"
+          python -m pip install pytest pytest-dotenv pytest-cov
+          pytest ./aisdb/tests/test_11_postgres.py ./aisdb/tests/test_00_decode.py ./aisdb/tests/test_01_createtables.py ./aisdb/tests/test_02_sqlfcn.py ./aisdb/tests/test_02_dbqry.py ./aisdb/tests/test_03_gis.py ./aisdb/tests/test_04_trackgen.py  ./aisdb/tests/test_06_interp.py  ./aisdb/tests/test_08_wsa.py  ./aisdb/tests/test_09_network_graph.py ./aisdb/tests/test_10_ui.py ./aisdb/tests/test_rx.py ./aisdb/tests/test_12_interp.py
+#          pytest ./aisdb/tests/test_05_proc_util.py ./aisdb/tests/test_08_marinetraffic.py ./aisdb/tests/test_07_bathymetry.py
 
   linux:
     runs-on:  ubuntu-latest
     strategy:
       matrix:
-        # target: [x86_64, x86, aarch64, armv7, s390x, ppc64le]
-        # Do not build for s390x and ppc64le at the moment.
-        #
-        # ring v0.16.20 is a dependency rsutlst
-        # rustls is a dependency of tungstenite, which is a dependency of the receiver.
-        #
-        # The newest version of ring is 0.17.0, but it will support s390x and ppc64le.
+        # Can't build for aarch64 (Apple M1/M2 chips).
+        # ring v0.17.xx yields an error when building the package.
         # We will fix this issue when the newest version of the dependencies is released.
-        #
-        target: [x86_64, x86, aarch64, armv7]
+        target: [x86_64, x86]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: 'latest'
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -171,12 +155,6 @@ jobs:
         with:
           python-version: '3.10'
           architecture: ${{ matrix.target }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: 'latest'
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -201,16 +179,6 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: 'latest'
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "10.0"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
