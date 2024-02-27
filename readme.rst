@@ -1,6 +1,3 @@
-Readme
-======
-
 .. image:: https://github.com/AISViz/AISdb/actions/workflows/CI.yml/badge.svg
    :target: https://github.com/AISViz/AISdb/actions/workflows/CI.yml
    :alt: CI status
@@ -13,7 +10,7 @@ Readme
 
 .. description:
 
-Description
+📍 Description
 -----------
 
 Package features:
@@ -37,17 +34,18 @@ Package features:
 
 .. whatisais:
 
-What is AIS?
+📢 What is AIS Data❓
 ------------
 
-| Wikipedia:
-  https://en.wikipedia.org/wiki/Automatic_identification_system
-| Description of message types:
-  https://arundaleais.github.io/docs/ais/ais_message_types.html
+The Automatic Identification System (AIS) is a tracking system used by ships and vessel traffic services (VTS) to identify and locate vessels by exchanging data with other nearby ships, VTS stations, and satellites. The primary goal of AIS is to enhance maritime safety, navigation, and security by providing real-time information about the vessels' position, course, and other relevant data. The AIS system uses different message types to communicate information between vessels and tracking stations. These messages can include vessel identification, position, course, speed, navigational status, and other safety-related information. The widespread adoption of AIS has significantly improved the ability of ships to avoid collisions and navigate more safely, especially in busy shipping lanes and ports.
 
+For those interested in a more in-depth understanding of AIS and its message types, start with these resources:
 
+- `Wikipedia Article <https://en.wikipedia.org/wiki/Automatic_identification_system>`_: An overview of the Automatic Identification System, including its history, functionality, and applications.
 
-Install
+- `AIS Message Types <https://arundaleais.github.io/docs/ais/ais_message_types.html>`_: A guide to the various AIS message types used for communication between ships and tracking systems.
+
+📦 Install
 -------
 
 .. _install-pip:
@@ -70,7 +68,7 @@ For information on installing AISDB from source code, see `Installing from Sourc
 .. _readme-docs:
 
 
-Documentation
+📓 Documentation
 -------------
 
 An introduction to AISDB can be found here: `Introduction <https://aisdb.meridian.cs.dal.ca/doc/intro.html>`__.
@@ -79,7 +77,7 @@ Additional API documentation: `API Docs <https://aisdb.meridian.cs.dal.ca/doc/ap
 
 .. _readme-examples:
 
-Code examples
+🔮 Code examples
 -------------
 
 1. `Parsing raw format messages into a
