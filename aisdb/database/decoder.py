@@ -328,7 +328,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False, ra
                     dbconn.execute("VACUUM")
                 elif isinstance(vacuum, str):
                     assert not os.path.isfile(vacuum)
-                    dbconn.execute(f"VACUUM INTO {vacuum}")
+                    dbconn.execute("VACUUM INTO ?", (vacuum,))
                 else:
                     raise ValueError(
                         "vacuum arg must be boolean or filepath string")

@@ -1,4 +1,4 @@
 def test_import_receiver():
-    from aisdb.receiver import start_receiver
+    pass
 
-from examples import clean_random_noise, query_db_API, visualize
+

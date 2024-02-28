@@ -1,38 +1,36 @@
 import os
+import warnings
 from datetime import datetime, timedelta
 
-import warnings
-
-from aisdb import track_gen, DBQuery, sqlfcn_callbacks, DBConn
 from aisdb import encode_greatcircledistance
-from aisdb.wsa import wetted_surface_area
+from aisdb import track_gen, DBQuery, sqlfcn_callbacks, DBConn
 from aisdb.database import sqlfcn
-from aisdb.webdata.marinetraffic import vessel_info, VesselInfo
-
 from aisdb.tests.create_testing_data import sample_database_file
+from aisdb.webdata.marinetraffic import vessel_info, VesselInfo
+from aisdb.wsa import wetted_surface_area
 
 testdir = os.environ.get(
-    'AISDBTESTDIR',
+    "AISDBTESTDIR",
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        'testdata',
+        "testdata",
     ),
 )
 if not os.path.isdir(testdir):
     os.mkdir(testdir)
 
-trafficDBpath = os.path.join(testdir, 'marinetraffic_test.db')
+trafficDBpath = os.path.join(testdir, "marinetraffic_test.db")
 
 
 def test_wetted_surface_area_regression_marinetraffic(tmpdir):
-    dbpath = os.path.join(tmpdir, 'test_trackgen.db')
+    dbpath = os.path.join(tmpdir, "test_trackgen.db")
     months = sample_database_file(dbpath)
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
     vinfoDB = VesselInfo(trafficDBpath).trafficDB
     with DBConn(
             dbpath) as dbconn, warnings.catch_warnings(), vinfoDB as trafficDB:
-        warnings.simplefilter('ignore')
+        warnings.simplefilter("ignore")
 
         qry = DBQuery(
             dbconn=dbconn,

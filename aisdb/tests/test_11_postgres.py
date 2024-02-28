@@ -17,42 +17,43 @@ from aisdb.tests.create_testing_data import (
     sample_gulfstlawrence_bbox,
 )
 from aisdb.track_gen import TrackGen
-#import dotenv
-#dotenv.load_dotenv()
 
-postgres_test_conn = dict(hostaddr='127.0.0.1',
-                          user='postgres',
+# import dotenv
+# dotenv.load_dotenv()
+
+postgres_test_conn = dict(hostaddr="127.0.0.1",
+                          user="postgres",
                           port=5432,
-                          password=os.environ['pgpass'])
+                          password=os.environ["pgpass"])
+
 
 def test_postgres():
-
     # keyword arguments
     with PostgresDBConn(**postgres_test_conn) as dbconn:
         cur = dbconn.cursor()
-        cur.execute('select * from coarsetype_ref;')
+        cur.execute("select * from coarsetype_ref;")
         res = cur.fetchall()
         print(res)
 
 
 # libpq connection string
-'''
-with PostgresDBConn('postgresql://127.0.0.1:443/postgres?') as dbconn:
+"""
+with PostgresDBConn("postgresql://127.0.0.1:443/postgres?") as dbconn:
     with dbconn.cursor() as cur:
-        cur.execute('select * from coarsetype_ref;')
+        cur.execute("select * from coarsetype_ref;")
         res = cur.fetchall()
         print(res)
-'''
+"""
 
 
 def test_create_from_CSV_postgres(tmpdir):
-    testingdata_csv = os.path.join(os.path.dirname(__file__), 'testdata',
-                                   'test_data_20210701.csv')
+    testingdata_csv = os.path.join(os.path.dirname(__file__), "testdata",
+                                   "test_data_20210701.csv")
     with PostgresDBConn(**postgres_test_conn) as dbconn:
         decode_msgs(
             dbconn=dbconn,
             filepaths=[testingdata_csv],
-            source='TESTING',
+            source="TESTING",
             vacuum=False,
         )
         cur = dbconn.cursor()
@@ -61,73 +62,72 @@ def test_create_from_CSV_postgres(tmpdir):
             "SELECT table_name FROM information_schema.tables "
             "WHERE table_schema = 'public' ORDER BY table_name;")
         tables = [row["table_name"] for row in cur.fetchall()]
-        assert 'ais_202107_dynamic' in tables
+        assert "ais_202107_dynamic" in tables
 
 
 def test_decode_1day_postgres(tmpdir):
-    testingdata_nm4 = os.path.join(os.path.dirname(__file__), 'testdata',
-                                   'test_data_20211101.nm4')
-    testingdata_csv = os.path.join(os.path.dirname(__file__), 'testdata',
-                                   'test_data_20210701.csv')
-    testingdata_gz = os.path.join(os.path.dirname(__file__), 'testdata',
-                                  'test_data_20211101.nm4.gz')
-    testingdata_zip = os.path.join(os.path.dirname(__file__), 'testdata',
-                                   'test_data_20211101.nm4.zip')
+    testingdata_nm4 = os.path.join(os.path.dirname(__file__), "testdata",
+                                   "test_data_20211101.nm4")
+    testingdata_csv = os.path.join(os.path.dirname(__file__), "testdata",
+                                   "test_data_20210701.csv")
+    testingdata_gz = os.path.join(os.path.dirname(__file__), "testdata",
+                                  "test_data_20211101.nm4.gz")
+    testingdata_zip = os.path.join(os.path.dirname(__file__), "testdata",
+                                   "test_data_20211101.nm4.zip")
     filepaths = [
         testingdata_csv, testingdata_nm4, testingdata_gz, testingdata_zip
     ]
 
     with PostgresDBConn(**postgres_test_conn) as dbconn:
-
-        #dbconn.execute('TRUNCATE hashmap')
-        #dbconn.commit()
+        # dbconn.execute("TRUNCATE hashmap")
+        # dbconn.commit()
 
         dt = datetime.now()
         decode_msgs(filepaths=filepaths,
                     dbconn=dbconn,
-                    source='TESTING',
+                    source="TESTING",
                     vacuum=True,
                     verbose=True)
         delta = datetime.now() - dt
         print(
-            f'postgres total parse and insert time: {delta.total_seconds():.2f}s'
+            f"postgres total parse and insert time: {delta.total_seconds():.2f}s"
         )
 
 
 def test_sql_query_strings_postgres(tmpdir):
-    testingdata_nm4 = os.path.join(os.path.dirname(__file__), 'testdata',
-                                   'test_data_20211101.nm4')
-    testingdata_csv = os.path.join(os.path.dirname(__file__), 'testdata',
-                                   'test_data_20210701.csv')
-    testingdata_gz = os.path.join(os.path.dirname(__file__), 'testdata',
-                                  'test_data_20211101.nm4.gz')
-    testingdata_zip = os.path.join(os.path.dirname(__file__), 'testdata',
-                                   'test_data_20211101.nm4.zip')
+    testingdata_nm4 = os.path.join(os.path.dirname(__file__), "testdata",
+                                   "test_data_20211101.nm4")
+    testingdata_csv = os.path.join(os.path.dirname(__file__), "testdata",
+                                   "test_data_20210701.csv")
+    testingdata_gz = os.path.join(os.path.dirname(__file__), "testdata",
+                                  "test_data_20211101.nm4.gz")
+    testingdata_zip = os.path.join(os.path.dirname(__file__), "testdata",
+                                   "test_data_20211101.nm4.zip")
     filepaths = [
         testingdata_csv, testingdata_nm4, testingdata_gz, testingdata_zip
     ]
-    #testdbpath = os.path.join(tmpdir, 'test_sql_query_strings.db')
-    #months = sample_database_file(testdbpath)
-    months = ['202107', '202111']
+    # testdbpath = os.path.join(tmpdir, "test_sql_query_strings.db")
+    # months = sample_database_file(testdbpath)
+    months = ["202107", "202111"]
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
     z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
-    domain = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
+    domain = Domain("gulf domain", zones=[{"name": "z1", "geometry": z1}])
     with PostgresDBConn(**postgres_test_conn) as aisdatabase:
         decode_msgs(filepaths=filepaths,
                     dbconn=aisdatabase,
-                    source='TESTING',
+                    source="TESTING",
                     vacuum=True,
                     verbose=True,
                     skip_checksum=True)
         for callback in [
-                sqlfcn_callbacks.in_bbox,
-                sqlfcn_callbacks.in_bbox_time,
-                sqlfcn_callbacks.in_bbox_time_validmmsi,
-                sqlfcn_callbacks.in_time_bbox_inmmsi,
-                sqlfcn_callbacks.in_timerange,
-                sqlfcn_callbacks.in_timerange_hasmmsi,
-                sqlfcn_callbacks.in_timerange_validmmsi,
+            sqlfcn_callbacks.in_bbox,
+            sqlfcn_callbacks.in_bbox_time,
+            sqlfcn_callbacks.in_bbox_time_validmmsi,
+            sqlfcn_callbacks.in_time_bbox_inmmsi,
+            sqlfcn_callbacks.in_timerange,
+            sqlfcn_callbacks.in_timerange_hasmmsi,
+            sqlfcn_callbacks.in_timerange_validmmsi,
         ]:
             rowgen = DBQuery(
                 dbconn=aisdatabase,
@@ -146,18 +146,18 @@ def test_sql_query_strings_postgres(tmpdir):
 
 def test_compare_sqlite_postgres_query_output(tmpdir):
     testdbpath = os.path.join(tmpdir,
-                              'test_compare_sqlite_postgres_query_output.db')
+                              "test_compare_sqlite_postgres_query_output.db")
     months = sample_database_file(testdbpath)
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = datetime(int(months[-1][0:4]), int(months[-1][4:6]), 1)
     z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
-    domain = Domain('gulf domain', zones=[{'name': 'z1', 'geometry': z1}])
+    domain = Domain("gulf domain", zones=[{"name": "z1", "geometry": z1}])
 
-    testingdata_nm4 = os.path.join(os.path.dirname(__file__), 'testdata',
-                                   'test_data_20211101.nm4')
-    testingdata_csv = os.path.join(os.path.dirname(__file__), 'testdata',
-                                   'test_data_20210701.csv')
-    testingdata_gz = os.path.join(os.path.dirname(__file__), 'testdata',
+    testingdata_nm4 = os.path.join(os.path.dirname(__file__), "testdata",
+                                   "test_data_20211101.nm4")
+    testingdata_csv = os.path.join(os.path.dirname(__file__), "testdata",
+                                   "test_data_20210701.csv")
+    testingdata_gz = os.path.join(os.path.dirname(__file__), "testdata",
                                   'test_data_20211101.nm4.gz')
     testingdata_zip = os.path.join(os.path.dirname(__file__), 'testdata',
                                    'test_data_20211101.nm4.zip')
@@ -167,7 +167,6 @@ def test_compare_sqlite_postgres_query_output(tmpdir):
 
     with DBConn(testdbpath) as sqlitedb, PostgresDBConn(
             **postgres_test_conn) as pgdb:
-
         decode_msgs(filepaths=filepaths,
                     dbconn=sqlitedb,
                     source='TESTING_SQLITE',

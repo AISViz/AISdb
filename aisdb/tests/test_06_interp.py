@@ -4,12 +4,12 @@ from datetime import datetime, timedelta
 from aisdb import track_gen, sqlfcn, sqlfcn_callbacks
 from aisdb.database.dbconn import DBConn
 from aisdb.database.dbqry import DBQuery
-from aisdb.tests.create_testing_data import sample_database_file
 from aisdb.interp import interp_time, geo_interp_time
+from aisdb.tests.create_testing_data import sample_database_file
 
 
 def test_interp(tmpdir):
-    dbpath = os.path.join(tmpdir, 'test_interp.db')
+    dbpath = os.path.join(tmpdir, "test_interp.db")
     months = sample_database_file(dbpath)
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=4)
@@ -33,11 +33,11 @@ def test_interp(tmpdir):
         )
 
         for track in tracks:
-            assert 'time' in track.keys()
-            if len(track['time']) >= 3:
+            assert "time" in track.keys()
+            if len(track["time"]) >= 3:
                 print(track)
 
         for track in geo_tracks:
-            assert 'time' in track.keys()
-            if len(track['time']) >= 3:
+            assert "time" in track.keys()
+            if len(track["time"]) >= 3:
                 print(track)

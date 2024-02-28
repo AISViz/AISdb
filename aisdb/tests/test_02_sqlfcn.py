@@ -18,7 +18,7 @@ kwargs = dict(
 
 
 def test_dynamic(tmpdir):
-    dbpath = os.path.join(tmpdir, 'test_sqlfcn_dynamic.db')
+    dbpath = os.path.join(tmpdir, "test_sqlfcn_dynamic.db")
     month = "202105"
     callback = sqlfcn_callbacks.in_time_bbox_validmmsi
     txt = sqlfcn._dynamic(dbpath=dbpath,
@@ -29,7 +29,7 @@ def test_dynamic(tmpdir):
 
 
 def test_static(tmpdir):
-    dbpath = os.path.join(tmpdir, 'test_sqlfcn_static.db')
+    dbpath = os.path.join(tmpdir, "test_sqlfcn_static.db")
     month = "202105"
     txt = sqlfcn._static(dbpath=dbpath, month=month)
     print(txt)
@@ -42,8 +42,8 @@ def test_leftjoin():
 
 
 def test_crawl(tmpdir):
-    dbpath = os.path.join(tmpdir, 'test_sqlfcn_crawl.db')
-    months = ['202105']
+    dbpath = os.path.join(tmpdir, "test_sqlfcn_crawl.db")
+    months = ["202105"]
     callback = sqlfcn_callbacks.in_time_bbox_validmmsi
     txt = sqlfcn.crawl_dynamic_static(dbpath=dbpath,
                                       months=months,
@@ -58,22 +58,22 @@ def test_crawl(tmpdir):
 
 
 def test_callbacks(tmpdir):
-    dbpath = os.path.join(tmpdir, 'test_sqlfcn_callbacks.db')
-    months = ['202105']
+    dbpath = os.path.join(tmpdir, "test_sqlfcn_callbacks.db")
+    months = ["202105"]
     callback = sqlfcn_callbacks.in_time_bbox_validmmsi
     for callback in [
-            sqlfcn_callbacks.in_bbox,
-            sqlfcn_callbacks.in_bbox_time,
-            sqlfcn_callbacks.in_bbox_time_validmmsi,
-            sqlfcn_callbacks.in_time_bbox,
-            sqlfcn_callbacks.in_time_bbox_hasmmsi,
-            sqlfcn_callbacks.in_time_bbox_inmmsi,
-            sqlfcn_callbacks.in_time_bbox_validmmsi,
-            sqlfcn_callbacks.in_time_mmsi,
-            sqlfcn_callbacks.in_timerange,
-            sqlfcn_callbacks.in_timerange_hasmmsi,
-            sqlfcn_callbacks.in_timerange_inmmsi,
-            sqlfcn_callbacks.in_timerange_validmmsi,
+        sqlfcn_callbacks.in_bbox,
+        sqlfcn_callbacks.in_bbox_time,
+        sqlfcn_callbacks.in_bbox_time_validmmsi,
+        sqlfcn_callbacks.in_time_bbox,
+        sqlfcn_callbacks.in_time_bbox_hasmmsi,
+        sqlfcn_callbacks.in_time_bbox_inmmsi,
+        sqlfcn_callbacks.in_time_bbox_validmmsi,
+        sqlfcn_callbacks.in_time_mmsi,
+        sqlfcn_callbacks.in_timerange,
+        sqlfcn_callbacks.in_timerange_hasmmsi,
+        sqlfcn_callbacks.in_timerange_inmmsi,
+        sqlfcn_callbacks.in_timerange_validmmsi,
     ]:
         box_x = sorted(np.random.random(2) * 360 - 180)
         box_y = sorted(np.random.random(2) * 180 - 90)

@@ -1,5 +1,6 @@
-from aisdb import dt_2_epoch
 import aisdb
+from aisdb import dt_2_epoch
+
 
 def test_track_interpolation():
     import numpy as np
@@ -18,7 +19,7 @@ def test_track_interpolation():
             lon=np.array([x1, x2, x3]),
             lat=np.array([y1, y2, y3]),
             time=np.array([t1, t2, t3]),
-            dynamic=set(['lon', 'lat', 'time']),
+            dynamic=set(["lon", "lat", "time"]),
             static=set()
         )
     ]
