@@ -73,6 +73,8 @@ pub fn decoder(
     files: Vec<PathBuf>,
     source: String,
     verbose: bool,
+    workers: u64,
+    allow_swap: bool,
     py: Python,
 ) -> Vec<PathBuf> {
     // tuples containing (dbpath, filepath)
@@ -93,15 +95,19 @@ pub fn decoder(
     let mut sys = System::new_with_specifics(RefreshKind::new().with_memory());
     sys.refresh_memory();
 
-    // reserve atleast 3.5GB of available memory for each worker thread,
-    // up to a maximum of one worker per CPU
-    let worker_count = min(
-        min(
-            max(1, (sys.available_memory() - bytesize) / bytesize),
-            min(32, available_parallelism().expect("CPU count").get() as u64),
-        ),
-        files.len() as u64,
-    );
+    let worker_count = 0;
+
+    if workers > 0 {
+        worker_count = workers;
+    } else {
+        worker_count = min(
+            min(  // Requires 3.5GB on each thread
+                max(2, (sys.available_memory() - bytesize) / bytesize),
+                min(32, available_parallelism().expect("CPU count").get() as u64),
+            ),
+            files.len() as u64,
+        );
+    }
     let pool = ThreadPool::builder()
         .pool_size(worker_count as usize)
         .name_prefix("aisdb-decode-")
@@ -146,28 +152,29 @@ pub fn decoder(
         sleep(System::MINIMUM_CPU_UPDATE_INTERVAL);
         sys.refresh_memory();
 
-        // wait until the system has some available memory
-        while (in_process * bytesize > sys.total_memory() - bytesize
-            || sys.available_memory() < bytesize)
-            && in_process != 0
-        {
-            sleep(System::MINIMUM_CPU_UPDATE_INTERVAL + Duration::from_millis(50));
-            // check if keyboardinterrupt was sent
-            py.check_signals()
-                .expect("Decoder interrupted while spawning workers");
-            // check if worker completed a file
-            match receiver.try_recv() {
-                Ok(r) => {
-                    update_done_files(&mut completed, &mut errored, r);
-                    in_process -= 1;
+        if !allow_swap {
+            // wait until the system has some available memory
+            while (in_process * bytesize > sys.total_memory() - bytesize
+                || sys.available_memory() < bytesize)
+                && in_process != 0
+            {
+                sleep(System::MINIMUM_CPU_UPDATE_INTERVAL + Duration::from_millis(50));
+                // check if keyboardinterrupt was sent
+                py.check_signals()
+                    .expect("Decoder interrupted while spawning workers");
+                // check if worker completed a file
+                match receiver.try_recv() {
+                    Ok(r) => {
+                        update_done_files(&mut completed, &mut errored, r);
+                        in_process -= 1;
+                    }
+                    Err(_r) => {
+                        sleep(std::time::Duration::from_millis(100));
+                    }
                 }
-                Err(_r) => {
-                    sleep(std::time::Duration::from_millis(100));
-                }
+                sys.refresh_memory();
             }
-
-            sys.refresh_memory();
-        }
+        };
         if verbose {
             println!("processing {}", f.display());
         }
