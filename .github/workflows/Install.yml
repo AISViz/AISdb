@@ -22,7 +22,8 @@ jobs:
 
     - name: Install Rust Toolchain
       run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > install-rust.sh
+        sh install-rust.sh -q -y
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
     - name: Set up Python
@@ -36,7 +37,7 @@ jobs:
         source ./AISdb/bin/activate
 
     - name: Install Maturin
-      run: python -m pip install maturin
+      run: python -m pip install --upgrade maturin[patchelf]
 
     - name: Build and Install aisdb
       run: |
