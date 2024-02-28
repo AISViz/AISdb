@@ -101,7 +101,7 @@ pub fn decoder(
         worker_count = workers;
     } else {
         worker_count = min(
-            min(  // Requires 3.5GB on each thread
+            min(  // Requires 3.5GB per thread
                 max(2, (sys.available_memory() - bytesize) / bytesize),
                 min(32, available_parallelism().expect("CPU count").get() as u64),
             ),
