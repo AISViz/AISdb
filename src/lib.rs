@@ -152,29 +152,28 @@ pub fn decoder(
         sleep(System::MINIMUM_CPU_UPDATE_INTERVAL);
         sys.refresh_memory();
 
-        if !allow_swap {
-            // wait until the system has some available memory
-            while (in_process * bytesize > sys.total_memory() - bytesize
-                || sys.available_memory() < bytesize)
-                && in_process != 0
-            {
-                sleep(System::MINIMUM_CPU_UPDATE_INTERVAL + Duration::from_millis(50));
-                // check if keyboardinterrupt was sent
-                py.check_signals()
-                    .expect("Decoder interrupted while spawning workers");
-                // check if worker completed a file
-                match receiver.try_recv() {
-                    Ok(r) => {
-                        update_done_files(&mut completed, &mut errored, r);
-                        in_process -= 1;
-                    }
-                    Err(_r) => {
-                        sleep(std::time::Duration::from_millis(100));
-                    }
+        // wait until the system has some available memory
+        while (in_process * bytesize > sys.total_memory() - bytesize
+            || sys.available_memory() < bytesize)
+            && in_process != 0
+        {
+            sleep(System::MINIMUM_CPU_UPDATE_INTERVAL + Duration::from_millis(50));
+            // check if keyboardinterrupt was sent
+            py.check_signals()
+                .expect("Decoder interrupted while spawning workers");
+            // check if worker completed a file
+            match receiver.try_recv() {
+                Ok(r) => {
+                    update_done_files(&mut completed, &mut errored, r);
+                    in_process -= 1;
                 }
-                sys.refresh_memory();
+                Err(_r) => {
+                    sleep(std::time::Duration::from_millis(100));
+                }
             }
-        };
+
+            sys.refresh_memory();
+        }
         if verbose {
             println!("processing {}", f.display());
         }
