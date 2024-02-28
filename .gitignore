@@ -71,3 +71,5 @@ target
 /testdata/
 testinput
 !aisdb/tests/testdata/
+build.sh
+install-rust.sh

@@ -52,7 +52,7 @@ dependencies = [
 
 [[package]]
 name = "aisdb"
-version = "1.7.0"
+version = "1.7.1"
 dependencies = [
  "aisdb-lib",
  "aisdb-receiver",
@@ -69,7 +69,7 @@ dependencies = [
 
 [[package]]
 name = "aisdb-lib"
-version = "1.7.0"
+version = "1.7.1"
 dependencies = [
  "chrono",
  "csv",
@@ -1082,7 +1082,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "futures-util",
- "http 0.2.9",
+ "http",
  "indexmap",
  "slab",
  "tokio",
@@ -1206,24 +1206,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "http"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b32afd38673a8016f7c9ae69e5af41a58f81b1d31689040f2f1959594ce194ea"
-dependencies = [
- "bytes",
- "fnv",
- "itoa",
-]
-
-[[package]]
 name = "http-body"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5f38f16d184e36f2408a55281cd658ecbd3ca05cce6d6510a176eca393e26d1"
 dependencies = [
  "bytes",
- "http 0.2.9",
+ "http",
  "pin-project-lite",
 ]
 
@@ -1266,7 +1255,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "h2",
- "http 0.2.9",
+ "http",
  "http-body",
  "httparse",
  "httpdate",
@@ -2158,7 +2147,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "h2",
- "http 0.2.9",
+ "http",
  "http-body",
  "hyper",
  "hyper-tls",
@@ -2287,32 +2276,23 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.22.2"
+version = "0.21.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e87c9956bd9807afa1f77e0f7594af32566e830e088a5576d27c5b6f30f49d41"
+checksum = "f9d5a6813c0759e4609cd494e8e725babae6a2ca7b62a5536a13daaec6fcb7ba"
 dependencies = [
  "log",
  "ring 0.17.8",
- "rustls-pki-types",
  "rustls-webpki",
- "subtle",
- "zeroize",
+ "sct",
 ]
 
 [[package]]
-name = "rustls-pki-types"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "048a63e5b3ac996d78d402940b5fa47973d2d080c6c6fffa1d0f19c4445310b7"
-
-[[package]]
 name = "rustls-webpki"
-version = "0.102.2"
+version = "0.101.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "faaa0a62740bedb9b2ef5afa303da42764c012f743917351dc9a237ea1663610"
+checksum = "8b6275d1ee7a1cd780b64aca7726599a1dbc893b1e64144529e55c3c2f745765"
 dependencies = [
  "ring 0.17.8",
- "rustls-pki-types",
  "untrusted 0.9.0",
 ]
 
@@ -2930,24 +2910,23 @@ checksum = "3528ecfd12c466c6f163363caf2d02a71161dd5e1cc6ae7b34207ea2d42d81ed"
 
 [[package]]
 name = "tungstenite"
-version = "0.21.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ef1a641ea34f399a848dea702823bbecfb4c486f911735368f1f137cb8257e1"
+checksum = "9e3dac10fd62eaf6617d3a904ae222845979aec67c615d1c842b4002c7666fb9"
 dependencies = [
  "byteorder",
  "bytes",
  "data-encoding",
- "http 1.0.0",
+ "http",
  "httparse",
  "log",
  "rand",
- "rustls 0.22.2",
- "rustls-pki-types",
+ "rustls 0.21.10",
  "sha1",
  "thiserror",
  "url",
  "utf-8",
- "webpki-roots 0.26.1",
+ "webpki-roots 0.24.0",
 ]
 
 [[package]]
@@ -3253,11 +3232,11 @@ dependencies = [
 
 [[package]]
 name = "webpki-roots"
-version = "0.26.1"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3de34ae270483955a94f4b21bdaaeb83d508bb84a01435f393818edb0012009"
+checksum = "b291546d5d9d1eab74f069c77749f2cb8504a12caa20f0f2de93ddbf6f411888"
 dependencies = [
- "rustls-pki-types",
+ "rustls-webpki",
 ]
 
 [[package]]

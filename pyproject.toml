@@ -8,26 +8,23 @@ requires-python = ">=3.8"
 requires-dist = [ "maturin>=1.0", "numpy", "wheel",]
 dependencies = [ "MarkupSafe", "flask", "packaging", "pillow", "requests", "selenium", "shapely", "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "python-dateutil", "orjson", "websockets","beautifulsoup4", "pyproj"]
 zip-safe = false
-version = "1.7.0"
+version = "1.7.1"
 readme = "readme.rst"
-description = "AIS Database and Processing Utils"
-classifiers = [ "Intended Audience :: Developers", "Intended Audience :: Science/Research", "License :: OSI Approved :: MIT License", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Rust", "Programming Language :: SQL", "Programming Language :: JavaScript", "Topic :: Communications :: Ham Radio", "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends", "Topic :: Scientific/Engineering :: GIS", "Topic :: Scientific/Engineering :: Information Analysis", "Topic :: Utilities",]
+description = "Smart AIS data storage and integration"
+classifiers = [ "Intended Audience :: Developers", "Intended Audience :: Science/Research", "License :: OSI Approved :: AGPL-3.0 License", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Rust", "Programming Language :: SQL", "Programming Language :: JavaScript", "Topic :: Communications :: Ham Radio", "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends", "Topic :: Scientific/Engineering :: GIS", "Topic :: Scientific/Engineering :: Information Analysis", "Topic :: Utilities",]
 
 [[project.authors]]
-name = "Matthew Smith"
-email = "matthew.smith@dal.ca"
-
-[[project.authors]]
-name = "Jinkun Chen"
-email = "jinkun.chen@dal.ca"
+name = "[AISViz] Making vessels tracking data available to everyone"
+email = "aisviz@dal.ca"
 
 [project.license-files]
-paths = [ "license.txt",]
+paths = [ "LICENSE",]
 
 [project.urls]
-homepage = "https://aisdb.meridian.cs.dal.ca/"
-documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
-repository = "https://git-dev.cs.dal.ca/meridian/aisdb"
+homepage = "https://aisviz.github.io/"
+repository = "https://github.com/AISViz/AISdb"
+tutorials = "https://aisviz.gitbook.io/tutorials/"
+documentation = "https://aisviz.gitbook.io/documentation/"
 
 [project.optional-dependencies]
 test = [ "coverage", "pytest", "pytest-cov", "pytest-dotenv",]

@@ -15,7 +15,7 @@ The AISdb team takes security vulnerabilities seriously. If you discover a secur
 
 ### How to Report a Security Vulnerability:
 
-- **Email:** Send an email to Gabriel Spadon at gabriel@spadon.com.br. Please include a detailed description of the issue, including the steps to reproduce the vulnerability. If possible, include patches, scripts, or other resources that could help evaluate the vulnerability.
+- **Email:** Send an email to aisviz@dal.ca. Please include a detailed description of the issue, including the steps to reproduce the vulnerability. If possible, include patches, scripts, or other resources that could help evaluate the vulnerability.
 - **GitHub Issue:** For vulnerabilities that do not immediately impact the security of the project or its users (such as potential optimizations or best practices), consider opening a GitHub issue on our repository.
 
 ### Response Expectations:

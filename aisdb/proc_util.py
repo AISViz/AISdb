@@ -62,9 +62,7 @@ def _segment_rng(track, maxdelta, key='time') -> filter:
         yield rng
 
 
-def write_csv_rows(rows,
-                   pathname='/data/smith6/ais/scripts/output.csv',
-                   mode='a'):
+def write_csv_rows(rows, pathname='output.csv', mode='a'):
     with open(pathname, mode) as f:
         f.write('\n'.join(
             map(
