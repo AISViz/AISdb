@@ -2,34 +2,39 @@
 name = "aisdb"
 edition = "2021"
 version = "1.7.1"
-include = [ "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml", "aisdb_web/dist_map/index.html", "aisdb_web/dist_map/favicon.svg", "aisdb_web/dist_map/favicon.png", "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map_bingmaps/index.html", "aisdb_web/dist_map_bingmaps/favicon.svg", "aisdb_web/dist_map_bingmaps/favicon.png", "aisdb_web/dist_map_bingmaps/assets/*",]
+include = [
+    "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map_bingmaps/index.html", "aisdb_web/dist_map_bingmaps/favicon.svg",
+    "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml",
+    "aisdb_web/dist_map/index.html", "aisdb_web/dist_map/favicon.svg", "aisdb_web/dist_map/favicon.png",
+    "aisdb_web/dist_map_bingmaps/favicon.png", "aisdb_web/dist_map_bingmaps/assets/*",
+]
 
 [lib]
-crate-type = [ "cdylib", "rlib",]
+crate-type = [ "cdylib", "rlib", ]
 path = "src/lib.rs"
 
 [dependencies]
-geo = "0.26"
+geo = "0.28.0"
 geo-types = "*"
-nmea-parser = "0.10"
-sysinfo = "0.29"
+nmea-parser = "0.10.0"
+sysinfo = "0.29.11"
 
 [build-dependencies]
-wasm-opt = "0.112"
-wasm-pack = "0.11"
-reqwest = "0.11"
+wasm-opt = "0.114.2"
+wasm-pack = "0.11.1"
+reqwest = "0.11.24"
 
 [dependencies.futures]
-version = "0.3"
-features = [ "executor", "thread-pool",]
+version = "0.3.30"
+features = [ "executor", "thread-pool", ]
 
 [dependencies.aisdb-lib]
 path = "aisdb_lib"
-features = [ "sqlite", "postgres",]
+features = [ "sqlite", "postgres", ]
 
 [dependencies.aisdb-receiver]
 path = "receiver"
 
 [dependencies.pyo3]
-version = "0.18.3"
-features = [ "extension-module", "generate-import-lib",]
+version = "0.20.3"
+features = [ "extension-module", "generate-import-lib", ]

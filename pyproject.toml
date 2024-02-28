@@ -1,41 +1,58 @@
 [build-system]
-requires = [ "maturin>=1.0", "numpy", "wheel", "patchelf",]
+requires = [ "maturin>=1.0", "numpy", "wheel", "patchelf", ]
 build-backend = "maturin"
 
 [project]
 name = "aisdb"
 requires-python = ">=3.8"
-requires-dist = [ "maturin>=1.0", "numpy", "wheel",]
-dependencies = [ "MarkupSafe", "flask", "packaging", "pillow", "requests", "selenium", "shapely", "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "python-dateutil", "orjson", "websockets","beautifulsoup4", "pyproj"]
+requires-dist = [ "maturin>=1.0", "numpy", "wheel", ]
+dependencies = [
+    "MarkupSafe", "flask", "packaging", "pillow", "requests", "selenium", "shapely",
+    "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]",
+    "python-dateutil", "orjson", "websockets","beautifulsoup4", "pyproj"
+]
 zip-safe = false
 version = "1.7.1"
 readme = "readme.rst"
 description = "Smart AIS data storage and integration"
-classifiers = [ "Intended Audience :: Developers", "Intended Audience :: Science/Research", "License :: OSI Approved :: AGPL-3.0 License", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Rust", "Programming Language :: SQL", "Programming Language :: JavaScript", "Topic :: Communications :: Ham Radio", "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends", "Topic :: Scientific/Engineering :: GIS", "Topic :: Scientific/Engineering :: Information Analysis", "Topic :: Utilities",]
+classifiers = [
+    "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends", "Topic :: Scientific/Engineering :: GIS",
+    "Intended Audience :: Developers", "Intended Audience :: Science/Research", "License :: OSI Approved :: AGPL-3.0 License",
+    "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9",
+    "Topic :: Scientific/Engineering :: Information Analysis", "Topic :: Utilities", "Programming Language :: JavaScript",
+    "Programming Language :: Python :: 3.10", "Programming Language :: Rust",
+    "Programming Language :: SQL", "Topic :: Communications :: Ham Radio",
+]
 
 [[project.authors]]
 name = "[AISViz] Making vessels tracking data available to everyone"
 email = "aisviz@dal.ca"
 
 [project.license-files]
-paths = [ "LICENSE",]
+paths = [ "LICENSE", ]
 
 [project.urls]
-homepage = "https://aisviz.github.io/"
+homepage = "https://aisviz.cs.dal.ca/"
 repository = "https://github.com/AISViz/AISdb"
 tutorials = "https://aisviz.gitbook.io/tutorials/"
 documentation = "https://aisviz.gitbook.io/documentation/"
 
 [project.optional-dependencies]
-test = [ "coverage", "pytest", "pytest-cov", "pytest-dotenv",]
-docs = [ "sphinx", "sphinx-rtd-theme",]
+test = [ "coverage", "pytest", "pytest-cov", "pytest-dotenv", ]
+docs = [ "sphinx", "sphinx-rtd-theme", ]
 devel = []
 
 [tool.maturin]
-include = [ "pyproject.toml", "aisdb/*.py", "aisdb/aisdb_sql/*.sql", "aisdb/database/*.py", "aisdb/tests/*.py", "aisdb/tests/testdata/test_data_20210701.csv", "aisdb/tests/testdata/test_data_20211101.nm4", "aisdb/webdata/*.py", "aisdb_lib/*", "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map/favicon.png", "aisdb_web/dist_map/favicon.svg", "aisdb_web/dist_map/index.html", "aisdb_web/dist_map_bingmaps/assets/*", "aisdb_web/dist_map_bingmaps/favicon.png", "aisdb_web/dist_map_bingmaps/favicon.svg", "aisdb_web/dist_map_bingmaps/index.html",]
+include = [
+    "aisdb_web/dist_map_bingmaps/favicon.svg", "aisdb_web/dist_map_bingmaps/index.html",
+    "pyproject.toml", "aisdb/*.py", "aisdb/aisdb_sql/*.sql", "aisdb/database/*.py", "aisdb/tests/*.py",
+    "aisdb_lib/*", "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map/favicon.png", "aisdb_web/dist_map/favicon.svg",
+    "aisdb/tests/testdata/test_data_20210701.csv", "aisdb/tests/testdata/test_data_20211101.nm4", "aisdb/webdata/*.py",
+    "aisdb_web/dist_map/index.html", "aisdb_web/dist_map_bingmaps/assets/*", "aisdb_web/dist_map_bingmaps/favicon.png",
+]
 bindings = "pyo3"
 compatability = "manylinux2014"
 
 [tool.pytest.ini_options]
-testpaths = [ "aisdb/tests",]
+testpaths = [ "aisdb/tests", ]
 addopts = "--color=yes --cov-report term --cov-report html:docs/dist_coverage --cov=aisdb --cov=examples --doctest-modules --envfile .env"
