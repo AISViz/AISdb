@@ -4,8 +4,8 @@
 .. image:: https://github.com/AISViz/AISdb/actions/workflows/github-code-scanning/codeql/badge.svg
    :target: https://github.com/AISViz/AISdb/actions/workflows/github-code-scanning/codeql
    :alt: CodeQL status
-.. image:: https://github.com/AISViz/AISdb/actions/workflows/test-installation.yml/badge.svg
-   :target: https://github.com/AISViz/AISdb/actions/workflows/test-installation.yml
+.. image:: https://github.com/AISViz/AISdb/actions/workflows/Install.yml/badge.svg
+   :target: https://github.com/AISViz/AISdb/actions/workflows/Install.yml
    :alt: Test installation status
 
 .. description:
