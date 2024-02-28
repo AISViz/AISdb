@@ -427,7 +427,7 @@ fn handle_websocket_client(
                 Ok((count_input, remote_addr)) => {
                     //#[cfg(debug_assertions)]
                     //println!("RX: {}", String::from_utf8_lossy(&buf[0..count_input]));
-                    if let Err(e) = websocket.write_message(Message::Text(
+                    if let Err(e) = websocket.send(Message::Text(
                         String::from_utf8(buf[0..count_input].to_vec()).unwrap(),
                     )) {
                         eprintln!("dropping client: {} {}", remote_addr, e);
