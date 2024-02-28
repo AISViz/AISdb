@@ -1,7 +1,7 @@
 [package]
-version = "1.7.0"
 name = "aisdb"
 edition = "2021"
+version = "1.7.1"
 include = [ "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml", "aisdb_web/dist_map/index.html", "aisdb_web/dist_map/favicon.svg", "aisdb_web/dist_map/favicon.png", "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map_bingmaps/index.html", "aisdb_web/dist_map_bingmaps/favicon.svg", "aisdb_web/dist_map_bingmaps/favicon.png", "aisdb_web/dist_map_bingmaps/assets/*",]
 
 [lib]

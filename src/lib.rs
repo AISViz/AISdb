@@ -1,5 +1,5 @@
 //! Rust exports for python API
-use std::cmp::{max, min};
+use std::cmp::max;
 use std::fs::metadata;
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
@@ -95,7 +95,7 @@ pub fn decoder(
     let mut sys = System::new_with_specifics(RefreshKind::new().with_memory());
     sys.refresh_memory();
 
-    let mut worker_count = 0;
+    let worker_count;
 
     if workers > 0 {
         worker_count = workers;
@@ -195,7 +195,7 @@ pub fn decoder(
                             verbose,
                         )
                         .expect("decoding NM4");
-                        update_done_files(&mut completed, &mut errored, Ok(f.clone() ) );
+                        update_done_files(&mut completed, &mut errored, Ok(f.clone()));
                     }
                     if !psql_conn_string.is_empty() {
                         let sender = sender.clone();
@@ -226,7 +226,7 @@ pub fn decoder(
                     if dbpath != PathBuf::from("") {
                         sqlite_decodemsgs_ee_csv(d.to_path_buf(), f.clone(), &source, verbose)
                             .expect("decoding CSV");
-                        update_done_files(&mut completed, &mut errored, Ok(f.clone() ) );
+                        update_done_files(&mut completed, &mut errored, Ok(f.clone()));
                     }
                     if !psql_conn_string.is_empty() {
                         let sender = sender.clone();

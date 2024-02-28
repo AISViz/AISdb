@@ -2,19 +2,20 @@
 name = "aisdb-receiver"
 version = "0.0.1"
 edition = "2021"
-authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
+authors = [ "[AISViz] Making vessels tracking data available to everyone // aisviz@dal.ca",]
 readme = "../readme.rst"
 description = "AISDB Receiver"
-homepage = "https://aisdb.meridian.cs.dal.ca/"
-documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
-license-file = "../license.txt"
+homepage = "https://aisviz.github.io/"
+repository = "https://github.com/AISViz/AISdb"
+tutorials = "https://aisviz.gitbook.io/tutorials/"
+documentation = "https://aisviz.gitbook.io/documentation/"
+license-file = "../LICENSE"
 
 [lib]
 
 [[bin]]
 name = "aisdb-receiver"
 path = "src/receiver.rs"
-
 
 [dependencies]
 aisdb-lib = { path = "../aisdb_lib" }
