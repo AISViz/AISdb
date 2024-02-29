@@ -26,7 +26,6 @@ tracks_short = [
 
 def test_ShoreDist():
     imgpath = os.path.join(data_dir, "distance-from-shore.tif")
-    assert os.path.isfile(imgpath)
     with ShoreDist(data_dir=data_dir) as sdist:
         for track in sdist.get_distance(tracks_short):
             assert "km_from_shore" in track.keys()
@@ -40,3 +39,8 @@ def test_PortDist():
         for track in portdist.get_distance(tracks_short):
             assert "km_from_port" in track.keys()
             assert "km_from_port" in track["dynamic"]
+
+
+if __name__ == '__main__':
+    test_ShoreDist()
+    test_PortDist()

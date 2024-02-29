@@ -3,23 +3,23 @@
     Also see: https://docs.python.org/3/library/sqlite3.html#connection-objects
 '''
 
-from calendar import monthrange
-from collections import Counter
-from datetime import datetime
-from enum import Enum
 import ipaddress
 import os
 import re
 import warnings
+from calendar import monthrange
+from collections import Counter
+from datetime import datetime
+from enum import Enum
+
+import numpy as np
+import psycopg
 
 from aisdb import sqlite3, sqlpath
 from aisdb.database.create_tables import (
     sql_aggregate,
     sql_createtable_static,
 )
-
-import numpy as np
-import psycopg
 
 with open(os.path.join(sqlpath, 'coarsetype.sql'), 'r') as f:
     coarsetype_sql = f.read().split(';')

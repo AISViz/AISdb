@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta
-from functools import partial, reduce
-from tempfile import SpooledTemporaryFile
 import csv
 import io
 import os
 import re
 import typing
+from datetime import datetime, timedelta
+from functools import partial, reduce
+from tempfile import SpooledTemporaryFile
 
 import numpy as np
 

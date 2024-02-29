@@ -1,9 +1,9 @@
 ''' linear interpolation of track segments on temporal axis '''
 
+import warnings
 from datetime import timedelta
 
 import numpy as np
-import warnings
 from pyproj import Transformer, Geod
 
 

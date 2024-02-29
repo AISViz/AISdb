@@ -1,12 +1,14 @@
 import os
 from datetime import datetime
 
+import shapely
+from aisdb.tests.test_09_marinetraffic import testdir
+from dotenv import load_dotenv
+
 import aisdb
 from aisdb import DBQuery, DBConn
-from aisdb.gis import DomainFromTxts, Domain
-import shapely
-from dotenv import load_dotenv
-from aisdb.tests.test_08_marinetraffic import testdir
+from aisdb.gis import Domain
+
 load_dotenv()
 
 dbpath = os.environ.get('EXAMPLE_NOISE_DB', 'AIS.sqlitedb')

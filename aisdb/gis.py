@@ -7,12 +7,11 @@ from datetime import datetime, timedelta
 from functools import partial
 
 import numpy as np
-import shapely.ops
 import shapely.geometry
-import warnings
+import shapely.ops
+from aisdb.aisdb import haversine
 from shapely.geometry import Polygon, LineString, Point
 
-from aisdb.aisdb import haversine
 from aisdb.proc_util import glob_files
 
 
