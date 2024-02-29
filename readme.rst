@@ -41,7 +41,7 @@ Package features:
 
 .. whatisais:
 
-📢 What is AIS Data❓
+📢 What is AIS Data?
 ------------
 
 The Automatic Identification System (AIS) is a tracking system used by ships and vessel traffic services (VTS) to identify and locate vessels by exchanging data with other nearby ships, VTS stations, and satellites. The primary goal of AIS is to enhance maritime safety, navigation, and security by providing real-time information about the vessels' position, course, and other relevant data. The AIS system uses different message types to communicate information between vessels and tracking stations. These messages can include vessel identification, position, course, speed, navigational status, and other safety-related information. The widespread adoption of AIS has significantly improved the ability of ships to avoid collisions and navigate more safely, especially in busy shipping lanes and ports.
@@ -102,3 +102,14 @@ Additional API documentation: `API Docs <https://aisdb.meridian.cs.dal.ca/doc/ap
 
 6. Integrating data from web sources, such as depth charts, shore distance, etc.
 
+👤 Contributors
+============
+
+.. <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+.. <!-- prettier-ignore-start -->
+.. <!-- markdownlint-disable -->
+
+.. <!-- markdownlint-restore -->
+.. <!-- prettier-ignore-end -->
+
+.. <!-- ALL-CONTRIBUTORS-LIST:END -->
