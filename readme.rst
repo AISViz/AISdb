@@ -14,7 +14,7 @@
     :target: https://img.shields.io/github/commit-activity/t/aisviz/aisdb
     :alt: Commits in the Repository
 .. image:: https://img.shields.io/github/all-contributors/aisviz/aisdb
-    :target: https://img.shields.io/github/all-contributors/aisviz/aisdb
+    :target: https://github.com/AISViz/AISdb/
     :alt: Contribution Tracking
 
 
