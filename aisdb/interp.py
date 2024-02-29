@@ -82,8 +82,7 @@ def interp_time(tracks, step=timedelta(minutes=10)):
     return
 
 
-
-def geo_interp_time(tracks, step=timedelta(minutes=10), original_crs = 4269):
+def geo_interp_time(tracks, step=timedelta(minutes=10), original_crs=4269):
     ''' Geometric interpolation on vessel trajectory, assumes default EPSG:4269
 
             args:
@@ -123,7 +122,7 @@ def geo_interp_time(tracks, step=timedelta(minutes=10), original_crs = 4269):
         '''
     new_crs = 3857
     fwd_trans = Transformer.from_crs(original_crs, new_crs, always_xy=True)
-    back_trans = Transformer.from_crs(new_crs,original_crs, always_xy=True)
+    back_trans = Transformer.from_crs(new_crs, original_crs, always_xy=True)
     geod = Geod(ellps="WGS84")
     for track in tracks:
         if track['time'].size <= 1:
@@ -149,26 +148,27 @@ def geo_interp_time(tracks, step=timedelta(minutes=10), original_crs = 4269):
         if 'lat' in track['dynamic']:
             x, y = fwd_trans.transform(track['lon'], track['lat'])
             x = np.interp(x=intervals.astype(int),
-                      xp=track['time'].astype(int),
-                      fp=x.astype(float))
+                          xp=track['time'].astype(int),
+                          fp=x.astype(float))
             y = np.interp(x=intervals.astype(int),
                           xp=track['time'].astype(int),
                           fp=y.astype(float))
-            itr['lon'], itr['lat'] = back_trans.transform(x,y)
+            itr['lon'], itr['lat'] = back_trans.transform(x, y)
             if 'cog' in track['dynamic']:
                 courses, _, _ = geod.inv(itr['lon'][:-1], itr['lat'][:-1], itr['lon'][1:], itr['lat'][1:])
                 itr['cog'] = np.append(courses, track['cog'][-1])
         for key in track['dynamic']:
             if key not in itr:
                 itr[key] = np.interp(x=intervals.astype(int),
-                     xp=track['time'].astype(int),
-                     fp=track[key].astype(float))
+                                     xp=track['time'].astype(int),
+                                     fp=track[key].astype(float))
 
         yield itr
 
     return
 
-def interp_spacing(spacing : int, tracks, crs = 4269):
+
+def interp_spacing(spacing: int, tracks, crs=4269):
     '''linear interpolation on vessel trajectory
 
         args:
@@ -212,7 +212,7 @@ def interp_spacing(spacing : int, tracks, crs = 4269):
     inv_transformer = Transformer.from_crs(crs2, crs, always_xy=True)
     geod = Geod(ellps="WGS84")
 
-    #loop over files if vessel not read into memory, better for large data
+    # loop over files if vessel not read into memory, better for large data
 
     for track in tracks:
         if track['time'].size <= 1:
@@ -220,9 +220,9 @@ def interp_spacing(spacing : int, tracks, crs = 4269):
             warnings.warn('cannot interpolate track of length 1, skipping...')
             continue
 
-        #respace the coordinates
+        # respace the coordinates
 
-        lon, lat = transformer.transform( track['lon'], track['lat'])
+        lon, lat = transformer.transform(track['lon'], track['lat'])
         if len(lon) == 1:
             continue
         xd = np.diff(lon)
@@ -232,17 +232,17 @@ def interp_spacing(spacing : int, tracks, crs = 4269):
         u = np.hstack([[0], u])
         total_dist = u[-1]
         if total_dist <= spacing:
-                continue
+            continue
         t = np.hstack([np.arange(0, total_dist, spacing), [total_dist]])
         # t = np.linspace(0, total_dist, int(number_of_points))
-        #interpolate the other attributes back
-        track['lon'], track['lat']  = inv_transformer.transform( np.interp(t, u, lon),np.interp(t, u, lat))
+        # interpolate the other attributes back
+        track['lon'], track['lat'] = inv_transformer.transform(np.interp(t, u, lon), np.interp(t, u, lat))
         courses, _, _ = geod.inv(track['lon'][:-1], track['lat'][:-1], track['lon'][1:], track['lat'][1:])
         if 'cog' in track:
             track['cog'] = np.append(courses, track['cog'][-1])
         for k in track['dynamic']:
-            if k == 'lon' or k=='lat' or k == 'cog':
+            if k == 'lon' or k == 'lat' or k == 'cog':
                 continue
-            track[k] = np.interp(t, u,track[k])
+            track[k] = np.interp(t, u, track[k])
 
         yield track

@@ -56,8 +56,8 @@ def _time_in_shoredist_rng(track, subset, dist0=0.01, dist1=5):
         _segment_rng(
             {
                 'time':
-                track['time'][subset]
-                [[dist0 <= d <= dist1 for d in track['km_from_shore'][subset]]]
+                    track['time'][subset]
+                    [[dist0 <= d <= dist1 for d in track['km_from_shore'][subset]]]
             },
             maxdelta=timedelta(minutes=1),
             key='time'),
@@ -410,11 +410,11 @@ def graph(
         process the vessel movement graph edges.
         caution: this may consume a large amount of memory
     '''
-    assert not isinstance(qry, types.GeneratorType),\
-            'Got a generator for "qry" arg instead of DBQuery'
+    assert not isinstance(qry, types.GeneratorType), \
+        'Got a generator for "qry" arg instead of DBQuery'
 
-    assert isinstance(qry, aisdb.database.dbqry.DBQuery),\
-            f'Not a DBQuery object! Got {qry}'
+    assert isinstance(qry, aisdb.database.dbqry.DBQuery), \
+        f'Not a DBQuery object! Got {qry}'
 
     if not isinstance(dbconn, (
             ConnectionType.SQLITE.value,
