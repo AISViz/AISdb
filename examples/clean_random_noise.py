@@ -16,8 +16,9 @@ dbpath = os.environ.get('EXAMPLE_NOISE_DB', 'AIS.sqlitedb')
 trafficDBpath = os.path.join(testdir, 'marinetraffic_test.db')
 # trafficDBpath = os.environ.get('AISDBMARINETRAFFIC', 'marinetraffic.db')
 domain = domain = Domain(name='example', zones=[{'name': 'zone1',
-        'geometry': shapely.geometry.Polygon([(-40,60), (-40, 61), (-41, 61), (-41, 60), (-40, 60)])
-        }, ]) #DomainFromTxts('EastCoast', folder=os.environ.get('AISDBZONES'))
+                                                 'geometry': shapely.geometry.Polygon(
+                                                     [(-40, 60), (-40, 61), (-41, 61), (-41, 60), (-40, 60)])
+                                                 }, ])  # DomainFromTxts('EastCoast', folder=os.environ.get('AISDBZONES'))
 
 start = datetime(2021, 7, 1)
 end = datetime(2021, 7, 2)

@@ -12,6 +12,7 @@ import websockets.client
 db_hostname = 'wss://aisdb.meridian.cs.dal.ca/ws'
 db_hostname = os.environ.get('AISDBHOST', db_hostname)
 
+
 # Default docker IPv6 address and port number.
 # See docker-compose.yml for configuration.
 # db_hostname = 'ws://[fc00::6]:9924'

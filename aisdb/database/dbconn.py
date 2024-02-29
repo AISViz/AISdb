@@ -32,14 +32,14 @@ class _DBConn():
         ''' create a table to describe integer vessel type as a human-readable
             string.
         '''
-        #cur = self.cursor()
+        # cur = self.cursor()
         for stmt in coarsetype_sql:
             if stmt == '\n':
                 continue
-            #cur.execute(stmt)
+            # cur.execute(stmt)
             self.execute(stmt)
         self.commit()
-        #cur.close()
+        # cur.close()
 
 
 class SQLiteDBConn(_DBConn, sqlite3.Connection):
@@ -83,12 +83,12 @@ class SQLiteDBConn(_DBConn, sqlite3.Connection):
                 [table['name'].split('_')[1] for table in dynamic_tables])
             self.db_daterange = {
                 'start':
-                datetime(int(db_months[0][:4]), int(db_months[0][4:]),
-                         1).date(),
+                    datetime(int(db_months[0][:4]), int(db_months[0][4:]),
+                             1).date(),
                 'end':
-                datetime((y := int(db_months[-1][:4])),
-                         (m := int(db_months[-1][4:])),
-                         monthrange(y, m)[1]).date(),
+                    datetime((y := int(db_months[-1][:4])),
+                             (m := int(db_months[-1][4:])),
+                             monthrange(y, m)[1]).date(),
             }
         else:
             self.db_daterange = {}
@@ -145,7 +145,7 @@ class SQLiteDBConn(_DBConn, sqlite3.Connection):
 
             agg_rows = []
             for mmsi in mmsis:
-                _ = cur.execute(sql_select, (str(mmsi), ))
+                _ = cur.execute(sql_select, (str(mmsi),))
                 cur_mmsi = cur.fetchall()
 
                 cols = np.array(cur_mmsi, dtype=object).T
@@ -244,12 +244,12 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
             ])
             self.db_daterange = {
                 'start':
-                datetime(int(db_months[0][:4]), int(db_months[0][4:]),
-                         1).date(),
+                    datetime(int(db_months[0][:4]), int(db_months[0][4:]),
+                             1).date(),
                 'end':
-                datetime((y := int(db_months[-1][:4])),
-                         (m := int(db_months[-1][4:])),
-                         monthrange(y, m)[1]).date(),
+                    datetime((y := int(db_months[-1][:4])),
+                             (m := int(db_months[-1][4:])),
+                             monthrange(y, m)[1]).date(),
             }
         else:
             self.db_daterange = {}
@@ -321,7 +321,7 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         self.rollback = self.conn.rollback
         self.close = self.conn.close
         self.__repr__ = self.conn.__repr__
-        #conn = psycopg.connect(conninfo=libpq_connstring)
+        # conn = psycopg.connect(conninfo=libpq_connstring)
         self.pgconn = self.conn.pgconn
         self._adapters = self.conn.adapters
 
@@ -464,7 +464,7 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
             agg_rows = []
             for mmsi in mmsis:
-                _ = cur.execute(sql_select, (str(mmsi), ))
+                _ = cur.execute(sql_select, (str(mmsi),))
                 cur_mmsi = [tuple(i.values()) for i in cur.fetchall()]
                 cols = np.array(cur_mmsi, dtype=object).T
                 assert len(cols) > 0
@@ -487,7 +487,7 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
                 ]
 
                 agg_rows.append(aggregated)
-            
+
             cur.execute(sql_aggregate.format(month))
 
             if len(agg_rows) == 0:
