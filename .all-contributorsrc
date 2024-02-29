@@ -5,7 +5,7 @@
   "repoHost": "https://github.com",
   "files": ["CONTRIBUTORS.md"],
   "imageSize": 100,
-  "commit": false,
+  "commit": true,
   "contributorsPerLine": 7,
   "contributorsSortAlphabetically": false,
   "badgeTemplate": "[![All Contributors](https://img.shields.io/github/all-contributors/<%= projectOwner %>/<%= projectName %>?color=ee8449&style=flat-square)](#contributors)",
@@ -20,5 +20,4 @@
   },
   "linkToUsage": true,
   "skipCi": true,
-  "contributors": []
 }

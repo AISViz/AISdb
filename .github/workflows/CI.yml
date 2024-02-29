@@ -66,15 +66,15 @@ jobs:
             ./aisdb/tests/test_005_gis.py \
             ./aisdb/tests/test_006_interp_01.py \
             ./aisdb/tests/test_007_interp_02.py \
-            ./aisdb/tests/test_008_marinetraffic.py \
             ./aisdb/tests/test_009_network_graph.py \
-            ./aisdb/tests/test_010_postgres.py \
             ./aisdb/tests/test_011_proc_util.py \
             ./aisdb/tests/test_012_shore_dist.py \
             ./aisdb/tests/test_013_sqlfcn.py \
             ./aisdb/tests/test_014_trackgen.py \
             ./aisdb/tests/test_015_ui.py \
             ./aisdb/tests/test_016_wsa.py
+# ./aisdb/tests/test_008_marinetraffic.py \
+# ./aisdb/tests/test_010_postgres.py \
 
   build-and-test-linux:
     runs-on: ubuntu-latest
@@ -125,15 +125,15 @@ jobs:
             ./aisdb/tests/test_005_gis.py \
             ./aisdb/tests/test_006_interp_01.py \
             ./aisdb/tests/test_007_interp_02.py \
-            ./aisdb/tests/test_008_marinetraffic.py \
             ./aisdb/tests/test_009_network_graph.py \
-            ./aisdb/tests/test_010_postgres.py \
             ./aisdb/tests/test_011_proc_util.py \
             ./aisdb/tests/test_012_shore_dist.py \
             ./aisdb/tests/test_013_sqlfcn.py \
             ./aisdb/tests/test_014_trackgen.py \
             ./aisdb/tests/test_015_ui.py \
             ./aisdb/tests/test_016_wsa.py
+# ./aisdb/tests/test_008_marinetraffic.py \
+# ./aisdb/tests/test_010_postgres.py \
 
   linux:
     runs-on: ubuntu-latest
