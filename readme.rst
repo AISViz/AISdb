@@ -7,6 +7,13 @@
 .. image:: https://github.com/AISViz/AISdb/actions/workflows/Install.yml/badge.svg
    :target: https://github.com/AISViz/AISdb/actions/workflows/Install.yml
    :alt: Test installation status
+.. image:: https://img.shields.io/github/license/aisviz/aisdb
+    :target: https://img.shields.io/github/license/aisviz/aisdb
+    :alt: License Status
+.. image:: https://img.shields.io/github/commit-activity/t/aisviz/aisdb
+    :target: https://img.shields.io/github/commit-activity/t/aisviz/aisdb
+    :alt: Commits in the Repository
+
 
 .. description:
 
