@@ -2,12 +2,12 @@
 
 import hashlib
 import os
+import warnings
 import zipfile
 from functools import reduce
 
 import numpy as np
 import requests
-import warnings
 from tqdm import tqdm
 
 from aisdb.gis import shiftcoord

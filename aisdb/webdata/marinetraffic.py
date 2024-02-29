@@ -1,17 +1,17 @@
 ''' scrape vessel information such as deadweight tonnage from marinetraffic.com '''
 
 import os
+import sqlite3
 
 import numpy as np
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
 
 from aisdb import sqlpath
+from aisdb.database.dbconn import SQLiteDBConn
 from aisdb.webdata._scraper import _scraper
-from aisdb.database.dbconn import PostgresDBConn, SQLiteDBConn
-import sqlite3
 
 baseurl = 'https://www.marinetraffic.com/'
 
