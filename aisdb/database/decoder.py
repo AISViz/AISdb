@@ -25,6 +25,7 @@ class FileChecksums:
     :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.
     :return: None
     """
+
     def __init__(self, *, dbconn):
         """
         :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.

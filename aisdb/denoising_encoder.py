@@ -55,8 +55,8 @@ def _append_highscore(track, *, highscoreidx, pathways, i, segments_idx):
            for k in track['static']},
         **{
             k:
-            np.append(pathways[highscoreidx][k],
-                      track[k][segments_idx[i]:segments_idx[i + 1]])
+                np.append(pathways[highscoreidx][k],
+                          track[k][segments_idx[i]:segments_idx[i + 1]])
             for k in track['dynamic']
         },
         static=track['static'],
@@ -145,11 +145,11 @@ def encode_score(track, distance_threshold, speed_threshold, minscore):
 
 
 def encode_greatcircledistance(
-    tracks,
-    *,
-    distance_threshold,
-    speed_threshold=50,
-    minscore=1e-6,
+        tracks,
+        *,
+        distance_threshold,
+        speed_threshold=50,
+        minscore=1e-6,
 ):
     ''' Partitions tracks where delta speeds exceed speed_threshold or
         delta_meters exceeds distance_threshold.
@@ -213,6 +213,7 @@ def encode_greatcircledistance(
                                  minscore):
             yield path
 
+
 def remove_pings_wrt_speed(tracks, speed_threshold):
     '''
         Remove pings from tracks where the speed of a vessel
@@ -227,13 +228,14 @@ def remove_pings_wrt_speed(tracks, speed_threshold):
     '''
 
     tr1_ = next(tracks)
-    columns_ = [ky for ky,vall in tr1_.items() if isinstance(vall, np.ndarray)]
+    columns_ = [ky for ky, vall in tr1_.items() if isinstance(vall, np.ndarray)]
+
     def update_dict_(tr_):
         indexes_ = np.where(tr_['sog'] <= speed_threshold)
-        if len(tr_['sog'])  != len(indexes_[0]):
+        if len(tr_['sog']) != len(indexes_[0]):
             if len(indexes_[0]) > 0:
                 for col in columns_:
-                    tr_[col] = np.delete( tr_[col], indexes_)
+                    tr_[col] = np.delete(tr_[col], indexes_)
 
             yield tr_
 
@@ -241,4 +243,3 @@ def remove_pings_wrt_speed(tracks, speed_threshold):
     for tr__ in tracks:
         assert isinstance(tr__, dict), f'got {type(tr__)} {tr__}'
         yield from update_dict_(tr__)
-
