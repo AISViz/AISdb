@@ -13,6 +13,9 @@
 .. image:: https://img.shields.io/github/commit-activity/t/aisviz/aisdb
     :target: https://img.shields.io/github/commit-activity/t/aisviz/aisdb
     :alt: Commits in the Repository
+.. image:: https://img.shields.io/github/all-contributors/aisviz/aisdb
+    :target: https://img.shields.io/github/all-contributors/aisviz/aisdb
+    :alt: Contribution Tracking
 
 
 .. description:
@@ -101,15 +104,3 @@ Additional API documentation: `API Docs <https://aisdb.meridian.cs.dal.ca/doc/ap
    polygons <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
 
 6. Integrating data from web sources, such as depth charts, shore distance, etc.
-
-👤 Contributors
-============
-
-.. <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-.. <!-- prettier-ignore-start -->
-.. <!-- markdownlint-disable -->
-
-.. <!-- markdownlint-restore -->
-.. <!-- prettier-ignore-end -->
-
-.. <!-- ALL-CONTRIBUTORS-LIST:END -->
