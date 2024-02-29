@@ -2,8 +2,8 @@ import warnings
 from functools import reduce
 
 import numpy as np
-
 from aisdb.aisdb import encoder_score_fcn
+
 from aisdb.gis import delta_knots, delta_meters
 
 

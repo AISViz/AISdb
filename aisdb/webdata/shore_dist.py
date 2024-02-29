@@ -22,6 +22,7 @@ from tqdm import tqdm
 
 from aisdb.webdata.load_raster import RasterFile
 
+
 def download_unzip(data_url, data_dir, bytesize=0):
     assert os.path.isdir(data_dir), f'not a directory: {data_dir=}'
     zipf = os.path.join(data_dir, data_url.rsplit('/',1)[1])
@@ -48,7 +49,9 @@ def download_unzip(data_url, data_dir, bytesize=0):
 
 class ShoreDist(RasterFile):
 
-    data_url = "https://oceancolor.gsfc.nasa.gov/docs/distfromcoast/GMT_intermediate_coast_distance_01d.zip"
+    # data_url = "https://drive.google.com/file/d/1HdDrVNeAnQL1xMPocOiyHTBgLYBx--_2/view?usp=sharing"
+    data_url = ("https://www.googleapis.com/drive/v3/files/1HdDrVNeAnQL1xMPocOiyHTBgLYBx--_2?"
+                "alt=media&key=AIzaSyBkZL-5xZYLfM7up2YTb7KfUiXfdW-hFeE")
 
     def __init__(self, data_dir, tif_filename='GMT_intermediate_coast_distance_01d.tif'):
         download_unzip(self.data_url, data_dir, bytesize=657280)

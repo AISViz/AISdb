@@ -2,11 +2,11 @@
     generate queries
 '''
 
+import sqlite3
+import warnings
 from collections import UserDict
 from datetime import datetime, timedelta, date
 from functools import reduce
-import warnings
-import sqlite3
 
 import numpy as np
 import psycopg
