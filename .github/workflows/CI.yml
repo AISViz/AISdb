@@ -58,7 +58,23 @@ jobs:
           ./AISdb/Scripts/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.0', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install pytest pytest-dotenv pytest-cov
-          pytest ./aisdb/tests/test_*.py
+          pytest \
+            ./aisdb/tests/test_001_bathymetry.py \
+            ./aisdb/tests/test_002_createtables.py \
+            ./aisdb/tests/test_003_dbqry.py \
+            ./aisdb/tests/test_004_decode.py \
+            ./aisdb/tests/test_005_gis.py \
+            ./aisdb/tests/test_006_interp_01.py \
+            ./aisdb/tests/test_007_interp_02.py \
+            ./aisdb/tests/test_008_marinetraffic.py \
+            ./aisdb/tests/test_009_network_graph.py \
+            ./aisdb/tests/test_010_postgres.py \
+            ./aisdb/tests/test_011_proc_util.py \
+            ./aisdb/tests/test_012_shore_dist.py \
+            ./aisdb/tests/test_013_sqlfcn.py \
+            ./aisdb/tests/test_014_trackgen.py \
+            ./aisdb/tests/test_015_ui.py \
+            ./aisdb/tests/test_016_wsa.py
 
   build-and-test-linux:
     runs-on: ubuntu-latest
@@ -101,7 +117,23 @@ jobs:
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.0', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install pytest pytest-dotenv pytest-cov
-          pytest ./aisdb/tests/test_*.py
+          pytest \
+            ./aisdb/tests/test_001_bathymetry.py \
+            ./aisdb/tests/test_002_createtables.py \
+            ./aisdb/tests/test_003_dbqry.py \
+            ./aisdb/tests/test_004_decode.py \
+            ./aisdb/tests/test_005_gis.py \
+            ./aisdb/tests/test_006_interp_01.py \
+            ./aisdb/tests/test_007_interp_02.py \
+            ./aisdb/tests/test_008_marinetraffic.py \
+            ./aisdb/tests/test_009_network_graph.py \
+            ./aisdb/tests/test_010_postgres.py \
+            ./aisdb/tests/test_011_proc_util.py \
+            ./aisdb/tests/test_012_shore_dist.py \
+            ./aisdb/tests/test_013_sqlfcn.py \
+            ./aisdb/tests/test_014_trackgen.py \
+            ./aisdb/tests/test_015_ui.py \
+            ./aisdb/tests/test_016_wsa.py
 
   linux:
     runs-on: ubuntu-latest
