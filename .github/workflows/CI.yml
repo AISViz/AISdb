@@ -77,7 +77,7 @@ jobs:
 # ./aisdb/tests/test_010_postgres.py \
 
   build-and-test-linux:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     services:
       postgres:
         image: postgres
@@ -136,7 +136,7 @@ jobs:
 # ./aisdb/tests/test_010_postgres.py \
 
   linux:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         # Can't build for aarch64 (Apple M1/M2 chips).
@@ -223,7 +223,7 @@ jobs:
           path: dist
 
   sdist:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v3
       - name: Build sdist
@@ -239,7 +239,7 @@ jobs:
 
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [ linux, windows, macos, sdist ]
     steps:
