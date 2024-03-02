@@ -49,14 +49,12 @@ def download_unzip(data_url, data_dir, bytesize=0):
 
 
 class ShoreDist(RasterFile):
-
     # This is self-stored data to easy the deployment process
-    data_url = "https://shorturl.at/acmD4"
+    data_url = "http://bigdata5.research.cs.dal.ca/rasters.zip"
 
     def __init__(self, data_dir, tif_filename='GMT_intermediate_coast_distance_01d.tif'):
         download_unzip(self.data_url, data_dir, bytesize=657280)
         imgpath = os.path.join(data_dir, tif_filename)
-        # imgpath = os.path.join(data_dir, 'distance-from-shore.tif')
         assert os.path.isfile(imgpath)
         super().__init__(imgpath)
 
