@@ -75,8 +75,8 @@ jobs:
             ./aisdb/tests/test_014_trackgen.py \
             ./aisdb/tests/test_015_ui.py \
             ./aisdb/tests/test_016_wsa.py \
-            ./aisdb/tests/test_010_postgres.py
-# ./aisdb/tests/test_008_marinetraffic.py \
+            ./aisdb/tests/test_010_postgres.py \
+            ./aisdb/tests/test_008_marinetraffic.py \
 
   build-and-test-linux:
     runs-on: ubuntu-latest
@@ -135,8 +135,8 @@ jobs:
             ./aisdb/tests/test_014_trackgen.py \
             ./aisdb/tests/test_015_ui.py \
             ./aisdb/tests/test_016_wsa.py \
-            ./aisdb/tests/test_010_postgres.py
-# ./aisdb/tests/test_008_marinetraffic.py \
+            ./aisdb/tests/test_010_postgres.py \
+            ./aisdb/tests/test_008_marinetraffic.py
 
   linux:
     runs-on: ubuntu-latest
