@@ -19,7 +19,7 @@ from aisdb.tests.create_testing_data import (
 from aisdb.track_gen import TrackGen
 
 conn_information = (f"postgresql://{os.environ['pguser']}:{os.environ['pgpass']}@"
-                    f"{os.environ['pgaddr']}:5432/{os.environ['pguser']}")
+                    f"{os.environ['pghost']}:5432/{os.environ['pguser']}")
 
 
 def test_postgres():
