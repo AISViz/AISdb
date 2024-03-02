@@ -99,6 +99,7 @@ jobs:
       - name: Install Rust Toolchain
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.cargo/env
 
       - name: Create and Activate Python Virtual Environment
