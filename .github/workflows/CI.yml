@@ -79,7 +79,7 @@ jobs:
 # ./aisdb/tests/test_008_marinetraffic.py \
 
   build-and-test-linux:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres
@@ -139,7 +139,7 @@ jobs:
 # ./aisdb/tests/test_008_marinetraffic.py \
 
   linux:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         # Can't build for aarch64 (Apple M1/M2 chips).
@@ -226,7 +226,7 @@ jobs:
           path: dist
 
   sdist:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Build sdist
@@ -242,7 +242,7 @@ jobs:
 
   release:
     name: Release
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [ linux, windows, macos, sdist ]
     steps:
