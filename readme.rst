@@ -15,7 +15,8 @@
    :target: https://github.com/AISViz/AISdb
 .. image:: https://img.shields.io/github/repo-size/aisviz/aisdb
    :target: https://github.com/AISViz/AISdb
-|
+****
+
 .. image:: https://img.shields.io/github/license/aisviz/aisdb
    :target: https://github.com/AISViz/AISdb
 .. image:: https://github.com/AISViz/AISdb/actions/workflows/CI.yml/badge.svg
@@ -27,8 +28,7 @@
 .. image:: https://github.com/AISViz/AISdb/actions/workflows/Install.yml/badge.svg
    :target: https://github.com/AISViz/AISdb/actions/workflows/Install.yml
    :alt: Test installation status
-
-**Documentation and Tutorials**
+****
 
  .. |aisviz| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.github.io
    :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.github.io
