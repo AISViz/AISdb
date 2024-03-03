@@ -16,7 +16,7 @@
 .. image:: https://img.shields.io/github/repo-size/aisviz/aisdb
    :target: https://github.com/AISViz/AISdb
 
-**Licensing and Itegration**
+**Licensing and Integration**
 
 .. image:: https://img.shields.io/github/license/aisviz/aisdb
    :target: https://github.com/AISViz/AISdb
@@ -72,7 +72,7 @@ making it a key resource for stakeholders and research enthusiasts across the ma
 - **Machine Learning Integration:** Provides a foundation for developing machine learning models by offering clean, processed datasets and the ability to integrate with popular data science libraries.
 - **Open Source Collaboration:** Our team encourages community contributions, feature requests, and collaborative development, fostering an ecosystem around maritime data analysis.
 
-📌 **The AISdb visualization module runs locally on the broweser:** *(outdated)*
+📌 **The AISdb visualization module runs locally on the browser:** *(outdated)*
 
 .. image:: https://aisdb.meridian.cs.dal.ca/readme_example.png
     :width: 700px
@@ -98,13 +98,17 @@ AIS messages are encoded in a highly structured format and categorized into dist
 =====
 
 AIS messages are transmitted using VHF radio frequencies, which ensures reliable coverage even in harsh weather conditions.
-The messages are encoded in a standardized format that promotes interoperability among different AIS equipment manufacturers and facilitates seamless integration with global maritime traffic management systems. To collect these messages, on-shore antennas or low orbit satellites are used.
-The temporal resolution of the AIS data varies based on the type of collection method used to capture messages.
+The messages are encoded in a standardized format that promotes interoperability among different AIS equipment manufacturers and facilitates seamless integration with global maritime traffic management systems. To collect these messages, on-shore antennas or low-orbit satellites are used.
+The temporal resolution of the AIS data varies with the collection method used to capture messages.
 
 ⚓ Significance in Maritime Operations
 =====
 
-The strategic importance of AIS messages transcends basic vessel tracking. By providing a detailed, real-time canvas of maritime traffic, AIS messages empower vessel operators, maritime authorities, and traffic management centers to make informed decisions, enhance situational awareness, and proactively address potential navigational hazards. Moreover, the availability of this data has spurred numerous secondary applications, including maritime research, environmental monitoring, and the development of advanced navigational algorithms aimed at optimizing shipping routes and reducing the environmental footprint of maritime operations.
+AIS messages are more than just a tool for tracking vessels.
+They are a valuable resource for vessel operators, maritime authorities, and traffic management centers, as they provide real-time information on maritime traffic.
+This data helps these entities make informed decisions, increase situational awareness, and proactively address potential navigational hazards.
+The availability of AIS data has also led to the development of secondary applications, such as maritime research, environmental monitoring, and the creation of advanced navigational algorithms that optimize shipping routes and reduce the environmental impact of maritime operations.
+AISdb is an example of an application that is sourced on the importance of AIS.
 
 For more information, please see:
 
@@ -138,7 +142,7 @@ This includes setting up a virtual environment, activating it, and installing AI
     python -m venv AISdb  # Create and activate a virtual environment for AISdb
     source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
 
-    # Cloning the repository and installing the package
+    # Cloning the Repository and installing the package
     git clone https://github.com/AISViz/AISdb.git && cd aisdb
 
     # Windows users can instead download the installer:
@@ -150,5 +154,5 @@ This includes setting up a virtual environment, activating it, and installing AI
     /bin/bash install-rust.sh -q -y
     pip install --upgrade maturin[patchelf]
 
-    # Building AISdb packge with Maturin
-    maturin develop --release --extras=test,docs
+    # Building AISdb package with Maturin
+    maturin' develop --release --extras=test,docs
