@@ -1,3 +1,42 @@
+**General Information**
+
+.. image:: https://img.shields.io/pypi/pyversions/aisdb
+   :target: https://pypi.org/project/aisdb/
+.. image:: https://img.shields.io/github/v/release/aisviz/aisdb
+   :target: https://github.com/AISViz/AISdb/releases
+.. image:: https://img.shields.io/github/commits-since/aisviz/aisdb/latest
+   :target: https://github.com/AISViz/AISdb
+.. image:: https://img.shields.io/github/commit-activity/t/aisviz/aisdb
+   :target: https://github.com/AISViz/AISdb
+   :alt: Commits in the Repository
+.. image:: https://img.shields.io/github/languages/top/aisviz/aisdb
+   :target: https://github.com/AISViz/AISdb
+.. image:: https://img.shields.io/github/repo-size/aisviz/aisdb
+   :target: https://github.com/AISViz/AISdb
+.. image:: https://img.shields.io/github/license/aisviz/aisdb
+   :target: https://github.com/AISViz/AISdb
+|space|
+
+**Documentation and Tutorials**
+
+.. |aisviz| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.github.io
+   :target: https://aisviz.github.io
+   :alt: AISViz Website
+.. |aisdb_doc| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/documentation/
+   :target: https://aisviz.gitbook.io/documentation/
+   :alt: AISdb Documentation
+.. |aisdb_tut| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/tutorials/
+   :target: https://aisviz.gitbook.io/tutorials/
+   :alt: AISdb Tutorials
+
+|aisviz| |space| `AISViz Website <https://aisviz.github.io>`_
+|aisdb_doc| |space| `AISdb Documentation <https://aisviz.gitbook.io/documentation>`_
+|aisdb_tut| |space| `AISdb Tutorials <https://aisviz.gitbook.io/tutorials>`_
+
+|space|
+
+**Continuous Integration and Code Quality**
+
 .. image:: https://github.com/AISViz/AISdb/actions/workflows/CI.yml/badge.svg
    :target: https://github.com/AISViz/AISdb/actions/workflows/CI.yml
    :alt: CI status
@@ -7,16 +46,6 @@
 .. image:: https://github.com/AISViz/AISdb/actions/workflows/Install.yml/badge.svg
    :target: https://github.com/AISViz/AISdb/actions/workflows/Install.yml
    :alt: Test installation status
-.. image:: https://img.shields.io/github/license/aisviz/aisdb
-    :target: https://img.shields.io/github/license/aisviz/aisdb
-    :alt: License Status
-.. image:: https://img.shields.io/github/commit-activity/t/aisviz/aisdb
-    :target: https://img.shields.io/github/commit-activity/t/aisviz/aisdb
-    :alt: Commits in the Repository
-.. image:: https://img.shields.io/github/all-contributors/aisviz/aisdb
-    :target: https://github.com/AISViz/AISdb/
-    :alt: Contribution Tracking
-
 
 .. description:
 
