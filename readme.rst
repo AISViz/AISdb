@@ -111,7 +111,7 @@ This data helps these entities make informed decisions, increase situational awa
 The availability of AIS data has also led to the development of secondary applications, such as maritime research, environmental monitoring, and the creation of advanced navigational algorithms that optimize shipping routes and reduce the environmental impact of maritime operations.
 AISdb is an example of an application that is sourced on the importance of AIS.
 
-For more information, please see:
+📚 **For more information about AIS and its inner-workings, you may want to check these links:**
 
 - `AIS Message Types <https://arundaleais.github.io/docs/ais/ais_message_types.html>`_: Types of AIS messages used for communication.
 
