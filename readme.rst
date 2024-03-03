@@ -93,7 +93,7 @@ AIS messages are encoded in a highly structured format and categorized into dist
 - Static and Voyage-Related Information: Beyond dynamic navigational data, AIS messages also contain static information about the vessel, including Maritime Mobile Service Identity (MMSI), IMO number, vessel name, type, dimensions, destination, estimated time of arrival (ETA), and draught (i.e., draft).
 - Safety-Related Messages: The AIS system also facilitates the transmission of safety and navigational-related messages. These include announcements of navigational hazards, weather conditions, and other urgent safety information crucial for voyage planning and risk mitigation.
 
-**Although the messages are rich in information, open-source AIS data is usually only positional data.**
+🚨 **Although AIS messages are rich in information, open-source AIS is usually limited to positional data.**
 
 🌐 Encoding and Transmission
 =====
