@@ -81,7 +81,7 @@ making it a key resource for stakeholders and research enthusiasts across the ma
 📢 What is AIS Data?
 ------------------------
 
-Automatic Identification System (AIS) messages are critical data packets transmitted by vessels and AIS base stations to communicate essential navigational and identification information across the maritime domain. These messages play a significant role in facilitating a safe and efficient flow of marine traffic by ensuring that vessels within proximity know each other's presence, course, and navigational intentions. By providing this vital information, AIS messages are instrumental in enhancing maritime safety, improving navigation efficiency, and strengthening security measures in the maritime domain.
+Automatic Identification System (AIS) messages are critical data packets transmitted by vessels and AIS base stations to communicate essential navigational and identification information across the maritime domain. These messages play a significant role in facilitating a safe and efficient flow of marine traffic by ensuring that vessels within proximity know each other's presence, course, and navigational intentions. By providing this vital information, AIS messages are instrumental in enhancing maritime safety, improving navigation efficiency, and strengthening ocean safety.
 
 ➰ Structured Data Exchange
 =====
@@ -104,47 +104,47 @@ The strategic importance of AIS messages transcends basic vessel tracking. By pr
 
 For more information, please see:
 
-- `Wikipedia Article <https://en.wikipedia.org/wiki/Automatic_identification_system>`_: An overview of the AIS, including its history, functionality, and applications.
+- `AIS Message Types <https://arundaleais.github.io/docs/ais/ais_message_types.html>`_: Types of AIS messages used for communication.
 
-- `AIS Message Types <https://arundaleais.github.io/docs/ais/ais_message_types.html>`_: A guide to the various AIS message types used for communication.
+- `Navigation Center <https://www.navcen.uscg.gov/ais-messages>`_: This is an overview of Navigation Systems and Services.
+
+- `AIS transponders <https://www.imo.org/en/OurWork/Safety/Pages/AIS.aspx>`_: Regulations regarding AIS use, maritime security, and additional information.
+
+- `Wikipedia Article <https://en.wikipedia.org/wiki/Automatic_identification_system>`_: Here is an overview of AIS, including its history, functionality, and applications.
 
 📦 Install
 -------
 
-To set up AISdb in your environment, follow these commands in your terminal.
-This will create a Python virtual environment, activate it, and install AISdb, ensuring that all dependencies are correctly managed within this isolated environment.
-This procedure ensures that AISdb and its Python dependencies are contained within a virtual environment, preventing any conflicts with system-wide Python packages.
+To set up AISdb in your environment, follow these commands in your terminal:
 
 .. code-block:: sh
 
-    # Create and activate a virtual environment
-    python -m venv env_ais
-    source env_ais/bin/activate  # On Windows use `env_ais\Scripts\activate`
-
-    # Install AISdb within the virtual environment
-    pip install aisdb
+    python -m venv AISdb  # Create and activate a virtual environment
+    source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
+    pip install aisdb  # Install the latest pre-compiled AISdb from PyPI
 
 🚧 Developing
 -----------
 
-For developers looking to contribute to AISdb or integrate it into more extensive projects, the development setup is crucial. The following steps outline how to prepare a development environment for AISdb. This includes setting up a virtual environment, activating it, and installing AISdb along with the tools required for development:
-These commands facilitate a development environment where changes to the AISdb codebase can be made and tested in real-time. It's essential for developers working on adding features, fixing bugs, or otherwise enhancing the AISdb project.
+For developers looking to contribute to AISdb or integrate it into more extensive projects, the following steps outline how to prepare a development environment for AISdb.
+This includes setting up a virtual environment, activating it, and installing AISdb along with the tools required for development:
 
 .. code-block:: sh
 
-    # Create and activate a virtual environment for AISdb development
-    python -m venv env_ais_dev
-    source env_ais_dev/bin/activate  # On Windows use `env_ais_dev\Scripts\activate`
+    python -m venv AISdb  # Create and activate a virtual environment for AISdb
+    source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
 
-    # Install AISdb in development mode
-    # This typically involves cloning the AISdb repository and installing the package in editable mode
-    git clone http://git-dev.cs.dal.ca/meridian/aisdb.git
-    cd aisdb
+    # Cloning the repository and installing the package
+    git clone https://github.com/AISViz/AISdb.git && cd aisdb
 
-    # Install development dependencies, assuming `requirements-dev.txt` contains them
-    pip install -r requirements-dev.txt
+    # Windows users can instead download the installer:
+    #   - https://forge.rust-lang.org/infra/other-installation-methods.html#rustup
+    #   - https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > install-rust.sh
 
-    # Install the AISdb package in editable mode with all extra development dependencies
-    pip install -e .[dev]
+    # Installing Rust and Maturin
+    /bin/bash install-rust.sh -q -y
+    pip install --upgrade maturin[patchelf]
 
-For information on installing AISDB from source code, see `Installing from Source <https://aisdb.meridian.cs.dal.ca/doc/install_from_source.html>`__
+    # Building AISdb packge with Maturin
+    maturin develop --release --extras=test,docs
