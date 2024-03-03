@@ -81,7 +81,8 @@ making it a key resource for stakeholders and research enthusiasts across the ma
 📢 What is AIS Data?
 ------------------------
 
-Automatic Identification System (AIS) messages are critical data packets transmitted by vessels and AIS base stations to communicate essential navigational and identification information across the maritime domain. These messages play a significant role in facilitating a safe and efficient flow of marine traffic by ensuring that vessels within proximity know each other's presence, course, and navigational intentions. By providing this vital information, AIS messages are instrumental in enhancing maritime safety, improving navigation efficiency, and strengthening ocean safety.
+Automatic Identification System (AIS) messages are critical data packets transmitted by vessels and AIS base stations to communicate essential navigational and identification information across the maritime domain.
+These messages play a significant role in facilitating a safe and efficient flow of marine traffic by ensuring that vessels within proximity know each other's presence, course, and navigational intentions.
 
 ➰ Structured Data Exchange
 =====
@@ -120,7 +121,7 @@ For more information, please see:
 
 - `Wikipedia Article <https://en.wikipedia.org/wiki/Automatic_identification_system>`_: Here is an overview of AIS, including its history, functionality, and applications.
 
-📦 Install
+📦 Installing
 -------
 
 To set up AISdb in your environment, follow these commands in your terminal:
