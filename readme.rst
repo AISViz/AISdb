@@ -1,5 +1,6 @@
 .. |space| unicode:: 0xA0
 
+.. general-information:
 **General Information**
 
 .. image:: https://img.shields.io/pypi/pyversions/aisdb
@@ -15,7 +16,9 @@
    :target: https://github.com/AISViz/AISdb
 .. image:: https://img.shields.io/github/repo-size/aisviz/aisdb
    :target: https://github.com/AISViz/AISdb
-****
+
+.. licensing-integration:
+**Licensing and Itegration**
 
 .. image:: https://img.shields.io/github/license/aisviz/aisdb
    :target: https://github.com/AISViz/AISdb
@@ -28,20 +31,36 @@
 .. image:: https://github.com/AISViz/AISdb/actions/workflows/Install.yml/badge.svg
    :target: https://github.com/AISViz/AISdb/actions/workflows/Install.yml
    :alt: Test installation status
-****
 
- .. |aisviz| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.github.io
+.. quick-links:
+**Documentation and Tutorials**
+
+.. |aisviz| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.github.io
    :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.github.io
 .. |aisdb_doc| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/documentation/
    :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/documentation/
 .. |aisdb_tut| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/tutorials/
    :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/tutorials/
+.. |aisdb_rtd| image:: https://img.shields.io/website?url=https%3A%2F%2Faisdb.meridian.cs.dal.ca/doc/readme.html
+   :target: https://img.shields.io/website?url=https%3A%2F%2Faisdb.meridian.cs.dal.ca/doc/readme.html
 
 - |aisviz| |space| `AISViz Website <https://aisviz.github.io>`_
-- |aisdb_tut| |space| `AISdb Tutorials <https://aisviz.gitbook.io/tutorials>`_
-- |aisdb_doc| |space| `AISdb Documentation <https://aisviz.gitbook.io/documentation>`_
+- |aisdb_rtd| |space| `AISdb ReadTheDocs <https://aisdb.meridian.cs.dal.ca/doc/readme.html>`_ *(outdated)*
+- |aisdb_tut| |space| `AISdb GitBook Tutorials <https://aisviz.gitbook.io/tutorials>`_
+- |aisdb_doc| |space| `AISdb GitBook Documentation <https://aisviz.gitbook.io/documentation>`_
+****
 
-.. description:
+.. whatisais:
+📢 What is AIS Data?
+------------------------
+
+The Automatic Identification System (AIS) is a tracking system used by ships and vessel traffic services to identify and locate vessels by exchanging data with other nearby ships, vessel traffic services stations, and satellites. The primary goal of AIS is to enhance maritime safety, navigation, and security by providing real-time information about the vessels' position, course, and other relevant data. The AIS system uses different message types to communicate information between vessels and tracking stations. These messages can include vessel identification, position, course, speed, navigational status, and other safety-related information. The widespread adoption of AIS has significantly improved the ability of ships to avoid collisions and navigate more safely, especially in busy shipping lanes and ports.
+
+For those interested in a more in-depth understanding of AIS and its message types, start with these resources:
+
+- `Wikipedia Article <https://en.wikipedia.org/wiki/Automatic_identification_system>`_: An overview of the Automatic Identification System, including its history, functionality, and applications.
+
+- `AIS Message Types <https://arundaleais.github.io/docs/ais/ais_message_types.html>`_: A guide to the various AIS message types used for communication between ships and tracking systems.
 
 📍 Description
 -----------
@@ -54,9 +73,7 @@ Package features:
   + Network graph analysis, MMSI deduplication, interpolation, and other processing utilities
   + Data visualization
 
-
-.. image:: https://aisdb.meridian.cs.dal.ca/readme_example.png
-
+# .. image:: https://aisdb.meridian.cs.dal.ca/readme_example.png
 
 | Web Interface:
   https://aisdb.meridian.cs.dal.ca/
@@ -64,19 +81,6 @@ Package features:
   https://aisdb.meridian.cs.dal.ca/doc/readme.html
 | Source Code: 
   https://git-dev.cs.dal.ca/meridian/aisdb
-
-.. whatisais:
-
-📢 What is AIS Data?
-------------
-
-The Automatic Identification System (AIS) is a tracking system used by ships and vessel traffic services (VTS) to identify and locate vessels by exchanging data with other nearby ships, VTS stations, and satellites. The primary goal of AIS is to enhance maritime safety, navigation, and security by providing real-time information about the vessels' position, course, and other relevant data. The AIS system uses different message types to communicate information between vessels and tracking stations. These messages can include vessel identification, position, course, speed, navigational status, and other safety-related information. The widespread adoption of AIS has significantly improved the ability of ships to avoid collisions and navigate more safely, especially in busy shipping lanes and ports.
-
-For those interested in a more in-depth understanding of AIS and its message types, start with these resources:
-
-- `Wikipedia Article <https://en.wikipedia.org/wiki/Automatic_identification_system>`_: An overview of the Automatic Identification System, including its history, functionality, and applications.
-
-- `AIS Message Types <https://arundaleais.github.io/docs/ais/ais_message_types.html>`_: A guide to the various AIS message types used for communication between ships and tracking systems.
 
 📦 Install
 -------
@@ -98,32 +102,3 @@ It is recommended to install the package in a virtual Python environment such as
 
 For information on installing AISDB from source code, see `Installing from Source <https://aisdb.meridian.cs.dal.ca/doc/install_from_source.html>`__
 
-.. _readme-docs:
-
-
-📓 Documentation
--------------
-
-An introduction to AISDB can be found here: `Introduction <https://aisdb.meridian.cs.dal.ca/doc/intro.html>`__.
-
-Additional API documentation: `API Docs <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.html>`__.
-
-.. _readme-examples:
-
-🔮 Code examples
--------------
-
-1. `Parsing raw format messages into a
-   database <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.database.decoder.html#aisdb.database.decoder.decode_msgs>`__
-
-2. `Automatically generate SQL database
-   queries <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.database.dbqry.html#aisdb.database.dbqry.DBQuery>`__
-
-3. `Compute trajectories from database rows <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.track_gen.html#aisdb.track_gen.TrackGen>`__
-
-4. `Vessel trajectory cleaning and MMSI deduplication <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.track_gen.html#aisdb.track_gen.encode_greatcircledistance>`__
-
-5. `Compute network graph of vessel movements between
-   polygons <https://aisdb.meridian.cs.dal.ca/doc/api/aisdb.network_graph.html#aisdb.network_graph.graph>`__
-
-6. Integrating data from web sources, such as depth charts, shore distance, etc.
