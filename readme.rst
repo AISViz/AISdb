@@ -86,16 +86,20 @@ Automatic Identification System (AIS) messages are critical data packets transmi
 ➰ Structured Data Exchange
 =====
 
-AIS messages are encoded in a highly structured format and categorized into distinct types, each designed to serve specific informational needs. The most commonly encountered messages in maritime operations include:
+AIS messages are encoded in a highly structured format and categorized into distinct types, each designed to serve specific informational needs. The commonly encountered messages in maritime operations include:
 
 - Dynamic Vessel Information: Messages of this type relay real-time navigational status such as vessel position (latitude and longitude), Speed Over Ground (SOG), Course Over Ground (COG), and Heading. These messages are broadcasted with varying frequencies, typically every 2 to 10 seconds for vessels underway and every 3 to 5 minutes for vessels at anchor, ensuring timely updates of vessel movements.
-- Static and Voyage-Related Information: Beyond dynamic navigational data, AIS messages also encapsulate static information about the vessel, including Maritime Mobile Service Identity (MMSI), IMO number, vessel name, type, and dimensions. Voyage-related details such as destination, estimated time of arrival (ETA), and draught are also communicated but are not mandatory.
-- Safety-Related Messages: The AIS system also facilitates the transmission of safety and navigational-related messages. These include announcements of navigational hazards, weather conditions, and other urgent safety information crucial for voyage planning and risk mitigation. Usually, it is not available within open-source AIS data.
+- Static and Voyage-Related Information: Beyond dynamic navigational data, AIS messages also contain static information about the vessel, including Maritime Mobile Service Identity (MMSI), IMO number, vessel name, type, dimensions, destination, estimated time of arrival (ETA), and draught (i.e., draft).
+- Safety-Related Messages: The AIS system also facilitates the transmission of safety and navigational-related messages. These include announcements of navigational hazards, weather conditions, and other urgent safety information crucial for voyage planning and risk mitigation.
+
+**Although the messages are rich in information, open-source AIS data is usually only positional data.**
 
 🌐 Encoding and Transmission
 =====
 
-The transmission of AIS messages leverages VHF radio frequencies, ensuring broad coverage and reliability even in adverse weather conditions. The encoded format of these messages is standardized to ensure interoperability among various AIS equipment manufacturers and seamless integration with global maritime traffic management systems.
+AIS messages are transmitted using VHF radio frequencies, which ensures reliable coverage even in harsh weather conditions.
+The messages are encoded in a standardized format that promotes interoperability among different AIS equipment manufacturers and facilitates seamless integration with global maritime traffic management systems. To collect these messages, on-shore antennas or low orbit satellites are used.
+The temporal resolution of the AIS data varies based on the type of collection method used to capture messages.
 
 ⚓ Significance in Maritime Operations
 =====
