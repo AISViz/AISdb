@@ -32,6 +32,8 @@
 
 **Documentation and Tutorials**
 
+.. |aisgpt| image:: https://img.shields.io/website?url=https%3A%2F%2Fchat.openai.com/g/g-hTTH0rUBv-aisdb-assistant
+   :target: https://img.shields.io/website?url=https%3A%2F%2Fchat.openai.com/g/g-hTTH0rUBv-aisdb-assistant
 .. |aisviz| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.github.io
    :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.github.io
 .. |aisdb_doc| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/documentation/
@@ -42,6 +44,7 @@
    :target: https://img.shields.io/website?url=https%3A%2F%2Faisdb.meridian.cs.dal.ca/doc/readme.html
 
 - |aisviz| |space| `AISViz Website <https://aisviz.github.io>`_
+- |aisgpt| |space| `AISViz ChatBot <https://chat.openai.com/g/g-hTTH0rUBv-aisdb-assistant>`_ *(with GPT-4)*
 - |aisdb_rtd| |space| `AISdb ReadTheDocs <https://aisdb.meridian.cs.dal.ca/doc/readme.html>`_ *(outdated)*
 - |aisdb_tut| |space| `AISdb GitBook Tutorials <https://aisviz.gitbook.io/tutorials>`_
 - |aisdb_doc| |space| `AISdb GitBook Documentation <https://aisviz.gitbook.io/documentation>`_
