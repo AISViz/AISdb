@@ -160,8 +160,8 @@ jobs:
             
       - name: Configure PostgreSQL
         run: |
-          psql postgres -c "CREATE USER '${{ secrets.PGUSER }}' WITH SUPERUSER PASSWORD '${{ secrets.PGPASS }}';"
-          psql postgres -c 'CREATE DATABASE '${{ secrets.PGNAME }}';'
+          psql postgres -c "CREATE USER database_tester WITH SUPERUSER PASSWORD '${{ secrets.PGPASS }}';"
+          psql postgres -c 'CREATE DATABASE test_database;'
   
       - name: Create and Activate Python Virtual Environment
         run: |
