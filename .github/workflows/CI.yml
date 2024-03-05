@@ -135,7 +135,7 @@ jobs:
                  ./aisdb/tests/test_016_wsa.py
 
   build-and-test-macos:
-    runs-on: macos-latest-xl
+    runs-on: macos-latest
     needs: [macos]
     env:
         POSTGRES_USER: ${{ secrets.PGUSER }}
@@ -158,16 +158,13 @@ jobs:
       - name: Install PostgreSQL
         run: |
           brew uninstall postgresql
-          brew install postgresql@13
-          brew services start postgresql@13
-          brew link postgresql@13 --force
+          brew install postgresql@14
+          brew services start postgresql@14
+          brew link postgresql@14 --force
             
       - name: Configure PostgreSQL
         run:
           psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
-      # psql postgres -c "CREATE USER $POSTGRES_USER WITH SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
-      # psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
-      # psql postgres -c "CREATE DATABASE $POSTGRES_USER;"
   
       - name: Create and Activate Python Virtual Environment
         run: |
@@ -270,7 +267,7 @@ jobs:
           path: dist
 
   macos:
-    runs-on: macos-latest-xl
+    runs-on: macos-latest
     needs: [sdist]
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.13
