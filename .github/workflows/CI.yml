@@ -149,15 +149,23 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.cargo/env
-  
+          
       - name: Install PostgreSQL
         run: |
           brew install postgresql
           brew services start postgresql
-  
+      
+      - name: Wait for PostgreSQL to Start
+        run: |
+          until psql -U postgres -c '\q'; do
+            >&2 echo "Postgres is still unavailable - sleeping"
+            sleep 1
+          done
+          >&2 echo "Postgres is up - executing command"
+      
       - name: Configure PostgreSQL
         run: |
-          psql postgres -c "CREATE USER runner WITH SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
+          psql postgres -c "CREATE USER runner WITH SUPERUSER PASSWORD '${{ secrets.POSTGRES_PASSWORD }}';"
           psql postgres -c 'CREATE DATABASE testdb;'
   
       - name: Create and Activate Python Virtual Environment
