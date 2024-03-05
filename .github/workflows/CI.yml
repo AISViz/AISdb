@@ -22,9 +22,6 @@ jobs:
   build-and-test-windows:
     runs-on: windows-latest
     steps:
-      - uses: ikalnytskyi/action-setup-postgres@v4
-        with:
-          password: ${{ secrets.PGPASS }}
       - name: Checkout Repository
         uses: actions/checkout@v3
 
@@ -75,13 +72,6 @@ jobs:
 
   build-and-test-linux:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
-        ports:
-          - 5432:5432
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -134,8 +124,6 @@ jobs:
 
   build-and-test-macos:
     runs-on: macos-latest
-    env:
-      POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -150,18 +138,6 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.cargo/env
-
-      - name: Install PostgreSQL
-        run: |
-          brew uninstall postgresql
-          brew install postgresql@13
-          brew services start postgresql@13
-          brew link postgresql@13 --force
-            
-      - name: Configure PostgreSQL
-        run: |
-          psql postgres -c "CREATE USER db_tester WITH SUPERUSER PASSWORD '${{ secrets.PGPASS }}';"
-          psql postgres -c 'CREATE DATABASE test_db;'
   
       - name: Create and Activate Python Virtual Environment
         run: |
