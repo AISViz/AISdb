@@ -55,7 +55,7 @@ jobs:
         run: |
           ./AISdb/Scripts/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install -U pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+          python -m pip install pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
           pytest  ./aisdb/tests/test_001_bathymetry.py \
                   ./aisdb/tests/test_002_createtables.py \
                   ./aisdb/tests/test_003_dbqry.py \
@@ -116,7 +116,7 @@ jobs:
         run: |
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install -U pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+          python -m pip install pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
           pytest  ./aisdb/tests/test_001_bathymetry.py \
                   ./aisdb/tests/test_002_createtables.py \
                   ./aisdb/tests/test_003_dbqry.py \
@@ -186,7 +186,7 @@ jobs:
         run: |
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install -U pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+          python -m pip install pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
           pytest  ./aisdb/tests/test_001_bathymetry.py \
                   ./aisdb/tests/test_002_createtables.py \
                   ./aisdb/tests/test_003_dbqry.py \
