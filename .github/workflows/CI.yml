@@ -13,14 +13,14 @@ permissions:
   contents: read
 
 env:
-  pguser: "postgres"
   pghost: "127.0.0.1"
   pgpass: ${{ secrets.PGPASS }}
+  pguser: ${{ secrets.PGUSER }}
 
 jobs:
   build-and-test-windows:
     runs-on: windows-latest
-    needs: [windows]
+    needs: [sdist, linux, windows, macos, build-and-test-linux, build-and-test-macos]
     steps:
       - uses: ikalnytskyi/action-setup-postgres@v4
         with:
@@ -55,31 +55,34 @@ jobs:
         run: |
           ./AISdb/Scripts/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
-          pytest ./aisdb/tests/test_001_postgres.py
-          pytest ./aisdb/tests/test_002_decode.py
-          pytest ./aisdb/tests/test_003_createtables.py
-          pytest ./aisdb/tests/test_004_sqlfcn.py
-          pytest ./aisdb/tests/test_005_dbqry.py
-          pytest ./aisdb/tests/test_006_gis.py
-          pytest ./aisdb/tests/test_007_trackgen.py
-          pytest ./aisdb/tests/test_008_interp.py
-          pytest ./aisdb/tests/test_009_wsa.py
-          pytest ./aisdb/tests/test_010_network_graph.py
-          pytest ./aisdb/tests/test_011_ui.py
-          pytest ./aisdb/tests/test_012_interp.py
-          # pytest ./aisdb/tests/test_013_proc_util.py
-          # pytest ./aisdb/tests/test_014_marinetraffic.py
-          # pytest ./aisdb/tests/test_015_shore_dist.py
-          # pytest ./aisdb/tests/test_016_bathymetry.py
+          python -m pip install pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort
+          pytest  ./aisdb/tests/test_001_bathymetry.py \
+                  ./aisdb/tests/test_002_createtables.py \
+                  ./aisdb/tests/test_003_dbqry.py \
+                  ./aisdb/tests/test_004_decode.py \
+                  ./aisdb/tests/test_005_gis.py \
+                  ./aisdb/tests/test_006_interp_01.py \
+                  ./aisdb/tests/test_007_interp_02.py \
+                  ./aisdb/tests/test_008_marinetraffic.py \
+                  ./aisdb/tests/test_009_network_graph.py \
+                  ./aisdb/tests/test_011_proc_util.py \
+                  ./aisdb/tests/test_013_sqlfcn.py
+          pytest ./aisdb/tests/test_012_shore_dist.py
+          pytest ./aisdb/tests/test_010_postgres.py
+          pytest ./aisdb/tests/test_014_trackgen.py \
+                 ./aisdb/tests/test_015_ui.py \
+                 ./aisdb/tests/test_016_wsa.py
 
   build-and-test-linux:
     runs-on: ubuntu-latest
-    needs: [linux]
-    env:
-      POSTGRES_USER: ${{ secrets.PGUSER }}
-      POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
+    needs: [sdist, linux]
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
+        ports:
+          - 5432:5432
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -94,13 +97,6 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.cargo/env
-
-      - name: Setup PostgreSQL
-        run: |
-          sudo apt-get install postgresql -y
-          sudo systemctl enable postgresql
-          sudo systemctl start postgresql
-          sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
 
       - name: Create and Activate Python Virtual Environment
         run: |
@@ -119,28 +115,27 @@ jobs:
         run: |
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
-          pytest ./aisdb/tests/test_001_postgres.py
-          pytest ./aisdb/tests/test_002_decode.py
-          pytest ./aisdb/tests/test_003_createtables.py
-          pytest ./aisdb/tests/test_004_sqlfcn.py
-          pytest ./aisdb/tests/test_005_dbqry.py
-          pytest ./aisdb/tests/test_006_gis.py
-          pytest ./aisdb/tests/test_007_trackgen.py
-          pytest ./aisdb/tests/test_008_interp.py
-          pytest ./aisdb/tests/test_009_wsa.py
-          pytest ./aisdb/tests/test_010_network_graph.py
-          pytest ./aisdb/tests/test_011_ui.py
-          pytest ./aisdb/tests/test_012_interp.py
-          # pytest ./aisdb/tests/test_013_proc_util.py
-          # pytest ./aisdb/tests/test_014_marinetraffic.py
-          # pytest ./aisdb/tests/test_015_shore_dist.py
-          # pytest ./aisdb/tests/test_016_bathymetry.py
+          python -m pip install pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort
+          pytest  ./aisdb/tests/test_001_bathymetry.py \
+                  ./aisdb/tests/test_002_createtables.py \
+                  ./aisdb/tests/test_003_dbqry.py \
+                  ./aisdb/tests/test_004_decode.py \
+                  ./aisdb/tests/test_005_gis.py \
+                  ./aisdb/tests/test_006_interp_01.py \
+                  ./aisdb/tests/test_007_interp_02.py \
+                  ./aisdb/tests/test_008_marinetraffic.py \
+                  ./aisdb/tests/test_009_network_graph.py \
+                  ./aisdb/tests/test_011_proc_util.py \
+                  ./aisdb/tests/test_013_sqlfcn.py
+          pytest ./aisdb/tests/test_012_shore_dist.py
+          pytest ./aisdb/tests/test_014_trackgen.py \
+                 ./aisdb/tests/test_015_ui.py \
+                 ./aisdb/tests/test_016_wsa.py
+          pytest ./aisdb/tests/test_010_postgres.py
 
   build-and-test-macos:
     runs-on: macos-latest
-    needs: [macos]
+    needs: [sdist, linux, macos, build-and-test-linux]
     env:
         POSTGRES_USER: ${{ secrets.PGUSER }}
         POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
@@ -161,13 +156,15 @@ jobs:
 
       - name: Install PostgreSQL
         run: |
-          brew install postgresql@14
-          brew services start postgresql@14
-          brew link postgresql@14 --force
+          brew uninstall postgresql
+          brew install postgresql@13
+          brew services start postgresql@13
+          brew link postgresql@13 --force
             
       - name: Configure PostgreSQL
-        run:
-          psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
+        run: |
+          psql postgres -c "CREATE USER $POSTGRES_USER WITH SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
+          psql postgres -c "CREATE DATABASE $POSTGRES_USER;"
   
       - name: Create and Activate Python Virtual Environment
         run: |
@@ -186,24 +183,23 @@ jobs:
         run: |
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
-          pytest ./aisdb/tests/test_001_postgres.py
-          pytest ./aisdb/tests/test_002_decode.py
-          pytest ./aisdb/tests/test_003_createtables.py
-          pytest ./aisdb/tests/test_004_sqlfcn.py
-          pytest ./aisdb/tests/test_005_dbqry.py
-          pytest ./aisdb/tests/test_006_gis.py
-          pytest ./aisdb/tests/test_007_trackgen.py
-          pytest ./aisdb/tests/test_008_interp.py
-          pytest ./aisdb/tests/test_009_wsa.py
-          pytest ./aisdb/tests/test_010_network_graph.py
-          pytest ./aisdb/tests/test_011_ui.py
-          pytest ./aisdb/tests/test_012_interp.py
-          # pytest ./aisdb/tests/test_013_proc_util.py
-          # pytest ./aisdb/tests/test_014_marinetraffic.py
-          # pytest ./aisdb/tests/test_015_shore_dist.py
-          # pytest ./aisdb/tests/test_016_bathymetry.py
+          python -m pip install pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort
+          pytest  ./aisdb/tests/test_001_bathymetry.py \
+                  ./aisdb/tests/test_002_createtables.py \
+                  ./aisdb/tests/test_003_dbqry.py \
+                  ./aisdb/tests/test_004_decode.py \
+                  ./aisdb/tests/test_005_gis.py \
+                  ./aisdb/tests/test_006_interp_01.py \
+                  ./aisdb/tests/test_007_interp_02.py \
+                  ./aisdb/tests/test_008_marinetraffic.py \
+                  ./aisdb/tests/test_009_network_graph.py \
+                  ./aisdb/tests/test_011_proc_util.py \
+                  ./aisdb/tests/test_013_sqlfcn.py
+          pytest ./aisdb/tests/test_012_shore_dist.py
+          pytest ./aisdb/tests/test_014_trackgen.py \
+                 ./aisdb/tests/test_015_ui.py \
+                 ./aisdb/tests/test_016_wsa.py
+          pytest ./aisdb/tests/test_010_postgres.py
 
   linux:
     runs-on: ubuntu-latest
@@ -248,7 +244,7 @@ jobs:
 
   windows:
     runs-on: windows-latest
-    needs: [sdist]
+    needs: [sdist, linux, macos]
     strategy:
       matrix:
         target: [ x64, x86 ]
@@ -272,7 +268,7 @@ jobs:
 
   macos:
     runs-on: macos-latest
-    needs: [sdist]
+    needs: [sdist, linux]
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.13
     strategy:
