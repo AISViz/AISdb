@@ -55,7 +55,7 @@ jobs:
         run: |
           ./AISdb/Scripts/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install pytest pytest-dotenv pytest-cov furl
+          python -m pip install pytest pytest-dotenv pytest-cov furl hypothesis trustme astor
           pytest  ./aisdb/tests/test_001_bathymetry.py \
                   ./aisdb/tests/test_002_createtables.py \
                   ./aisdb/tests/test_003_dbqry.py \
@@ -160,8 +160,8 @@ jobs:
             
       - name: Configure PostgreSQL
         run: |
-          psql postgres -c "CREATE USER database_tester WITH SUPERUSER PASSWORD '${{ secrets.PGPASS }}';"
-          psql postgres -c 'CREATE DATABASE test_database;'
+          psql postgres -c "CREATE USER db_tester WITH SUPERUSER PASSWORD '${{ secrets.PGPASS }}';"
+          psql postgres -c 'CREATE DATABASE test_db;'
   
       - name: Create and Activate Python Virtual Environment
         run: |
