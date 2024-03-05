@@ -55,10 +55,22 @@ jobs:
           ./AISdb/Scripts/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install pytest pytest-dotenv pytest-cov furl
-          pytest  ./aisdb/tests/test_001_bathymetry.py  ./aisdb/tests/test_002_createtables.py  ./aisdb/tests/test_003_dbqry.py  ./aisdb/tests/test_004_decode.py  ./aisdb/tests/test_005_gis.py  ./aisdb/tests/test_006_interp_01.py  ./aisdb/tests/test_007_interp_02.py  ./aisdb/tests/test_008_marinetraffic.py  ./aisdb/tests/test_009_network_graph.py  ./aisdb/tests/test_011_proc_util.py  ./aisdb/tests/test_013_sqlfcn.py
+          pytest  ./aisdb/tests/test_001_bathymetry.py \
+                  ./aisdb/tests/test_002_createtables.py \
+                  ./aisdb/tests/test_003_dbqry.py \
+                  ./aisdb/tests/test_004_decode.py \
+                  ./aisdb/tests/test_005_gis.py \
+                  ./aisdb/tests/test_006_interp_01.py \
+                  ./aisdb/tests/test_007_interp_02.py \
+                  ./aisdb/tests/test_008_marinetraffic.py \
+                  ./aisdb/tests/test_009_network_graph.py \
+                  ./aisdb/tests/test_011_proc_util.py \
+                  ./aisdb/tests/test_013_sqlfcn.py
           pytest ./aisdb/tests/test_012_shore_dist.py
           pytest ./aisdb/tests/test_010_postgres.py
-          pytest ./aisdb/tests/test_014_trackgen.py  ./aisdb/tests/test_015_ui.py  ./aisdb/tests/test_016_wsa.py
+          pytest ./aisdb/tests/test_014_trackgen.py \
+                 ./aisdb/tests/test_015_ui.py \
+                 ./aisdb/tests/test_016_wsa.py
 
   build-and-test-linux:
     runs-on: ubuntu-latest
@@ -102,10 +114,86 @@ jobs:
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install pytest pytest-dotenv pytest-cov furl
-          pytest  ./aisdb/tests/test_001_bathymetry.py  ./aisdb/tests/test_002_createtables.py  ./aisdb/tests/test_003_dbqry.py  ./aisdb/tests/test_004_decode.py  ./aisdb/tests/test_005_gis.py  ./aisdb/tests/test_006_interp_01.py  ./aisdb/tests/test_007_interp_02.py  ./aisdb/tests/test_008_marinetraffic.py  ./aisdb/tests/test_009_network_graph.py  ./aisdb/tests/test_011_proc_util.py  ./aisdb/tests/test_013_sqlfcn.py
+          pytest  ./aisdb/tests/test_001_bathymetry.py \
+                  ./aisdb/tests/test_002_createtables.py \
+                  ./aisdb/tests/test_003_dbqry.py \
+                  ./aisdb/tests/test_004_decode.py \
+                  ./aisdb/tests/test_005_gis.py \
+                  ./aisdb/tests/test_006_interp_01.py \
+                  ./aisdb/tests/test_007_interp_02.py \
+                  ./aisdb/tests/test_008_marinetraffic.py \
+                  ./aisdb/tests/test_009_network_graph.py \
+                  ./aisdb/tests/test_011_proc_util.py \
+                  ./aisdb/tests/test_013_sqlfcn.py
           pytest ./aisdb/tests/test_012_shore_dist.py
           pytest ./aisdb/tests/test_010_postgres.py
-          pytest ./aisdb/tests/test_014_trackgen.py  ./aisdb/tests/test_015_ui.py  ./aisdb/tests/test_016_wsa.py
+          pytest ./aisdb/tests/test_014_trackgen.py \
+                 ./aisdb/tests/test_015_ui.py \
+                 ./aisdb/tests/test_016_wsa.py
+
+  build-and-test-macos:
+    runs-on: macos-latest
+    env:
+      POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+  
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+  
+      - name: Install Rust Toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          source $HOME/.cargo/env
+  
+      - name: Install PostgreSQL
+        run: |
+          brew install postgresql
+          brew services start postgresql
+  
+      - name: Configure PostgreSQL
+        run: |
+          psql postgres -c "CREATE USER runner WITH SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
+          psql postgres -c 'CREATE DATABASE testdb;'
+  
+      - name: Create and Activate Python Virtual Environment
+        run: |
+          python -m venv AISdb
+          source ./AISdb/bin/activate
+  
+      - name: Install Maturin
+        run: python -m pip install maturin
+  
+      - name: Build and Install aisdb
+        run: |
+          source ./AISdb/bin/activate
+          maturin develop --release --extras=test,docs
+  
+      - name: Verify Installation
+        run: |
+          source ./AISdb/bin/activate
+          python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
+          python -m pip install pytest pytest-dotenv pytest-cov furl
+          pytest  ./aisdb/tests/test_001_bathymetry.py \
+                  ./aisdb/tests/test_002_createtables.py \
+                  ./aisdb/tests/test_003_dbqry.py \
+                  ./aisdb/tests/test_004_decode.py \
+                  ./aisdb/tests/test_005_gis.py \
+                  ./aisdb/tests/test_006_interp_01.py \
+                  ./aisdb/tests/test_007_interp_02.py \
+                  ./aisdb/tests/test_008_marinetraffic.py \
+                  ./aisdb/tests/test_009_network_graph.py \
+                  ./aisdb/tests/test_011_proc_util.py \
+                  ./aisdb/tests/test_013_sqlfcn.py
+          pytest ./aisdb/tests/test_012_shore_dist.py
+          pytest ./aisdb/tests/test_010_postgres.py
+          pytest ./aisdb/tests/test_014_trackgen.py \
+                 ./aisdb/tests/test_015_ui.py \
+                 ./aisdb/tests/test_016_wsa.py
 
   linux:
     runs-on: ubuntu-latest
@@ -213,7 +301,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [ linux, windows, macos, sdist ]
+    needs: [ linux, windows, macos, sdist, build-and-test-linux, build-and-test-windows, build-and-test-macos]
     steps:
       - uses: actions/download-artifact@v3
         with:
