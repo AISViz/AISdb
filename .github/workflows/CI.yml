@@ -55,7 +55,7 @@ jobs:
         run: |
           ./AISdb/Scripts/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
           pytest  ./aisdb/tests/test_001_bathymetry.py \
                   ./aisdb/tests/test_002_createtables.py \
                   ./aisdb/tests/test_003_dbqry.py \
@@ -116,7 +116,7 @@ jobs:
         run: |
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
           pytest  ./aisdb/tests/test_001_bathymetry.py \
                   ./aisdb/tests/test_002_createtables.py \
                   ./aisdb/tests/test_003_dbqry.py \
@@ -129,10 +129,10 @@ jobs:
                   ./aisdb/tests/test_011_proc_util.py \
                   ./aisdb/tests/test_013_sqlfcn.py
           pytest ./aisdb/tests/test_012_shore_dist.py
+          pytest ./aisdb/tests/test_010_postgres.py
           pytest ./aisdb/tests/test_014_trackgen.py \
                  ./aisdb/tests/test_015_ui.py \
                  ./aisdb/tests/test_016_wsa.py
-          pytest ./aisdb/tests/test_010_postgres.py
 
   build-and-test-macos:
     runs-on: macos-latest-xl
@@ -186,7 +186,7 @@ jobs:
         run: |
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
           pytest  ./aisdb/tests/test_001_bathymetry.py \
                   ./aisdb/tests/test_002_createtables.py \
                   ./aisdb/tests/test_003_dbqry.py \
@@ -199,10 +199,10 @@ jobs:
                   ./aisdb/tests/test_011_proc_util.py \
                   ./aisdb/tests/test_013_sqlfcn.py
           pytest ./aisdb/tests/test_012_shore_dist.py
+          pytest ./aisdb/tests/test_010_postgres.py
           pytest ./aisdb/tests/test_014_trackgen.py \
                  ./aisdb/tests/test_015_ui.py \
                  ./aisdb/tests/test_016_wsa.py
-          pytest ./aisdb/tests/test_010_postgres.py
 
   linux:
     runs-on: ubuntu-latest
