@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - aisdb-reworking
     tags:
       - '*'
   pull_request:
