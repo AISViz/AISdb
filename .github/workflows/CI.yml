@@ -13,9 +13,9 @@ permissions:
   contents: read
 
 env:
+  pguser: "postgres"
   pghost: "127.0.0.1"
   pgpass: ${{ secrets.PGPASS }}
-  pguser: ${{ secrets.PGUSER }}
 
 jobs:
   build-and-test-windows:
@@ -80,6 +80,7 @@ jobs:
       postgres:
         image: postgres
         env:
+          POSTGRES_USER: ${{ secrets.PGUSER }}
           POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
         ports:
           - 5432:5432
@@ -134,7 +135,7 @@ jobs:
           pytest ./aisdb/tests/test_010_postgres.py
 
   build-and-test-macos:
-    runs-on: macos-latest
+    runs-on: macos-latest-xl
     needs: [sdist, linux, macos, build-and-test-linux]
     env:
         POSTGRES_USER: ${{ secrets.PGUSER }}
@@ -162,9 +163,9 @@ jobs:
           brew link postgresql@13 --force
             
       - name: Configure PostgreSQL
-        run: |
-          psql postgres -c "CREATE USER $POSTGRES_USER WITH SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
-          psql postgres -c "CREATE DATABASE $POSTGRES_USER;"
+        run: psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
+      # psql postgres -c "CREATE USER $POSTGRES_USER WITH SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
+      # psql postgres -c "CREATE DATABASE $POSTGRES_USER;"
   
       - name: Create and Activate Python Virtual Environment
         run: |
@@ -267,7 +268,7 @@ jobs:
           path: dist
 
   macos:
-    runs-on: macos-latest
+    runs-on: macos-latest-xl
     needs: [sdist, linux]
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.13
