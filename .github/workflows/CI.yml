@@ -220,7 +220,7 @@ jobs:
 
   windows:
     runs-on: windows-latest
-    needs: [sdist, linux, macos, build-and-test-linux, build-and-test-macos]
+    needs: [sdist, linux, macos]
     strategy:
       matrix:
         target: [ x64, x86 ]
@@ -244,7 +244,7 @@ jobs:
 
   macos:
     runs-on: macos-latest
-    needs: [sdist, linux, build-and-test-linux]
+    needs: [sdist, linux]
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.13
     strategy:
