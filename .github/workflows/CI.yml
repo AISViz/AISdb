@@ -16,6 +16,7 @@ env:
   pgpass: ${{ secrets.PGPASS }}
   pguser: ${{ secrets.PGUSER }}
   pghost: ${{ secrets.PGHOST }}
+  pgname: ${{ secrets.PGNAME }}
 
 jobs:
   build-and-test-windows:
@@ -159,8 +160,8 @@ jobs:
             
       - name: Configure PostgreSQL
         run: |
-          psql postgres -c "CREATE USER runner WITH SUPERUSER PASSWORD '${{ secrets.POSTGRES_PASSWORD }}';"
-          psql postgres -c 'CREATE DATABASE testdb;'
+          psql postgres -c "CREATE USER '${{ secrets.PGUSER }}' WITH SUPERUSER PASSWORD '${{ secrets.PGPASS }}';"
+          psql postgres -c 'CREATE DATABASE '${{ secrets.PGNAME }}';'
   
       - name: Create and Activate Python Virtual Environment
         run: |
