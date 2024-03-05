@@ -152,8 +152,10 @@ jobs:
 
       - name: Install PostgreSQL
         run: |
-          brew install postgresql
-          brew services start postgresql
+          brew uninstall postgresql
+          brew install postgresql@13
+          brew services start postgresql@13
+          brew link postgresql@13 --force
             
       - name: Configure PostgreSQL
         run: |
