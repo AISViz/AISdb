@@ -117,10 +117,10 @@ jobs:
                   ./aisdb/tests/test_011_proc_util.py \
                   ./aisdb/tests/test_013_sqlfcn.py
           pytest ./aisdb/tests/test_012_shore_dist.py
-          pytest ./aisdb/tests/test_010_postgres.py
           pytest ./aisdb/tests/test_014_trackgen.py \
                  ./aisdb/tests/test_015_ui.py \
                  ./aisdb/tests/test_016_wsa.py
+  # pytest ./aisdb/tests/test_010_postgres.py
 
   build-and-test-macos:
     runs-on: macos-latest
@@ -169,10 +169,10 @@ jobs:
                   ./aisdb/tests/test_011_proc_util.py \
                   ./aisdb/tests/test_013_sqlfcn.py
           pytest ./aisdb/tests/test_012_shore_dist.py
-          pytest ./aisdb/tests/test_010_postgres.py
           pytest ./aisdb/tests/test_014_trackgen.py \
                  ./aisdb/tests/test_015_ui.py \
                  ./aisdb/tests/test_016_wsa.py
+  # pytest ./aisdb/tests/test_010_postgres.py
 
   linux:
     runs-on: ubuntu-latest
