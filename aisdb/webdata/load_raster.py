@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 from PIL import Image
-
 from aisdb.aisdb import binarysearch_vector
 
 Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError warning
@@ -20,8 +19,7 @@ class _RasterFile_generic():
 
     def merge_tracks(self, tracks, new_track_key: str):
         for track in tracks:
-            track['dynamic'] = set(track['dynamic']).union(set([new_track_key
-                                                                ]))
+            track['dynamic'] = set(track['dynamic']).union(set([new_track_key]))
             track[new_track_key] = self._track_coordinate_values(track)
             yield track
 

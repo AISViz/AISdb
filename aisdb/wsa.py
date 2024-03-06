@@ -15,7 +15,7 @@ def _wsa(dwt, ship_type, ship_type_detailed='', **_):
 
     # None, wing in ground craft, other
     if (isinstance(ship_type, int)
-            and ship_type < 30) or ship_type == 'Wing In Grnd':
+        and ship_type < 30) or ship_type == 'Wing In Grnd':
         return 0
 
     # fishing
@@ -58,10 +58,10 @@ def _wsa(dwt, ship_type, ship_type_detailed='', **_):
 
     # tankers (LNG / LPG)
     elif (isinstance(ship_type, int) and ship_type == 84) or (
-        (isinstance(ship_type, str) and
-         ('Tanker' in ship_type and
-          ('Oil' in ship_type_detailed or 'LNG' in ship_type_detailed
-           or 'LPG' in ship_type_detailed)))):
+            (isinstance(ship_type, str) and
+             ('Tanker' in ship_type and
+              ('Oil' in ship_type_detailed or 'LNG' in ship_type_detailed
+               or 'LPG' in ship_type_detailed)))):
         coef = 5.41
         exp = 0.699
 

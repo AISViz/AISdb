@@ -1,8 +1,8 @@
 # Python standard library packages
-from datetime import datetime, timedelta
 import asyncio
 import os
 import sys
+from datetime import datetime, timedelta
 
 # These packages need to be installed with pip
 import orjson
@@ -11,6 +11,7 @@ import websockets.client
 # Query the MERIDIAN web API, or reconfigure the URL with an environment variable
 db_hostname = 'wss://aisdb.meridian.cs.dal.ca/ws'
 db_hostname = os.environ.get('AISDBHOST', db_hostname)
+
 
 # Default docker IPv6 address and port number.
 # See docker-compose.yml for configuration.
