@@ -1,16 +1,17 @@
 ''' generation, segmentation, and filtering of vessel trajectories '''
 
-from functools import reduce
-from datetime import timedelta
 import sqlite3
 import types
 import warnings
-import numpy as np
+from datetime import timedelta
+from functools import reduce
 
+import numpy as np
 from aisdb.aisdb import simplify_linestring_idx
+
+from aisdb import Domain
 from aisdb.gis import delta_knots
 from aisdb.proc_util import _segment_rng
-from aisdb import Domain
 
 staticcols = set([
     'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'maneuver',
