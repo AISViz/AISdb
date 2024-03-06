@@ -2,11 +2,11 @@
     generate queries
 '''
 
+import sqlite3
+import warnings
 from collections import UserDict
 from datetime import datetime, timedelta, date
 from functools import reduce
-import warnings
-import sqlite3
 
 import numpy as np
 import psycopg
@@ -93,7 +93,7 @@ class DBQuery(UserDict):
             raise ValueError("Invalid database connection")
         '''
 
-        #for dbpath in dbpaths:
+        # for dbpath in dbpaths:
         #    dbconn._attach(dbpath)
         '''
         if isinstance(dbconn, ConnectionType):
@@ -125,7 +125,7 @@ class DBQuery(UserDict):
             'SELECT * FROM sqlite_master '
             'WHERE type="table" AND name=?', [f'ais_{month}_static'])
         if len(cur.fetchall()) == 0:
-            #sqlite_createtable_staticreport(self.dbconn, month)
+            # sqlite_createtable_staticreport(self.dbconn, month)
             warnings.warn(f'No results found in ais_{month}_static')
 
         # check if aggregate tables exist
@@ -195,7 +195,7 @@ class DBQuery(UserDict):
         ''').format(TABLE=psycopg.sql.Literal(f'ais_{month}_dynamic')))
 
         if len(cur.fetchall()) == 0:  # pragma: no cover
-            #if isinstance(self.dbconn, ConnectionType.SQLITE.value):
+            # if isinstance(self.dbconn, ConnectionType.SQLITE.value):
             #    sqlite_createtable_dynamicreport(self.dbconn, month)
             warnings.warn('No data for selected time range! '
                           f'{rng_string}')
@@ -308,7 +308,7 @@ class DBQuery(UserDict):
         mmsi_rows: list = []
         dt = datetime.now()
         _ = cur.execute(qry)
-        res: list = cur.fetchmany(10**5)
+        res: list = cur.fetchmany(10 ** 5)
         delta = datetime.now() - dt
 
         if verbose:
@@ -328,5 +328,5 @@ class DBQuery(UserDict):
             if len(ummsi_idx) > 2:
                 mmsi_rows = mmsi_rows[ummsi_idx[i + 1]:]
 
-            res = cur.fetchmany(10**5)
+            res = cur.fetchmany(10 ** 5)
         yield mmsi_rows

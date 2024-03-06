@@ -22,9 +22,10 @@ from tqdm import tqdm
 
 from aisdb.webdata.load_raster import RasterFile
 
+
 def download_unzip(data_url, data_dir, bytesize=0):
     assert os.path.isdir(data_dir), f'not a directory: {data_dir=}'
-    zipf = os.path.join(data_dir, data_url.rsplit('/',1)[1])
+    zipf = os.path.join(data_dir, data_url.rsplit('/', 1)[1])
     if not os.path.isfile(zipf):
         try:
             with requests.get(data_url, stream=True) as payload:
@@ -40,20 +41,20 @@ def download_unzip(data_url, data_dir, bytesize=0):
             os.remove(zipf)
             raise err
     with zipfile.ZipFile(zipf, 'r') as zip_ref:
-        members = list( fpath for fpath in
+        members = list(fpath for fpath in
                        set(zip_ref.namelist()) -
                        set(sorted(os.listdir(data_dir))) if '.tif' in fpath)
         if len(members) > 0:
             zip_ref.extractall(path=data_dir, members=members)
 
-class ShoreDist(RasterFile):
 
-    data_url = "https://oceancolor.gsfc.nasa.gov/docs/distfromcoast/GMT_intermediate_coast_distance_01d.zip"
+class ShoreDist(RasterFile):
+    # This is self-stored data to easy the deployment process
+    data_url = "http://bigdata5.research.cs.dal.ca/rasters.zip"
 
     def __init__(self, data_dir, tif_filename='GMT_intermediate_coast_distance_01d.tif'):
         download_unzip(self.data_url, data_dir, bytesize=657280)
         imgpath = os.path.join(data_dir, tif_filename)
-        #imgpath = os.path.join(data_dir, 'distance-from-shore.tif')
         assert os.path.isfile(imgpath)
         super().__init__(imgpath)
 

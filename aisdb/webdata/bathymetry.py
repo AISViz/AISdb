@@ -2,12 +2,12 @@
 
 import hashlib
 import os
+import warnings
 import zipfile
 from functools import reduce
 
 import numpy as np
 import requests
-import warnings
 from tqdm import tqdm
 
 from aisdb.gis import shiftcoord
@@ -78,8 +78,8 @@ class Gebco():
                 with open(zipf, 'rb') as z:
                     sha256sum = hashlib.sha256(z.read()).hexdigest()
                 print('verifying checksum...')
-                assert sha256sum == '5ade15083909fcd6003409df678bdc6537b8691df996f8d806b48de962470cc3',\
-                        'checksum failed!'
+                assert sha256sum == '5ade15083909fcd6003409df678bdc6537b8691df996f8d806b48de962470cc3', \
+                    'checksum failed!'
                 with zipfile.ZipFile(zipf, 'r') as zip_ref:
                     members = list(
                         set(zip_ref.namelist()) -
