@@ -1,12 +1,14 @@
 import os
 from datetime import datetime
 
+import shapely
+from aisdb.tests.test_09_marinetraffic import testdir
+from dotenv import load_dotenv
+
 import aisdb
 from aisdb import DBQuery, DBConn
-from aisdb.gis import DomainFromTxts, Domain
-import shapely
-from dotenv import load_dotenv
-from aisdb.tests.test_08_marinetraffic import testdir
+from aisdb.gis import Domain
+
 load_dotenv()
 
 dbpath = os.environ.get('EXAMPLE_NOISE_DB', 'AIS.sqlitedb')
@@ -14,8 +16,9 @@ dbpath = os.environ.get('EXAMPLE_NOISE_DB', 'AIS.sqlitedb')
 trafficDBpath = os.path.join(testdir, 'marinetraffic_test.db')
 # trafficDBpath = os.environ.get('AISDBMARINETRAFFIC', 'marinetraffic.db')
 domain = domain = Domain(name='example', zones=[{'name': 'zone1',
-        'geometry': shapely.geometry.Polygon([(-40,60), (-40, 61), (-41, 61), (-41, 60), (-40, 60)])
-        }, ]) #DomainFromTxts('EastCoast', folder=os.environ.get('AISDBZONES'))
+                                                 'geometry': shapely.geometry.Polygon(
+                                                     [(-40, 60), (-40, 61), (-41, 61), (-41, 60), (-40, 60)])
+                                                 }, ])  # DomainFromTxts('EastCoast', folder=os.environ.get('AISDBZONES'))
 
 start = datetime(2021, 7, 1)
 end = datetime(2021, 7, 2)
