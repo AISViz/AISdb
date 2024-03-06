@@ -99,9 +99,7 @@ jobs:
           sudo apt-get install postgresql -y
           sudo systemctl enable postgresql
           sudo systemctl start postgresql
-          sudo su
-          su - postgres
-          psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
+          sudo -u postgres psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
 
       - name: Create and Activate Python Virtual Environment
         run: |
