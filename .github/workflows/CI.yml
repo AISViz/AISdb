@@ -135,7 +135,7 @@ jobs:
                  ./aisdb/tests/test_016_wsa.py
 
   build-and-test-macos:
-    runs-on: macos-latest-xl
+    runs-on: macos-latest
     needs: [macos]
     env:
         POSTGRES_USER: ${{ secrets.PGUSER }}
@@ -267,7 +267,7 @@ jobs:
           path: dist
 
   macos:
-    runs-on: macos-latest-xl
+    runs-on: macos-latest
     needs: [sdist]
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.13
