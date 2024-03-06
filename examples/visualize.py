@@ -1,7 +1,6 @@
 import os
 from datetime import datetime, timedelta
 
-import aisdb
 import aisdb.web_interface
 from aisdb.tests.create_testing_data import (
     sample_database_file,
