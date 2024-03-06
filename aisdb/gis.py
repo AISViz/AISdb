@@ -7,12 +7,11 @@ from datetime import datetime, timedelta
 from functools import partial
 
 import numpy as np
-import shapely.ops
 import shapely.geometry
-import warnings
+import shapely.ops
+from aisdb.aisdb import haversine
 from shapely.geometry import Polygon, LineString, Point
 
-from aisdb.aisdb import haversine
 from aisdb.proc_util import glob_files
 
 
@@ -222,8 +221,8 @@ def distance3D(x1, y1, x2, y2, depth_metres):
     ''' haversine/pythagoras approximation of vessel distance to
         point at given depth
     '''
-    a2 = haversine(x1=x1, y1=y1, x2=x2, y2=y2)**2
-    b2 = abs(depth_metres)**2
+    a2 = haversine(x1=x1, y1=y1, x2=x2, y2=y2) ** 2
+    b2 = abs(depth_metres) ** 2
     c2 = a2 + b2
     return np.sqrt(c2)
 
@@ -424,7 +423,7 @@ class Domain():
 
             x, y = zone['geometry'].boundary.coords.xy
             if not (np.min(x) >= -180 and np.max(x) <= 180):
-                #warnings.warn(f'dividing geometry... {zone["name"]}')
+                # warnings.warn(f'dividing geometry... {zone["name"]}')
                 valid_domain = False
                 self._handle_outofbounds_zone(zone, zones_dir)
             else:
@@ -477,12 +476,12 @@ class Domain():
         for name, z in self.zones.items():
             dist_to_centroids.update({
                 name:
-                haversine(
-                    x,
-                    y,
-                    z['geometry'].centroid.x,
-                    z['geometry'].centroid.y,
-                ) - z['maxradius']
+                    haversine(
+                        x,
+                        y,
+                        z['geometry'].centroid.x,
+                        z['geometry'].centroid.y,
+                    ) - z['maxradius']
             })
         return dist_to_centroids
 
@@ -542,7 +541,6 @@ class DomainFromTxts(Domain):
     '''
 
     def __init__(self, domainName, folder, ext='txt'):
-
         files = glob_files(folder, ext=ext)
         zones = []
         for txt in files:
@@ -597,15 +595,15 @@ class DomainFromPoints(Domain):
             bounds = radial_coordinate_boundary(*xy, d)
             geom = {
                 'name':
-                i,
+                    i,
                 'geometry':
-                Polygon([
-                    (bounds['xmin'], bounds['ymin']),
-                    (bounds['xmin'], bounds['ymax']),
-                    (bounds['xmax'], bounds['ymax']),
-                    (bounds['xmax'], bounds['ymin']),
-                    (bounds['xmin'], bounds['ymin']),
-                ]),
+                    Polygon([
+                        (bounds['xmin'], bounds['ymin']),
+                        (bounds['xmin'], bounds['ymax']),
+                        (bounds['xmax'], bounds['ymax']),
+                        (bounds['xmax'], bounds['ymin']),
+                        (bounds['xmin'], bounds['ymin']),
+                    ]),
             }
             zones.append(geom)
         super().__init__(name=domainName, zones=zones)

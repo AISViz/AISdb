@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta
-from functools import partial, reduce
-from tempfile import SpooledTemporaryFile
 import csv
 import io
 import os
 import re
 import typing
+from datetime import datetime, timedelta
+from functools import partial, reduce
+from tempfile import SpooledTemporaryFile
 
 import numpy as np
 
@@ -46,7 +46,7 @@ def _splits_idx(vector: np.ndarray, d: timedelta) -> np.ndarray:
     assert isinstance(d, timedelta)
     vector = np.array(vector, dtype=int)
     splits = np.nonzero(vector[1:] - vector[:-1] >= d.total_seconds())[0] + 1
-    #else:
+    # else:
     #    splits = np.nonzero(vector[1:] - vector[:-1] >= d)[0] + 1
     idx = np.append(np.append([0], splits), [vector.size])
     return idx
@@ -106,7 +106,7 @@ def tracks_csv(tracks, skipcols: list = ['label', 'in_zone']):
     ]
     colnames = [col for col in colnames if col not in skipcols]
 
-    yield colnames  +["Track_ID"]
+    yield colnames + ["Track_ID"]
 
     if 'marinetraffic_info' in tr1.keys():
         colnames += tuple(tr1['marinetraffic_info'].keys())
@@ -129,7 +129,7 @@ def tracks_csv(tracks, skipcols: list = ['label', 'in_zone']):
         'submerged_hull_m^2': 0,
     }
 
-    def _append(track, colnames=colnames, decimals=decimals, track_id= 0):
+    def _append(track, colnames=colnames, decimals=decimals, track_id=0):
         if 'marinetraffic_info' in track.keys():
             for key, val in dict(track['marinetraffic_info']).items():
                 if key in ('error404', 'mmsi', 'imo'):
@@ -151,14 +151,14 @@ def tracks_csv(tracks, skipcols: list = ['label', 'in_zone']):
 
     yield from _append(tr1, colnames, decimals, track_id=track_ID)
     for track in tracks_dt:
-        track_ID+=1
+        track_ID += 1
         yield from _append(track, colnames, decimals, track_id=track_ID)
 
 
 def write_csv(
-    tracks,
-    fpath: typing.Union[io.BytesIO, str, SpooledTemporaryFile],
-    skipcols: list = ['label', 'in_zone'],
+        tracks,
+        fpath: typing.Union[io.BytesIO, str, SpooledTemporaryFile],
+        skipcols: list = ['label', 'in_zone'],
 ):
     ''' write track vector dictionaries as CSV file
 
@@ -172,7 +172,7 @@ def write_csv(
                 columns to be omitted from results
     '''
 
-    #with open(fpath, 'w', newline='') as f:
+    # with open(fpath, 'w', newline='') as f:
     if isinstance(fpath, str):
         f = open(fpath, mode='w')
     elif isinstance(fpath, (io.BytesIO, SpooledTemporaryFile)):
@@ -180,8 +180,8 @@ def write_csv(
     else:
         raise ValueError(f'invalid type for fpath: {type(fpath)}')
 
-    #with f:
-    #f.write(','.join(colnames) + '\n')
+    # with f:
+    # f.write(','.join(colnames) + '\n')
     writer = csv.writer(f,
                         delimiter=',',
                         quotechar="'",
@@ -261,7 +261,7 @@ def getfiledate(filename):
                 n += 1
                 line = f.readline()
                 head = line.rsplit('\\', 1)[0]
-                #if n > 10000:
+                # if n > 10000:
                 #    print(f'bad! {filename}')
                 #    return False
                 assert n <= 10000
