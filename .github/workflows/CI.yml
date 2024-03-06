@@ -75,7 +75,7 @@ jobs:
 
   build-and-test-linux:
     runs-on: ubuntu-latest
-    needs: []
+    needs: [linux]
     env:
       POSTGRES_USER: ${{ secrets.PGUSER }}
       POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
