@@ -1,7 +1,8 @@
-import os
-import toml
 import logging
+import os
 import warnings
+
+import toml
 
 with open(
         os.path.join(os.path.dirname(os.path.dirname(__file__)),
@@ -9,6 +10,7 @@ with open(
     __version__ = toml.load(tomlfile).get('project').get('version')
 
 import sqlite3
+
 if (sqlite3.sqlite_version_info[0] < 3
         or (sqlite3.sqlite_version_info[0] <= 3
             and sqlite3.sqlite_version_info[1] < 8)):
