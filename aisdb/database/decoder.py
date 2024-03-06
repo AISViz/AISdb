@@ -1,20 +1,21 @@
-from aisdb.database.dbconn import PostgresDBConn
-from aisdb.database.dbconn import SQLiteDBConn
-from dateutil.rrule import rrule, MONTHLY
-from aisdb.proc_util import getfiledate
-from aisdb.aisdb import decoder
-from datetime import timedelta
-from functools import partial
-from aisdb import sqlpath
-from copy import deepcopy
-from hashlib import md5
-
-import tempfile
-import psycopg
-import zipfile
-import pickle
 import gzip
 import os
+import pickle
+import tempfile
+import zipfile
+from copy import deepcopy
+from datetime import timedelta
+from functools import partial
+from hashlib import md5
+
+import psycopg
+from aisdb.aisdb import decoder
+from dateutil.rrule import rrule, MONTHLY
+
+from aisdb import sqlpath
+from aisdb.database.dbconn import PostgresDBConn
+from aisdb.database.dbconn import SQLiteDBConn
+from aisdb.proc_util import getfiledate
 
 
 class FileChecksums:
@@ -24,6 +25,7 @@ class FileChecksums:
     :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.
     :return: None
     """
+
     def __init__(self, *, dbconn):
         """
         :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.

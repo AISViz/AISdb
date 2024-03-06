@@ -8,29 +8,29 @@ import pickle
 import re
 import tempfile
 import types
+import warnings
 from datetime import timedelta
 from functools import partial, reduce
 
 import numpy as np
-import warnings
 
 import aisdb
 from aisdb.database import sqlfcn
+from aisdb.database.dbconn import SQLiteDBConn, ConnectionType
+from aisdb.denoising_encoder import encode_greatcircledistance
 from aisdb.gis import (
     delta_knots,
     delta_meters,
     epoch_2_dt,
 )
+from aisdb.interp import interp_time
+from aisdb.proc_util import _sanitize
+from aisdb.proc_util import _segment_rng
 from aisdb.track_gen import (
     TrackGen,
     fence_tracks,
     split_timedelta,
 )
-from aisdb.denoising_encoder import encode_greatcircledistance
-from aisdb.database.dbconn import PostgresDBConn, SQLiteDBConn, ConnectionType
-from aisdb.interp import interp_time
-from aisdb.proc_util import _sanitize
-from aisdb.proc_util import _segment_rng
 from aisdb.webdata.bathymetry import Gebco
 from aisdb.webdata.marinetraffic import vessel_info, VesselInfo
 from aisdb.webdata.shore_dist import ShoreDist, PortDist
@@ -56,8 +56,8 @@ def _time_in_shoredist_rng(track, subset, dist0=0.01, dist1=5):
         _segment_rng(
             {
                 'time':
-                track['time'][subset]
-                [[dist0 <= d <= dist1 for d in track['km_from_shore'][subset]]]
+                    track['time'][subset]
+                    [[dist0 <= d <= dist1 for d in track['km_from_shore'][subset]]]
             },
             maxdelta=timedelta(minutes=1),
             key='time'),
@@ -410,11 +410,11 @@ def graph(
         process the vessel movement graph edges.
         caution: this may consume a large amount of memory
     '''
-    assert not isinstance(qry, types.GeneratorType),\
-            'Got a generator for "qry" arg instead of DBQuery'
+    assert not isinstance(qry, types.GeneratorType), \
+        'Got a generator for "qry" arg instead of DBQuery'
 
-    assert isinstance(qry, aisdb.database.dbqry.DBQuery),\
-            f'Not a DBQuery object! Got {qry}'
+    assert isinstance(qry, aisdb.database.dbqry.DBQuery), \
+        f'Not a DBQuery object! Got {qry}'
 
     if not isinstance(dbconn, (
             ConnectionType.SQLITE.value,

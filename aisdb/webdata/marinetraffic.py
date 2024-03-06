@@ -1,17 +1,17 @@
 ''' scrape vessel information such as deadweight tonnage from marinetraffic.com '''
 
 import os
+import sqlite3
 
 import numpy as np
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
 
 from aisdb import sqlpath
+from aisdb.database.dbconn import SQLiteDBConn
 from aisdb.webdata._scraper import _scraper
-from aisdb.database.dbconn import PostgresDBConn, SQLiteDBConn
-import sqlite3
 
 baseurl = 'https://www.marinetraffic.com/'
 
@@ -35,31 +35,31 @@ with open(_insert_sqlite_sqlfile, 'r') as f:
 def _nullinfo(track):
     return {
         'mmsi':
-        track['mmsi'],
+            track['mmsi'],
         'imo':
-        track['imo'] if 'imo' in track.keys() else 0,
+            track['imo'] if 'imo' in track.keys() else 0,
         'name': (track['vessel_name'] if 'vessel_name' in track.keys()
-                 and track['vessel_name'] is not None else ''),
+                                         and track['vessel_name'] is not None else ''),
         'vesseltype_generic':
-        None,
+            None,
         'vesseltype_detailed':
-        None,
+            None,
         'callsign':
-        None,
+            None,
         'flag':
-        None,
+            None,
         'gross_tonnage':
-        None,
+            None,
         'summer_dwt':
-        None,
+            None,
         'length_breadth':
-        None,
+            None,
         'year_built':
-        None,
+            None,
         'home_port':
-        None,
+            None,
         'error404':
-        1
+            1
     }
 
 
@@ -240,7 +240,7 @@ class VesselInfo():  # pragma: no cover
 
             # if timeout occurs, mark as error 404
             with self.trafficDB as conn:
-                conn.execute(_err404, (str(searchmmsi), ))
+                conn.execute(_err404, (str(searchmmsi),))
             return
         except Exception as err:
             self.driver.close()
@@ -264,9 +264,9 @@ class VesselInfo():  # pragma: no cover
             with self.trafficDB as conn:
                 insert404 = conn.execute(
                     'SELECT COUNT(*) FROM webdata_marinetraffic WHERE mmsi=?',
-                    (str(searchmmsi), )).fetchone()[0] == 0
+                    (str(searchmmsi),)).fetchone()[0] == 0
                 if insert404:
-                    conn.execute(_err404, (str(searchmmsi), ))
+                    conn.execute(_err404, (str(searchmmsi),))
 
         elif 'hc-en' in self.driver.current_url:
             raise RuntimeError('bad url??')
@@ -274,7 +274,7 @@ class VesselInfo():  # pragma: no cover
         elif self.driver.title[0:3] == '404':
             print(f'404 error! {searchmmsi=}')
             with self.trafficDB as conn:
-                conn.execute(_err404, (str(searchmmsi), ))
+                conn.execute(_err404, (str(searchmmsi),))
 
         value = 'vesselDetails_vesselInfoSection'
         for elem in self.driver.find_elements(value=value):
@@ -327,4 +327,3 @@ if searchimo != 0:
 else:
     checksum = '0'
 '''
-
