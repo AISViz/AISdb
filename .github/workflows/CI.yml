@@ -56,22 +56,23 @@ jobs:
           ./AISdb/Scripts/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          pytest ./aisdb/tests/test_010_postgres.py
-          pytest  ./aisdb/tests/test_004_decode.py
-          pytest  ./aisdb/tests/test_002_createtables.py
-          pytest  ./aisdb/tests/test_013_sqlfcn.py
-          pytest  ./aisdb/tests/test_003_dbqry.py
-          pytest  ./aisdb/tests/test_005_gis.py
-          pytest  ./aisdb/tests/test_014_trackgen.py
-          pytest  ./aisdb/tests/test_007_interp_02.py
-          pytest  ./aisdb/tests/test_016_wsa.py
-          pytest  ./aisdb/tests/test_009_network_graph.py
-          pytest  ./aisdb/tests/test_015_ui.py
-          pytest  ./aisdb/tests/test_006_interp_01.py
-          # pytest  ./aisdb/tests/test_011_proc_util.py
-          # pytest  ./aisdb/tests/test_008_marinetraffic.py
-          # pytest  ./aisdb/tests/test_012_shore_dist.py
-          # pytest  ./aisdb/tests/test_001_bathymetry.py
+          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
+          pytest ./aisdb/tests/test_001_postgres.py
+          pytest ./aisdb/tests/test_002_decode.py
+          pytest ./aisdb/tests/test_003_createtables.py
+          pytest ./aisdb/tests/test_004_sqlfcn.py
+          pytest ./aisdb/tests/test_005_dbqry.py
+          pytest ./aisdb/tests/test_006_gis.py
+          pytest ./aisdb/tests/test_007_trackgen.py
+          pytest ./aisdb/tests/test_008_interp.py
+          pytest ./aisdb/tests/test_009_wsa.py
+          pytest ./aisdb/tests/test_010_network_graph.py
+          pytest ./aisdb/tests/test_011_ui.py
+          pytest ./aisdb/tests/test_012_interp.py
+          # pytest ./aisdb/tests/test_013_proc_util.py
+          # pytest ./aisdb/tests/test_014_marinetraffic.py
+          # pytest ./aisdb/tests/test_015_shore_dist.py
+          # pytest ./aisdb/tests/test_016_bathymetry.py
 
   build-and-test-linux:
     runs-on: ubuntu-latest
@@ -119,22 +120,23 @@ jobs:
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          pytest ./aisdb/tests/test_010_postgres.py
-          pytest  ./aisdb/tests/test_004_decode.py
-          pytest  ./aisdb/tests/test_002_createtables.py
-          pytest  ./aisdb/tests/test_013_sqlfcn.py
-          pytest  ./aisdb/tests/test_003_dbqry.py
-          pytest  ./aisdb/tests/test_005_gis.py
-          pytest  ./aisdb/tests/test_014_trackgen.py
-          pytest  ./aisdb/tests/test_007_interp_02.py
-          pytest  ./aisdb/tests/test_016_wsa.py
-          pytest  ./aisdb/tests/test_009_network_graph.py
-          pytest  ./aisdb/tests/test_015_ui.py
-          pytest  ./aisdb/tests/test_006_interp_01.py
-          # pytest  ./aisdb/tests/test_011_proc_util.py
-          # pytest  ./aisdb/tests/test_008_marinetraffic.py
-          # pytest  ./aisdb/tests/test_012_shore_dist.py
-          # pytest  ./aisdb/tests/test_001_bathymetry.py
+          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
+          pytest ./aisdb/tests/test_001_postgres.py
+          pytest ./aisdb/tests/test_002_decode.py
+          pytest ./aisdb/tests/test_003_createtables.py
+          pytest ./aisdb/tests/test_004_sqlfcn.py
+          pytest ./aisdb/tests/test_005_dbqry.py
+          pytest ./aisdb/tests/test_006_gis.py
+          pytest ./aisdb/tests/test_007_trackgen.py
+          pytest ./aisdb/tests/test_008_interp.py
+          pytest ./aisdb/tests/test_009_wsa.py
+          pytest ./aisdb/tests/test_010_network_graph.py
+          pytest ./aisdb/tests/test_011_ui.py
+          pytest ./aisdb/tests/test_012_interp.py
+          # pytest ./aisdb/tests/test_013_proc_util.py
+          # pytest ./aisdb/tests/test_014_marinetraffic.py
+          # pytest ./aisdb/tests/test_015_shore_dist.py
+          # pytest ./aisdb/tests/test_016_bathymetry.py
 
   build-and-test-macos:
     runs-on: macos-latest
@@ -185,22 +187,23 @@ jobs:
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          pytest  ./aisdb/tests/test_002_createtables.py \
-                  ./aisdb/tests/test_003_dbqry.py \
-                  ./aisdb/tests/test_004_decode.py \
-                  ./aisdb/tests/test_005_gis.py \
-                  ./aisdb/tests/test_006_interp_01.py \
-                  ./aisdb/tests/test_007_interp_02.py \
-                  ./aisdb/tests/test_008_marinetraffic.py \
-                  ./aisdb/tests/test_009_network_graph.py \
-                  ./aisdb/tests/test_011_proc_util.py \
-                  ./aisdb/tests/test_013_sqlfcn.py
-          pytest ./aisdb/tests/test_010_postgres.py
-          pytest ./aisdb/tests/test_014_trackgen.py \
-                 ./aisdb/tests/test_015_ui.py \
-                 ./aisdb/tests/test_016_wsa.py
-        # pytest ./aisdb/tests/test_001_bathymetry.py
-        # pytest ./aisdb/tests/test_012_shore_dist.py
+          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
+          pytest ./aisdb/tests/test_001_postgres.py
+          pytest ./aisdb/tests/test_002_decode.py
+          pytest ./aisdb/tests/test_003_createtables.py
+          pytest ./aisdb/tests/test_004_sqlfcn.py
+          pytest ./aisdb/tests/test_005_dbqry.py
+          pytest ./aisdb/tests/test_006_gis.py
+          pytest ./aisdb/tests/test_007_trackgen.py
+          pytest ./aisdb/tests/test_008_interp.py
+          pytest ./aisdb/tests/test_009_wsa.py
+          pytest ./aisdb/tests/test_010_network_graph.py
+          pytest ./aisdb/tests/test_011_ui.py
+          pytest ./aisdb/tests/test_012_interp.py
+          # pytest ./aisdb/tests/test_013_proc_util.py
+          # pytest ./aisdb/tests/test_014_marinetraffic.py
+          # pytest ./aisdb/tests/test_015_shore_dist.py
+          # pytest ./aisdb/tests/test_016_bathymetry.py
 
   linux:
     runs-on: ubuntu-latest
