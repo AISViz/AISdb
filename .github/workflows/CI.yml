@@ -95,8 +95,12 @@ jobs:
           source $HOME/.cargo/env
 
       - name: Install and Configure PostgreSQL
-        run:
-          apt install postgresql && systemctl enable postgresql && systemctl start postgresql
+        run: |
+          sudo su
+          apt install postgresql -y
+          systemctl enable postgresql
+          systemctl start postgresql
+          su - postgres
           psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
 
       - name: Create and Activate Python Virtual Environment
@@ -157,7 +161,6 @@ jobs:
 
       - name: Install PostgreSQL
         run: |
-          brew uninstall postgresql
           brew install postgresql@14
           brew services start postgresql@14
           brew link postgresql@14 --force
