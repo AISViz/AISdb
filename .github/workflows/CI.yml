@@ -99,7 +99,7 @@ jobs:
           sudo apt-get install postgresql -y
           sudo systemctl enable postgresql
           sudo systemctl start postgresql
-          sudo -u postgres psql postgres -c "ALTER USER $POSTGRES_USER WITH PASSWORD '$POSTGRES_PASSWORD';"
+          sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
 
       - name: Create and Activate Python Virtual Environment
         run: |
