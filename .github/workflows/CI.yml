@@ -71,7 +71,7 @@ jobs:
           pytest ./aisdb/tests/test_012_interp.py
           pytest ./aisdb/tests/test_013_proc_util.py
           pytest ./aisdb/tests/test_015_raster_dist.py
-           pytest ./aisdb/tests/test_016_bathymetry.py
+          pytest ./aisdb/tests/test_016_bathymetry.py
           # pytest ./aisdb/tests/test_014_marinetraffic.py
 
   build-and-test-linux:
