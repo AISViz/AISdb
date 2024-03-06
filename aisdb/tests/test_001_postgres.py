@@ -18,38 +18,23 @@ from aisdb.tests.create_testing_data import (
 )
 from aisdb.track_gen import TrackGen
 
-# import dotenv
-# dotenv.load_dotenv()
-
-postgres_test_conn = dict(hostaddr="127.0.0.1",
-                          user="postgres",
-                          port=5432,
-                          password=os.environ["pgpass"])
+conn_information = (f"postgresql://{os.environ['pguser']}:{os.environ['pgpass']}@"
+                    f"{os.environ['pghost']}:5432/{os.environ['pguser']}")
 
 
 def test_postgres():
     # keyword arguments
-    with PostgresDBConn(**postgres_test_conn) as dbconn:
+    with PostgresDBConn(conn_information) as dbconn:
         cur = dbconn.cursor()
         cur.execute("select * from coarsetype_ref;")
         res = cur.fetchall()
         print(res)
 
 
-# libpq connection string
-"""
-with PostgresDBConn("postgresql://127.0.0.1:443/postgres?") as dbconn:
-    with dbconn.cursor() as cur:
-        cur.execute("select * from coarsetype_ref;")
-        res = cur.fetchall()
-        print(res)
-"""
-
-
 def test_create_from_CSV_postgres(tmpdir):
     testingdata_csv = os.path.join(os.path.dirname(__file__), "testdata",
                                    "test_data_20210701.csv")
-    with PostgresDBConn(**postgres_test_conn) as dbconn:
+    with PostgresDBConn(conn_information) as dbconn:
         decode_msgs(
             dbconn=dbconn,
             filepaths=[testingdata_csv],
@@ -78,7 +63,7 @@ def test_decode_1day_postgres(tmpdir):
         testingdata_csv, testingdata_nm4, testingdata_gz, testingdata_zip
     ]
 
-    with PostgresDBConn(**postgres_test_conn) as dbconn:
+    with PostgresDBConn(conn_information) as dbconn:
         # dbconn.execute("TRUNCATE hashmap")
         # dbconn.commit()
 
@@ -113,7 +98,7 @@ def test_sql_query_strings_postgres(tmpdir):
     end = start + timedelta(weeks=4)
     z1 = Polygon(zip(*sample_gulfstlawrence_bbox()))
     domain = Domain("gulf domain", zones=[{"name": "z1", "geometry": z1}])
-    with PostgresDBConn(**postgres_test_conn) as aisdatabase:
+    with PostgresDBConn(conn_information) as aisdatabase:
         decode_msgs(filepaths=filepaths,
                     dbconn=aisdatabase,
                     source="TESTING",
@@ -166,7 +151,7 @@ def test_compare_sqlite_postgres_query_output(tmpdir):
     ]
 
     with DBConn(testdbpath) as sqlitedb, PostgresDBConn(
-            **postgres_test_conn) as pgdb:
+            conn_information) as pgdb:
         decode_msgs(filepaths=filepaths,
                     dbconn=sqlitedb,
                     source='TESTING_SQLITE',
