@@ -14,15 +14,8 @@ def test_track_interpolation():
     t3 = dt_2_epoch(datetime(2021, 1, 1, 3))
 
     # creating a sample track
-    tracks_short = [
-        dict(
-            lon=np.array([x1, x2, x3]),
-            lat=np.array([y1, y2, y3]),
-            time=np.array([t1, t2, t3]),
-            dynamic=set(["lon", "lat", "time"]),
-            static=set()
-        )
-    ]
+    tracks_short = [dict(lon=np.array([x1, x2, x3]), lat=np.array([y1, y2, y3]), time=np.array([t1, t2, t3]),
+                         dynamic=set(["lon", "lat", "time"]), static=set())]
 
     tracks__ = aisdb.interp.interp_time(tracks_short, timedelta(minutes=10))
     tracks__ = aisdb.interp.interp_spacing(spacing=1000, tracks=tracks__)
