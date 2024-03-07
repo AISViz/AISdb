@@ -76,20 +76,20 @@ def test_graph_minimal(tmpdir):
 
         outputfile = os.path.join(tmpdir, "output.csv")
 
-        bathy_dir = None
-        if os.path.isfile(os.path.join(data_dir, "gebco_2022_geotiff.zip")):
-            bathy_dir = data_dir
-
-        shoredist_raster = None
-        if os.path.isfile((p := os.path.join(data_dir,
-                                             "distance-from-shore.tif"))):
-            shoredist_raster = p
-
-        portdist_raster = None
-        if os.path.isfile((p :=
-        os.path.join(data_dir,
-                     "distance-from-port-v20201104.tiff"))):
-            portdist_raster = p
+        # bathy_dir = None
+        # if os.path.isfile(os.path.join(data_dir, "gebco_2022_geotiff.zip")):
+        #     bathy_dir = data_dir
+        #
+        # shoredist_raster = None
+        # if os.path.isfile((p := os.path.join(data_dir,
+        #                                      "distance-from-shore.tif"))):
+        #     shoredist_raster = p
+        #
+        # portdist_raster = None
+        # if os.path.isfile((p :=
+        # os.path.join(data_dir,
+        #              "distance-from-port-v20201104.tiff"))):
+        #     portdist_raster = p
 
         print(f"raw count: {len(list(qry.gen_qry()))}")
 
@@ -100,9 +100,9 @@ def test_graph_minimal(tmpdir):
             dbconn=aisdatabase,
             domain=domain,
             trafficDBpath=trafficDBpath,
-            bathy_dir=bathy_dir,
-            portdist_raster=portdist_raster,
-            shoredist_raster=shoredist_raster,
+            bathy_dir=data_dir,
+            portdist_raster=data_dir,
+            shoredist_raster=data_dir,
         )
     aisdatabase.close()
     if os.path.isfile(outputfile):
