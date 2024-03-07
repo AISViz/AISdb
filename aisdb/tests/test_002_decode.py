@@ -14,19 +14,9 @@ def test_decode_1day(tmpdir):
     print("\n ---> ", dbpath)
 
     with DBConn(dbpath) as db_conn:
-        filepaths = [
-            testing_data_nm4, testing_data_csv, testing_data_gz, testing_data_zip
-        ]
+        filepaths = [testing_data_nm4, testing_data_csv, testing_data_gz, testing_data_zip]
         dt = datetime.now()
-        decode_msgs(filepaths=filepaths,
-                    dbconn=db_conn,
-                    source="TESTING",
-                    vacuum=True)
-        decode_msgs(filepaths=filepaths,
-                    dbconn=db_conn,
-                    source="TESTING",
-                    vacuum=dbpath + ".vacuum")
+        decode_msgs(filepaths=filepaths, dbconn=db_conn, source="TESTING", vacuum=True)
+        decode_msgs(filepaths=filepaths, dbconn=db_conn, source="TESTING", vacuum=dbpath + ".vacuum")
         delta = datetime.now() - dt
-        print(
-            f"sqlite total parse and insert time: {delta.total_seconds():.2f}s"
-        )
+        print(f"sqlite total parse and insert time: {delta.total_seconds():.2f}s")
