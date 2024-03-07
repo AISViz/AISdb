@@ -3,11 +3,6 @@ RETURNS TRIGGER AS $$
 DECLARE
     target_table TEXT;
 BEGIN
-    -- Validate the timestamp
-    IF NEW.time IS NULL OR NEW.time < 0 THEN
-        RAISE EXCEPTION 'Invalid timestamp value: %', NEW.time;
-    END IF;
-
     -- Assuming NEW.time is the epoch timestamp in seconds
     target_table := lower('ais_' || TO_CHAR(TO_TIMESTAMP(NEW.time), 'YYYYMM') || '_static');
 
