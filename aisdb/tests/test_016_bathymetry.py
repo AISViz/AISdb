@@ -50,8 +50,3 @@ def test_bathymetry_single_pillow():
         assert "depth_metres" in test[0]["dynamic"]
         print(test[0]["depth_metres"])
 
-
-if __name__ == "__main__":
-    test_fetch_bathygrid()
-    test_bathymetry_1K_pillow()
-    test_bathymetry_single_pillow()
