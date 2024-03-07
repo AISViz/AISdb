@@ -292,9 +292,6 @@ def graph(
         interp_delta: float = timedelta(minutes=10),
         minscore: float = 0,
         qryfcn=sqlfcn.crawl_dynamic_static,
-        bathy_dir: str = None,
-        shoredist_raster: str = None,
-        portdist_raster: str = None,
         decimate: float = 0.0001,
         verbose: bool = False):
     ''' Compute network graph of vessel movements within domain zones.
@@ -431,20 +428,16 @@ def graph(
     rowgen = qry.gen_qry(fcn=qryfcn, verbose=verbose)
     tracks = TrackGen(rowgen, decimate)
 
-    if portdist_raster is not None:
-        pdist = PortDist(portdist_raster)
-        with pdist:
+    if data_dir is not None:
+        with PortDist(data_dir) as pdist:
             tracks = list(pdist.get_distance(tracks))
 
-    if shoredist_raster is not None:
-        sdist_dir, sdist_name = shoredist_raster.rsplit(os.path.sep, 1)
-        sdist = ShoreDist(sdist_dir, sdist_name)
-        with sdist:
+    if data_dir is not None:
+        with ShoreDist(data_dir) as sdist:
             tracks = list(sdist.get_distance(tracks))
 
-    if bathy_dir is not None:
-        bathy = Gebco(data_dir=bathy_dir)
-        with bathy:
+    if data_dir is not None:
+        with Gebco(data_dir) as bathy:
             tracks = list(bathy.merge_tracks(tracks))
 
     # initialize raster data sources
