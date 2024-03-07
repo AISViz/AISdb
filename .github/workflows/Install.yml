@@ -3,9 +3,7 @@ name: Installation
 on:
   push:
     branches:
-      - main
       - master
-      - master-jk-working
     tags:
       - '*'
   pull_request:
