@@ -19,12 +19,7 @@ def test_TrackGen(tmpdir):
     end = start + timedelta(weeks=4)
 
     with DBConn(dbpath) as dbconn:
-        qry = DBQuery(
-            dbconn=dbconn,
-            start=start,
-            end=end,
-            callback=sqlfcn_callbacks.valid_mmsi,
-        )
+        qry = DBQuery(dbconn=dbconn, start=start, end=end, callback=sqlfcn_callbacks.valid_mmsi, )
         rowgen = qry.gen_qry(verbose=True)
         tracks = track_gen.TrackGen(rowgen, decimate=True)
 
@@ -46,12 +41,7 @@ def test_min_speed_filter(tmpdir):
     target_xy = [44.51204273779117, -63.47468122107318][::-1]
 
     with DBConn(dbpath) as dbconn:
-        qry = DBQuery(
-            dbconn=dbconn,
-            start=start,
-            end=end,
-            callback=sqlfcn_callbacks.in_timerange_validmmsi,
-        )
+        qry = DBQuery(dbconn=dbconn, start=start, end=end, callback=sqlfcn_callbacks.in_timerange_validmmsi, )
         rowgen = qry.gen_qry(verbose=True)
         tracks = track_gen.TrackGen(rowgen, decimate=True)
         tracks = encode_greatcircledistance(tracks, distance_threshold=250000)
