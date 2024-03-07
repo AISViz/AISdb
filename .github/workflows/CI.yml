@@ -69,10 +69,10 @@ jobs:
           pytest ./aisdb/tests/test_010_network_graph.py
           pytest ./aisdb/tests/test_011_ui.py
           pytest ./aisdb/tests/test_012_interp.py
-          # pytest ./aisdb/tests/test_013_proc_util.py
+          pytest ./aisdb/tests/test_013_proc_util.py
           # pytest ./aisdb/tests/test_014_marinetraffic.py
-          # pytest ./aisdb/tests/test_015_shore_dist.py
-          # pytest ./aisdb/tests/test_016_bathymetry.py
+          pytest ./aisdb/tests/test_015_shore_dist.py
+          pytest ./aisdb/tests/test_016_bathymetry.py
 
   build-and-test-linux:
     runs-on: ubuntu-latest
@@ -133,10 +133,10 @@ jobs:
           pytest ./aisdb/tests/test_010_network_graph.py
           pytest ./aisdb/tests/test_011_ui.py
           pytest ./aisdb/tests/test_012_interp.py
-          # pytest ./aisdb/tests/test_013_proc_util.py
+          pytest ./aisdb/tests/test_013_proc_util.py
           # pytest ./aisdb/tests/test_014_marinetraffic.py
-          # pytest ./aisdb/tests/test_015_shore_dist.py
-          # pytest ./aisdb/tests/test_016_bathymetry.py
+          pytest ./aisdb/tests/test_015_shore_dist.py
+          pytest ./aisdb/tests/test_016_bathymetry.py
 
   build-and-test-macos:
     runs-on: macos-latest
@@ -200,10 +200,10 @@ jobs:
           pytest ./aisdb/tests/test_010_network_graph.py
           pytest ./aisdb/tests/test_011_ui.py
           pytest ./aisdb/tests/test_012_interp.py
-          # pytest ./aisdb/tests/test_013_proc_util.py
+          pytest ./aisdb/tests/test_013_proc_util.py
           # pytest ./aisdb/tests/test_014_marinetraffic.py
-          # pytest ./aisdb/tests/test_015_shore_dist.py
-          # pytest ./aisdb/tests/test_016_bathymetry.py
+          pytest ./aisdb/tests/test_015_shore_dist.py
+          pytest ./aisdb/tests/test_016_bathymetry.py
 
   linux:
     runs-on: ubuntu-latest
