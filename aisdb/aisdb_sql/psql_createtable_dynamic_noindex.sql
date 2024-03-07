@@ -13,7 +13,7 @@ BEGIN
 
     BEGIN
         -- Check if the target table exists, if not, create it
-        IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE tablename = target_table) THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE tablename = lower(target_table)) THEN
             EXECUTE 'CREATE TABLE ' || target_table || ' (LIKE ' || TG_TABLE_NAME || ' INCLUDING ALL)';
         END IF;
         -- Insert the new row into the correct table
