@@ -12,7 +12,8 @@ data_dir = os.environ.get(
     ),
 )
 
-y1, x1 = 48.271185186388735, -61.10595523571155
+
+y1, x1 = 48.99443167, -64.38106167
 
 tracks_short = [
     dict(
@@ -25,15 +26,15 @@ tracks_short = [
 
 
 def test_ShoreDist():
-    imgpath = os.path.join(data_dir, "distance-from-shore.tif")
-    with ShoreDist(data_dir=data_dir) as sdist:
+    imgpath = os.path.join(os.path.dirname(__file__), "testdata")
+    with ShoreDist(data_dir=imgpath, tif_filename="distance-from-shore.tif") as sdist:
         for track in sdist.get_distance(tracks_short):
             assert "km_from_shore" in track.keys()
             assert "km_from_shore" in track["dynamic"]
 
 
 def test_PortDist():
-    imgpath = os.path.join(data_dir, "distance-from-port-v20201104.tiff")
+    imgpath = os.path.join(os.path.dirname(__file__), "testdata", "distance-from-port-v20201104.tiff")
     with PortDist(imgpath=imgpath) as portdist:
         # assert hasattr(portdist, "get_distance")
         for track in portdist.get_distance(tracks_short):

@@ -12,7 +12,7 @@ data_dir = os.environ.get(
     ),
 )
 
-y1, x1 = 48.271185186388735, -61.10595523571155
+y1, x1 = 48.99443167, -64.38106167
 tracks_single = [
     dict(
         lon=np.array([x1]),
