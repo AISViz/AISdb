@@ -49,4 +49,3 @@ def test_bathymetry_single_pillow():
         assert "depth_metres" in test[0].keys()
         assert "depth_metres" in test[0]["dynamic"]
         print(test[0]["depth_metres"])
-
