@@ -53,7 +53,7 @@ class Gebco():
                 with requests.get(url, stream=True) as payload:
                     assert payload.status_code == 200, 'error fetching file'
                     with open(zipf, 'wb') as f:
-                        with tqdm(total=4011413504, desc=zipf, unit='B', unit_scale=True) as t:
+                        with tqdm(total=2278422530, desc=zipf, unit='B', unit_scale=True) as t:
                             for chunk in payload.iter_content(chunk_size=8192):
                                 _ = t.update(f.write(chunk))
 
