@@ -4,30 +4,17 @@ import zipfile
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb.gis import (
-    Domain,
-    DomainFromPoints,
-    DomainFromTxts,
-    distance3D,
-    shiftcoord,
-)
+from aisdb.gis import (Domain, DomainFromPoints, DomainFromTxts, distance3D, shiftcoord, )
 from aisdb.tests.create_testing_data import random_polygons_domain
 from aisdb.tests.create_testing_data import sample_gulfstlawrence_bbox
 
 
 def test_invalid_domain():
     try:
-        Domain("errordomain", [{
-            "name":
-                "outofbounds0",
-            "geometry":
-                Polygon(zip([-200, -170, -170, -200, -200], [90, 90, 0, 0, 90]))
-        }, {
-            "name":
-                "outofbounds1",
-            "geometry":
-                Polygon(zip([200, 170, 170, 200, 200], [-90, -90, 0, 0, -90]))
-        }])
+        Domain("errordomain",
+               [{"name": "outofbounds0", "geometry": Polygon(zip([-200, -170, -170, -200, -200], [90, 90, 0, 0, 90]))},
+                   {"name": "outofbounds1",
+                       "geometry": Polygon(zip([200, 170, 170, 200, 200], [-90, -90, 0, 0, -90]))}])
     except ValueError:
         return
     except Exception as e:
@@ -47,8 +34,7 @@ def test_domain():
         print(poly.geom_type, end="|")
     print()
 
-    zoneID = domain.point_in_polygon(zone["geometry"].centroid.x,
-                                     zone["geometry"].centroid.y)
+    zoneID = domain.point_in_polygon(zone["geometry"].centroid.x, zone["geometry"].centroid.y)
     print(f"{zoneID = }")
 
     print(f"{domain.minX=}\n{domain.maxX=}\n{domain.minY=}\n{domain.maxY=}")
@@ -59,8 +45,7 @@ def test_DomainFromTxts():
     zipf = os.path.join(folder, "test_zones.zip")
 
     with zipfile.ZipFile(zipf, "r") as zip_ref:
-        members = list(
-            set(zip_ref.namelist()) - set(sorted(os.listdir(folder))))
+        members = list(set(zip_ref.namelist()) - set(sorted(os.listdir(folder))))
         zip_ref.extractall(path=folder, members=members)
 
     domain = DomainFromTxts(domainName="test", folder=folder)
@@ -68,8 +53,7 @@ def test_DomainFromTxts():
 
 
 def test_DomainFromPoints():
-    domain = DomainFromPoints([(-45, 50), (-50, 35), (-40, 55)],
-                              [10000, 1000, 100000])
+    domain = DomainFromPoints([(-45, 50), (-50, 35), (-40, 55)], [10000, 1000, 100000])
     assert domain
 
 
