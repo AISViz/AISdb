@@ -43,7 +43,7 @@ def test_create_from_CSV_postgres(tmpdir):
         )
         cur = dbconn.cursor()
         cur.execute(
-            # need to specify datbabase name in SQL statement
+            # need to specify database name in SQL statement
             "SELECT table_name FROM information_schema.tables "
             "WHERE table_schema = 'public' ORDER BY table_name;")
         tables = [row["table_name"] for row in cur.fetchall()]

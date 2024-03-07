@@ -1,8 +1,3 @@
-"""
-from multiprocessing import set_start_method
-set_start_method("forkserver")
-from multiprocessing import Pool, Queue
-"""
 import os
 import warnings
 from datetime import datetime, timedelta
@@ -64,62 +59,20 @@ def test_graph_minimal(tmpdir):
     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
     end = start + timedelta(weeks=1)
 
-    with DBConn(testdbpath) as aisdatabase:
-        qry = DBQuery(
-            dbconn=aisdatabase,
-            start=start,
-            end=end,
-            callback=sqlfcn_callbacks.in_bbox,
-            fcn=sqlfcn.crawl_dynamic_static,
-            **domain.boundary,
-        )
+    with DBConn(testdbpath) as ais_database:
+        qry = DBQuery(dbconn=ais_database, start=start, end=end,
+                      callback=sqlfcn_callbacks.in_bbox,
+                      fcn=sqlfcn.crawl_dynamic_static,
+                      **domain.boundary)
 
         outputfile = os.path.join(tmpdir, "output.csv")
-
-        # bathy_dir = None
-        # if os.path.isfile(os.path.join(data_dir, "gebco_2022_geotiff.zip")):
-        #     bathy_dir = data_dir
-        #
-        # shoredist_raster = None
-        # if os.path.isfile((p := os.path.join(data_dir,
-        #                                      "distance-from-shore.tif"))):
-        #     shoredist_raster = p
-        #
-        # portdist_raster = None
-        # if os.path.isfile((p :=
-        # os.path.join(data_dir,
-        #              "distance-from-port-v20201104.tiff"))):
-        #     portdist_raster = p
-
         print(f"raw count: {len(list(qry.gen_qry()))}")
 
-        graph(
-            qry,
-            outputfile=outputfile,
-            data_dir=data_dir,
-            dbconn=aisdatabase,
-            domain=domain,
-            trafficDBpath=trafficDBpath,
-            bathy_dir=data_dir,
-            portdist_raster=data_dir,
-            shoredist_raster=data_dir,
-        )
-    aisdatabase.close()
+        graph(qry, outputfile=outputfile, data_dir=data_dir,
+              dbconn=ais_database, domain=domain, trafficDBpath=trafficDBpath)
+    ais_database.close()
     if os.path.isfile(outputfile):
         os.remove(outputfile)
     else:
         warnings.warn("no output file generated for test graph")
     os.remove(testdbpath)
-
-
-"""
-    import tempfile
-    import cProfile
-
-    data_dir = "/RAID0/ais/"
-    trafficDBpath = "./testdata/marinetraffic_test.db"
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        cProfile.run("test_graph_pipeline_timing(tmpdir)", sort="tottime")
-        #cProfile.run("test_network_graph_CSV(tmpdir)", sort="tottime")
-"""
