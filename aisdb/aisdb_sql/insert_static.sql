@@ -19,6 +19,6 @@ INSERT INTO ais_{}_static (
     eta_minute,
     source
   )
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+VALUES (CAST($1 AS INTEGER),$2,$3,$4,$5,CAST($6 AS INTEGER),$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
 ON CONFLICT DO NOTHING
 ;
