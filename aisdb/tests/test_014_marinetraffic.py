@@ -19,7 +19,7 @@ if not os.path.isdir(testdir):
 trafficDBpath = os.path.join(testdir, "marinetraffic_test.db")
 
 
-def test_retrieve_marinetraffic_data(tmpdir):
+def test_retrieve_marinetraffic_data(tmpdir=testdir):
     # domain = random_polygons_domain(count=10)
     coords = sample_gulfstlawrence_bbox()
     poly = Polygon(zip(*coords))
@@ -76,3 +76,10 @@ def test_vessel_finder():
 
     assert dict_
     assert dict_2
+
+
+if __name__ == "__main__":
+    # test_retrieve_marinetraffic_data()
+    test_init_scraper()
+    test_marinetraffic_metadict()
+    test_vessel_finder()
