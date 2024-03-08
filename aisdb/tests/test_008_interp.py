@@ -15,22 +15,11 @@ def test_interp(tmpdir):
     end = start + timedelta(weeks=4)
 
     with DBConn(dbpath) as dbconn:
-        qry = DBQuery(
-            dbconn=dbconn,
-            start=start,
-            end=end,
-            callback=sqlfcn_callbacks.in_timerange_validmmsi,
-        )
+        qry = DBQuery(dbconn=dbconn, start=start, end=end, callback=sqlfcn_callbacks.in_timerange_validmmsi, )
         rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, verbose=True)
-        tracks = interp_time(
-            track_gen.TrackGen(rowgen, decimate=True),
-            step=timedelta(hours=0.5),
-        )
+        tracks = interp_time(track_gen.TrackGen(rowgen, decimate=True), step=timedelta(hours=0.5), )
 
-        geo_tracks = geo_interp_time(
-            track_gen.TrackGen(rowgen, decimate=True),
-            step=timedelta(hours=0.5),
-        )
+        geo_tracks = geo_interp_time(track_gen.TrackGen(rowgen, decimate=True), step=timedelta(hours=0.5), )
 
         for track in tracks:
             assert "time" in track.keys()
