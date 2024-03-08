@@ -47,4 +47,4 @@ def test_graph_minimal(tmpdir):
         os.remove(outputfile)
     else:
         warnings.warn("no output file generated for test graph")
-    os.remove(testdbpath)
+    # os.remove(testdbpath)
