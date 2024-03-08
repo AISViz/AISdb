@@ -1,56 +1,4 @@
-.. |space| unicode:: 0xA0
-
-**General Information**
-
-.. image:: https://img.shields.io/pypi/pyversions/aisdb
-   :target: https://pypi.org/project/aisdb/
-.. image:: https://img.shields.io/github/v/release/aisviz/aisdb
-   :target: https://github.com/AISViz/AISdb/releases
-.. image:: https://img.shields.io/github/commits-since/aisviz/aisdb/latest
-   :target: https://github.com/AISViz/AISdb
-.. image:: https://img.shields.io/github/commit-activity/t/aisviz/aisdb
-   :target: https://github.com/AISViz/AISdb
-   :alt: Commits in the Repository
-.. image:: https://img.shields.io/github/languages/top/aisviz/aisdb
-   :target: https://github.com/AISViz/AISdb
-.. image:: https://img.shields.io/github/repo-size/aisviz/aisdb
-   :target: https://github.com/AISViz/AISdb
-
-**Licensing and Integration**
-
-.. image:: https://img.shields.io/github/license/aisviz/aisdb
-   :target: https://github.com/AISViz/AISdb
-.. image:: https://github.com/AISViz/AISdb/actions/workflows/CI.yml/badge.svg
-   :target: https://github.com/AISViz/AISdb/actions/workflows/CI.yml
-   :alt: CI status
-.. image:: https://github.com/AISViz/AISdb/actions/workflows/github-code-scanning/codeql/badge.svg
-   :target: https://github.com/AISViz/AISdb/actions/workflows/github-code-scanning/codeql
-   :alt: CodeQL status
-.. image:: https://github.com/AISViz/AISdb/actions/workflows/Install.yml/badge.svg
-   :target: https://github.com/AISViz/AISdb/actions/workflows/Install.yml
-   :alt: Test installation status
-
-**Documentation and Tutorials**
-
-.. |aisgpt| image:: https://img.shields.io/website?url=https%3A%2F%2Fchat.openai.com/g/g-hTTH0rUBv-aisdb-assistant
-   :target: https://img.shields.io/website?url=https%3A%2F%2Fchat.openai.com/g/g-hTTH0rUBv-aisdb-assistant
-.. |aisviz| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.github.io
-   :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.github.io
-.. |aisdb_doc| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/documentation/
-   :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/documentation/
-.. |aisdb_tut| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/tutorials/
-   :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/tutorials/
-.. |aisdb_rtd| image:: https://img.shields.io/website?url=https%3A%2F%2Faisdb.meridian.cs.dal.ca/doc/readme.html
-   :target: https://img.shields.io/website?url=https%3A%2F%2Faisdb.meridian.cs.dal.ca/doc/readme.html
-
-- |aisviz| |space| `AISViz Website <https://aisviz.github.io>`_
-- |aisgpt| |space| `AISViz ChatBot <https://chat.openai.com/g/g-hTTH0rUBv-aisdb-assistant>`_ *(with GPT-4)*
-- |aisdb_rtd| |space| `AISdb ReadTheDocs <https://aisdb.meridian.cs.dal.ca/doc/readme.html>`_ *(outdated)*
-- |aisdb_tut| |space| `AISdb GitBook Tutorials <https://aisviz.gitbook.io/tutorials>`_
-- |aisdb_doc| |space| `AISdb GitBook Documentation <https://aisviz.gitbook.io/documentation>`_
-****
-
-🚢 AISdb Package Overview
+AISdb Package Overview
 ------------------------
 
 AISdb is an open-source database management system that supports storing, retrieving, analyzing, and visualizing data from the Automatic Identification System (AIS).
@@ -59,7 +7,7 @@ within the marine industry and government bodies. AISdb utilizes the capabilitie
 management framework. This adaptability allows AISdb to cater to a wide range of needs, from localized data handling to comprehensive server-based deployments,
 making it a key resource for stakeholders and research enthusiasts across the maritime sector.
 
-📌 **AISdb has an extensive set of tools adaptable to different sizes of projects:**
+**AISdb has an extensive set of tools adaptable to different sizes of projects:**
 
 - **Efficient Data Management:** AISdb uses SQLite for lightweight, local database needs and PostgreSQL for more demanding, server-based applications, ensuring efficient data storage and retrieval mechanisms.
 - **Python Interface:** It offers a Python-based API that simplifies interactions with the database, making it accessible for data scientists, researchers, and developers with varying levels of programming expertise.
@@ -67,7 +15,7 @@ making it a key resource for stakeholders and research enthusiasts across the ma
 - **Advanced Analysis Tools:** The system includes a suite of analysis tools that enable users to perform complex queries, data processing, and statistical analyses directly within the database.
 - **Visualization and Export:** AISdb supports data visualization for immediate insight into AIS data and provides functionalities to export data into various formats for further analysis or reporting.
 
-📌 **AISdb is built with a focus on high performance, scalability, and ease of use:**
+**AISdb is built with a focus on high performance, scalability, and ease of use:**
 
 - **Database Schemas:** Utilizes optimized database schemas for fast data insertion, updates, and complex queries. It supports indexing and partitioning strategies to enhance performance.
 - **Data Processing:** Employs Rust for critical data processing tasks, offering unparalleled speed and efficiency. Python wrappers facilitate seamless integration with the Python ecosystem.
@@ -75,19 +23,13 @@ making it a key resource for stakeholders and research enthusiasts across the ma
 - **Machine Learning Integration:** Provides a foundation for developing machine learning models by offering clean, processed datasets and the ability to integrate with popular data science libraries.
 - **Open Source Collaboration:** Our team encourages community contributions, feature requests, and collaborative development, fostering an ecosystem around maritime data analysis.
 
-📌 **The AISdb visualization module runs locally on the browser:** *(outdated)*
-
-.. image:: https://aisdb.meridian.cs.dal.ca/readme_example.png
-    :width: 700px
-    :align: center
-
-📢 What is AIS Data?
+What is AIS Data?
 ------------------------
 
 Automatic Identification System (AIS) messages are critical data packets transmitted by vessels and AIS base stations to communicate essential navigational and identification information across the maritime domain.
 These messages play a significant role in facilitating a safe and efficient flow of marine traffic by ensuring that vessels within proximity know each other's presence, course, and navigational intentions.
 
-➰ Structured Data Exchange
+Structured Data Exchange
 =====
 
 AIS messages are encoded in a highly structured format and categorized into distinct types, each designed to serve specific informational needs. The commonly encountered messages in maritime operations include:
@@ -96,16 +38,16 @@ AIS messages are encoded in a highly structured format and categorized into dist
 - Static and Voyage-Related Information: Beyond dynamic navigational data, AIS messages also contain static information about the vessel, including Maritime Mobile Service Identity (MMSI), IMO number, vessel name, type, dimensions, destination, estimated time of arrival (ETA), and draught (i.e., draft).
 - Safety-Related Messages: The AIS system also facilitates the transmission of safety and navigational-related messages. These include announcements of navigational hazards, weather conditions, and other urgent safety information crucial for voyage planning and risk mitigation.
 
-🚨 **Although AIS messages are rich in information, open-source AIS is usually limited to positional data.**
+**Although AIS messages are rich in information, open-source AIS is usually limited to positional data.**
 
-🌐 Encoding and Transmission
+Encoding and Transmission
 =====
 
 AIS messages are transmitted using VHF radio frequencies, which ensures reliable coverage even in harsh weather conditions.
 The messages are encoded in a standardized format that promotes interoperability among different AIS equipment manufacturers and facilitates seamless integration with global maritime traffic management systems. To collect these messages, on-shore antennas or low-orbit satellites are used.
 The temporal resolution of the AIS data varies with the collection method used to capture messages.
 
-⚓ Significance in Maritime Operations
+Significance in Maritime Operations
 =====
 
 AIS messages are more than just a tool for tracking vessels.
@@ -114,35 +56,34 @@ This data helps these entities make informed decisions, increase situational awa
 The availability of AIS data has also led to the development of secondary applications, such as maritime research, environmental monitoring, and the creation of advanced navigational algorithms that optimize shipping routes and reduce the environmental impact of maritime operations.
 AISdb is an example of an application that is sourced on the importance of AIS.
 
-📚 **For more information about AIS and its inner-workings, you may want to check these links:**
+**For more information about AIS and its inner-workings, you may want to check these links:**
 
-- `AIS Message Types <https://arundaleais.github.io/docs/ais/ais_message_types.html>`_: Types of AIS messages used for communication.
+- [AIS Message Types](https://arundaleais.github.io/docs/ais/ais_message_types.html): Types of AIS messages used for communication.
 
-- `Navigation Center <https://www.navcen.uscg.gov/ais-messages>`_: This is an overview of Navigation Systems and Services.
+- [Navigation Center](https://www.navcen.uscg.gov/ais-messages): This is an overview of Navigation Systems and Services.
 
-- `AIS transponders <https://www.imo.org/en/OurWork/Safety/Pages/AIS.aspx>`_: Regulations regarding AIS use, maritime security, and additional information.
+- [AIS transponders](https://www.imo.org/en/OurWork/Safety/Pages/AIS.aspx): Regulations regarding AIS use, maritime security, and additional information.
 
-- `Wikipedia Article <https://en.wikipedia.org/wiki/Automatic_identification_system>`_: Here is an overview of AIS, including its history, functionality, and applications.
+- [Wikipedia Article](https://en.wikipedia.org/wiki/Automatic_identification_system): Here is an overview of AIS, including its history, functionality, and applications.
 
-📦 Installing
+Installing
 -------
 
 To set up AISdb in your environment, follow these commands in your terminal:
 
-.. code-block:: sh
-
+```python
     python -m venv AISdb  # Create and activate a virtual environment
     source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
     pip install aisdb  # Install the latest pre-compiled AISdb from PyPI
+```
 
-🚧 Developing
+Developing
 -----------
 
 For developers looking to contribute to AISdb or integrate it into more extensive projects, the following steps outline how to prepare a development environment for AISdb.
 This includes setting up a virtual environment, activating it, and installing AISdb along with the tools required for development:
 
-.. code-block:: sh
-
+```bash
     python -m venv AISdb  # Create and activate a virtual environment for AISdb
     source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
 
@@ -160,3 +101,4 @@ This includes setting up a virtual environment, activating it, and installing AI
 
     # Building AISdb package with Maturin
     maturin develop --release --extras=test,docs
+```
