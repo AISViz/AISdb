@@ -260,12 +260,17 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False, ra
     # drop constraints and indexes to speed up insert,
     # and rebuild them after inserting
     if isinstance(dbconn, PostgresDBConn):
-        with open(
-                os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"),
-                "r") as f:
+        with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
             create_dynamic_table_stmt = f.read()
-        with open(os.path.join(sqlpath, "createtable_static.sql"), "r") as f:
+        with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
             create_static_table_stmt = f.read()
+        with open(os.path.join(sqlpath, "psql_dynamic_trigger.sql"), "r") as f:
+            create_dynamic_trigger = f.read()
+        with open(os.path.join(sqlpath, "psql_static_trigger.sql"), "r") as f:
+            create_static_trigger = f.read()
+        dbconn.execute(create_dynamic_trigger)
+        dbconn.execute(create_static_trigger)
+        dbconn.commit()  # create/replace triggers
         for month in months:
             dbconn.execute(create_dynamic_table_stmt.format(month))
             dbconn.execute(create_static_table_stmt.format(month))

@@ -5,10 +5,7 @@ from shapely.geometry import Polygon
 
 import aisdb
 from aisdb import SQLiteDBConn, Domain, DBQuery, sqlfcn_callbacks
-from aisdb.tests.create_testing_data import (
-    sample_database_file,
-    sample_gulfstlawrence_bbox,
-)
+from aisdb.tests.create_testing_data import (sample_database_file, sample_gulfstlawrence_bbox, )
 from aisdb.web_interface import serialize_zone_json, serialize_track_json
 
 
@@ -34,18 +31,13 @@ def test_ui_serialize(tmpdir):
     assert isinstance(zone_bytes, bytes)
 
     with SQLiteDBConn(testdbpath) as dbconn:
-        rowgen = DBQuery(
-            dbconn=dbconn,
-            start=start,
-            end=end,
-            **domain.boundary,
-            callback=sqlfcn_callbacks.in_timerange,
-        ).gen_qry(reaggregate_static=True)
+        rowgen = DBQuery(dbconn=dbconn, start=start, end=end, **domain.boundary,
+                         callback=sqlfcn_callbacks.in_timerange, ).gen_qry(reaggregate_static=True)
         tracks = aisdb.TrackGen(rowgen, decimate=True)
         tracks = _add_track_color(tracks)
         tracks = list(tracks)
 
         for track in tracks:
             assert isinstance(serialize_track_json(track)[0], bytes)
-        # visualize(tracks, visualearth=True, open_browser=False)
-        # visualize(tracks, visualearth=False, open_browser=False)
+            # visualize(tracks, visualearth=True, open_browser=False)
+            # visualize(tracks, visualearth=False, open_browser=False)
