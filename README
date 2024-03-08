@@ -100,5 +100,5 @@ This includes setting up a virtual environment, activating it, and installing AI
     pip install --upgrade maturin[patchelf]
 
     # Building AISdb package with Maturin
-    maturin' develop --release --extras=test,docs
+    maturin develop --release --extras=test,docs
 ```
