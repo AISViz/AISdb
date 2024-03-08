@@ -41,6 +41,7 @@
 .env
 .pytest_cache
 .rustup
+.idea/*
 aisdb.egg-info
 aisdb/tests/test_zones/East_Coast_EEZ_Zones_4_25_22
 aisdb_lib/testdata
