@@ -76,10 +76,3 @@ def test_vessel_finder():
 
     assert dict_
     assert dict_2
-
-
-if __name__ == "__main__":
-    # test_retrieve_marinetraffic_data()
-    test_init_scraper()
-    test_marinetraffic_metadict()
-    test_vessel_finder()
