@@ -13,14 +13,13 @@ dependencies = [
 ]
 zip-safe = false
 version = "1.7.1"
-readme = "readme.rst"
 description = "Smart AIS data storage and integration"
 classifiers = [
-    "Topic :: Communications :: Ham Radio", "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends",
     "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9",
     "Topic :: Scientific/Engineering :: Information Analysis", "Topic :: Utilities", "Programming Language :: JavaScript",
     "Topic :: Scientific/Engineering :: GIS", "Intended Audience :: Developers", "Intended Audience :: Science/Research",
     "Programming Language :: SQL", "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends",
     "Programming Language :: Python :: 3.10", "Programming Language :: Rust",
 ]
 
