@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS ais_{0}_static (
-    mmsi INTEGER NOT NULL,
+    mmsi BIGINT NOT NULL,
     time INTEGER NOT NULL,
     vessel_name TEXT,
     ship_type INTEGER,
     call_sign TEXT,
-    imo INTEGER NOT NULL DEFAULT 0,
+    imo BIGINT NOT NULL DEFAULT 0,
     dim_bow INTEGER,
     dim_stern INTEGER,
     dim_port INTEGER,
