@@ -176,12 +176,12 @@ pub fn postgres_insert_static(
         tx.execute(
             &stmt,
             &[
-                &(p.mmsi as i32),
+                &p.mmsi,
                 &(e as i32),
                 &p.name.unwrap_or_default(),
                 &(p.ship_type as i32),
                 &p.call_sign.unwrap_or_default(),
-                &(p.imo_number.unwrap_or_default() as i32),
+                &p.imo_number.unwrap_or_default(),
                 &(p.dimension_to_bow.unwrap_or_default() as i32),
                 &(p.dimension_to_stern.unwrap_or_default() as i32),
                 &(p.dimension_to_port.unwrap_or_default() as i32),
@@ -266,7 +266,7 @@ pub fn postgres_insert_dynamic(
         let _ = tx.execute(
             &stmt,
             &[
-                &(p.mmsi as i32),
+                &p.mmsi,
                 &(e as i32),
                 &(p.longitude.unwrap_or_default() as f32),
                 &(p.latitude.unwrap_or_default() as f32),
