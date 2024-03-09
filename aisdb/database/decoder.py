@@ -130,7 +130,10 @@ def _fast_unzip(zipf, dirname):
         with zipfile.ZipFile(zipf, "r") as zip_ref:
             contents = set(zip_ref.namelist())
             members = list(contents - exists)
-            zip_ref.extractall(path=dirname, members=members)
+            try:
+                zip_ref.extractall(path=dirname, members=members)
+            except zipfile.BadZipFile as e:
+                print("Bad file found!")
     elif zipf.lower()[-3:] == ".gz":
         unzip_file = os.path.join(dirname, zipf.rsplit(os.path.sep, 1)[-1][:-3])
         with gzip.open(zipf, "rb") as f1, open(unzip_file, "wb") as f2:
