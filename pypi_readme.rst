@@ -1,5 +1,3 @@
-.. |space| unicode:: 0xA0
-
 **General Information**
 
 .. image:: https://img.shields.io/pypi/pyversions/aisdb
@@ -43,11 +41,11 @@
 .. |aisdb_rtd| image:: https://img.shields.io/website?url=https%3A%2F%2Faisdb.meridian.cs.dal.ca/doc/readme.html
    :target: https://img.shields.io/website?url=https%3A%2F%2Faisdb.meridian.cs.dal.ca/doc/readme.html
 
-- |aisviz| |space| `AISViz Website <https://aisviz.github.io>`_
-- |aisgpt| |space| `AISViz ChatBot <https://chat.openai.com/g/g-hTTH0rUBv-aisdb-assistant>`_ *(with GPT-4)*
-- |aisdb_rtd| |space| `AISdb ReadTheDocs <https://aisdb.meridian.cs.dal.ca/doc/readme.html>`_ *(outdated)*
-- |aisdb_tut| |space| `AISdb GitBook Tutorials <https://aisviz.gitbook.io/tutorials>`_
-- |aisdb_doc| |space| `AISdb GitBook Documentation <https://aisviz.gitbook.io/documentation>`_
+- |aisviz| `AISViz Website <https://aisviz.github.io>`_
+- |aisgpt| `AISViz ChatBot <https://chat.openai.com/g/g-hTTH0rUBv-aisdb-assistant>`_ *(with GPT-4)*
+- |aisdb_rtd| `AISdb ReadTheDocs <https://aisdb.meridian.cs.dal.ca/doc/readme.html>`_ *(outdated)*
+- |aisdb_tut| `AISdb GitBook Tutorials <https://aisviz.gitbook.io/tutorials>`_
+- |aisdb_doc| `AISdb GitBook Documentation <https://aisviz.gitbook.io/documentation>`_
 
 ****
 
