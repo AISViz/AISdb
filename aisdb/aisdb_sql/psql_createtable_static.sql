@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS ais_{0}_static (
-    mmsi BIGINT NOT NULL,
+    mmsi INTEGER NOT NULL,
     time INTEGER NOT NULL,
     vessel_name TEXT,
     ship_type INTEGER,

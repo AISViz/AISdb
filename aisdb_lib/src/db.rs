@@ -266,7 +266,7 @@ pub fn postgres_insert_dynamic(
         let _ = tx.execute(
             &stmt,
             &[
-                &p.mmsi,
+                &(p.mmsi as i32),
                 &(e as i32),
                 &(p.longitude.unwrap_or_default() as f32),
                 &(p.latitude.unwrap_or_default() as f32),
