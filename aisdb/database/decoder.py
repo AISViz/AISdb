@@ -155,7 +155,7 @@ def fast_unzip(zip_filenames, dirname):
         fcn(file)
 
 
-def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False, type_preference="all", raw_insertion=False, verbose=True):
+def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False, raw_insertion=False, verbose=True):
     """
     Decode messages from filepaths and insert them into a database.
 
@@ -164,7 +164,6 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False, ty
     :param source: source identifier for the decoded messages
     :param vacuum: whether to vacuum the database after insertion (default is False)
     :param skip_checksum: whether to skip checksum validation (default is False)
-    :param type_preference: preferred file type to be used (default is "all")
     :param raw_insertion: whether to insert messages without indexing them (default is False)
     :param verbose: whether to print verbose output (default is True)
     :return: None
@@ -281,20 +280,19 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False, ty
             for idx_name in ("mmsi", "time", "longitude", "latitude"):
                 dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name};")
         dbconn.commit()
-        completed_files = decoder(dbpath="",
-                                  psql_conn_string=dbconn.connection_string,
-                                  files=raw_files, source=source, verbose=verbose,
-                                  workers=4, type_preference=type_preference, allow_swap=False)
+        completed_files = decoder(psql_conn_string=dbconn.connection_string,
+                                  dbpath="", workers=4, allow_swap=raw_insertion,
+                                  files=raw_files, source=source, verbose=verbose)
 
     elif isinstance(dbconn, SQLiteDBConn):
         with open(os.path.join(sqlpath, "createtable_dynamic_clustered.sql"), "r") as f:
             create_table_stmt = f.read()
         for month in months:
             dbconn.execute(create_table_stmt.format(month))
-        completed_files = decoder(dbpath=dbconn.dbpath,
-                                  psql_conn_string="", files=raw_files,
-                                  source=source, verbose=verbose, workers=4,
-                                  type_preference=type_preference, allow_swap=False)
+        completed_files = decoder(psql_conn_string="", files=raw_files,
+                                  workers=4, allow_swap=raw_insertion,
+                                  source=source, verbose=verbose,
+                                  dbpath=dbconn.dbpath)
     else:
         assert False
 
@@ -324,13 +322,12 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False, ty
         for month in months:
             dbconn.execute(create_dynamic_table_stmt.format(month))
             dbconn.execute(create_static_table_stmt.format(month))
-        if not raw_insertion:
-            for idx_name in ("mmsi", "time", "longitude", "latitude"):
-                dbconn.execute(f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} "
-                               f"ON ais_{month}_dynamic ({idx_name});")
-            for month in months:
+            if not raw_insertion:
+                for idx_name in ("mmsi", "time", "longitude", "latitude"):
+                    dbconn.execute(f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} "
+                                   f"ON ais_{month}_dynamic ({idx_name});")
                 dbconn.rebuild_indexes(month, verbose)
-            dbconn.execute("ANALYZE")
+                dbconn.execute("ANALYZE")
         dbconn.commit()
 
     dbconn.aggregate_static_msgs(months, verbose)
