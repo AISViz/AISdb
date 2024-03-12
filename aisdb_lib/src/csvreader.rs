@@ -1,8 +1,8 @@
 pub use std::{
     fs::{create_dir_all, read_dir, File},
     io::{BufRead, BufReader, Error, Write},
-    path::Path,
     time::{Duration, Instant},
+    path::{Path},
 };
 
 use chrono::{NaiveDateTime, TimeZone, Utc};
@@ -89,7 +89,7 @@ pub fn sqlite_decodemsgs_ee_csv(
                 own_vessel: true,
                 station: Station::BaseStation,
                 ais_type: AisClass::Unknown,
-                mmsi: row.get(0).unwrap().parse::<u32>().ok().expect("Requires an Integer."),
+                mmsi: row.get(0).unwrap().parse().unwrap(),
                 nav_status: NavigationStatus::NotDefined,
                 rot: row.get(25).unwrap().parse::<f64>().ok(),
                 rot_direction: None,
@@ -122,7 +122,7 @@ pub fn sqlite_decodemsgs_ee_csv(
             let payload = VesselStaticData {
                 own_vessel: true,
                 ais_type: AisClass::Unknown,
-                mmsi: row.get(0).unwrap().parse::<u32>().ok().expect("Requires an Integer."),
+                mmsi: row.get(0).unwrap().parse().unwrap(),
                 ais_version_indicator: row.get(23).unwrap().parse().unwrap_or_default(),
                 imo_number: row.get(15).unwrap().parse().ok(),
                 call_sign: row.get(14).unwrap().parse().ok(),
@@ -170,12 +170,12 @@ pub fn sqlite_decodemsgs_ee_csv(
     let f3 = filename.to_str().unwrap();
     let f4 = Path::new(f3);
     let fname = f4.file_name().unwrap().to_str().unwrap();
-    //     let fname = filename
-    //         .to_str()
-    //         .unwrap()
-    //         .rsplit_once(std::path::MAIN_SEPARATOR)
-    //         .unwrap()
-    //         .1;
+//     let fname = filename
+//         .to_str()
+//         .unwrap()
+//         .rsplit_once(std::path::MAIN_SEPARATOR)
+//         .unwrap()
+//         .1;
     let fname1 = format!("{:<1$}", fname, 64);
     let elapsed1 = format!(
         "elapsed: {:>1$}s",
@@ -227,7 +227,7 @@ pub fn postgres_decodemsgs_ee_csv(
                 own_vessel: true,
                 station: Station::BaseStation,
                 ais_type: AisClass::Unknown,
-                mmsi: row.get(0).unwrap().parse::<u32>().ok().expect("Requires an Integer."),
+                mmsi: row.get(0).unwrap().parse().unwrap(),
                 nav_status: NavigationStatus::NotDefined,
                 rot: row.get(25).unwrap().parse::<f64>().ok(),
                 rot_direction: None,
@@ -260,7 +260,7 @@ pub fn postgres_decodemsgs_ee_csv(
             let payload = VesselStaticData {
                 own_vessel: true,
                 ais_type: AisClass::Unknown,
-                mmsi: row.get(0).unwrap().parse::<u32>().ok().expect("Requires an Integer."),
+                mmsi: row.get(0).unwrap().parse().unwrap(),
                 ais_version_indicator: row.get(23).unwrap().parse().unwrap_or_default(),
                 imo_number: row.get(15).unwrap().parse().ok(),
                 call_sign: row.get(14).unwrap().parse().ok(),
@@ -309,12 +309,12 @@ pub fn postgres_decodemsgs_ee_csv(
     let f3 = filename.to_str().unwrap();
     let f4 = Path::new(f3);
     let fname = f4.file_name().unwrap().to_str().unwrap();
-    //     let fname = filename
-    //         .to_str()
-    //         .unwrap()
-    //         .rsplit_once(std::path::MAIN_SEPARATOR)
-    //         .unwrap()
-    //         .1;
+//     let fname = filename
+//         .to_str()
+//         .unwrap()
+//         .rsplit_once(std::path::MAIN_SEPARATOR)
+//         .unwrap()
+//         .1;
     let fname1 = format!("{:<1$}", fname, 64);
     let elapsed1 = format!(
         "elapsed: {:>1$}s",

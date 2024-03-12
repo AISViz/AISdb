@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS ais_{0}_dynamic (
-    mmsi BIGINT NOT NULL,
+    mmsi INTEGER NOT NULL,
     time INTEGER NOT NULL,
     longitude REAL NOT NULL,
     latitude REAL NOT NULL,
