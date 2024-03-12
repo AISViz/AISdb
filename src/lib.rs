@@ -75,7 +75,6 @@ pub fn decoder(
     verbose: bool,
     workers: u64,
     allow_swap: bool,
-    type_preference: String,
     py: Python,
 ) -> Vec<PathBuf> {
     // tuples containing (dbpath, filepath)
@@ -183,54 +182,44 @@ pub fn decoder(
             println!("processing {}", f.display());
         }
 
-        let extension = f.extension().and_then(std::ffi::OsStr::to_str).map(String::from);
-        let process_file = match (extension.as_deref(), type_preference.as_str()) {
-            (Some(ext), "csv") if ext.eq_ignore_ascii_case("csv") => true,
-            (Some(ext), "other") if !ext.eq_ignore_ascii_case("csv") => true,
-            (_, "all") => true,
-            _ => false,
-        };
-
         match f.extension() {
             Some(ext_os_str) => match ext_os_str.to_str() {
                 Some("nm4") | Some("NM4") | Some("nmea") | Some("NMEA") | Some("rx")
                 | Some("txt") | Some("RX") | Some("TXT") => {
-                    if !process_file {
-                        if !dbpath.to_str().unwrap().is_empty() {
-                            parser = sqlite_decode_insert_msgs(
-                                d.to_path_buf(),
+                    if !dbpath.to_str().unwrap().is_empty() {
+                        parser = sqlite_decode_insert_msgs(
+                            d.to_path_buf(),
+                            f.clone(),
+                            &source,
+                            parser,
+                            verbose,
+                        )
+                        .expect("decoding NM4");
+                        update_done_files(&mut completed, &mut errored, Ok(f.clone()));
+                    }
+                    if !psql_conn_string.is_empty() {
+                        let sender = sender.clone();
+                        let future = async move {
+                            let parser = NmeaParser::new();
+                            match postgres_decode_insert_msgs(
+                                &psql_conn_string,
                                 f.clone(),
                                 &source,
                                 parser,
                                 verbose,
-                            )
-                            .expect("decoding NM4");
-                            update_done_files(&mut completed, &mut errored, Ok(f.clone()));
-                        }
-                        if !psql_conn_string.is_empty() {
-                            let sender = sender.clone();
-                            let future = async move {
-                                let parser = NmeaParser::new();
-                                match postgres_decode_insert_msgs(
-                                    &psql_conn_string,
-                                    f.clone(),
-                                    &source,
-                                    parser,
-                                    verbose,
-                                ) {
-                                    Err(_) => {
-                                        sender
-                                            .send(Err(f))
-                                            .expect("sending errored filepath from worker");
-                                    }
-                                    Ok(_) => sender
-                                        .send(Ok(f))
-                                        .expect("sending completed filepath from worker"),
-                                };
+                            ) {
+                                Err(_) => {
+                                    sender
+                                        .send(Err(f))
+                                        .expect("sending errored filepath from worker");
+                                }
+                                Ok(_) => sender
+                                    .send(Ok(f))
+                                    .expect("sending completed filepath from worker"),
                             };
-                            pool.spawn_ok(future);
-                            in_process += 1;
-                        }
+                        };
+                        pool.spawn_ok(future);
+                        in_process += 1;
                     }
                 }
                 Some("csv") | Some("CSV") => {
