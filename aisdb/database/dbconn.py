@@ -3,23 +3,23 @@
     Also see: https://docs.python.org/3/library/sqlite3.html#connection-objects
 '''
 
-import ipaddress
-import os
-import re
-import warnings
 from calendar import monthrange
 from collections import Counter
 from datetime import datetime
 from enum import Enum
-
-import numpy as np
-import psycopg
+import ipaddress
+import os
+import re
+import warnings
 
 from aisdb import sqlite3, sqlpath
 from aisdb.database.create_tables import (
     sql_aggregate,
     sql_createtable_static,
 )
+
+import numpy as np
+import psycopg
 
 with open(os.path.join(sqlpath, 'coarsetype.sql'), 'r') as f:
     coarsetype_sql = f.read().split(';')
@@ -32,14 +32,14 @@ class _DBConn():
         ''' create a table to describe integer vessel type as a human-readable
             string.
         '''
-        # cur = self.cursor()
+        #cur = self.cursor()
         for stmt in coarsetype_sql:
             if stmt == '\n':
                 continue
-            # cur.execute(stmt)
+            #cur.execute(stmt)
             self.execute(stmt)
         self.commit()
-        # cur.close()
+        #cur.close()
 
 
 class SQLiteDBConn(_DBConn, sqlite3.Connection):
@@ -83,12 +83,12 @@ class SQLiteDBConn(_DBConn, sqlite3.Connection):
                 [table['name'].split('_')[1] for table in dynamic_tables])
             self.db_daterange = {
                 'start':
-                    datetime(int(db_months[0][:4]), int(db_months[0][4:]),
-                             1).date(),
+                datetime(int(db_months[0][:4]), int(db_months[0][4:]),
+                         1).date(),
                 'end':
-                    datetime((y := int(db_months[-1][:4])),
-                             (m := int(db_months[-1][4:])),
-                             monthrange(y, m)[1]).date(),
+                datetime((y := int(db_months[-1][:4])),
+                         (m := int(db_months[-1][4:])),
+                         monthrange(y, m)[1]).date(),
             }
         else:
             self.db_daterange = {}
@@ -137,15 +137,15 @@ class SQLiteDBConn(_DBConn, sqlite3.Connection):
 
             sql_select = '''
               SELECT
-                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type, s.call_sign,
-                s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.draught, s.destination,
-                s.eta_month, s.eta_day, s.eta_hour, s.eta_minute
+                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type,
+                s.call_sign, s.dim_bow, s.dim_stern, s.dim_port, s.dim_star,
+                s.draught
               FROM ais_{}_static AS s WHERE s.mmsi = ?
             '''.format(month)
 
             agg_rows = []
             for mmsi in mmsis:
-                _ = cur.execute(sql_select, (str(mmsi),))
+                _ = cur.execute(sql_select, (str(mmsi), ))
                 cur_mmsi = cur.fetchall()
 
                 cols = np.array(cur_mmsi, dtype=object).T
@@ -244,12 +244,12 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
             ])
             self.db_daterange = {
                 'start':
-                    datetime(int(db_months[0][:4]), int(db_months[0][4:]),
-                             1).date(),
+                datetime(int(db_months[0][:4]), int(db_months[0][4:]),
+                         1).date(),
                 'end':
-                    datetime((y := int(db_months[-1][:4])),
-                             (m := int(db_months[-1][4:])),
-                             monthrange(y, m)[1]).date(),
+                datetime((y := int(db_months[-1][:4])),
+                         (m := int(db_months[-1][4:])),
+                         monthrange(y, m)[1]).date(),
             }
         else:
             self.db_daterange = {}
@@ -321,7 +321,7 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         self.rollback = self.conn.rollback
         self.close = self.conn.close
         self.__repr__ = self.conn.__repr__
-        # conn = psycopg.connect(conninfo=libpq_connstring)
+        #conn = psycopg.connect(conninfo=libpq_connstring)
         self.pgconn = self.conn.pgconn
         self._adapters = self.conn.adapters
 
@@ -347,59 +347,55 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         if verbose:
             print(f'indexing {month}...')
         dbconn = self.conn
-        for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
-            dbconn.execute(
-                f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} ON ais_{month}_dynamic ({idx_name}) ;")
-
-        # dbconn.execute(
-        #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_mmsi '
-        #     f'ON ais_{month}_dynamic (mmsi)')
-        # dbconn.commit()
-        # if verbose:
-        #     print(f'done indexing mmsi: {month}')
-        # dbconn.execute(
-        #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_time '
-        #     f'ON ais_{month}_dynamic (time)')
-        # dbconn.commit()
-        # if verbose:
-        #     print(f'done indexing time: {month}')
-        # dbconn.execute(
-        #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_lon '
-        #     f'ON ais_{month}_dynamic (longitude)')
-        # dbconn.commit()
-        # if verbose:
-        #     print(f'done indexing longitude: {month}')
-        # dbconn.execute(
-        #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_lat '
-        #     f'ON ais_{month}_dynamic (latitude)')
-        # dbconn.commit()
-        # if verbose:
-        #     print(f'done indexing latitude: {month}')
-        # dbconn.execute(
-        #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_cluster '
-        #     f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude, source)'
-        # )
-        # dbconn.commit()
-        # if verbose:
-        #     print(f'done indexing combined index: {month}')
-        # dbconn.execute(
-        #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_static_mmsi '
-        #     f'ON ais_{month}_static (mmsi)')
-        # dbconn.commit()
-        # if verbose:
-        #     print(f'done indexing static mmsi: {month}')
-        # dbconn.execute(
-        #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_static_time '
-        #     f'ON ais_{month}_static (time)')
-        # dbconn.commit()
-        # if verbose:
-        #     print(f'done indexing static time: {month}')
-        # dbconn.execute(
-        #     f'CLUSTER {"VERBOSE" if verbose else ""} ais_{month}_dynamic\n'
-        #     f'USING idx_ais_{month}_dynamic_cluster')
+        dbconn.execute(
+            f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_mmsi '
+            f'ON ais_{month}_dynamic (mmsi)')
         dbconn.commit()
-        # if verbose:
-        #     print(f'done clustering: {month}')
+        if verbose:
+            print(f'done indexing mmsi: {month}')
+        dbconn.execute(
+            f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_time '
+            f'ON ais_{month}_dynamic (time)')
+        dbconn.commit()
+        if verbose:
+            print(f'done indexing time: {month}')
+        dbconn.execute(
+            f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_lon '
+            f'ON ais_{month}_dynamic (longitude)')
+        dbconn.commit()
+        if verbose:
+            print(f'done indexing longitude: {month}')
+        dbconn.execute(
+            f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_lat '
+            f'ON ais_{month}_dynamic (latitude)')
+        dbconn.commit()
+        if verbose:
+            print(f'done indexing latitude: {month}')
+        dbconn.execute(
+            f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_cluster '
+            f'ON ais_{month}_dynamic (mmsi, time, longitude, latitude, source)'
+        )
+        dbconn.commit()
+        if verbose:
+            print(f'done indexing combined index: {month}')
+        dbconn.execute(
+            f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_static_mmsi '
+            f'ON ais_{month}_static (mmsi)')
+        dbconn.commit()
+        if verbose:
+            print(f'done indexing static mmsi: {month}')
+        dbconn.execute(
+            f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_static_time '
+            f'ON ais_{month}_static (time)')
+        dbconn.commit()
+        if verbose:
+            print(f'done indexing static time: {month}')
+        dbconn.execute(
+            f'CLUSTER {"VERBOSE" if verbose else ""} ais_{month}_dynamic\n'
+            f'USING idx_ais_{month}_dynamic_cluster')
+        dbconn.commit()
+        if verbose:
+            print(f'done clustering: {month}')
 
     def deduplicate_dynamic_msgs(self, month: str, verbose=True):
         dbconn = self.conn
@@ -456,15 +452,15 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
             sql_select = psycopg.sql.SQL(f'''
               SELECT
-                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type, s.call_sign,
-                s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.draught, s.destination,
-                s.eta_month, s.eta_day, s.eta_hour, s.eta_minute
+                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type,
+                s.call_sign, s.dim_bow, s.dim_stern, s.dim_port, s.dim_star,
+                s.draught
               FROM ais_{month}_static AS s WHERE s.mmsi = %s
             ''')
 
             agg_rows = []
             for mmsi in mmsis:
-                _ = cur.execute(sql_select, (str(mmsi),))
+                _ = cur.execute(sql_select, (str(mmsi), ))
                 cur_mmsi = [tuple(i.values()) for i in cur.fetchall()]
                 cols = np.array(cur_mmsi, dtype=object).T
                 assert len(cols) > 0
