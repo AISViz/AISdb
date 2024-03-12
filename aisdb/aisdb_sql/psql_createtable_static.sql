@@ -20,6 +20,3 @@ CREATE TABLE IF NOT EXISTS ais_{0}_static (
     source TEXT NOT NULL,
     PRIMARY KEY (mmsi, time, imo, source)
 );
-
-CREATE OR REPLACE TRIGGER before_insert_static BEFORE INSERT ON
-       ais_{0}_static FOR EACH ROW EXECUTE FUNCTION static_insert();
