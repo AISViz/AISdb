@@ -17,6 +17,3 @@ CREATE INDEX IF NOT EXISTS idx_{0}_dynamic_longitude ON ais_{0}_dynamic (longitu
 CREATE INDEX IF NOT EXISTS idx_{0}_dynamic_latitude ON ais_{0}_dynamic (latitude);
 CREATE INDEX IF NOT EXISTS idx_{0}_dynamic_time ON ais_{0}_dynamic (time);
 CREATE INDEX IF NOT EXISTS idx_{0}_dynamic_mmsi ON ais_{0}_dynamic (mmsi);
-
-CREATE OR REPLACE TRIGGER before_insert_dynamic BEFORE INSERT ON
-       ais_{0}_dynamic FOR EACH ROW EXECUTE FUNCTION dynamic_insert();
