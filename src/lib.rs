@@ -1,5 +1,5 @@
 //! Rust exports for python API
-use std::cmp::max;
+use std::cmp::{max, min};
 use std::fs::metadata;
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
@@ -100,10 +100,10 @@ pub fn decoder(
     if workers > 0 {
         worker_count = workers;
     } else {
-        worker_count = std::cmp::min(
-            std::cmp::min(
-                std::cmp::max(2, (sys.available_memory() - bytesize) / bytesize),
-                std::cmp::min(32, available_parallelism().expect("CPU count").get() as u64),
+        worker_count = min(
+            min(
+                max(2, (sys.available_memory() - bytesize) / bytesize),
+                min(32, available_parallelism().expect("CPU count").get() as u64),
             ),
             files.len() as u64,
         );
@@ -173,7 +173,6 @@ pub fn decoder(
                         sleep(std::time::Duration::from_millis(100));
                     }
                 }
-
                 sys.refresh_memory();
             }
         }
