@@ -1,0 +1,57 @@
+AISdb Package Overview
+------------------------
+
+Welcome to AISdb, the premier open-source database management system for storing, retrieving, analyzing, and visualizing Automatic Identification System (AIS) data. Our system caters to the vast data needs of the maritime industry, making it a vital tool for research, development, and operational safety.
+
+**Key Features:**
+
+- **Efficient Data Management:** AISdb leverages SQLite and PostgreSQL to provide scalable solutions for local and server-based data handling needs.
+- **Python Interface:** Offering a Python-based API for ease of use across different programming skill levels, ensuring broad accessibility and efficiency.
+- **Advanced Analytical Tools:** Features a comprehensive suite of analytical tools for conducting complex queries, processing data, and performing statistical analyses directly within the database.
+- **Data Visualization and Export:** Supports dynamic data visualization and provides options for data export in various formats for further analysis or reporting.
+- **Modular and Scalable:** AISdb is designed with performance, scalability, and ease of use, featuring optimized database schemas and employing Rust for critical data processing tasks.
+
+**Documentation and Resources:**
+    - AISViz Website: [AISViz Website](https://aisviz.github.io)
+    - AISViz ChatBot (GPT-4): [AISViz ChatBot](https://chat.openai.com/g/g-hTTH0rUBv-aisdb-assistant)
+    - AISdb GitBook Tutorials: [AISdb Tutorials](https://aisviz.gitbook.io/tutorials)
+    - AISdb GitBook Documentation: [Documentation](https://aisviz.gitbook.io/documentation)
+
+What is AIS Data?
+------------------------
+
+AIS data comprises digital messages that ships and AIS base stations transmit to exchange navigational and identification information. This information is pivotal for ensuring the safety and efficiency of maritime traffic, offering real-time insight into other vessels' locations, intentions, and navigational status.
+
+Structured Data Exchange
+=====
+
+AIS messages come in various types, serving different informational needs—from dynamic vessel information to safety-related messages. They play a crucial role in maritime operations, aiding navigation, traffic management, and risk mitigation.
+
+Significance in Maritime Operations
+=====
+
+Beyond tracking, AIS data underpins operations across the maritime sector, enhancing situational awareness and facilitating informed decision-making. Applications of AIS data extend to maritime research, environmental monitoring, and developing optimization algorithms for shipping routes.
+
+Installing
+-------
+Easily set up AISdb on your system with the following commands:
+
+```sh
+python -m venv AISdb  # Create and activate a virtual environment
+source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
+pip install aisdb  # Install AISdb from PyPI
+```
+
+Developing
+-----------
+To contribute to AISdb or develop further, set up your development environment with these steps:
+
+```sh
+python -m venv AISdb  # Create a virtual environment
+source AISdb/bin/activate  # Activation command for Windows `AISdb\Scripts\activate`
+git clone https://github.com/AISViz/AISdb.git && cd aisdb  # Clone the repository
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > install-rust.sh  # Install Rust
+/bin/bash install-rust.sh -q -y  # Run Rust installer
+pip install --upgrade maturin[patchelf]  # Install Maturin for building
+maturin develop --release --extras=test,docs  # Build AISdb package
+```

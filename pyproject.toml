@@ -13,7 +13,7 @@ dependencies = [
 ]
 zip-safe = false
 version = "1.7.2a"
-readme = "pypi_readme.rst"
+readme = "README"
 description = "Smart AIS data storage and integration"
 classifiers = [
     "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9",
