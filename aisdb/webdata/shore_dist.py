@@ -50,7 +50,7 @@ def download_unzip(data_url, data_dir, bytesize=0, timeout=(10, 30)):
 
     # Check if the file exists and has the correct size
     if os.path.isfile(zip_file) and (bytesize == 0 or os.path.getsize(zip_file) == bytesize):
-        print(f"File already exists: {zip_file}")
+        # File already exists, skipping silently.
         return
 
     try:

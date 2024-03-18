@@ -1,6 +1,7 @@
 SELECT 
     dynamic_{}.mmsi, 
     dynamic_{}.time,
+    dynamic_{}.utc_second,
     dynamic_{}.longitude,
     dynamic_{}.latitude,
     dynamic_{}.sog,

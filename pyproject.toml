@@ -12,7 +12,7 @@ dependencies = [
     "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]",
 ]
 zip-safe = false
-version = "1.7.2a"
+version = "1.7.3"
 readme = "README"
 description = "Smart AIS data storage and integration"
 classifiers = [
@@ -25,8 +25,8 @@ classifiers = [
 ]
 
 [[project.authors]]
-name = "[AISViz] Making vessels tracking data available to everyone"
 email = "aisviz@dal.ca"
+name = "AISViz Mantainers"
 
 [project.license-files]
 paths = [ "LICENSE", ]

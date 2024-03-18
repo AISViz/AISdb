@@ -1,7 +1,7 @@
 [package]
-version = "1.7.1"
+version = "1.7.3"
 name = "aisdb-lib"
-authors = [ "[AISViz] Making vessels tracking data available to everyone // aisviz@dal.ca",]
+authors = [ "AISViz Maintainers // aisviz@dal.ca",]
 edition = "2021"
 include = [ "../aisdb/aisdb_sql", "/src/*",]
 build = "build.rs"
