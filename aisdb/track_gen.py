@@ -65,13 +65,14 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001):
     trackdict = dict(
         **{col: rows[0][col]
            for col in staticcols},
+        dynamic=dynamiccols,
+        static=staticcols,
+        time=time[idx],
         lon=lon[idx].astype(np.float32),
         lat=lat[idx].astype(np.float32),
-        time=time[idx],
-        sog=np.array([r['sog'] for r in rows], dtype=np.float32)[idx],
         cog=np.array([r['cog'] for r in rows], dtype=np.uint32)[idx],
-        static=staticcols,
-        dynamic=dynamiccols,
+        sog=np.array([r['sog'] for r in rows], dtype=np.float32)[idx],
+        utc_second=np.array([r['utc_second'] for r in rows], dtype=np.uint32)[idx],
     )
     assert 'time' in trackdict.keys()
 

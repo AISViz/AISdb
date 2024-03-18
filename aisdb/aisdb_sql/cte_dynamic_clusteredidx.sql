@@ -1,6 +1,7 @@
   SELECT 
     d.mmsi, 
     d.time,
+    d.utc_second,
     d.longitude,
     d.latitude,
     d.rot,
