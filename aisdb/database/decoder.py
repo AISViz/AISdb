@@ -155,7 +155,8 @@ def fast_unzip(zip_filenames, dirname):
         fcn(file)
 
 
-def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False, raw_insertion=False, verbose=True):
+def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False,
+                workers=4, type_preference="all", raw_insertion=False, verbose=True):
     """
     Decode messages from filepaths and insert them into a database.
 
@@ -164,6 +165,8 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False, ra
     :param source: source identifier for the decoded messages
     :param vacuum: whether to vacuum the database after insertion (default is False)
     :param skip_checksum: whether to skip checksum validation (default is False)
+    :param workers: number of parallel workers to use (default is 4)
+    :param type_preference: preferred file type to be used (default is "all")
     :param raw_insertion: whether to insert messages without indexing them (default is False)
     :param verbose: whether to print verbose output (default is True)
     :return: None
@@ -273,19 +276,20 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False, ra
             for idx_name in ("mmsi", "time", "longitude", "latitude"):
                 dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name};")
         dbconn.commit()
-        completed_files = decoder(psql_conn_string=dbconn.connection_string,
-                                  dbpath="", workers=4, allow_swap=raw_insertion,
-                                  files=raw_files, source=source, verbose=verbose)
+        completed_files = decoder(dbpath="",
+                                  psql_conn_string=dbconn.connection_string, files=raw_files,
+                                  source=source, verbose=verbose, workers=workers,
+                                  type_preference=type_preference, allow_swap=False)
 
     elif isinstance(dbconn, SQLiteDBConn):
         with open(os.path.join(sqlpath, "createtable_dynamic_clustered.sql"), "r") as f:
             create_table_stmt = f.read()
         for month in months:
             dbconn.execute(create_table_stmt.format(month))
-        completed_files = decoder(psql_conn_string="", files=raw_files,
-                                  workers=4, allow_swap=raw_insertion,
-                                  source=source, verbose=verbose,
-                                  dbpath=dbconn.dbpath)
+        completed_files = decoder(dbpath=dbconn.dbpath,
+                                  psql_conn_string="", files=raw_files,
+                                  source=source, verbose=verbose, workers=workers,
+                                  type_preference=type_preference, allow_swap=False)
     else:
         assert False
 
