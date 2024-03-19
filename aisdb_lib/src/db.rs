@@ -181,7 +181,7 @@ pub fn postgres_insert_static(
                 &p.name.unwrap_or_default(),
                 &(p.ship_type as i32),
                 &p.call_sign.unwrap_or_default(),
-                &(p.imo_number.unwrap_or_default() as i32),
+                &(p.imo_number.unwrap_or_default() as i64),
                 &(p.dimension_to_bow.unwrap_or_default() as i32),
                 &(p.dimension_to_stern.unwrap_or_default() as i32),
                 &(p.dimension_to_port.unwrap_or_default() as i32),
