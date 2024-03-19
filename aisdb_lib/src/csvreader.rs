@@ -227,7 +227,7 @@ pub fn postgres_decodemsgs_ee_csv(
                 own_vessel: true,
                 station: Station::BaseStation,
                 ais_type: AisClass::Unknown,
-                mmsi: i64, //row.get(0).unwrap().parse().unwrap(),
+                mmsi: row.get(0).unwrap().parse().unwrap(),
                 nav_status: NavigationStatus::NotDefined,
                 rot: row.get(25).unwrap().parse::<f64>().ok(),
                 rot_direction: None,
@@ -260,9 +260,9 @@ pub fn postgres_decodemsgs_ee_csv(
             let payload = VesselStaticData {
                 own_vessel: true,
                 ais_type: AisClass::Unknown,
-                mmsi: i64, // row.get(0).unwrap().parse().unwrap(),
+                mmsi: row.get(0).unwrap().parse().unwrap(),
                 ais_version_indicator: row.get(23).unwrap().parse().unwrap_or_default(),
-                imo_number: i64, // row.get(15).unwrap().parse().ok(),
+                imo_number: row.get(15).unwrap().parse().ok(),
                 call_sign: row.get(14).unwrap().parse().ok(),
                 name: Some(row.get(13).unwrap_or("").to_string()),
                 ship_type: ShipType::new(row.get(16).unwrap().parse().unwrap_or_default()),
@@ -278,7 +278,7 @@ pub fn postgres_decodemsgs_ee_csv(
                 eta: None,
                 draught10: row.get(21).unwrap_or_default().parse().ok(),
                 destination: row.get(22).unwrap_or_default().parse().ok(),
-                mothership_mmsi: i64, // row.get(131).unwrap_or_default().parse().ok(),
+                mothership_mmsi: row.get(131).unwrap_or_default().parse().ok(),
             };
             let message = VesselData {
                 epoch: Some(epoch),
