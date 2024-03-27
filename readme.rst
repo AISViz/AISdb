@@ -62,7 +62,7 @@ making it a key resource for stakeholders and research enthusiasts across the ma
 - **Machine Learning Integration:** Provides a foundation for developing machine learning models by offering clean, processed datasets and the ability to integrate with popular data science libraries.
 - **Open Source Collaboration:** Our team encourages community contributions, feature requests, and collaborative development, fostering an ecosystem around maritime data analysis.
 
-📌 **The AISdb visualization module runs locally on the browser:** *(outdated)*
+📌 **The AISdb visualization module runs locally on the browser** *(outdated)* **:**
 
 .. image:: https://aisdb.meridian.cs.dal.ca/readme_example.png
     :width: 700px
