@@ -2,27 +2,21 @@
 
 **General Information**
 
-.. image:: https://img.shields.io/pypi/pyversions/aisdb
-   :target: https://pypi.org/project/aisdb/
-.. image:: https://img.shields.io/github/v/release/aisviz/aisdb
-   :target: https://github.com/AISViz/AISdb
-.. image:: https://img.shields.io/github/commit-activity/t/aisviz/aisdb
-   :target: https://github.com/AISViz/AISdb
-   :alt: Commits in the Repository
+.. raw:: html
+
+   <a href="https://pypi.org/project/aisdb/"><img src="https://img.shields.io/pypi/pyversions/aisdb"></a>
+   <a href="https://github.com/AISViz/AISdb"><img src="https://img.shields.io/github/v/release/aisviz/aisdb"></a>
+   <a href="https://github.com/AISViz/AISdb"><img src="https://img.shields.io/github/commit-activity/t/aisviz/aisdb" alt="Commits in the Repository"></a>
+
 
 **Licensing and Integration**
 
-.. image:: https://img.shields.io/github/license/aisviz/aisdb
-   :target: https://github.com/AISViz/AISdb
-.. image:: https://github.com/AISViz/AISdb/actions/workflows/CI.yml/badge.svg
-   :target: https://github.com/AISViz/AISdb/actions/workflows/CI.yml
-   :alt: CI status
-.. image:: https://github.com/AISViz/AISdb/actions/workflows/github-code-scanning/codeql/badge.svg
-   :target: https://github.com/AISViz/AISdb/actions/workflows/github-code-scanning/codeql
-   :alt: CodeQL status
-.. image:: https://github.com/AISViz/AISdb/actions/workflows/Install.yml/badge.svg
-   :target: https://github.com/AISViz/AISdb/actions/workflows/Install.yml
-   :alt: Test installation status
+.. raw:: html
+
+   <a href="https://github.com/AISViz/AISdb"><img src="https://img.shields.io/github/license/aisviz/aisdb"></a>
+   <a href="https://github.com/AISViz/AISdb/actions/workflows/CI.yml"><img src="https://github.com/AISViz/AISdb/actions/workflows/CI.yml/badge.svg" alt="CI status"></a>
+   <a href="https://github.com/AISViz/AISdb/actions/workflows/github-code-scanning/codeql"><img src="https://github.com/AISViz/AISdb/actions/workflows/github-code-scanning/codeql/badge.svg" alt="CodeQL status"></a>
+   <a href="https://github.com/AISViz/AISdb/actions/workflows/Install.yml"><img src="https://github.com/AISViz/AISdb/actions/workflows/Install.yml/badge.svg" alt="Test installation status"></a>
 
 **Documentation and Tutorials**
 
