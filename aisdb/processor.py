@@ -1,11 +1,11 @@
 from datetime import timedelta
 
-from aisdb import track_gen, DBQuery
+from aisdb import track_gen, DBQuery, AISProcessorInterface
 from datetime import timedelta
 from aisdb import DBQuery
 from datetime import timedelta
 
-class AISProcessor():
+class AISProcessor(AISProcessorInterface):
     def __init__(self, qry, decimate=False, split_time=False, time_bin = 'month'):
         # assert that dbquery is an instance of DBQuery
         assert isinstance(qry, DBQuery), 'dbquery must be an instance of DBQuery'
@@ -72,7 +72,7 @@ class AISProcessor():
             subqry.save_tracks(filename)
 
 
-class _AISProcessorWorker():
+class _AISProcessorWorker(AISProcessorInterface):
     ''' private class for processing tracks '''
     def __init__(self, current_qry, decimate):
         self.rowgen = current_qry.gen_qry()

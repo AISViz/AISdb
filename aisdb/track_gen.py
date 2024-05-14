@@ -19,6 +19,23 @@ staticcols = set([
     'destination', 'eta_month', 'eta_day', 'eta_hour', 'eta_minute',
 ])
 
+class AISProcessorInterface:
+    def split_timedelta(self, maxdelta: timedelta) -> None:
+        ''' partitions tracks where delta time exceeds maxdelta '''
+        pass
+
+    def fence_tracks(self, domain: Domain) -> None:
+        ''' compute points-in-polygons for vessel positions within domain polygons '''
+        pass
+
+    def zone_mask(self, domain: Domain) -> None:
+        ''' compute points-in-polygons for track positions, and filter results to positions within domain '''
+        pass
+
+    def print_tracks(self) -> None:
+        ''' print the tracks '''
+        pass
+
 
 def _segment_longitude(track, tolerance=300):
     ''' segment track vectors where difference in longitude exceeds 300 degrees
