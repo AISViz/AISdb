@@ -61,6 +61,11 @@ class AISProcessor(AISProcessorInterface):
         for subqry in self.subqry_worker_listt:
             subqry.zone_mask(domain)
 
+    def min_speed_filter(self, minspeed):
+        ''' filter tracks by minimum speed '''
+        for subqry in self.subqry_worker_listt:
+            subqry.min_speed_filter(minspeed)
+
     def print_tracks(self):
         ''' print the tracks '''
         for subqry in self.subqry_worker_listt:
@@ -94,6 +99,10 @@ class _AISProcessorWorker(AISProcessorInterface):
         ''' print the tracks '''
         for track in self.tracks:
             print(track)
+
+    def min_speed_filter(self, minspeed):
+        ''' filter tracks by minimum speed '''
+        track_gen.min_speed_filter(self.tracks, minspeed)
 
     def save_tracks(self, filename=None):
         ''' save the tracks to a file '''

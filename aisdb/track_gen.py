@@ -36,6 +36,10 @@ class AISProcessorInterface:
         ''' print the tracks '''
         pass
 
+    def min_speed_filter(self, minspeed: float) -> None:
+        ''' filter tracks by minimum speed '''
+        pass
+
 
 def _segment_longitude(track, tolerance=300):
     ''' segment track vectors where difference in longitude exceeds 300 degrees
