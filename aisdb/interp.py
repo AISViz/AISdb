@@ -6,6 +6,8 @@ from datetime import timedelta
 import numpy as np
 from pyproj import Transformer, Geod
 
+from scipy.interpolate import CubicSpline
+
 
 def np_interp_linear(track, key, intervals):
     assert len(track['time']) == len(track[key])
@@ -246,3 +248,51 @@ def interp_spacing(spacing: int, tracks, crs=4269):
             track[k] = np.interp(t, u, track[k])
 
         yield track
+
+
+def cubic_spline(track, key, intervals):
+    cs = CubicSpline(track['time'], track[key])
+    return cs(intervals)
+
+def interp_cubic_spline(tracks, step=timedelta(minutes=10)):
+    ''' Cubic spline interpolation on vessel trajectory
+
+        args:
+            tracks (dict)
+                messages sorted by mmsi then time.
+                uses mmsi as key with columns: time lon lat cog sog name .. etc
+            step (datetime.timedelta)
+                interpolation interval
+
+        returns:
+            dictionary of interpolated tracks
+
+    '''
+    for track in tracks:
+        if track['time'].size <= 1:
+            # yield track
+            warnings.warn('cannot interpolate track of length 1, skipping...')
+            continue
+
+        intervals = np.arange(
+            start=track['time'][0],
+            stop=track['time'][-1] + int(step.total_seconds()),
+            step=int(step.total_seconds()),
+        ).astype(int)
+
+        assert len(intervals) >= 1
+
+        itr = dict(
+            **{k: track[k]
+               for k in track['static']},
+            time=intervals,
+            static=track['static'],
+            dynamic=track['dynamic'],
+            **{
+                k: cubic_spline(track, k, intervals)
+                for k in track['dynamic'] if k != 'time'
+            },
+        )
+        yield itr
+
+    return
