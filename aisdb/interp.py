@@ -251,8 +251,35 @@ def interp_spacing(spacing: int, tracks, crs=4269):
 
 
 def cubic_spline(track, key, intervals):
-    cs = CubicSpline(track['time'], track[key])
-    return cs(intervals)
+    try:
+        # Ensure time and corresponding key values are sorted by time
+        sorted_indices = np.argsort(track['time'])
+        sorted_time = track['time'][sorted_indices].astype(int)
+        sorted_values = track[key][sorted_indices].astype(float)
+
+        # Remove duplicate time values
+        unique_times, unique_indices = np.unique(sorted_time, return_index=True)
+        unique_values = sorted_values[unique_indices]
+
+        assert len(unique_times) == len(unique_values)
+
+        # Check if time is strictly increasing
+        if not np.all(np.diff(unique_times) > 0):
+            print("Error: Time values are not in strictly increasing order after removing duplicates.")
+            print(f"Current time order: {unique_times}")
+            return None
+
+        # Create cubic spline with unique, sorted time and values
+        cs = CubicSpline(x=unique_times, y=unique_values)
+
+        return cs(intervals)
+
+    except Exception as e:
+        # Print the current time order and the exception message
+        print(f"Error occurred in cubic spline interpolation: {e}")
+        print(f"Current time order: {track['time']}")
+        raise  # Re-raise the exception to ensure the calling function knows an error occurred
+
 
 def interp_cubic_spline(tracks, step=timedelta(minutes=10)):
     ''' Cubic spline interpolation on vessel trajectory
@@ -268,11 +295,18 @@ def interp_cubic_spline(tracks, step=timedelta(minutes=10)):
             dictionary of interpolated tracks
 
     '''
+
     for track in tracks:
         if track['time'].size <= 1:
             # yield track
             warnings.warn('cannot interpolate track of length 1, skipping...')
             continue
+
+        # Sort time and dynamic data by time
+        sorted_indices = np.argsort(track['time'])
+
+        for key in track['dynamic']:
+            track[key] = track[key][sorted_indices]
 
         intervals = np.arange(
             start=track['time'][0],
