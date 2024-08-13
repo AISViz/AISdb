@@ -252,14 +252,9 @@ def interp_spacing(spacing: int, tracks, crs=4269):
 
 def cubic_spline(track, key, intervals):
     try:
-        # Ensure time and corresponding key values are sorted by time
-        sorted_indices = np.argsort(track['time'])
-        sorted_time = track['time'][sorted_indices].astype(int)
-        sorted_values = track[key][sorted_indices].astype(float)
-
         # Remove duplicate time values
-        unique_times, unique_indices = np.unique(sorted_time, return_index=True)
-        unique_values = sorted_values[unique_indices]
+        unique_times, unique_indices = np.unique(track['time'], return_index=True)
+        unique_values = track[key][unique_indices]
 
         assert len(unique_times) == len(unique_values)
 
@@ -267,6 +262,10 @@ def cubic_spline(track, key, intervals):
         if not np.all(np.diff(unique_times) > 0):
             print("Error: Time values are not in strictly increasing order after removing duplicates.")
             print(f"Current time order: {unique_times}")
+            return None
+
+        if len(unique_times) < 2:
+            print("Error: Not enough unique time points to perform interpolation.")
             return None
 
         # Create cubic spline with unique, sorted time and values
