@@ -6,6 +6,8 @@ from datetime import timedelta
 import numpy as np
 from pyproj import Transformer, Geod
 
+from scipy.interpolate import CubicSpline
+
 
 def np_interp_linear(track, key, intervals):
     assert len(track['time']) == len(track[key])
@@ -246,3 +248,84 @@ def interp_spacing(spacing: int, tracks, crs=4269):
             track[k] = np.interp(t, u, track[k])
 
         yield track
+
+
+def cubic_spline(track, key, intervals):
+    try:
+        # Remove duplicate time values
+        unique_times, unique_indices = np.unique(track['time'], return_index=True)
+        unique_values = track[key][unique_indices]
+
+        assert len(unique_times) == len(unique_values)
+
+        # Check if time is strictly increasing
+        if not np.all(np.diff(unique_times) > 0):
+            print("Error: Time values are not in strictly increasing order after removing duplicates.")
+            print(f"Current time order: {unique_times}")
+            return None
+
+        if len(unique_times) < 2:
+            print("Error: Not enough unique time points to perform interpolation.")
+            return None
+
+        # Create cubic spline with unique, sorted time and values
+        cs = CubicSpline(x=unique_times, y=unique_values)
+
+        return cs(intervals)
+
+    except Exception as e:
+        # Print the current time order and the exception message
+        print(f"Error occurred in cubic spline interpolation: {e}")
+        print(f"Current time order: {track['time']}")
+        raise  # Re-raise the exception to ensure the calling function knows an error occurred
+
+
+def interp_cubic_spline(tracks, step=timedelta(minutes=10)):
+    ''' Cubic spline interpolation on vessel trajectory
+
+        args:
+            tracks (dict)
+                messages sorted by mmsi then time.
+                uses mmsi as key with columns: time lon lat cog sog name .. etc
+            step (datetime.timedelta)
+                interpolation interval
+
+        returns:
+            dictionary of interpolated tracks
+
+    '''
+
+    for track in tracks:
+        if track['time'].size <= 1:
+            # yield track
+            warnings.warn('cannot interpolate track of length 1, skipping...')
+            continue
+
+        # Sort time and dynamic data by time
+        sorted_indices = np.argsort(track['time'])
+
+        for key in track['dynamic']:
+            track[key] = track[key][sorted_indices]
+
+        intervals = np.arange(
+            start=track['time'][0],
+            stop=track['time'][-1] + int(step.total_seconds()),
+            step=int(step.total_seconds()),
+        ).astype(int)
+
+        assert len(intervals) >= 1
+
+        itr = dict(
+            **{k: track[k]
+               for k in track['static']},
+            time=intervals,
+            static=track['static'],
+            dynamic=track['dynamic'],
+            **{
+                k: cubic_spline(track, k, intervals)
+                for k in track['dynamic'] if k != 'time'
+            },
+        )
+        yield itr
+
+    return
