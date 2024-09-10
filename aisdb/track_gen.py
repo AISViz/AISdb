@@ -162,12 +162,15 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
                 threshold at which tracks should be
                 partitioned
     '''
+    mmsi_count = {}  # Dictionary to keep track of MMSI indices
+
     for track in tracks:
         for rng in _segment_rng(track, maxdelta):
             assert len(rng) > 0
-            yield dict(
-                **{k: track[k]
-                   for k in track['static']},
+
+            # Create the segmented track dictionary
+            segmented_track = dict(
+                **{k: track[k] for k in track['static']},
                 **{
                     k: np.array(track[k], dtype=type(track[k][0]))[rng]
                     for k in track['dynamic']
@@ -175,6 +178,20 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
                 static=track['static'],
                 dynamic=track['dynamic'],
             )
+
+            # Handle MMSI indexing after segmentation
+            mmsi_value = segmented_track.get("mmsi")
+            if mmsi_value:
+                if mmsi_value not in mmsi_count:
+                    mmsi_count[mmsi_value] = 0
+                else:
+                    mmsi_count[mmsi_value] += 1
+
+                # Modify the mmsi value to attach an index
+                segmented_track["mmsi"] = f"{mmsi_value}_{mmsi_count[mmsi_value]}"
+
+            # Yield the segmented track with modified mmsi
+            yield segmented_track
 
 
 def fence_tracks(tracks, domain):
