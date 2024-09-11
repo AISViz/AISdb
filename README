@@ -46,6 +46,7 @@ Developing
 -----------
 To contribute to AISdb or develop further, set up your development environment with these steps:
 
+
 ```sh
 python -m venv AISdb  # Create a virtual environment
 source AISdb/bin/activate  # Activation command for Windows `AISdb\Scripts\activate`
