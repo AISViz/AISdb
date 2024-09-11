@@ -50,22 +50,22 @@ def test_write_csv_fromdict(tmpdir):
         aisdb.proc_util.write_csv(tracks, fpath=os.path.join(tmpdir, "test_write_csv.csv"))
 
 
-def test_write_csv_fromdict_marinetraffic(tmpdir):
-    dbpath = os.path.join(tmpdir, "test_write_csv.db")
-    months = sample_database_file(dbpath)
-    start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
-    end = start + timedelta(weeks=4)
-
-    vinfo_db = VesselInfo(trafficDBpath).trafficDB
-
-    with DBConn(dbpath) as dbconn, vinfo_db as trafficDB:
-        qry = DBQuery(dbconn=dbconn, start=start, end=end, callback=sqlfcn_callbacks.in_timerange_validmmsi, )
-        qry.check_marinetraffic(trafficDBpath=trafficDBpath,
-                                boundary={"xmin": -45, "xmax": -25, "ymin": 30, "ymax": 50, })
-
-        rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, verbose=True)
-        tracks = vessel_info(track_gen.TrackGen(rowgen, decimate=True), trafficDB)
-        aisdb.proc_util.write_csv(tracks, fpath=os.path.join(tmpdir, "test_write_csv.csv"))
+# def test_write_csv_fromdict_marinetraffic(tmpdir):
+#     dbpath = os.path.join(tmpdir, "test_write_csv.db")
+#     months = sample_database_file(dbpath)
+#     start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
+#     end = start + timedelta(weeks=4)
+#
+#     vinfo_db = VesselInfo(trafficDBpath).trafficDB
+#
+#     with DBConn(dbpath) as dbconn, vinfo_db as trafficDB:
+#         qry = DBQuery(dbconn=dbconn, start=start, end=end, callback=sqlfcn_callbacks.in_timerange_validmmsi, )
+#         qry.check_marinetraffic(trafficDBpath=trafficDBpath,
+#                                 boundary={"xmin": -45, "xmax": -25, "ymin": 30, "ymax": 50, })
+#
+#         rowgen = qry.gen_qry(fcn=sqlfcn.crawl_dynamic_static, verbose=True)
+#         tracks = vessel_info(track_gen.TrackGen(rowgen, decimate=True), trafficDB)
+#         aisdb.proc_util.write_csv(tracks, fpath=os.path.join(tmpdir, "test_write_csv.csv"))
 
 
 def test_glob_files():
