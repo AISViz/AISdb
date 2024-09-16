@@ -57,29 +57,14 @@ jobs:
           python -m venv AISdb
           AISdb\Scripts\activate
           python -m pip install --upgrade pip
-          python -m pip install maturin
+          python -m pip install maturin pytest-xdist
           maturin develop --release --extras=test,docs
-          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+          python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
       - name: Run Tests
         run: |
           AISdb\Scripts\activate
-          pytest ./aisdb/tests/test_001_postgres.py
-          pytest ./aisdb/tests/test_002_decode.py
-          pytest ./aisdb/tests/test_003_createtables.py
-          pytest ./aisdb/tests/test_004_sqlfcn.py
-          pytest ./aisdb/tests/test_005_dbqry.py
-          pytest ./aisdb/tests/test_006_gis.py
-          pytest ./aisdb/tests/test_007_trackgen.py
-          pytest ./aisdb/tests/test_008_interp.py
-          pytest ./aisdb/tests/test_009_wsa.py
-          pytest ./aisdb/tests/test_010_network_graph.py
-          pytest ./aisdb/tests/test_011_ui.py
-          pytest ./aisdb/tests/test_012_interp.py
-          pytest ./aisdb/tests/test_013_proc_util.py
-          pytest ./aisdb/tests/test_015_raster_dist.py
-          pytest ./aisdb/tests/test_016_bathymetry.py
-          # pytest ./aisdb/tests/test_014_marinetraffic.py
+          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10 --dist=loadscope --numprocesses=auto
 
       - name: Clean Up
         run: |
@@ -130,29 +115,14 @@ jobs:
           python -m venv AISdb
           source ./AISdb/bin/activate
           python -m pip install --upgrade pip
-          python -m pip install maturin
+          python -m pip install maturin pytest-xdist
           maturin develop --release --extras=test,docs
-          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+          python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
       - name: Run Tests
         run: |
           source ./AISdb/bin/activate
-          pytest ./aisdb/tests/test_001_postgres.py
-          pytest ./aisdb/tests/test_002_decode.py
-          pytest ./aisdb/tests/test_003_createtables.py
-          pytest ./aisdb/tests/test_004_sqlfcn.py
-          pytest ./aisdb/tests/test_005_dbqry.py
-          pytest ./aisdb/tests/test_006_gis.py
-          pytest ./aisdb/tests/test_007_trackgen.py
-          pytest ./aisdb/tests/test_008_interp.py
-          pytest ./aisdb/tests/test_009_wsa.py
-          pytest ./aisdb/tests/test_010_network_graph.py
-          pytest ./aisdb/tests/test_011_ui.py
-          pytest ./aisdb/tests/test_012_interp.py
-          pytest ./aisdb/tests/test_013_proc_util.py
-          pytest ./aisdb/tests/test_015_raster_dist.py
-          pytest ./aisdb/tests/test_016_bathymetry.py
-          # pytest ./aisdb/tests/test_014_marinetraffic.py
+          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10 --dist=loadscope --numprocesses=auto
 
       - name: Clean Up
         run: |
@@ -207,174 +177,15 @@ jobs:
           python -m venv AISdb
           source ./AISdb/bin/activate
           python -m pip install --upgrade pip
-          python -m pip install maturin
+          python -m pip install maturin pytest-xdist
           maturin develop --release --extras=test,docs
-          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+          python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
       - name: Run Tests
         run: |
           source ./AISdb/bin/activate
-          pytest ./aisdb/tests/test_001_postgres.py
-          pytest ./aisdb/tests/test_002_decode.py
-          pytest ./aisdb/tests/test_003_createtables.py
-          pytest ./aisdb/tests/test_004_sqlfcn.py
-          pytest ./aisdb/tests/test_005_dbqry.py
-          pytest ./aisdb/tests/test_006_gis.py
-          pytest ./aisdb/tests/test_007_trackgen.py
-          pytest ./aisdb/tests/test_008_interp.py
-          pytest ./aisdb/tests/test_009_wsa.py
-          pytest ./aisdb/tests/test_010_network_graph.py
-          pytest ./aisdb/tests/test_011_ui.py
-          pytest ./aisdb/tests/test_012_interp.py
-          pytest ./aisdb/tests/test_013_proc_util.py
-          pytest ./aisdb/tests/test_015_raster_dist.py
-          pytest ./aisdb/tests/test_016_bathymetry.py
-          # pytest ./aisdb/tests/test_014_marinetraffic.py
+          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10 --dist=loadscope --numprocesses=auto
 
       - name: Clean Up
         run: |
           rm -rf AISdb
-
-  linux:
-    runs-on: ubuntu-latest
-    needs: [sdist]
-    strategy:
-      matrix:
-        target: [ x86_64, x86 ]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
-          manylinux: auto
-          before-script-linux: |
-            # If we're running on rhel centos, install needed packages.
-            if command -v yum &> /dev/null; then
-                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip
-
-                # If we're running on i686 we need to symlink libatomic
-                # in order to build openssl with -latomic flag.
-                if [[ ! -d "/usr/lib64" ]]; then
-                    ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
-                fi
-            else
-                # If we're running on debian-based system.
-                apt update -y && apt-get install -y libssl-dev openssl pkg-config musl-tools unzip
-                apt-get clean
-            fi
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: dist
-
-  windows:
-    runs-on: windows-latest
-    needs: [sdist]
-    strategy:
-      matrix:
-        target: [ x64, x86 ]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          architecture: ${{ matrix.target }}
-          cache: 'pip'
-      - name: Cache Rust toolchain
-        uses: actions/cache@v3
-        with:
-          path: C:\Users\runneradmin\.cargo
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: dist
-      - name: Clean Up
-        run: |
-          Remove-Item -Recurse -Force AISdb
-          Remove-Item -Recurse -Force C:\Users\runneradmin\.cargo\*
-
-  macos:
-    runs-on: macos-latest
-    needs: [sdist]
-    env:
-      MACOSX_DEPLOYMENT_TARGET: 10.13
-    strategy:
-      matrix:
-        target: [ x86_64, aarch64 ]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          cache: 'pip'
-      - name: Cache Rust toolchain
-        uses: actions/cache@v3
-        with:
-          path: ~/.cargo
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: dist
-      - name: Clean Up
-        run: |
-          rm -rf AISdb
-          rm -rf ~/.cargo
-
-  sdist:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build sdist
-        uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-          args: --out dist
-      - name: Upload sdist
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: dist
-
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [build-and-test-linux, build-and-test-windows, build-and-test-macos]
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: wheels
-      - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        with:
-          command: upload
-          args: --non-interactive --skip-existing *
