@@ -87,7 +87,7 @@ jobs:
           python -m venv AISdb
         shell: ${{ matrix.os == 'windows-latest' && 'pwsh' || 'bash' }}
 
-      - name: Activate Virtual Environment and Install Dependencies (Linux/macOS)
+      - name: Activate Virtual Environment and Install Maturin (Linux/macOS)
         if: matrix.os != 'windows-latest'
         run: |
           source ./AISdb/bin/activate
@@ -95,7 +95,7 @@ jobs:
           python -m pip install maturin
         shell: bash
 
-      - name: Activate Virtual Environment and Install Dependencies (Windows)
+      - name: Activate Virtual Environment and Install Maturin (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           .\AISdb\Scripts\Activate.ps1
@@ -202,7 +202,7 @@ jobs:
           toolchain: stable
 
       - name: Cache Cargo Registry
-        if: matrix.os != 'windows-latest' && matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        if: matrix.os != 'windows-latest' && (matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest')
         uses: actions/cache@v3
         with:
           path: ~/.cargo/registry
@@ -211,7 +211,7 @@ jobs:
             ${{ runner.os }}-cargo-registry-
 
       - name: Cache Cargo Git Index
-        if: matrix.os != 'windows-latest' && matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        if: matrix.os != 'windows-latest' && (matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest')
         uses: actions/cache@v3
         with:
           path: ~/.cargo/git
