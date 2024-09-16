@@ -42,6 +42,7 @@ jobs:
         run: |
           python -m venv AISdb
           ./AISdb/Scripts/activate
+
       - name: Install Maturin
         run: python -m pip install maturin
 
@@ -49,12 +50,29 @@ jobs:
         run: |
           ./AISdb/Scripts/activate
           maturin develop --release --extras=test,docs
+
       - name: Verify Installation
         run: |
           ./AISdb/Scripts/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          pytest ./aisdb/tests
+          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
+          pytest ./aisdb/tests/test_001_postgres.py
+          pytest ./aisdb/tests/test_002_decode.py
+          pytest ./aisdb/tests/test_003_createtables.py
+          pytest ./aisdb/tests/test_004_sqlfcn.py
+          pytest ./aisdb/tests/test_005_dbqry.py
+          pytest ./aisdb/tests/test_006_gis.py
+          pytest ./aisdb/tests/test_007_trackgen.py
+          pytest ./aisdb/tests/test_008_interp.py
+          pytest ./aisdb/tests/test_009_wsa.py
+          pytest ./aisdb/tests/test_010_network_graph.py
+          pytest ./aisdb/tests/test_011_ui.py
+          pytest ./aisdb/tests/test_012_interp.py
+          pytest ./aisdb/tests/test_013_proc_util.py
+          pytest ./aisdb/tests/test_015_raster_dist.py
+          pytest ./aisdb/tests/test_016_bathymetry.py
+          # pytest ./aisdb/tests/test_014_marinetraffic.py
 
   build-and-test-linux:
     runs-on: ubuntu-latest
@@ -76,16 +94,19 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.cargo/env
+
       - name: Setup PostgreSQL
         run: |
           sudo apt-get install postgresql -y
           sudo systemctl enable postgresql
           sudo systemctl start postgresql
           sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
+
       - name: Create and Activate Python Virtual Environment
         run: |
           python -m venv AISdb
           source ./AISdb/bin/activate
+
       - name: Install Maturin
         run: python -m pip install maturin
 
@@ -93,27 +114,61 @@ jobs:
         run: |
           source ./AISdb/bin/activate
           maturin develop --release --extras=test,docs
+
       - name: Verify Installation
         run: |
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          pytest ./aisdb/tests
+          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
+          pytest ./aisdb/tests/test_001_postgres.py
+          pytest ./aisdb/tests/test_002_decode.py
+          pytest ./aisdb/tests/test_003_createtables.py
+          pytest ./aisdb/tests/test_004_sqlfcn.py
+          pytest ./aisdb/tests/test_005_dbqry.py
+          pytest ./aisdb/tests/test_006_gis.py
+          pytest ./aisdb/tests/test_007_trackgen.py
+          pytest ./aisdb/tests/test_008_interp.py
+          pytest ./aisdb/tests/test_009_wsa.py
+          pytest ./aisdb/tests/test_010_network_graph.py
+          pytest ./aisdb/tests/test_011_ui.py
+          pytest ./aisdb/tests/test_012_interp.py
+          pytest ./aisdb/tests/test_013_proc_util.py
+          pytest ./aisdb/tests/test_015_raster_dist.py
+          pytest ./aisdb/tests/test_016_bathymetry.py
+          # pytest ./aisdb/tests/test_014_marinetraffic.py
 
   build-and-test-macos:
     runs-on: macos-latest
     needs: [macos]
     env:
-        POSTGRES_USER: ${{ secrets.PGUSER }}
-        POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
+      POSTGRES_USER: ${{ secrets.PGUSER }}
+      POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+
+      - name: Cache Python packages
+        uses: actions/cache@v3
+        with:
+          path: AISdb/lib/python3.10/site-packages
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+          cache: 'pip'
+
+      - name: Cache Rust toolchain
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
 
       - name: Install Rust Toolchain
         run: |
@@ -127,92 +182,159 @@ jobs:
           brew services start postgresql@14
           brew link postgresql@14 --force
           brew cleanup
+
       - name: Configure PostgreSQL
         run: |
-          psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
+          psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
+
       - name: Create and Activate Python Virtual Environment
         run: |
           python -m venv AISdb
           source ./AISdb/bin/activate
+
       - name: Install Maturin
         run: python -m pip install maturin
 
-      - name: Cache pip dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
       - name: Build and Install aisdb
         run: |
           source ./AISdb/bin/activate
           maturin develop --release --extras=test,docs
+
       - name: Verify Installation
         run: |
           source ./AISdb/bin/activate
           python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
           python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          pytest ./aisdb/tests
+          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
+          pytest ./aisdb/tests/test_001_postgres.py
+          pytest ./aisdb/tests/test_002_decode.py
+          pytest ./aisdb/tests/test_003_createtables.py
+          pytest ./aisdb/tests/test_004_sqlfcn.py
+          pytest ./aisdb/tests/test_005_dbqry.py
+          pytest ./aisdb/tests/test_006_gis.py
+          pytest ./aisdb/tests/test_007_trackgen.py
+          pytest ./aisdb/tests/test_008_interp.py
+          pytest ./aisdb/tests/test_009_wsa.py
+          pytest ./aisdb/tests/test_010_network_graph.py
+          pytest ./aisdb/tests/test_011_ui.py
+          pytest ./aisdb/tests/test_012_interp.py
+          pytest ./aisdb/tests/test_013_proc_util.py
+          pytest ./aisdb/tests/test_015_raster_dist.py
+          pytest ./aisdb/tests/test_016_bathymetry.py
+          # pytest ./aisdb/tests/test_014_marinetraffic.py
 
-  # Additional jobs for building wheels and uploading artifacts for all three OS
-  build-wheels:
-    needs: [build-and-test-linux, build-and-test-windows, build-and-test-macos]
+  linux:
+    runs-on: ubuntu-latest
+    needs: [sdist]
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        target: [x86_64, x86]
-
-    runs-on: ${{ matrix.os }}
-
+        # Can't build for aarch64 (Apple M1/M2 chips).
+        # ring v0.17.xx yields an error when building the package.
+        # We will fix this issue when the newest version of the dependencies is released.
+        target: [ x86_64, x86 ]
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-
-      # Installing Rust for building wheels
-      - name: Install Rust Toolchain (Linux/macOS)
-        if: matrix.os != 'windows-latest'
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          source $HOME/.cargo/env
-        shell: bash
-
-      - name: Install Rust Toolchain (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
           sccache: 'true'
-          manylinux: ${{ matrix.os == 'ubuntu-latest' && 'auto' || '' }}
-        env:
-          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.os == 'macos-latest' && '10.13' || '' }}
+          manylinux: auto
+          before-script-linux: |
+            # If we're running on rhel centos, install needed packages.
+            if command -v yum &> /dev/null; then
+                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip
 
+                # If we're running on i686 we need to symlink libatomic
+                # in order to build openssl with -latomic flag.
+                if [[ ! -d "/usr/lib64" ]]; then
+                    ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+                fi
+            else
+                # If we're running on debian-based system.
+                apt update -y && apt-get install -y libssl-dev openssl pkg-config musl-tools unzip
+            fi
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
-          name: wheels-${{ matrix.os }}-${{ matrix.target }}
+          name: wheels
+          path: dist
+
+  windows:
+    runs-on: windows-latest
+    needs: [sdist]
+    strategy:
+      matrix:
+        target: [ x64, x86 ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          architecture: ${{ matrix.target }}
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+  macos:
+    runs-on: macos-latest
+    needs: [sdist]
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.13
+    strategy:
+      matrix:
+        target: [ x86_64, aarch64 ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - name: Upload sdist
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
           path: dist
 
   release:
     name: Release
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [build-wheels]
+    if: "startsWith(github.ref, 'refs/tags/')"
+    needs: [build-and-test-linux, build-and-test-windows, build-and-test-macos]
     steps:
-      - name: Download wheels
-        uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v3
         with:
           name: wheels
       - name: Publish to PyPI
@@ -221,4 +343,4 @@ jobs:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
-          args: --non-interactive --skip-existing ./dist/*
+          args: --non-interactive --skip-existing *
