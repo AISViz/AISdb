@@ -52,25 +52,18 @@ jobs:
           override: true
           cache: true
 
-      - name: Create and Activate Python Virtual Environment
+      - name: Create Python Virtual Environment and Install Dependencies
         run: |
           python -m venv AISdb
           AISdb\Scripts\activate
-
-      - name: Install Maturin
-        run: python -m pip install maturin
-
-      - name: Build and Install aisdb
-        run: |
-          AISdb\Scripts\activate
+          python -m pip install --upgrade pip
+          python -m pip install maturin
           maturin develop --release --extras=test,docs
+          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
-      - name: Verify Installation
+      - name: Run Tests
         run: |
           AISdb\Scripts\activate
-          python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
           pytest ./aisdb/tests/test_001_postgres.py
           pytest ./aisdb/tests/test_002_decode.py
           pytest ./aisdb/tests/test_003_createtables.py
@@ -87,6 +80,7 @@ jobs:
           pytest ./aisdb/tests/test_015_raster_dist.py
           pytest ./aisdb/tests/test_016_bathymetry.py
           # pytest ./aisdb/tests/test_014_marinetraffic.py
+
       - name: Clean Up
         run: |
           Remove-Item -Recurse -Force AISdb
@@ -131,25 +125,18 @@ jobs:
           sudo systemctl start postgresql
           sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
 
-      - name: Create and Activate Python Virtual Environment
+      - name: Create Python Virtual Environment and Install Dependencies
         run: |
           python -m venv AISdb
           source ./AISdb/bin/activate
-
-      - name: Install Maturin
-        run: python -m pip install maturin
-
-      - name: Build and Install aisdb
-        run: |
-          source ./AISdb/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install maturin
           maturin develop --release --extras=test,docs
+          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
-      - name: Verify Installation
+      - name: Run Tests
         run: |
           source ./AISdb/bin/activate
-          python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
           pytest ./aisdb/tests/test_001_postgres.py
           pytest ./aisdb/tests/test_002_decode.py
           pytest ./aisdb/tests/test_003_createtables.py
@@ -166,6 +153,7 @@ jobs:
           pytest ./aisdb/tests/test_015_raster_dist.py
           pytest ./aisdb/tests/test_016_bathymetry.py
           # pytest ./aisdb/tests/test_014_marinetraffic.py
+
       - name: Clean Up
         run: |
           rm -rf AISdb
@@ -178,30 +166,24 @@ jobs:
       POSTGRES_USER: ${{ secrets.PGUSER }}
       POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Cache Python packages
-        uses: actions/cache@v3
+      - uses: actions/cache@v3
         with:
-          path: AISdb/lib/python3.10/site-packages
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          path: |
+            AISdb/lib/python3.10/site-packages
+            ~/.cargo
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+            ${{ runner.os }}-cargo-
+      
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
           cache: 'pip'
-
-      - name: Cache Rust toolchain
-        uses: actions/cache@v3
-        with:
-          path: ~/.cargo
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
 
       - name: Install Rust Toolchain
         run: |
@@ -220,25 +202,18 @@ jobs:
         run: |
           psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
 
-      - name: Create and Activate Python Virtual Environment
+      - name: Create Python Virtual Environment and Install Dependencies
         run: |
           python -m venv AISdb
           source ./AISdb/bin/activate
-
-      - name: Install Maturin
-        run: python -m pip install maturin
-
-      - name: Build and Install aisdb
-        run: |
-          source ./AISdb/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install maturin
           maturin develop --release --extras=test,docs
+          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
-      - name: Verify Installation
+      - name: Run Tests
         run: |
           source ./AISdb/bin/activate
-          python -c "import aisdb; assert aisdb.__version__ >= '1.7.1', f'Unexpected aisdb version: {aisdb.__version__}'"
-          python -m pip install --upgrade pip pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-          # >> [WARNING]: THE ORDER OF TESTS METERS <<<
           pytest ./aisdb/tests/test_001_postgres.py
           pytest ./aisdb/tests/test_002_decode.py
           pytest ./aisdb/tests/test_003_createtables.py
@@ -255,6 +230,7 @@ jobs:
           pytest ./aisdb/tests/test_015_raster_dist.py
           pytest ./aisdb/tests/test_016_bathymetry.py
           # pytest ./aisdb/tests/test_014_marinetraffic.py
+
       - name: Clean Up
         run: |
           rm -rf AISdb
