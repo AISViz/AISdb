@@ -147,41 +147,56 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-  
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-  
+
       - name: Install Rust Toolchain
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.cargo/env
 
+      - name: Clean Rust Cache
+        run: rustup self uninstall
+
       - name: Install PostgreSQL
         run: |
           brew install postgresql@14
           brew services start postgresql@14
           brew link postgresql@14 --force
-            
+          brew cleanup  # Clean Homebrew cache
+
+      - name: Remove Unused Xcode Versions
+        run: sudo rm -rf /Applications/Xcode_* || true
+
       - name: Configure PostgreSQL
-        run:
+        run: |
           psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '$POSTGRES_PASSWORD';"
-  
+
       - name: Create and Activate Python Virtual Environment
         run: |
           python -m venv AISdb
           source ./AISdb/bin/activate
-  
+
       - name: Install Maturin
         run: python -m pip install maturin
-  
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Build and Install aisdb
         run: |
           source ./AISdb/bin/activate
           maturin develop --release --extras=test,docs
-  
+
       - name: Verify Installation
         run: |
           source ./AISdb/bin/activate
