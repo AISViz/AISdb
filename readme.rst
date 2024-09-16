@@ -64,7 +64,7 @@ making it a key resource for stakeholders and research enthusiasts across the ma
 
 📌 **The AISdb visualization module runs locally on the browser** *(outdated)* **:**
 
-.. image:: https://aisdb.meridian.cs.dal.ca/readme_example.png
+.. image:: aisdb_web/map/public/readme_example.png
     :width: 700px
     :align: center
 
@@ -114,7 +114,7 @@ AISdb is an example of an application that is sourced on the importance of AIS.
 
 To set up AISdb in your environment, follow these commands in your terminal:
 
-.. code-block::
+.. code-block:: python
 
     python -m venv AISdb  # Create and activate a virtual environment
     source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
@@ -126,7 +126,7 @@ To set up AISdb in your environment, follow these commands in your terminal:
 For developers looking to contribute to AISdb or integrate it into more extensive projects, the following steps outline how to prepare a development environment for AISdb.
 This includes setting up a virtual environment, activating it, and installing AISdb along with the tools required for development:
 
-.. code-block::
+.. code-block:: python
 
     python -m venv AISdb  # Create and activate a virtual environment for AISdb
     source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
