@@ -115,6 +115,40 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
     }
 }
 
+fn extract_epoch_from_nmea_line(line: &str) -> i32 {
+    // Attempt to extract Unix timestamp from additional fields after the checksum
+    if let Some(checksum_index) = line.find('*') {
+        let after_checksum = &line[checksum_index + 1..];
+        // Split by comma in case there are additional fields
+        for field in after_checksum.split(',') {
+            if let Ok(epoch) = field.trim().parse::<i32>() {
+                if epoch > 1_000_000_000 {
+                    return epoch;
+                }
+            }
+        }
+    }
+    // If no timestamp found, use a default value or handle accordingly
+    0 // Return 0 or current time, but be cautious with defaults
+}
+
+fn parse_headers_nmea(line: Result<String, Error>) -> Option<(String, i32)> {
+    match line {
+        Ok(line) => {
+            let line = line.trim();
+            if line.starts_with('!') {
+                // Attempt to extract the epoch time from the line
+                let epoch = extract_epoch_from_nmea_line(&line);
+                Some((line.to_string(), epoch))
+            } else {
+                None
+            }
+        }
+        Err(_) => None,
+    }
+}
+
+
 /// workaround for panic from nmea_parser library,
 /// caused by malformed base station timestamps / binary application messages?
 /// discards UTC date response and binary application payloads before
@@ -179,13 +213,31 @@ fn validate_file_ext(filename: std::path::PathBuf) -> Result<(), String> {
 fn decode_filter_pipe(
     reader: BufReader<File>,
     mut parser: &mut NmeaParser,
+    file_extension: &str,
 ) -> Vec<(ParsedMessage, i32, bool)> {
-    reader
-        .lines()
-        .filter_map(parse_headers)
-        .filter_map(|(s, e)| skipmsg(&s, &e))
-        .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
-        .collect::<Vec<(ParsedMessage, i32, bool)>>()
+    match file_extension {
+        "nm4" => {
+            // Processing for .nm4 files
+            reader
+                .lines()
+                .filter_map(parse_headers)
+                .filter_map(|(s, e)| skipmsg(&s, &e))
+                .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
+                .collect::<Vec<(ParsedMessage, i32, bool)>>()
+        }
+        "nmea" | "txt" | "rx" => {
+            reader
+                .lines()
+                .filter_map(parse_headers_nmea)
+                .filter_map(|(s, e)| skipmsg(&s, &e))
+                .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
+                .collect::<Vec<(ParsedMessage, i32, bool)>>()
+        }
+        _ => {
+            // In case of unsupported file types
+            Vec::new()
+        }
+    }
 }
 
 fn print_status_info(
@@ -246,8 +298,14 @@ pub fn sqlite_decode_insert_msgs(
     let mut positions = <Vec<VesselData>>::new();
     let mut count = 0;
 
+    let file_ext = filename
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
     // in 500k batches
-    for (payload, epoch, is_dynamic) in decode_filter_pipe(reader, &mut parser) {
+    for (payload, epoch, is_dynamic) in decode_filter_pipe(reader, &mut parser, &file_ext) {
         let message = VesselData {
             epoch: Some(epoch),
             payload: Some(payload),
@@ -310,8 +368,14 @@ pub fn postgres_decode_insert_msgs(
     let mut positions = <Vec<VesselData>>::new();
     let mut count = 0;
 
+    let file_ext = filename
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
     // in 500k batches
-    for (payload, epoch, is_dynamic) in decode_filter_pipe(reader, &mut parser) {
+    for (payload, epoch, is_dynamic) in decode_filter_pipe(reader, &mut parser, &file_ext) {
         let message = VesselData {
             epoch: Some(epoch),
             payload: Some(payload),
