@@ -186,7 +186,7 @@ pub fn decoder(
         let process_file = match (extension.as_deref(), type_preference.as_str()) {
             (Some(ext), "csv") if ext.eq_ignore_ascii_case("csv") => true,
             (Some(ext), "other") if !ext.eq_ignore_ascii_case("csv") => true,
-            (_, "all") => true,
+            (_, "all") => false,
             _ => false,
         };
 
