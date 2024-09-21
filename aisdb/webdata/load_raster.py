@@ -58,7 +58,7 @@ class RasterFile(_RasterFile_generic):
 
     def _get_coordinate_values(self, track, rng=None):
         if rng is None:
-            rng = range(len(track['time']))
+            rng = list(range(len(track['time'])))
         idx_lons = np.array(binarysearch_vector(self.xy[0], track['lon'][rng]))
         idx_lats = np.array(binarysearch_vector(self.xy[1], track['lat'][rng]))
         return np.array(list(map(
