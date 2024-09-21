@@ -57,10 +57,8 @@ class RasterFile(_RasterFile_generic):
         self.xy = self._get_img_grids(self.img)
 
     def _get_coordinate_values(self, track, rng=None):
-        if rng is None:
-            rng = list(range(len(track['time'])))
-        idx_lons = np.array(binarysearch_vector(self.xy[0], track['lon'][rng]))
-        idx_lats = np.array(binarysearch_vector(self.xy[1], track['lat'][rng]))
+        idx_lons = np.array(binarysearch_vector(self.xy[0], track['lon'][:] if rng is None else track['lon'][rng]]))
+        idx_lats = np.array(binarysearch_vector(self.xy[1], track['lat'][:] if rng is None else track['lon'][rng]]))
         return np.array(list(map(
             self.img.getpixel,
             zip(idx_lons, idx_lats),
