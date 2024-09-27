@@ -182,7 +182,7 @@ class SQLiteDBConn(_DBConn, sqlite3.Connection):
             skip_nommsi = np.array(agg_rows, dtype=object)
             assert len(skip_nommsi.shape) == 2
             skip_nommsi = skip_nommsi[skip_nommsi[:, 0] != None]
-            assert len(skip_nommsi) > 1
+            assert len(skip_nommsi) >= 1
             cur.executemany((
                 f'INSERT INTO static_{month}_aggregate '
                 f"VALUES ({','.join(['?' for _ in range(skip_nommsi.shape[1])])}) "

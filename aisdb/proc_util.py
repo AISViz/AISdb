@@ -246,14 +246,22 @@ def getfiledate(filename):
     if filesize == 0:  # pragma: no cover
         return False
     with open(filename, 'r') as f:
-        if filename.lower()[-3:] == "csv":
+        # Get the file extension in lowercase
+        extension = os.path.splitext(filename)[1].lower()
+
+        if extension == ".csv":
+        # if filename.lower()[-3:] == "csv":
             reader = csv.reader(f)
-            head = next(reader)
-            row1 = next(reader)
+            try:
+                head = next(reader)
+                row1 = next(reader)
+            except StopIteration:
+                return False
             rowdict = {a: b for a, b in zip(head, row1)}
             fdate = datetime.strptime(rowdict['Time'], '%Y%m%d_%H%M%S').date()
             return fdate
-        else:
+
+        elif extension == ".nm4":
             line = f.readline()
             head = line.rsplit('\\', 1)[0]
             n = 0
@@ -267,10 +275,47 @@ def getfiledate(filename):
                 assert n <= 10000
             split0 = re.split('c:', head)[1]
             try:
-                epoch = int(re.split('[^0-9]', split0)[0])
+                timestamp_str = re.split('[^0-9]', split0)[0]
+                epoch = int(timestamp_str)
+                if len(timestamp_str) == 13:  # Check if timestamp is in milliseconds
+                    epoch = epoch // 1000  # Remove the last 3 digits to convert milliseconds to seconds
+                elif len(timestamp_str) > 13:
+                    epoch = epoch // (10 ** (len(timestamp_str) - 10))
             except ValueError:  # pragma: no cover
                 return False
             except Exception as err:  # pragma: no cover
                 raise err
-        fdate = datetime.fromtimestamp(epoch).date()
-        return fdate
+            fdate = datetime.fromtimestamp(epoch).date()
+            return fdate
+
+        else:
+            # Handling NMEA files, including AIS NMEA
+            n = 0
+            for line in f:
+                n += 1
+                line = line.strip()
+                if line.startswith('!AIVDM') or line.startswith('!AIVDO'):
+                    # Split the line by commas, including the additional fields after the checksum
+                    parts = line.split(',')
+                    # Find the index of the part containing the checksum
+                    checksum_part_index = None
+                    for i, part in enumerate(parts):
+                        if '*' in part:
+                            checksum_part_index = i
+                            break
+                    if checksum_part_index is not None:
+                        # The additional fields start after the checksum part
+                        additional_fields = parts[checksum_part_index + 1:]
+                        # Search for a Unix timestamp (10-digit number)
+                        for field in additional_fields:
+                            field = field.strip()
+                            if re.match(r'^\d{10}$', field):
+                                try:
+                                    epoch = int(field)
+                                    fdate = datetime.fromtimestamp(epoch).date()
+                                    return fdate
+                                except ValueError:
+                                    continue
+                if n >= 10000:
+                    return False  # Date not found within first 10,000 lines
+            return False  # Date not found in the file
