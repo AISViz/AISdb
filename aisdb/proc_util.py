@@ -275,7 +275,12 @@ def getfiledate(filename):
                 assert n <= 10000
             split0 = re.split('c:', head)[1]
             try:
-                epoch = int(re.split('[^0-9]', split0)[0])
+                timestamp_str = re.split('[^0-9]', split0)[0]
+                epoch = int(timestamp_str)
+                if len(timestamp_str) == 13:  # Check if timestamp is in milliseconds
+                    epoch = epoch // 1000  # Remove the last 3 digits to convert milliseconds to seconds
+                elif len(timestamp_str) > 13:
+                    epoch = epoch // (10 ** (len(timestamp_str) - 10))
             except ValueError:  # pragma: no cover
                 return False
             except Exception as err:  # pragma: no cover

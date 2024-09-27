@@ -58,62 +58,132 @@ impl VesselData {
 /// ("!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64", 1635883083)
 /// ```
 pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
-    let (meta, payload) = line.as_ref().unwrap().rsplit_once('\\')?;
+    // Extract meta and payload from the line
+    let (meta, payload) = line.as_ref().ok()?.rsplit_once('\\')?;
+
+    let mut final_timestamp: Option<u64> = None;
+
+    // Loop through the tags in the `meta` part
     for tag_outer in meta.split(',') {
         for tag in tag_outer.split('*') {
-            if tag.len() <= 3 || !&tag.contains("c:") {
+            // If the tag length is too short or doesn't contain "c:", skip it
+            if tag.len() <= 3 || !tag.contains("c:") {
                 continue;
-            } else if let Ok(i) = tag[2..].parse::<i32>() {
-                return Some((payload.to_string(), i));
-            } else if let Ok(i) = tag[3..].parse::<i32>() {
-                return Some((payload.to_string(), i));
-            } else if let Ok(i) = tag.split_once(' ').unwrap_or(("", "")).0.parse::<u64>() {
-                if 946731600 < i
-                    && i <= std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs()
-                {
-                    return Some((payload.to_string(), i.try_into().unwrap()));
+            }
+
+            // Try parsing the timestamp `i` from different parts of the tag
+            let mut i: Option<u64> = None;
+
+            if let Ok(parsed_i) = tag[2..].parse::<u64>() {
+                i = Some(parsed_i);
+            } else if let Ok(parsed_i) = tag[3..].parse::<u64>() {
+                i = Some(parsed_i);
+            } else if let Ok(parsed_i) = tag.split_once(' ').unwrap_or(("", "")).0.parse::<u64>() {
+                i = Some(parsed_i);
+            }
+
+            // If we successfully parsed a timestamp, process it
+            if let Some(timestamp) = i {
+                let epoch_length = timestamp.to_string().len();
+                let adjusted_timestamp = if epoch_length == 13 {
+                    // Convert milliseconds to seconds
+                    timestamp / 1000
+                } else if epoch_length > 13 {
+                    // Adjust to seconds by scaling down
+                    let scale = 10u64.pow((epoch_length - 10) as u32);
+                    timestamp / scale
+                } else if epoch_length == 10 {
+                    // Already in seconds
+                    timestamp
                 } else {
-                    //                     #[cfg(debug_assertions)]
-                    //                     println!(
-                    //                         "skipped- tag:{:?}\tmeta:{:?}\tpayload:{:?}",
-                    //                         tag, meta, payload
-                    //                     );
-                    return None;
+                    // Invalid epoch length
+                    continue;
+                };
+
+                // Store the adjusted timestamp if valid
+                if is_valid_epoch(adjusted_timestamp) {
+                    final_timestamp = Some(adjusted_timestamp);
                 }
             }
         }
     }
-    if meta.contains(' ') {
-        //         #[cfg(debug_assertions)]
-        //         println!("{:?}", meta);
-        let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap_or(0);
-        if ii == 0 {
-            return None;
-        }
 
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        if 946731600 < ii && ii <= now {
-            Some((payload.to_string(), ii.try_into().unwrap()))
-        } else {
-            //             #[cfg(debug_assertions)]
-            //             println!(
-            //                 "skipped- ii:{:?}\tmeta:{:?}\tpayload:{:?}",
-            //                 ii, meta, payload
-            //             );
-            None
-        }
-    } else {
-        //         #[cfg(debug_assertions)]
-        //         println!("skipped- meta:{:?}\tpayload:{:?}", meta, payload);
-        None
+    // If we have a valid final timestamp, return it along with the payload
+    if let Some(final_ts) = final_timestamp {
+        return Some((payload.to_string(), final_ts.try_into().unwrap()));
     }
+
+    None // If no valid timestamp was found, return None
 }
+
+// Helper function to validate that the timestamp is within the valid epoch range
+fn is_valid_epoch(epoch: u64) -> bool {
+    let min_valid_epoch: u64 = 946731600; // Around year 2000
+    let current_time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    epoch >= min_valid_epoch && epoch <= current_time
+}
+
+// pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
+//     let (meta, payload) = line.as_ref().unwrap().rsplit_once('\\')?;
+//     for tag_outer in meta.split(',') {
+//         for tag in tag_outer.split('*') {
+//             if tag.len() <= 3 || !&tag.contains("c:") {
+//                 continue;
+//             } else if let Ok(i) = tag[2..].parse::<i32>() {
+//                 return Some((payload.to_string(), i));
+//             } else if let Ok(i) = tag[3..].parse::<i32>() {
+//                 return Some((payload.to_string(), i));
+//             } else if let Ok(i) = tag.split_once(' ').unwrap_or(("", "")).0.parse::<u64>() {
+//                 if 946731600 < i
+//                     && i <= std::time::SystemTime::now()
+//                         .duration_since(std::time::UNIX_EPOCH)
+//                         .unwrap()
+//                         .as_secs()
+//                 {
+//                     return Some((payload.to_string(), i.try_into().unwrap()));
+//                 } else {
+//                     //                     #[cfg(debug_assertions)]
+//                     //                     println!(
+//                     //                         "skipped- tag:{:?}\tmeta:{:?}\tpayload:{:?}",
+//                     //                         tag, meta, payload
+//                     //                     );
+//                     return None;
+//                 }
+//             }
+//         }
+//     }
+//     if meta.contains(' ') {
+//         //         #[cfg(debug_assertions)]
+//         //         println!("{:?}", meta);
+//         let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap_or(0);
+//         if ii == 0 {
+//             return None;
+//         }
+//
+//         let now = std::time::SystemTime::now()
+//             .duration_since(std::time::UNIX_EPOCH)
+//             .unwrap()
+//             .as_secs();
+//         if 946731600 < ii && ii <= now {
+//             Some((payload.to_string(), ii.try_into().unwrap()))
+//         } else {
+//             //             #[cfg(debug_assertions)]
+//             //             println!(
+//             //                 "skipped- ii:{:?}\tmeta:{:?}\tpayload:{:?}",
+//             //                 ii, meta, payload
+//             //             );
+//             None
+//         }
+//     } else {
+//         //         #[cfg(debug_assertions)]
+//         //         println!("skipped- meta:{:?}\tpayload:{:?}", meta, payload);
+//         None
+//     }
+// }
+
 
 fn extract_epoch_from_nmea_line(line: &str) -> i32 {
     // Attempt to extract Unix timestamp from additional fields after the checksum
@@ -158,11 +228,11 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
     if cols.len() < 6 {
         return Some((msg.to_string(), *epoch));
     }
-    //     #[cfg(debug_assertions)]
-    //     println!(
-    //         "{:?} {:?} {:?} {:?} {:?} {:?}",
-    //         cols[0], cols[1], cols[2], cols[3], cols[4], cols[5]
-    //     );
+//         #[cfg(debug_assertions)]
+//         println!(
+//             "{:?} {:?} {:?} {:?} {:?} {:?}",
+//             cols[0], cols[1], cols[2], cols[3], cols[4], cols[5]
+//         );
     let count = str::parse::<u8>(cols[1]).unwrap_or(1);
     let fragment_no = str::parse::<u8>(cols[2]).unwrap_or(1);
     match (cols[0], count, fragment_no, cols[3], cols[4], cols[5]) {
@@ -172,7 +242,7 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
                     && (f == 1)
                     && (&tx[0..1] == ";" || &tx[0..1] == "I" || &tx[0..1] == "J"))) =>
         {
-            //println!("skipped {:?}", msg);
+//             println!("skipped {:?}", msg);
             None
         }
         _ => Some((msg.to_string(), *epoch)),
@@ -221,6 +291,7 @@ fn decode_filter_pipe(
             reader
                 .lines()
                 .filter_map(parse_headers)
+//                 .inspect(|parsed| println!("parse_headers output: {:?}", parsed))
                 .filter_map(|(s, e)| skipmsg(&s, &e))
                 .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
                 .collect::<Vec<(ParsedMessage, i32, bool)>>()
@@ -438,6 +509,19 @@ pub mod tests {
         );
         assert_eq!(expected, result);
     }
+
+    #[test]
+    pub fn test_parse_headers_milliseconds_timestamp() {
+        // Example of a valid NM4 line with a 13-digit epoch in milliseconds
+        let input = r#"\c:1726841314345,s:my-station,T:2024-09-20 14.08.34*23\!AIVDM,1,1,,A,15NTES0P00J>tC4@@FOhMgvD0D0M,0*49"#;
+        let result = parse_headers(Ok(input.to_string())).unwrap();
+        let expected = (
+            "!AIVDM,1,1,,A,15NTES0P00J>tC4@@FOhMgvD0D0M,0*49".to_string(),
+            1726841314,
+        );
+        assert_eq!(expected, result);
+    }
+
 
     #[test]
     pub fn test_decode_insert_msgs() -> Result<(), Error> {
