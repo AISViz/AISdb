@@ -11,7 +11,7 @@ from aisdb.aisdb import simplify_linestring_idx
 
 from aisdb import Domain
 from aisdb.gis import delta_knots
-from aisdb.proc_util import _segment_rng
+from aisdb.proc_util import _segment_rng, _segment_rng_test
 
 staticcols = set([
     'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'maneuver',
@@ -192,6 +192,144 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
 
             # Yield the segmented track with modified mmsi
             yield segmented_track
+
+
+def split_tracks(tracks, max_distance=25000, min_distance=1, max_time=timedelta(hours=24),
+                 min_time=timedelta(minutes=0.2),
+                 max_speed=50, min_speed=0.2, min_segment_length=15, min_direction_change=45):
+    """
+    Segments AIS tracks based on multiple criteria such as course changes, speed, distance, and time gaps.
+    Args:
+        tracks (aisdb.track_gen.TrackGen): track vectors generator
+        max_distance (float): Maximum allowable distance (meters) between points in a segment.
+        min_distance (float): Minimum allowable distance (meters) between points in a segment.
+        max_time (timedelta): Maximum allowable time difference between points in a segment.
+        min_time (timedelta): Minimum allowable time difference between points in a segment.
+        max_speed (float): Maximum allowable speed (knots).
+        min_speed (float): Minimum allowable speed (knots).
+        min_segment_length (int): Minimum number of points required in a segment.
+        min_direction_change (float): Minimum course change (degrees) to start a new segment.
+    """
+    mmsi_count = {}  # Dictionary to keep track of MMSI indices
+    for track in tracks:
+        for rng in _segment_rng_test(track, max_distance, max_time, max_speed, min_speed, min_segment_length, min_direction_change):
+            assert len(rng) > 0
+
+            # Create the segmented track dictionary
+            segmented_track = dict(
+                **{k: track[k] for k in track['static']},
+                **{
+                    k: np.array(track[k], dtype=type(track[k][0]))[rng]
+                    for k in track['dynamic']
+                },
+                static=track['static'],
+                dynamic=track['dynamic'],
+            )
+
+            # Handle MMSI indexing after segmentation
+            mmsi_value = segmented_track.get("mmsi")
+            if mmsi_value:
+                if mmsi_value not in mmsi_count:
+                    mmsi_count[mmsi_value] = 0
+                else:
+                    mmsi_count[mmsi_value] += 1
+
+                # Modify the mmsi value to attach an index
+                segmented_track["mmsi"] = f"{mmsi_value}-{mmsi_count[mmsi_value]}"
+
+            # Yield the segmented track with modified mmsi
+            yield segmented_track
+
+
+# def split_tracks(tracks, max_distance=25000, min_distance=1, max_time=timedelta(hours=24),
+#                  min_time=timedelta(minutes=0.2),
+#                  max_speed=50, min_speed=0.2, min_segment_length=15, min_direction_change=45):
+#     """
+#     Segments AIS tracks based on multiple criteria such as course changes, speed, distance, and time gaps.
+#     Args:
+#         tracks (aisdb.track_gen.TrackGen): track vectors generator
+#         max_distance (float): Maximum allowable distance (meters) between points in a segment.
+#         min_distance (float): Minimum allowable distance (meters) between points in a segment.
+#         max_time (timedelta): Maximum allowable time difference between points in a segment.
+#         min_time (timedelta): Minimum allowable time difference between points in a segment.
+#         max_speed (float): Maximum allowable speed (knots).
+#         min_speed (float): Minimum allowable speed (knots).
+#         min_segment_length (int): Minimum number of points required in a segment.
+#         min_direction_change (float): Minimum course change (degrees) to start a new segment.
+#     """
+#     mmsi_count = {}  # Dictionary to keep track of MMSI indices
+#
+#     for track in tracks:
+#         dynamic_keys = list(track.get('dynamic', []))
+#         static_keys = list(track.get('static', []))
+#
+#         current_segment = {key: [] for key in dynamic_keys + static_keys}
+#         current_segment['ccc'] = []  # Calculated Course
+#         current_segment['ccs'] = []  # Calculated Speed
+#
+#         previous_point = None
+#
+#         for i in range(len(track['lat'])):
+#             lat, lon, time_val = track['lat'][i], track['lon'][i], track['time'][i]
+#             cog, sog = np.mod(float(track['cog'][i]), 360), float(track['sog'][i])
+#
+#             if previous_point is not None:
+#                 lat_prev, lon_prev, time_prev, course_prev = previous_point
+#                 distance_meters = geodesic((lat_prev, lon_prev), (lat, lon)).meters
+#                 time_diff_minutes = (time_val - time_prev) / 60.0
+#                 time_diff_hours = time_diff_minutes / 60.0
+#                 time_diff_delta = timedelta(minutes=time_diff_minutes)
+#                 speed_knots = (distance_meters / 1852.0) / time_diff_hours if time_diff_hours > 0 else 0
+#                 course = (geod.inv(lon_prev, lat_prev, lon, lat)[0] + 360) % 360
+#
+#                 course_delta = np.abs((course - course_prev) % 360)
+#                 course_delta = np.minimum(course_delta, 360 - course_delta)
+#
+#                 # Determine if a new segment should start based on criteria
+#                 if ((not (min_distance <= distance_meters <= max_distance)) or
+#                         (not (min_time <= time_diff_delta <= max_time)) or
+#                         (not (min_speed <= speed_knots <= max_speed)) or
+#                         (course_delta > min_direction_change)):
+#
+#                     # Yield the current segment if it meets the minimum length requirement
+#                     if len(current_segment['time']) >= min_segment_length:
+#                         yield_segment(current_segment, track, dynamic_keys, mmsi_count)
+#                     current_segment = {key: [] for key in dynamic_keys + static_keys}
+#                     current_segment['ccc'], current_segment['ccs'] = [course], [speed_knots]
+#
+#             else:
+#                 current_segment['ccc'].append(0)
+#                 current_segment['ccs'].append(0)
+#
+#             # Add current point to segment
+#             for key in dynamic_keys:
+#                 current_segment[key].append(track[key][i])
+#             previous_point = (lat, lon, time_val, cog)
+#
+#         # Yield the last segment if it meets the minimum length requirement
+#         if len(current_segment['time']) >= min_segment_length:
+#             yield_segment(current_segment, track, dynamic_keys, mmsi_count)
+#
+#
+# def yield_segment(segment, track, dynamic_keys, mmsi_count):
+#     """Helper function to yield the segmented track and modify the mmsi."""
+#     segmented_track = dict(
+#         **{k: track[k] for k in track['static']},
+#         **{k: np.array(track[k], dtype=type(track[k][0])) for k in dynamic_keys},
+#         static=track['static'],
+#         dynamic=track['dynamic'],
+#     )
+#
+#     # Handle MMSI indexing after segmentation
+#     mmsi_value = segmented_track.get("mmsi")
+#     if mmsi_value:
+#         if mmsi_value not in mmsi_count:
+#             mmsi_count[mmsi_value] = 0
+#         else:
+#             mmsi_count[mmsi_value] += 1
+#         segmented_track["mmsi"] = f"{mmsi_value}-{mmsi_count[mmsi_value]}"
+#
+#     yield segmented_track
 
 
 def fence_tracks(tracks, domain):
