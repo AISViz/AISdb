@@ -6,8 +6,8 @@ import typing
 from datetime import datetime, timedelta
 from functools import partial, reduce
 from tempfile import SpooledTemporaryFile
-
 import numpy as np
+from aisdb.aisdb import haversine
 
 
 def _sanitize(s):
@@ -59,6 +59,45 @@ def _segment_rng(track, maxdelta, key='time') -> filter:
             _splits_idx(track[key], maxdelta)[:-1],
             _splits_idx(track[key], maxdelta)[1:],
     ):
+        yield rng
+
+
+def _splits_idx_test(track: dict, maxdistance: int, maxtime: timedelta, maxspeed: float, minspeed: float, min_segment: int, max_direction_change: int) -> np.ndarray:
+
+    time_vec = np.array(track['time'], dtype=int)
+    time_splits = np.nonzero(time_vec[1:] - time_vec[:-1] >= maxtime.total_seconds())[0] + 1
+
+    speed_vec = np.array(track['sog'], dtype=float)
+    # Find indices where speed exceeds the max speed threshold and remove those points
+    valid_speed_indices = np.nonzero(speed_vec[:] <= maxspeed)[0]
+    valid_speed_vec = speed_vec[valid_speed_indices]  # Speed values only for valid indices
+    speed_splits = np.nonzero(valid_speed_vec[:] < minspeed)[0]
+
+    course_vec = np.array(track['cog'], dtype=int)
+    course_splits = np.nonzero(course_vec[1:] - course_vec[:-1] >= max_direction_change)[0] + 1
+
+    # distance_vec = delta_meters(track)
+    lon_vec = np.array(track['lon'], dtype=float)
+    lat_vec = np.array(track['lat'], dtype=float)
+
+    distance_vec = _track_distance(lat_vec, lon_vec)
+    distance_splits = np.nonzero(distance_vec[:] >= maxdistance)[0] + 1
+
+    # Combine all split points from time, speed, course, and distance
+    all_splits = np.unique(np.concatenate([time_splits, speed_splits, course_splits, distance_splits]))
+
+    # Add the start (0) and end (size of vector) points
+    idx = np.append(np.append([0], all_splits), [valid_speed_vec.size])
+
+    # Ensure minimum segment length
+    idx = np.array([idx[i] for i in range(len(idx) - 1) if (idx[i + 1] - idx[i]) >= min_segment])
+
+    return idx
+
+def _segment_rng_test(track, max_distance, max_time, max_speed, min_speed, min_segment_length, min_direction_change):
+    for rng in map(range,
+            _splits_idx_test(track, max_distance, max_time, max_speed, min_speed, min_segment_length, min_direction_change)[:-1],
+            _splits_idx_test(track, max_distance, max_time, max_speed, min_speed, min_segment_length, min_direction_change)[1:],):
         yield rng
 
 
@@ -319,3 +358,11 @@ def getfiledate(filename):
                 if n >= 10000:
                     return False  # Date not found within first 10,000 lines
             return False  # Date not found in the file
+
+def _track_distance(lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
+    '''Calculate the Haversine distance for consecutive points.'''
+    distances = np.zeros(len(lat) - 1)
+    for i in range(1, len(lat)):
+        distances[i - 1] = haversine(lat[i - 1], lon[i - 1], lat[i], lon[i])
+
+    return distances
