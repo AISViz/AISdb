@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from functools import partial, reduce
 from tempfile import SpooledTemporaryFile
 import numpy as np
+from pyproj import Geod
 from aisdb.aisdb import haversine
 
 
@@ -61,44 +62,84 @@ def _segment_rng(track, maxdelta, key='time') -> filter:
     ):
         yield rng
 
+def _track_distance(lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
+    '''Calculate the Haversine distance for consecutive points.'''
+    distances = np.zeros(len(lat) - 1)
+    for i in range(1, len(lat)):
+        distances[i - 1] = haversine(lat[i - 1], lon[i - 1], lat[i], lon[i])
 
-def _splits_idx_test(track: dict, maxdistance: int, maxtime: timedelta, maxspeed: float, minspeed: float, min_segment: int, max_direction_change: int) -> np.ndarray:
+    return distances
 
+
+def _segment_rng_all(track: dict, maxdistance: float, maxtime: timedelta, maxspeed: float,
+                     minspeed: float, min_segment_length: int, max_direction_change: float):
+    """
+    Identifies split points in an AIS track based on time, speed, course, and distance criteria.
+
+    Parameters:
+    -----------
+    track : dict
+        A dictionary containing the track data.
+    maxdistance : float
+        The maximum allowed distance (in meters) between consecutive points before creating a split.
+    maxtime : timedelta
+        The maximum allowed time difference between consecutive points before creating a split.
+    maxspeed : float
+        The maximum allowed speed (in knots) before creating a split.
+    minspeed : float
+        The minimum allowed speed (in knots) below which a split is created.
+    min_segment_length : int
+        The minimum required length (number of points) for a segment. Segments shorter than this length are ignored.
+    max_direction_change : int
+        The maximum allowed course-over-ground (COG) or calculated course change (in degrees) before creating a split.
+
+    Yields:
+    -------
+    range
+        A generator that yields index ranges representing valid segments of the track that meet the criteria.
+    """
+    # Acquire information from the track dictionary
     time_vec = np.array(track['time'], dtype=int)
+    speed_vec = np.array(track['sog'], dtype=float)
+    cog_vec = np.array(track['cog'], dtype=int)
+    lon_vec = np.array(track['lon'], dtype=float)
+    lat_vec = np.array(track['lat'], dtype=float)
+
+    # Time splits
     time_splits = np.nonzero(time_vec[1:] - time_vec[:-1] >= maxtime.total_seconds())[0] + 1
 
-    speed_vec = np.array(track['sog'], dtype=float)
-    # Find indices where speed exceeds the max speed threshold and remove those points
+    # Speed splits
     valid_speed_indices = np.nonzero(speed_vec[:] <= maxspeed)[0]
     valid_speed_vec = speed_vec[valid_speed_indices]  # Speed values only for valid indices
     speed_splits = np.nonzero(valid_speed_vec[:] < minspeed)[0]
 
-    course_vec = np.array(track['cog'], dtype=int)
-    course_splits = np.nonzero(course_vec[1:] - course_vec[:-1] >= max_direction_change)[0] + 1
+    # Course over ground (COG) splits
+    cog_vec = np.mod(cog_vec, 360)  # Normalize COG values to be within 0-360 degrees
+    cog_diff = np.abs(np.diff(cog_vec))
+    cog_diff = np.minimum(cog_diff, 360 - cog_diff)
+    cog_splits = np.nonzero(cog_diff >= max_direction_change)[0] + 1
 
-    # distance_vec = delta_meters(track)
-    lon_vec = np.array(track['lon'], dtype=float)
-    lat_vec = np.array(track['lat'], dtype=float)
+    # Course splits
+    geod = Geod(ellps='WGS84')  # Define the ellipsoid
+    azimuth, _, _ = geod.inv(lon_vec[:-1], lat_vec[:-1], lon_vec[1:], lat_vec[1:])
+    course_vec = (azimuth + 360) % 360
+    course_diff = np.abs(np.diff(course_vec))
+    course_diff = np.minimum(course_diff, 360 - course_diff)
+    course_splits = np.nonzero(course_diff >= max_direction_change)[0] + 1
 
+    # Distance splits
     distance_vec = _track_distance(lat_vec, lon_vec)
     distance_splits = np.nonzero(distance_vec[:] >= maxdistance)[0] + 1
 
     # Combine all split points from time, speed, course, and distance
-    all_splits = np.unique(np.concatenate([time_splits, speed_splits, course_splits, distance_splits]))
+    all_splits = np.unique(np.concatenate([time_splits, speed_splits, cog_splits, course_splits, distance_splits]))
 
     # Add the start (0) and end (size of vector) points
     idx = np.append(np.append([0], all_splits), [valid_speed_vec.size])
 
-    # Ensure minimum segment length
-    idx = np.array([idx[i] for i in range(len(idx) - 1) if (idx[i + 1] - idx[i]) >= min_segment])
-
-    return idx
-
-def _segment_rng_test(track, max_distance, max_time, max_speed, min_speed, min_segment_length, min_direction_change):
-    for rng in map(range,
-            _splits_idx_test(track, max_distance, max_time, max_speed, min_speed, min_segment_length, min_direction_change)[:-1],
-            _splits_idx_test(track, max_distance, max_time, max_speed, min_speed, min_segment_length, min_direction_change)[1:],):
-        yield rng
+    for i in range(len(idx) - 1):
+        if (idx[i + 1] - idx[i]) >= min_segment_length:
+            yield range(idx[i], idx[i + 1])
 
 
 def write_csv_rows(rows, pathname='output.csv', mode='a'):
@@ -289,7 +330,7 @@ def getfiledate(filename):
         extension = os.path.splitext(filename)[1].lower()
 
         if extension == ".csv":
-        # if filename.lower()[-3:] == "csv":
+            # if filename.lower()[-3:] == "csv":
             reader = csv.reader(f)
             try:
                 head = next(reader)
@@ -358,11 +399,3 @@ def getfiledate(filename):
                 if n >= 10000:
                     return False  # Date not found within first 10,000 lines
             return False  # Date not found in the file
-
-def _track_distance(lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
-    '''Calculate the Haversine distance for consecutive points.'''
-    distances = np.zeros(len(lat) - 1)
-    for i in range(1, len(lat)):
-        distances[i - 1] = haversine(lat[i - 1], lon[i - 1], lat[i], lon[i])
-
-    return distances
