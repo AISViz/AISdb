@@ -231,8 +231,11 @@ jobs:
           cargo install --locked wasm-pack --verbose
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
+      - name: Add wasm-pack to PATH
+        run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           echo "wasm-pack installed at: $(which wasm-pack)"
+          echo "Current PATH: $PATH"
           wasm-pack --version || echo "wasm-pack installation failed"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -255,12 +258,12 @@ jobs:
                 # If we're running on debian-based system.
                 apt update -y && apt-get install -y libssl-dev openssl pkg-config musl-tools unzip
                 apt-get clean
-            fi
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: dist
+
 
   windows:
     runs-on: windows-latest
@@ -333,9 +336,12 @@ jobs:
       - name: Set up zlib
         run: |
           echo "export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig" >> $GITHUB_ENV
-      - name: Install xcode
+      - name: Check Xcode Command Line Tools
         run: |
-          xcode-select --install
+          xcode-select -p || echo "Xcode Command Line Tools are not installed."
+      - name: Update Xcode Command Line Tools
+        run: |
+          softwareupdate --all --install --force || echo "No updates available."
       - name: Install wasm-pack
         run: |
           cargo install --locked wasm-pack --verbose
