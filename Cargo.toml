@@ -23,6 +23,8 @@ sysinfo = "0.29"
 wasm-opt = "0.112"
 wasm-pack = "0.11"
 reqwest = "0.11"
+log = "0.4"
+env_logger = "0.10"
 
 [dependencies.futures]
 version = "0.3"
