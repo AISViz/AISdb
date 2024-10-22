@@ -115,8 +115,6 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
-          wasm-bindgen-cli --version
-          wasm-opt --version
 
       - name: Setup PostgreSQL
         run: |
@@ -183,8 +181,6 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
-          wasm-bindgen-cli --version
-          wasm-opt --version
 
       - name: Install PostgreSQL
         run: |
@@ -231,12 +227,30 @@ jobs:
           cargo install --locked wasm-pack --verbose
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
+      - name: Verify wasm-pack installation
+        run: |
+          echo "wasm-pack version: $(wasm-pack --version)"
       - name: Add wasm-pack to PATH
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           echo "wasm-pack installed at: $(which wasm-pack)"
           echo "Current PATH: $PATH"
           wasm-pack --version || echo "wasm-pack installation failed"
+      - name: Setup dependencies for Linux builds
+        run: |
+          # If we're running on rhel/centos, install needed packages.
+          if command -v yum &> /dev/null; then
+              yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip
+              
+              # If we're running on i686 we need to symlink libatomic
+              # in order to build openssl with -latomic flag.
+              if [[ ! -d "/usr/lib64" ]]; then
+                  ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+              fi
+          else
+              # If we're running on debian-based system.
+              apt update -y && apt-get install -y libssl-dev openssl pkg-config musl-tools unzip
+              apt-get clean
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -244,21 +258,6 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: 'true'
           manylinux: auto
-          before-script-linux: |
-            # If we're running on rhel centos, install needed packages.
-            if command -v yum &> /dev/null; then
-                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip
-      
-                # If we're running on i686 we need to symlink libatomic
-                # in order to build openssl with -latomic flag.
-                if [[ ! -d "/usr/lib64" ]]; then
-                    ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
-                fi
-            else
-                # If we're running on debian-based system.
-                apt update -y && apt-get install -y libssl-dev openssl pkg-config musl-tools unzip
-                apt-get clean
-            fi
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
@@ -395,4 +394,5 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing *
+
 
