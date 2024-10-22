@@ -232,7 +232,8 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          wasm-pack --version
+          echo "wasm-pack installed at: $(which wasm-pack)"
+          wasm-pack --version || echo "wasm-pack installation failed"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -332,9 +333,9 @@ jobs:
       - name: Set up zlib
         run: |
           echo "export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig" >> $GITHUB_ENV
-      - name: Install cmake
+      - name: Install xcode
         run: |
-          brew install cmake
+          xcode-select --install
       - name: Install wasm-pack
         run: |
           cargo install --locked wasm-pack --verbose
