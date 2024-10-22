@@ -55,9 +55,12 @@ jobs:
 
       - name: Install wasm-pack
         run: |
-          cargo install wasm-pack
-          cargo install wasm-bindgen-cli
-          cargo install wasm-opt
+          cargo install --locked wasm-pack --verbose
+          cargo install --locked wasm-bindgen-cli --verbose
+          cargo install --locked wasm-opt --verbose
+          wasm-pack --version
+          wasm-bindgen-cli --version
+          wasm-opt --version
 
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
@@ -111,9 +114,12 @@ jobs:
       
       - name: Install wasm-pack
         run: |
-          cargo install wasm-pack
-          cargo install wasm-bindgen-cli
-          cargo install wasm-opt
+          cargo install --locked wasm-pack --verbose
+          cargo install --locked wasm-bindgen-cli --verbose
+          cargo install --locked wasm-opt --verbose
+          wasm-pack --version
+          wasm-bindgen-cli --version
+          wasm-opt --version
 
       - name: Setup PostgreSQL
         run: |
@@ -176,9 +182,12 @@ jobs:
           
       - name: Install wasm-pack
         run: |
-          cargo install wasm-pack
-          cargo install wasm-bindgen-cli
-          cargo install wasm-opt
+          cargo install --locked wasm-pack --verbose
+          cargo install --locked wasm-bindgen-cli --verbose
+          cargo install --locked wasm-opt --verbose
+          wasm-pack --version
+          wasm-bindgen-cli --version
+          wasm-opt --version
 
       - name: Install PostgreSQL
         run: |

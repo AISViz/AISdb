@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 use std::process::Command;
 use wasm_opt::OptimizationOptions;
-use env_logger;
-use log::info;
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -19,11 +17,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // download web assets from gitlab CD artifacts
     // if OFFLINE_BUILD is not set, it is expected that artifacts will be passed from previous job
 
-    env_logger::init();
-
     // use current directory as root directory for all commands
     let rootdir = std::env::current_dir().unwrap();
-    info!("Root directory: {:?}", rootdir);
+    error!("Root directory: {:?}", rootdir);
+
+    //check if all directories exist
+    assert!(rootdir.join("client_webassembly").exists());
+    assert!(rootdir.join("aisdb_web").exists());
 
     let wasm_build = Command::new("wasm-pack")
         .current_dir(format!("{}/client_webassembly", rootdir.display()))
@@ -109,9 +109,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     OptimizationOptions::new_optimize_for_size()
         .run(wasm_opt_file, wasm_opt_file)
         .expect("running wasm-opt");
-
-    info!("WASM package path: {:?}", format!("{}/aisdb_web/map/pkg", rootdir.display()));
-    info!("WASM file path: {:?}", wasm_opt_file);
 
     Ok(())
 }
