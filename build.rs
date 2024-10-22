@@ -41,8 +41,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .output()
         .expect(
             "Running wasm-pack. Is it installed? https://rustwasm.github.io/wasm-pack/installer/",
-            );
-    eprintln!("{}", String::from_utf8_lossy(&wasm_build.stderr[..]));
+        );
+
+    if !wasm_build.status.success() {
+        eprintln!("wasm-pack failed with status: {:?}", wasm_build.status);
+        eprintln!("stderr: {}", String::from_utf8_lossy(&wasm_build.stderr));
+        eprintln!("stdout: {}", String::from_utf8_lossy(&wasm_build.stdout));
+        std::process::exit(1);
+    }
+
+    // eprintln!("{}", String::from_utf8_lossy(&wasm_build.stderr[..]));
     assert!(wasm_build.status.code() == Some(0));
 
     // install npm packages
