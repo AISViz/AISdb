@@ -23,6 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // use current directory as root directory for all commands
     let rootdir = std::env::current_dir().unwrap();
+    info!("Root directory: {:?}", rootdir);
 
     let wasm_build = Command::new("wasm-pack")
         .current_dir(format!("{}/client_webassembly", rootdir.display()))
@@ -59,6 +60,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // bundle html
     let webpath_to_create = PathBuf::from(format!("{}/aisdb_web/map", rootdir.display()));
     let webpath = std::path::Path::new(&webpath_to_create);
+
+    info!("Web path: {:?}", webpath);
+
     #[cfg(target_os = "windows")]
     let npx = "npx.cmd";
     #[cfg(not(target_os = "windows"))]
@@ -106,8 +110,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .run(wasm_opt_file, wasm_opt_file)
         .expect("running wasm-opt");
 
-    info!("Root directory: {:?}", rootdir);
-    info!("Web path: {:?}", webpath);
     info!("WASM package path: {:?}", format!("{}/aisdb_web/map/pkg", rootdir.display()));
     info!("WASM file path: {:?}", wasm_opt_file);
 
