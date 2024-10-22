@@ -248,7 +248,7 @@ jobs:
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
                 yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip
-
+      
                 # If we're running on i686 we need to symlink libatomic
                 # in order to build openssl with -latomic flag.
                 if [[ ! -d "/usr/lib64" ]]; then
@@ -258,6 +258,7 @@ jobs:
                 # If we're running on debian-based system.
                 apt update -y && apt-get install -y libssl-dev openssl pkg-config musl-tools unzip
                 apt-get clean
+            fi
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
@@ -327,21 +328,21 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-
-      - name: Install Rust target for wasm
+      - name: Install LLVM and Configure clang
         run: |
-          rustup target add wasm32-unknown-unknown
-      - name: Install zlib
+          brew install llvm
+          export PATH="$(brew --prefix llvm)/bin:$PATH"
+          export CC="$(brew --prefix llvm)/bin/clang --target=wasm32-unknown-unknown"
+          echo "export PATH=$PATH" >> $GITHUB_ENV
+          echo "CC=$CC" >> $GITHUB_ENV
+      - name: Install zlib and Ensure pkg-config is Correctly Configured
         run: |
           brew install zlib
-      - name: Set up zlib
+          export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig
+          echo "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+      - name: Install Rust Target for wasm
         run: |
-          echo "export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig" >> $GITHUB_ENV
-      - name: Check Xcode Command Line Tools
-        run: |
-          xcode-select -p || echo "Xcode Command Line Tools are not installed."
-      - name: Update Xcode Command Line Tools
-        run: |
-          softwareupdate --all --install --force || echo "No updates available."
+          rustup target add wasm32-unknown-unknown        
       - name: Install wasm-pack
         run: |
           cargo install --locked wasm-pack --verbose
