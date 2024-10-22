@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use std::process::Command;
 use wasm_opt::OptimizationOptions;
+use env_logger;
+use log::info;
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -17,8 +19,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // download web assets from gitlab CD artifacts
     // if OFFLINE_BUILD is not set, it is expected that artifacts will be passed from previous job
 
+    env_logger::init();
+
+    // use current directory as root directory for all commands
+    let rootdir = std::env::current_dir().unwrap();
+
     let wasm_build = Command::new("wasm-pack")
-        .current_dir("./client_webassembly")
+        .current_dir(format!("{}/client_webassembly", rootdir.display()))
         .args([
                 "build",
                 "--target=web",
@@ -42,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let npm = "npm";
 
     let npm_install = Command::new(npm)
-        .current_dir("./aisdb_web/")
+        .current_dir(format!("{}/aisdb_web", rootdir.display()))
         .arg("install")
         .output()
         .expect("running npm install");
@@ -50,7 +57,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert!(npm_install.status.code().unwrap() == 0);
 
     // bundle html
-    let webpath = std::path::Path::new("./aisdb_web/map");
+    let webpath_to_create = PathBuf::from(format!("{}/aisdb_web/map", rootdir.display()));
+    let webpath = std::path::Path::new(&webpath_to_create);
     #[cfg(target_os = "windows")]
     let npx = "npx.cmd";
     #[cfg(not(target_os = "windows"))]
@@ -64,7 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .env("VITE_DISABLE_STREAM", "1")
         .env("VITE_AISDBHOST", "localhost")
         .env("VITE_AISDBPORT", "9924")
-        .args(["vite", "build", "--outDir=../../aisdb_web/dist_map"])
+        .args(["vite", "build", format!("--outDir={}/aisdb_web/dist_map", rootdir.display()).as_str()])
         .output()
         .unwrap();
     eprintln!("{}", String::from_utf8_lossy(&vite_build_1.stderr[..]));
@@ -83,22 +91,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .args([
             "vite",
             "build",
-            "--outDir=../../aisdb_web/dist_map_bingmaps",
+            format!("--outDir={}/aisdb_web/dist_map_bingmaps", rootdir.display()).as_str(),
         ])
         .output()
         .unwrap();
     eprintln!("{}", String::from_utf8_lossy(&vite_build_2.stderr[..]));
     assert!(vite_build_2.status.code().unwrap() == 0);
 
-    
-
     assert!(PathBuf::from(format!("{}/aisdb_web/map/pkg", env!("CARGO_MANIFEST_DIR"))).exists());
 
     // compress wasm
-    let wasm_opt_file = "./aisdb_web/map/pkg/client_bg.wasm";
+    let wasm_opt_file = &PathBuf::from(format!("{}/aisdb_web/map/pkg/client_bg.wasm", rootdir.display()));
     OptimizationOptions::new_optimize_for_size()
         .run(wasm_opt_file, wasm_opt_file)
         .expect("running wasm-opt");
+
+    info!("Root directory: {:?}", rootdir);
+    info!("Web path: {:?}", webpath);
+    info!("WASM package path: {:?}", format!("{}/aisdb_web/map/pkg", rootdir.display()));
+    info!("WASM file path: {:?}", wasm_opt_file);
 
     Ok(())
 }
