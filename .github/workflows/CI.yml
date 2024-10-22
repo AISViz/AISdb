@@ -231,6 +231,7 @@ jobs:
           cargo install --locked wasm-pack --verbose
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           wasm-pack --version
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -325,6 +326,12 @@ jobs:
       - name: Install Rust target for wasm
         run: |
           rustup target add wasm32-unknown-unknown
+      - name: Install zlib
+        run: |
+          brew install zlib
+      - name: Set up zlib
+        run: |
+          echo "export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig" >> $GITHUB_ENV
       - name: Install cmake
         run: |
           brew install cmake
@@ -380,3 +387,4 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing *
+
