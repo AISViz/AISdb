@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .args([
                 "build",
                 "--target=web",
-                "--out-dir=../aisdb_web/map/pkg",
+                format!("--out-dir={}/aisdb_web/map/pkg", rootdir.display()).as_str(),
                 #[cfg(not(debug_assertions))]
                 "--release",
                 #[cfg(debug_assertions)]
