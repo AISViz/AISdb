@@ -251,6 +251,7 @@ jobs:
               # If we're running on debian-based system.
               apt update -y && apt-get install -y libssl-dev openssl pkg-config musl-tools unzip
               apt-get clean
+          fi
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
