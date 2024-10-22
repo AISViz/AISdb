@@ -234,6 +234,7 @@ jobs:
           cargo install --locked wasm-pack --verbose
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
+          wasm-pack --version
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -324,6 +325,9 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-
+      - name: Install Rust target for wasm
+        run: |
+          rustup target add wasm32-unknown-unknown
       - name: Install wasm-pack
         run: |
           cargo install --locked wasm-pack --verbose
