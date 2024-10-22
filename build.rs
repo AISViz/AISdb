@@ -19,10 +19,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // use current directory as root directory for all commands
     let rootdir = std::env::current_dir().unwrap();
+    println!("Root directory: {:?}", rootdir);
 
-    //check if all directories exist
-    assert!(rootdir.join("client_webassembly").exists());
-    assert!(rootdir.join("aisdb_web").exists());
+    // create aisdb_web/map/pkg if not exists
+    let pkg_path = rootdir.join("aisdb_web/map/pkg");
+    if !pkg_path.exists() {
+        std::fs::create_dir_all(pkg_path).unwrap();
+    }
 
     let wasm_build = Command::new("wasm-pack")
         .current_dir(format!("{}/client_webassembly", rootdir.display()))
