@@ -27,6 +27,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::fs::create_dir_all(pkg_path).unwrap();
     }
 
+    let wasm_pack_path = Command::new("which")
+        .arg("wasm-pack")
+        .output()?;
+
+    if !wasm_pack_path.status.success() {
+        eprintln!("wasm-pack is not installed or not in PATH.");
+        std::process::exit(1);
+    } else {
+        eprintln!("wasm-pack is installed at: {}", String::from_utf8_lossy(&wasm_pack_path.stdout));
+    }
+
+    let pkg_path = rootdir.join("aisdb_web/map/pkg");
+    if !pkg_path.exists() {
+        eprintln!("Target directory does not exist: {:?}", pkg_path);
+        std::process::exit(1);
+    } else {
+        eprintln!("Target directory exists: {:?}", pkg_path);
+    }
+
+    
     let wasm_build = Command::new("wasm-pack")
         .current_dir(format!("{}", rootdir.join("client_webassembly").display()))
         .args([
