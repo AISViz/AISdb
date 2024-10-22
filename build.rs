@@ -19,7 +19,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // use current directory as root directory for all commands
     let rootdir = std::env::current_dir().unwrap();
-    error!("Root directory: {:?}", rootdir);
 
     //check if all directories exist
     assert!(rootdir.join("client_webassembly").exists());
@@ -60,8 +59,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // bundle html
     let webpath_to_create = PathBuf::from(format!("{}/aisdb_web/map", rootdir.display()));
     let webpath = std::path::Path::new(&webpath_to_create);
-
-    info!("Web path: {:?}", webpath);
 
     #[cfg(target_os = "windows")]
     let npx = "npx.cmd";
