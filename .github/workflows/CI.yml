@@ -232,39 +232,36 @@ jobs:
           echo "wasm-pack version: $(wasm-pack --version)"
       - name: Add wasm-pack to PATH
         run: |
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          echo "wasm-pack installed at: $(which wasm-pack)"
-          echo "Current PATH: $PATH"
-          wasm-pack --version || echo "wasm-pack installation failed"
+          if [ -d "$HOME/.cargo/bin" ]; then
+              echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+              echo "wasm-pack installed at: $(which wasm-pack)"
+              echo "Current PATH: $PATH"
+          else
+              echo "Warning: $HOME/.cargo/bin does not exist!"
+          fi
       - name: Setup dependencies for Linux builds
         run: |
-          # If we're running on rhel/centos, install needed packages.
           if command -v yum &> /dev/null; then
-              sudo yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip
-              
-              # If we're running on i686 we need to symlink libatomic
-              # in order to build openssl with -latomic flag.
+              sudo yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip || exit 1
               if [[ ! -d "/usr/lib64" ]]; then
                   sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
               fi
           else
-              # If we're running on debian-based system.
-              sudo apt update -y && sudo apt-get install -y openssl musl-tools unzip libperl-dev
-              sudo apt install pkg-config
-              sudo apt install libssl-dev
-              sudo apt-get install -y perl-modules perl # Ensure Perl modules are available
-              sudo cpan -i IPC::Cmd # Forcefully install IPC::Cmd globally
+              sudo apt update -y && sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
+              sudo apt-get install -y perl-modules perl || exit 1
+              sudo cpan -i --force IPC::Cmd || exit 1
               sudo apt-get clean
           fi
-      - name: Verify Perl module installation
-        run: |
-          perl -MIPC::Cmd -e 'print "IPC::Cmd is installed\n";' || echo "IPC::Cmd installation failed"
       - name: Set up OpenSSL environment variables
         run: |
           export OPENSSL_DIR=$(openssl version -d | awk -F'"' '{print $2}')
           export PKG_CONFIG_PATH=$OPENSSL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
           export LD_LIBRARY_PATH=$OPENSSL_DIR/lib:$LD_LIBRARY_PATH
-          export PERL5LIB=$(perl -e 'print join(":", @INC)')
+          export PERL5LIB=$(perl -e 'print join(":", @INC)'):/usr/local/lib/perl5
+          echo "Using OpenSSL directory: $OPENSSL_DIR"
+      - name: Verify Perl module installation
+        run: |
+          perl -MIPC::Cmd -e 'print "IPC::Cmd is installed\n";' || echo "IPC::Cmd installation failed"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -277,7 +274,7 @@ jobs:
         with:
           name: wheels
           path: dist
-
+          
 
   windows:
     runs-on: windows-latest
