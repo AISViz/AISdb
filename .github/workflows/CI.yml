@@ -219,68 +219,66 @@ jobs:
         target: [ x86_64, x86 ]
     steps:
       - uses: actions/checkout@v3
+      
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Install wasm-pack
+
+      - name: Install wasm-pack and tools
         run: |
           cargo install --locked wasm-pack --verbose
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
-      - name: Verify wasm-pack installation
-        run: |
-          echo "wasm-pack version: $(wasm-pack --version)"
-      - name: Add wasm-pack to PATH
-        run: |
-          if [ -d "$HOME/.cargo/bin" ]; then
-              echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-              echo "wasm-pack installed at: $(which wasm-pack)"
-              echo "Current PATH: $PATH"
-          else
-              echo "Warning: $HOME/.cargo/bin does not exist!"
-          fi
 
-      - name: Setup dependencies for Linux builds
+      - name: Setup system dependencies and Perl modules
         run: |
-          if command -v yum &> /dev/null; then
-              sudo yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip || exit 1
-              if [[ ! -d "/usr/lib64" ]]; then
-                  sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
-              fi
-          else
-              sudo apt update -y && sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
-              sudo apt-get install -y perl-modules perl || exit 1
-              sudo apt-get clean
-          fi
-      - name: Install IPC::Cmd using cpanminus
-        run: |
-          echo yes | sudo cpan App::cpanminus # Install cpanminus if not already installed
-          sudo cpanm --notest --force IPC::Cmd
-      - name: Set PERL5LIB Path
-        run: |
-          PERL_MODULE_PATH=$(perl -MIPC::Cmd -e 'print $INC{"IPC/Cmd.pm"}' | sed 's/\/IPC\/Cmd.pm//')
-          if [ -n "$PERL_MODULE_PATH" ]; then
-              export PERL5LIB="$PERL_MODULE_PATH:$PERL5LIB"
-              echo "PERL5LIB set to: $PERL5LIB"
-          else
-              echo "Error: Unable to locate IPC::Cmd module path."
-              exit 1
-          fi
-      - name: Verify Perl module installation
-        run: |
-          perl -MIPC::Cmd -e 'print "IPC::Cmd is installed\n";' || echo "IPC::Cmd installation failed"
-      - name: Print Perl Library Paths for Debugging
-        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            openssl \
+            libssl-dev \
+            musl-tools \
+            unzip \
+            perl \
+            perl-base \
+            perl-modules \
+            build-essential \
+            cpanminus
+          
+          # Install required Perl modules
+          sudo cpanm --no-wget --force IPC::Cmd
+          sudo cpanm --no-wget --force Text::Template
+          
+          # Verify Perl environment
           perl -V
-          perl -MIPC::Cmd -e 'print $INC{"IPC/Cmd.pm"}'
+          
+          # Export Perl library paths
+          perl_lib_path=$(perl -e 'print join ":", @INC')
+          echo "PERL5LIB=$perl_lib_path" >> $GITHUB_ENV
+
+      - name: Verify Perl modules
+        run: |
+          perl -MIPC::Cmd -e 'print "IPC::Cmd version: $IPC::Cmd::VERSION\n"'
+          perl -MText::Template -e 'print "Text::Template version: $Text::Template::VERSION\n"'
+
+      - name: Configure OpenSSL environment
+        run: |
+          # Ensure OpenSSL can find Perl modules
+          export PERL5LIB="$(perl -e 'print join ":", @INC')"
+          echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
+          echo "OPENSSL_NO_VENDOR=1" >> $GITHUB_ENV
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
+        env:
+          PERL5LIB: ${{ env.PERL5LIB }}
+          OPENSSL_DIR: ${{ env.OPENSSL_DIR }}
+          OPENSSL_NO_VENDOR: ${{ env.OPENSSL_NO_VENDOR }}
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
           sccache: 'true'
           manylinux: auto
+
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
