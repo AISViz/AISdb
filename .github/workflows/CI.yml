@@ -174,7 +174,21 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.cargo/env
-          
+      
+      - name: Install LLVM and Configure clang
+        run: |
+          brew install llvm
+          export PATH="$(brew --prefix llvm)/bin:$PATH"
+          export CC="$(brew --prefix llvm)/bin/clang --target=wasm32-unknown-unknown"
+          echo "export PATH=$PATH" >> $GITHUB_ENV
+          echo "CC=$CC" >> $GITHUB_ENV
+      
+      - name: Install zlib and Ensure pkg-config is Correctly Configured
+        run: |
+          brew install zlib
+          export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig
+          echo "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+
       - name: Install wasm-pack
         run: |
           cargo install --locked wasm-pack --verbose
@@ -234,75 +248,28 @@ jobs:
             pkg-config \
             curl
 
-      - name: Setup Perl environment
-        run: |
-          # Install cpanminus properly
-          curl -L https://cpanmin.us | sudo perl - App::cpanminus
-          
-          # Install required Perl modules with detailed output
-          sudo cpanm --verbose IPC::Cmd
-          sudo cpanm --verbose Text::Template
-          
-          # Create directory for local Perl modules if it doesn't exist
-          sudo mkdir -p /usr/local/lib/perl5
-          sudo chown -R $USER:$USER /usr/local/lib/perl5
-          
-          # Set up PERL5LIB to include all necessary paths
-          echo "PERL5LIB=/usr/local/lib/perl5:/usr/local/share/perl5:/usr/lib/perl5:/usr/share/perl5:${PERL5LIB:-}" >> $GITHUB_ENV
-
-      - name: Configure OpenSSL build environment
-        run: |
-          # Create a file with OpenSSL configuration
-          cat << EOF > openssl_config.sh
-          export OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu
-          export OPENSSL_INCLUDE_DIR=/usr/include
-          export OPENSSL_STATIC=1
-          EOF
-          
-          # Source the configuration
-          source openssl_config.sh
-          
-          # Add to GITHUB_ENV for subsequent steps
-          {
-            echo "OPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}"
-            echo "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}"
-            echo "OPENSSL_STATIC=${OPENSSL_STATIC}"
-          } >> $GITHUB_ENV
-          
-          # Verify environment
-          echo "OpenSSL Configuration:"
-          echo "OPENSSL_LIB_DIR=$OPENSSL_LIB_DIR"
-          echo "OPENSSL_INCLUDE_DIR=$OPENSSL_INCLUDE_DIR"
-          echo "OPENSSL_STATIC=$OPENSSL_STATIC"
-          
-          # Verify OpenSSL installation
-          pkg-config --modversion openssl || echo "OpenSSL not found in pkg-config"
-          ls -l $OPENSSL_LIB_DIR/libssl* || echo "No OpenSSL libraries found in $OPENSSL_LIB_DIR"
-          ls -l $OPENSSL_INCLUDE_DIR/openssl || echo "No OpenSSL headers found in $OPENSSL_INCLUDE_DIR"
-
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         env:
-          PERL5LIB: ${{ env.PERL5LIB }}
-          OPENSSL_LIB_DIR: ${{ env.OPENSSL_LIB_DIR }}
-          OPENSSL_INCLUDE_DIR: ${{ env.OPENSSL_INCLUDE_DIR }}
-          OPENSSL_STATIC: ${{ env.OPENSSL_STATIC }}
-          # Add vendoring options
+          # Don't use system OpenSSL, let manylinux handle it
           OPENSSL_NO_VENDOR: 0
           OPENSSL_VENDORED: 1
+          # Force static linking
+          RUSTFLAGS: '-C target-feature=+crt-static'
+          # Tell cargo to use vendored OpenSSL
+          OPENSSL_STATIC: 1
+          # Important: Don't set OPENSSL_LIB_DIR or OPENSSL_INCLUDE_DIR
+          # Let the manylinux container handle the paths
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: >-
+            --release
+            --out dist
+            --find-interpreter
+            --manylinux auto
           sccache: 'true'
           manylinux: auto
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: dist
           
-
   windows:
     runs-on: windows-latest
     needs: [sdist]
@@ -432,6 +399,7 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing *
+
 
 
 
