@@ -256,9 +256,23 @@ jobs:
         run: |
           echo yes | sudo cpan App::cpanminus # Install cpanminus if not already installed
           sudo cpanm --notest --force IPC::Cmd
+      - name: Set PERL5LIB Path
+        run: |
+          PERL_MODULE_PATH=$(perl -MIPC::Cmd -e 'print $INC{"IPC/Cmd.pm"}' | sed 's/\/IPC\/Cmd.pm//')
+          if [ -n "$PERL_MODULE_PATH" ]; then
+              export PERL5LIB="$PERL_MODULE_PATH:$PERL5LIB"
+              echo "PERL5LIB set to: $PERL5LIB"
+          else
+              echo "Error: Unable to locate IPC::Cmd module path."
+              exit 1
+          fi
       - name: Verify Perl module installation
         run: |
           perl -MIPC::Cmd -e 'print "IPC::Cmd is installed\n";' || echo "IPC::Cmd installation failed"
+      - name: Print Perl Library Paths for Debugging
+        run: |
+          perl -V
+          perl -MIPC::Cmd -e 'print $INC{"IPC/Cmd.pm"}'
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
