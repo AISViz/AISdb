@@ -230,7 +230,7 @@ jobs:
     needs: [sdist]
     strategy:
       matrix:
-        target: [ x86_64, x86 ]
+        target: [ x86_64_unknown_linux_gnu, i686_unknown_linux_gnu ]
     steps:
       - uses: actions/checkout@v4
       
@@ -238,19 +238,26 @@ jobs:
         with:
           python-version: '3.10'
       
-      - name: Install Rust Toolchain
+      - name: Cache Rust toolchain
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+
+      - name: Install Rust Target
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          source $HOME/.cargo/env
-      
+          rustup target add ${{ matrix.target }}
+          rustup target add wasm32-unknown-unknown
+
       - name: Install wasm-pack
         run: |
           cargo install --locked wasm-pack --verbose
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
-
+          
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         env:
@@ -272,6 +279,11 @@ jobs:
         with:
           name: wheels
           path: dist
+
+      - name: Clean Up
+        run: |
+          rm -rf AISdb
+          rm -rf ~/.cargo
           
   windows:
     runs-on: windows-latest
