@@ -248,27 +248,37 @@ jobs:
           sudo chown -R $USER:$USER /usr/local/lib/perl5
           
           # Set up PERL5LIB to include all necessary paths
-          PERL5LIB="/usr/local/lib/perl5:/usr/local/share/perl5:/usr/lib/perl5:/usr/share/perl5:$PERL5LIB"
-          echo "PERL5LIB=$PERL5LIB" >> $GITHUB_ENV
-          
-          # Verify Perl module installation
-          perl -MText::Template -e 'print "Text::Template OK\n"'
-          perl -MIPC::Cmd -e 'print "IPC::Cmd OK\n"'
-          
-          # Print Perl information for debugging
-          perl -V
-          echo "Perl Module Paths:"
-          perl -e 'print join("\n", @INC)'
+          echo "PERL5LIB=/usr/local/lib/perl5:/usr/local/share/perl5:/usr/lib/perl5:/usr/share/perl5:${PERL5LIB:-}" >> $GITHUB_ENV
 
       - name: Configure OpenSSL build environment
         run: |
-          # Set OpenSSL build environment variables
-          echo "OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
-          echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
+          # Create a file with OpenSSL configuration
+          cat << EOF > openssl_config.sh
+          export OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu
+          export OPENSSL_INCLUDE_DIR=/usr/include
+          export OPENSSL_STATIC=1
+          EOF
           
-          # Print OpenSSL-related environment for debugging
-          env | grep OPENSSL
+          # Source the configuration
+          source openssl_config.sh
+          
+          # Add to GITHUB_ENV for subsequent steps
+          {
+            echo "OPENSSL_LIB_DIR=${OPENSSL_LIB_DIR}"
+            echo "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}"
+            echo "OPENSSL_STATIC=${OPENSSL_STATIC}"
+          } >> $GITHUB_ENV
+          
+          # Verify environment
+          echo "OpenSSL Configuration:"
+          echo "OPENSSL_LIB_DIR=$OPENSSL_LIB_DIR"
+          echo "OPENSSL_INCLUDE_DIR=$OPENSSL_INCLUDE_DIR"
+          echo "OPENSSL_STATIC=$OPENSSL_STATIC"
+          
+          # Verify OpenSSL installation
+          pkg-config --modversion openssl || echo "OpenSSL not found in pkg-config"
+          ls -l $OPENSSL_LIB_DIR/libssl* || echo "No OpenSSL libraries found in $OPENSSL_LIB_DIR"
+          ls -l $OPENSSL_INCLUDE_DIR/openssl || echo "No OpenSSL headers found in $OPENSSL_INCLUDE_DIR"
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -277,6 +287,9 @@ jobs:
           OPENSSL_LIB_DIR: ${{ env.OPENSSL_LIB_DIR }}
           OPENSSL_INCLUDE_DIR: ${{ env.OPENSSL_INCLUDE_DIR }}
           OPENSSL_STATIC: ${{ env.OPENSSL_STATIC }}
+          # Add vendoring options
+          OPENSSL_NO_VENDOR: 0
+          OPENSSL_VENDORED: 1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
