@@ -249,7 +249,8 @@ jobs:
           else
               sudo apt update -y && sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
               sudo apt-get install -y perl-modules perl || exit 1
-              sudo cpan IPC::Cmd || echo "IPC::Cmd installation failed"
+              sudo apt-get install -y cpanminus || exit 1
+              sudo cpanm IPC::Cmd || echo "IPC::Cmd installation failed"
               sudo apt-get clean
           fi
       - name: Set up OpenSSL environment variables
@@ -406,6 +407,7 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing *
+
 
 
 
