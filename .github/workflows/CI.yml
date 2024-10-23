@@ -224,55 +224,59 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install wasm-pack and tools
-        run: |
-          cargo install --locked wasm-pack --verbose
-          cargo install --locked wasm-bindgen-cli --verbose
-          cargo install --locked wasm-opt --verbose
-
-      - name: Setup system dependencies and Perl modules
+      - name: Install system dependencies
         run: |
           sudo apt-get update -y
           sudo apt-get install -y \
-            openssl \
-            libssl-dev \
-            musl-tools \
-            unzip \
-            perl \
-            perl-base \
-            perl-modules \
             build-essential \
-            cpanminus
+            perl \
+            libssl-dev \
+            pkg-config \
+            curl
+
+      - name: Setup Perl environment
+        run: |
+          # Install cpanminus properly
+          curl -L https://cpanmin.us | sudo perl - App::cpanminus
           
-          # Install required Perl modules
-          sudo cpanm --no-wget --force IPC::Cmd
-          sudo cpanm --no-wget --force Text::Template
+          # Install required Perl modules with detailed output
+          sudo cpanm --verbose IPC::Cmd
+          sudo cpanm --verbose Text::Template
           
-          # Verify Perl environment
+          # Create directory for local Perl modules if it doesn't exist
+          sudo mkdir -p /usr/local/lib/perl5
+          sudo chown -R $USER:$USER /usr/local/lib/perl5
+          
+          # Set up PERL5LIB to include all necessary paths
+          PERL5LIB="/usr/local/lib/perl5:/usr/local/share/perl5:/usr/lib/perl5:/usr/share/perl5:$PERL5LIB"
+          echo "PERL5LIB=$PERL5LIB" >> $GITHUB_ENV
+          
+          # Verify Perl module installation
+          perl -MText::Template -e 'print "Text::Template OK\n"'
+          perl -MIPC::Cmd -e 'print "IPC::Cmd OK\n"'
+          
+          # Print Perl information for debugging
           perl -V
+          echo "Perl Module Paths:"
+          perl -e 'print join("\n", @INC)'
+
+      - name: Configure OpenSSL build environment
+        run: |
+          # Set OpenSSL build environment variables
+          echo "OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=/usr/include" >> $GITHUB_ENV
+          echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
           
-          # Export Perl library paths
-          perl_lib_path=$(perl -e 'print join ":", @INC')
-          echo "PERL5LIB=$perl_lib_path" >> $GITHUB_ENV
-
-      - name: Verify Perl modules
-        run: |
-          perl -MIPC::Cmd -e 'print "IPC::Cmd version: $IPC::Cmd::VERSION\n"'
-          perl -MText::Template -e 'print "Text::Template version: $Text::Template::VERSION\n"'
-
-      - name: Configure OpenSSL environment
-        run: |
-          # Ensure OpenSSL can find Perl modules
-          export PERL5LIB="$(perl -e 'print join ":", @INC')"
-          echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
-          echo "OPENSSL_NO_VENDOR=1" >> $GITHUB_ENV
+          # Print OpenSSL-related environment for debugging
+          env | grep OPENSSL
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         env:
           PERL5LIB: ${{ env.PERL5LIB }}
-          OPENSSL_DIR: ${{ env.OPENSSL_DIR }}
-          OPENSSL_NO_VENDOR: ${{ env.OPENSSL_NO_VENDOR }}
+          OPENSSL_LIB_DIR: ${{ env.OPENSSL_LIB_DIR }}
+          OPENSSL_INCLUDE_DIR: ${{ env.OPENSSL_INCLUDE_DIR }}
+          OPENSSL_STATIC: ${{ env.OPENSSL_STATIC }}
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
