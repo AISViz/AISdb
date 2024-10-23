@@ -18,7 +18,6 @@ geo = "0.26"
 geo-types = "*"
 nmea-parser = "0.10"
 sysinfo = "0.29"
-openssl = { version = "0.10", features = ["vendored"] }
 
 [build-dependencies]
 wasm-opt = "0.112"
