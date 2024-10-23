@@ -246,20 +246,17 @@ jobs:
             perl \
             libssl-dev \
             pkg-config \
-            curl
+            curl \
+            libc-dev \
+            musl-dev 
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         env:
-          # Don't use system OpenSSL, let manylinux handle it
           OPENSSL_NO_VENDOR: 0
           OPENSSL_VENDORED: 1
-          # Force static linking
           RUSTFLAGS: '-C target-feature=+crt-static'
-          # Tell cargo to use vendored OpenSSL
           OPENSSL_STATIC: 1
-          # Important: Don't set OPENSSL_LIB_DIR or OPENSSL_INCLUDE_DIR
-          # Let the manylinux container handle the paths
         with:
           target: ${{ matrix.target }}
           args: >-
@@ -404,6 +401,7 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing *
+
 
 
 
