@@ -251,9 +251,17 @@ jobs:
               # If we're running on debian-based system.
               sudo apt update -y && sudo apt-get install -y libssl-dev openssl pkg-config musl-tools unzip libperl-dev
               sudo apt-get install -y perl-modules perl # Ensure Perl modules are available
-              sudo cpan IPC::Cmd # Install missing Perl module if needed
+              sudo cpan install IPC::Cmd # Install missing Perl module
               sudo apt-get clean
           fi
+      - name: Verify Perl module installation
+        run: |
+          perl -MIPC::Cmd -e 'print "IPC::Cmd is installed\n";' || echo "IPC::Cmd installation failed"
+      - name: Set up OpenSSL environment variables
+        run: |
+          export OPENSSL_DIR=$(openssl version -d | awk -F'"' '{print $2}')
+          export PKG_CONFIG_PATH=$OPENSSL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+          export LD_LIBRARY_PATH=$OPENSSL_DIR/lib:$LD_LIBRARY_PATH
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
