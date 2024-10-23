@@ -253,8 +253,18 @@ jobs:
               sudo apt install pkg-config
               sudo apt install libssl-dev
               sudo apt-get install -y perl-modules perl # Ensure Perl modules are available
+              sudo cpan -i IPC::Cmd # Forcefully install IPC::Cmd globally
               sudo apt-get clean
           fi
+      - name: Verify Perl module installation
+        run: |
+          perl -MIPC::Cmd -e 'print "IPC::Cmd is installed\n";' || echo "IPC::Cmd installation failed"
+      - name: Set up OpenSSL environment variables
+        run: |
+          export OPENSSL_DIR=$(openssl version -d | awk -F'"' '{print $2}')
+          export PKG_CONFIG_PATH=$OPENSSL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+          export LD_LIBRARY_PATH=$OPENSSL_DIR/lib:$LD_LIBRARY_PATH
+          export PERL5LIB=$(perl -e 'print join(":", @INC)')
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
