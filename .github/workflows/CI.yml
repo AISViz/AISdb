@@ -37,10 +37,10 @@ jobs:
           password: ${{ secrets.PGPASS }}
       
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           architecture: 'x64'
@@ -95,10 +95,10 @@ jobs:
             ${{ runner.os }}-cargo-
       
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -161,10 +161,10 @@ jobs:
             ${{ runner.os }}-cargo-
       
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -230,11 +230,11 @@ jobs:
     needs: [sdist]
     strategy:
       matrix:
-        target: [ x86_64-unknown-linux-musl, i686-unknown-linux-musl ]
+        target: [ x86_64, x86 ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
       
@@ -251,30 +251,21 @@ jobs:
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
 
-      - name: Install Rust Targets Conditionally
-        run: |
-          if [ "${{ matrix.target }}" == "x86_64" ]; then
-            rustup target add x86_64-unknown-linux-musl
-          else
-            rustup target add i686-unknown-linux-musl
-          fi
-          echo "Target is ${{ matrix.target }}"
-
-      - name: Install system dependencies
-        run: |
-          if command -v yum &> /dev/null; then
-              sudo yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip || exit 1
-              if [[ ! -d "/usr/lib64" ]]; then
-                  sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
-              fi
-              sudo yum groupinstall -y "Development Tools" || exit 1
-              sudo yum install -y openssl-devel || exit 1
-          else
-              sudo apt update -y && sudo apt-get install -y build-essential libssl-dev pkg-config || exit 1
-              sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
-              sudo apt-get install -y perl-modules perl || exit 1
-              sudo apt-get clean
-          fi
+      # - name: Install system dependencies
+      #   run: |
+      #     if command -v yum &> /dev/null; then
+      #         sudo yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip || exit 1
+      #         if [[ ! -d "/usr/lib64" ]]; then
+      #             sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+      #         fi
+      #         sudo yum groupinstall -y "Development Tools" || exit 1
+      #         sudo yum install -y openssl-devel || exit 1
+      #     else
+      #         sudo apt update -y && sudo apt-get install -y build-essential libssl-dev pkg-config || exit 1
+      #         sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
+      #         sudo apt-get install -y perl-modules perl || exit 1
+      #         sudo apt-get clean
+      #     fi
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -293,7 +284,7 @@ jobs:
           manylinux: auto
       
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist
@@ -305,8 +296,8 @@ jobs:
       matrix:
         target: [ x64, x86 ]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           architecture: ${{ matrix.target }}
@@ -348,8 +339,8 @@ jobs:
       matrix:
         target: [ x86_64, aarch64 ]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -399,14 +390,14 @@ jobs:
   sdist:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build sdist
         uses: PyO3/maturin-action@v1
         with:
           command: sdist
           args: --out dist
       - name: Upload sdist
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist
@@ -417,7 +408,7 @@ jobs:
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [build-and-test-linux, build-and-test-windows, build-and-test-macos]
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: wheels
       - name: Publish to PyPI
