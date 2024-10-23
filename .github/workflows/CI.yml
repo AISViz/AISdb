@@ -249,7 +249,9 @@ jobs:
               fi
           else
               # If we're running on debian-based system.
-              sudo apt update -y && sudo apt-get install -y libssl-dev openssl pkg-config musl-tools unzip
+              sudo apt update -y && sudo apt-get install -y libssl-dev openssl pkg-config musl-tools unzip libperl-dev
+              sudo apt-get install -y perl-modules perl # Ensure Perl modules are available
+              sudo cpan IPC::Cmd # Install missing Perl module if needed
               sudo apt-get clean
           fi
       - name: Build wheels
