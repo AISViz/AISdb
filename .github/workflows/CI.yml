@@ -267,8 +267,11 @@ jobs:
               if [[ ! -d "/usr/lib64" ]]; then
                   sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
               fi
+              sudo yum groupinstall -y "Development Tools" || exit 1
+              sudo yum install -y openssl-devel || exit 1
           else
-              sudo apt update -y && sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
+              sudo apt update -y && sudo apt-get install -y build-essential libssl-dev pkg-config || exit 1
+              sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
               sudo apt-get install -y perl-modules perl || exit 1
               sudo apt-get clean
           fi
@@ -278,7 +281,6 @@ jobs:
         env:
           OPENSSL_NO_VENDOR: 0
           OPENSSL_VENDORED: 1
-          # RUSTFLAGS: '-C target-feature=+crt-static'
           RUSTFLAGS: '-C target-feature=+crt-static'
           OPENSSL_STATIC: 1
         with:
@@ -425,6 +427,8 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing *
+
+
 
 
 
