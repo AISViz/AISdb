@@ -254,9 +254,9 @@ jobs:
       - name: Install Rust Targets Conditionally
         run: |
           if [ "${{ matrix.target }}" == "x86_64" ]; then
-            rustup target add x86_64-unknown-linux-musl
+            rustup target add x86_64-unknown-linux-gnu
           else
-            rustup target add i686-unknown-linux-musl
+            rustup target add i686-unknown-linux-gnu
           fi
           echo "Target is ${{ matrix.target }}"
 
@@ -281,7 +281,6 @@ jobs:
         env:
           OPENSSL_NO_VENDOR: 0
           OPENSSL_VENDORED: 1
-          RUSTFLAGS: '-C target-feature=+crt-static'
           OPENSSL_STATIC: 1
         with:
           target: ${{ matrix.target }}
