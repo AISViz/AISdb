@@ -239,31 +239,27 @@ jobs:
           else
               echo "Warning: $HOME/.cargo/bin does not exist!"
           fi
+          
       - name: Setup dependencies for Linux builds
         run: |
           if command -v yum &> /dev/null; then
-              sudo yum update -y && sudo yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip || exit 1
+              sudo yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip || exit 1
               if [[ ! -d "/usr/lib64" ]]; then
                   sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
               fi
           else
               sudo apt update -y && sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
               sudo apt-get install -y perl-modules perl || exit 1
-              sudo apt-get install -y cpanminus || exit 1
-              sudo cpanm IPC::Cmd || echo "IPC::Cmd installation failed"
+              sudo apt-get install -y libipc-cmd-perl # Install via apt for Debian-based systems
               sudo apt-get clean
           fi
-      - name: Set up OpenSSL environment variables
+      - name: Install Perl Module IPC::Cmd
         run: |
-          OPENSSL_DIR=$(openssl version -d | awk -F'"' '{print $2}')
-          export OPENSSL_DIR
-          export PKG_CONFIG_PATH="$OPENSSL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH"
-          export LD_LIBRARY_PATH="$OPENSSL_DIR/lib:$LD_LIBRARY_PATH"
-          export PERL5LIB="$(perl -e 'print join(":", @INC)'):/usr/local/lib/perl5"
-          echo "Using OpenSSL directory: $OPENSSL_DIR"
+          sudo cpan -i --force IPC::Cmd
       - name: Verify Perl module installation
         run: |
           perl -MIPC::Cmd -e 'print "IPC::Cmd is installed\n";' || echo "IPC::Cmd installation failed"
+        
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -407,6 +403,7 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing *
+
 
 
 
