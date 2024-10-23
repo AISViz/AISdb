@@ -242,14 +242,14 @@ jobs:
       - name: Setup dependencies for Linux builds
         run: |
           if command -v yum &> /dev/null; then
-              sudo yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip || exit 1
+              sudo yum update -y && sudo yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip || exit 1
               if [[ ! -d "/usr/lib64" ]]; then
                   sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
               fi
           else
               sudo apt update -y && sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
               sudo apt-get install -y perl-modules perl || exit 1
-              sudo cpan -i --force IPC::Cmd || exit 1
+              sudo cpan IPC::Cmd || echo "IPC::Cmd installation failed"
               sudo apt-get clean
           fi
       - name: Set up OpenSSL environment variables
@@ -406,5 +406,6 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing *
+
 
 
