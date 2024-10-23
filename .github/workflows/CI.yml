@@ -263,7 +263,7 @@ jobs:
         env:
           OPENSSL_NO_VENDOR: 0
           OPENSSL_VENDORED: 1
-          RUSTFLAGS: '-C target-feature=+crt-static'
+          RUSTFLAGS: '-C target-feature=-crt-static'
           OPENSSL_STATIC: 1
         with:
           target: ${{ matrix.target }}
