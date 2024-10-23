@@ -252,9 +252,10 @@ jobs:
               sudo apt-get install -y perl-modules perl || exit 1
               sudo apt-get clean
           fi
-      - name: Install Perl Module IPC::Cmd using cpan
+      - name: Install IPC::Cmd using cpanminus
         run: |
-          echo "yes" | sudo cpan -i --force IPC::Cmd
+          echo yes | sudo cpan App::cpanminus # Install cpanminus if not already installed
+          sudo cpanm --notest --force IPC::Cmd
       - name: Verify Perl module installation
         run: |
           perl -MIPC::Cmd -e 'print "IPC::Cmd is installed\n";' || echo "IPC::Cmd installation failed"
