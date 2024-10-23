@@ -240,15 +240,16 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y \
-            build-essential \
-            perl \
-            libssl-dev \
-            pkg-config \
-            curl \
-            libc-dev \
-            musl-dev 
+          if command -v yum &> /dev/null; then
+              sudo yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic unzip || exit 1
+              if [[ ! -d "/usr/lib64" ]]; then
+                  sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+              fi
+          else
+              sudo apt update -y && sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
+              sudo apt-get install -y perl-modules perl || exit 1
+              sudo apt-get clean
+          fi
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
