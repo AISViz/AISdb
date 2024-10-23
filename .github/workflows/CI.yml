@@ -266,9 +266,14 @@ jobs:
             --release
             --out dist
             --find-interpreter
-            --manylinux auto
           sccache: 'true'
           manylinux: auto
+      
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
           
   windows:
     runs-on: windows-latest
