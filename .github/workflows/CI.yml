@@ -250,7 +250,7 @@ jobs:
           if [ "${{ matrix.target }}" == "x86_64" ]; then
             rustup target add x86_64-unknown-linux-gnu
           else
-            echo "No need to add target for ${matrix.target}"
+            echo "No need to add target for ${{ matrix.target }}"
           fi
 
       - name: Install system dependencies
