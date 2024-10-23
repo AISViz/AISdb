@@ -245,6 +245,14 @@ jobs:
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
 
+      - name: Install Rust Targets Conditionally
+        run: |
+          if [ "${{ matrix.target }}" == "x86_64" ]; then
+            rustup target add x86_64-unknown-linux-gnu
+          else
+            echo "No need to add target for ${matrix.target}"
+          fi
+
       - name: Install system dependencies
         run: |
           if command -v yum &> /dev/null; then
@@ -263,6 +271,7 @@ jobs:
         env:
           OPENSSL_NO_VENDOR: 0
           OPENSSL_VENDORED: 1
+          # RUSTFLAGS: '-C target-feature=+crt-static'
           RUSTFLAGS: '-C target-feature=+crt-static'
           OPENSSL_STATIC: 1
         with:
