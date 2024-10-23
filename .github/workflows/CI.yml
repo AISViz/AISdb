@@ -239,7 +239,7 @@ jobs:
           else
               echo "Warning: $HOME/.cargo/bin does not exist!"
           fi
-          
+
       - name: Setup dependencies for Linux builds
         run: |
           if command -v yum &> /dev/null; then
@@ -250,16 +250,15 @@ jobs:
           else
               sudo apt update -y && sudo apt-get install -y openssl musl-tools unzip libperl-dev || exit 1
               sudo apt-get install -y perl-modules perl || exit 1
-              sudo apt-get install -y libipc-cmd-perl # Install via apt for Debian-based systems
               sudo apt-get clean
           fi
-      - name: Install Perl Module IPC::Cmd
+      - name: Install Perl Module IPC::Cmd using cpan
         run: |
-          sudo cpan -i --force IPC::Cmd
+          echo "yes" | sudo cpan -i --force IPC::Cmd
       - name: Verify Perl module installation
         run: |
           perl -MIPC::Cmd -e 'print "IPC::Cmd is installed\n";' || echo "IPC::Cmd installation failed"
-        
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
