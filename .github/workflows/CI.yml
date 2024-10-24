@@ -246,6 +246,11 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-
 
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -273,9 +278,8 @@ jobs:
                 echo "finished apt install"
             fi
             cargo update
-            cargo install --locked wasm-pack --verbose
-            cargo install --locked wasm-bindgen-cli --verbose
-            cargo install --locked wasm-opt --verbose
+            cargo install wasm-bindgen-cli
+            cargo install wasm-opt
             echo "wasm-pack version"
             wasm-pack --version
       
