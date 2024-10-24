@@ -259,6 +259,10 @@ jobs:
                 echo "finished apt install"
             fi
             
+      - name: Install Rust Target for wasm
+        run: |
+          rustup target add wasm32-unknown-unknown        
+            
       - name: install wasm-pack
         run: |
           cargo install wasm-pack
