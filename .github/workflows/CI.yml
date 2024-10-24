@@ -262,7 +262,7 @@ jobs:
             echo "finished rustup target add"
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
-                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic
+                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang
 
                 # If we're running on i686 we need to symlink libatomic
                 # in order to build openssl with -latomic flag.
@@ -272,8 +272,7 @@ jobs:
                 echo "finished yum install"
             else
                 # If we're running on debian-based system.
-                apt update -y && apt-get install -y libssl-dev openssl pkg-config
-                apt install clang
+                apt update -y && apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang
                 clang --version
                 echo "finished apt install"
             fi
