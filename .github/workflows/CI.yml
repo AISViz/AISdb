@@ -256,12 +256,6 @@ jobs:
             --find-interpreter
           manylinux: auto
           before-script-linux: |
-            cargo install wasm-pack
-            cargo install wasm-opt
-            echo "wasm-pack version"
-            wasm-pack --version
-            which wasm-pack
-
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
                 yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang
@@ -280,7 +274,13 @@ jobs:
                 echo "finished apt install"
             fi
 
+            clang --version
             export CC="clang --target=wasm32-unknown-unknown"
+            cargo install wasm-pack
+            cargo install wasm-opt
+            echo "wasm-pack version"
+            wasm-pack --version
+            which wasm-pack
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
