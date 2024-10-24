@@ -250,6 +250,32 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "10.0"
+
+      - name: Install wasm-pack and other dependencies
+        run: |
+          cargo install wasm-pack
+          cargo install wasm-opt
+          echo "wasm-pack version"
+          wasm-pack --version
+          which wasm-pack
+
+          # If we're running on rhel centos, install needed packages.
+          if command -v yum &> /dev/null; then
+              yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic
+
+              # If we're running on i686 we need to symlink libatomic
+              # in order to build openssl with -latomic flag.
+              if [[ ! -d "/usr/lib64" ]]; then
+                  ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+              fi
+              
+              echo "finished yum install"
+          else
+              # If we're running on debian-based system.
+              apt update -y && apt-get install -y libssl-dev openssl pkg-config zlib1g-dev
+              
+              echo "finished apt install"
+          fi
           
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -260,30 +286,6 @@ jobs:
             --out dist
             --find-interpreter
           manylinux: auto
-          before-script-linux: |
-            cargo install wasm-pack
-            cargo install wasm-opt
-            echo "wasm-pack version"
-            wasm-pack --version
-            which wasm-pack
-
-            # If we're running on rhel centos, install needed packages.
-            if command -v yum &> /dev/null; then
-                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic
-
-                # If we're running on i686 we need to symlink libatomic
-                # in order to build openssl with -latomic flag.
-                if [[ ! -d "/usr/lib64" ]]; then
-                    ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
-                fi
-                
-                echo "finished yum install"
-            else
-                # If we're running on debian-based system.
-                apt update -y && apt-get install -y libssl-dev openssl pkg-config zlib1g-dev
-                
-                echo "finished apt install"
-            fi
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
