@@ -279,7 +279,7 @@ jobs:
             cargo install --locked wasm-bindgen-cli --verbose
             cargo install --locked wasm-opt --verbose
             wasm-pack --version
-            sudo apt install clang
+            apt install clang
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4
