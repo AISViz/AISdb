@@ -20,8 +20,8 @@ nmea-parser = "0.10"
 sysinfo = "0.29"
 
 [build-dependencies]
-wasm-opt = "0.112"
-wasm-pack = "0.11"
+wasm-opt = "0.119"
+wasm-pack = "0.13"
 reqwest = "0.11"
 
 [dependencies.futures]
