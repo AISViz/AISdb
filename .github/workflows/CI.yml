@@ -256,10 +256,6 @@ jobs:
             --find-interpreter
           manylinux: auto
           before-script-linux: |
-            cargo update
-            rustup target add wasm32-unknown-unknown
-            echo "finished rustup target add"
-            
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
                 yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang
@@ -276,6 +272,7 @@ jobs:
                 clang --version
                 echo "finished apt install"
             fi
+            cargo update
             cargo install --locked wasm-pack --verbose
             cargo install --locked wasm-bindgen-cli --verbose
             cargo install --locked wasm-opt --verbose
