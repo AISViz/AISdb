@@ -246,10 +246,11 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-
 
-      - name: Install Rust Target
+      - name: Install Rust Target and Clang
         run: |
           rustup target add ${{ matrix.target }}
           rustup target add wasm32-unknown-unknown
+          sudo apt install clang
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -279,7 +280,6 @@ jobs:
             cargo install --locked wasm-bindgen-cli --verbose
             cargo install --locked wasm-opt --verbose
             wasm-pack --version
-            apt install clang
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4
