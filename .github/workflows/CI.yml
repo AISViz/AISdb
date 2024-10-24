@@ -262,10 +262,7 @@ jobs:
           sccache: 'true'
           manylinux: auto
           before-script-linux: |
-            cargo install --locked wasm-pack --verbose
-            cargo install --locked wasm-bindgen-cli --verbose
-            cargo install --locked wasm-opt --verbose
-            wasm-pack --version
+            . "$HOME/.cargo/env"
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
                 yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic
@@ -279,6 +276,10 @@ jobs:
                 # If we're running on debian-based system.
                 apt update -y && apt-get install -y libssl-dev openssl pkg-config
             fi
+            cargo install --locked wasm-pack --verbose
+            cargo install --locked wasm-bindgen-cli --verbose
+            cargo install --locked wasm-opt --verbose
+            wasm-pack --version
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4
