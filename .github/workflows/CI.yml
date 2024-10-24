@@ -256,10 +256,11 @@ jobs:
             --find-interpreter
           manylinux: auto
           before-script-linux: |
-            curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+            cargo install wasm-pack
             cargo install wasm-opt
             echo "wasm-pack version"
             wasm-pack --version
+            which wasm-pack
 
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
@@ -277,8 +278,6 @@ jobs:
                 clang --version
                 echo "finished apt install"
             fi
-            echo "wasm-pack version"
-            wasm-pack --version
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4
