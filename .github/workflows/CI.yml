@@ -247,9 +247,11 @@ jobs:
             cargo-${{ runner.os }}-
 
       - name: Install wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: 'latest'
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          cargo install wasm-opt
+          echo "wasm-pack version"
+          wasm-pack --version
       
       - name: Ensure wasm-pack is in PATH
         run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
@@ -280,9 +282,6 @@ jobs:
                 clang --version
                 echo "finished apt install"
             fi
-            cargo update
-            cargo install wasm-bindgen-cli
-            cargo install wasm-opt
             echo "wasm-pack version"
             wasm-pack --version
       
