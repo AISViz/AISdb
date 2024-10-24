@@ -238,8 +238,6 @@ jobs:
         with:
           python-version: '3.10'
 
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-
       - name: Install dependencies
         run: |
           if command -v yum &> /dev/null; then
@@ -259,15 +257,23 @@ jobs:
                 echo "finished apt install"
             fi
             
+      - name: Cache Rust toolchain
+        uses: actions/cache@v3
+        with:
+          path: C:\Users\runneradmin\.cargo
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+      
       - name: Install Rust Target for wasm
         run: |
-          rustup target add wasm32-unknown-unknown        
+          rustup target add wasm32-unknown-unknown
             
       - name: install wasm-pack
         run: |
-          cargo install wasm-pack
-          cargo install wasm-bindgen-cli
-          cargo install wasm-opt
+          cargo install --locked wasm-pack --verbose
+          cargo install --locked wasm-bindgen-cli --verbose
+          cargo install --locked wasm-opt --verbose
           wasm-pack --version
 
       - name: Build wheels
