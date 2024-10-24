@@ -239,7 +239,26 @@ jobs:
           python-version: '3.10'
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-          
+
+      - name: Install dependencies
+        run: |
+          if command -v yum &> /dev/null; then
+                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang
+
+                # If we're running on i686 we need to symlink libatomic
+                # in order to build openssl with -latomic flag.
+                if [[ ! -d "/usr/lib64" ]]; then
+                    ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+                fi
+                
+                echo "finished yum install"
+            else
+                # If we're running on debian-based system.
+                apt update -y && apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang 
+                
+                echo "finished apt install"
+            fi
+            
       - uses: jetli/wasm-pack-action@v0.4.0
         with:
           version: 'latest'
