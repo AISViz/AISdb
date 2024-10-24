@@ -240,11 +240,9 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
           
-      - name: Install wasm-pack
-        run: |
-          cargo install --locked wasm-pack --verbose
-          cargo install --locked wasm-bindgen-cli --verbose
-          cargo install --locked wasm-opt --verbose
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
           
       - name: Cache Rust toolchain
         uses: actions/cache@v3
@@ -254,9 +252,11 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-
       
-      - name: Build wheels
-        run: |
-          maturin build --release --target ${{ matrix.target }} --out dist
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -268,7 +268,7 @@ jobs:
         run: |
           rm -rf AISdb
           rm -rf ~/.cargo
-          
+                
   windows:
     runs-on: windows-latest
     needs: [sdist]
