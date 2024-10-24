@@ -246,11 +246,6 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-
 
-      - name: Install Rust Target and Clang
-        run: |
-          rustup target add ${{ matrix.target }}
-          rustup target add wasm32-unknown-unknown
-
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -262,6 +257,9 @@ jobs:
           manylinux: auto
           before-script-linux: |
             . "$HOME/.cargo/env"
+            rustup target add ${{ matrix.target }}
+            rustup target add wasm32-unknown-unknown
+            echo "finished rustup target add"
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
                 yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic
@@ -271,14 +269,18 @@ jobs:
                 if [[ ! -d "/usr/lib64" ]]; then
                     ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
                 fi
+                echo "finished yum install"
             else
                 # If we're running on debian-based system.
                 apt update -y && apt-get install -y libssl-dev openssl pkg-config
                 apt install clang
+                clang --version
+                echo "finished apt install"
             fi
             cargo install --locked wasm-pack --verbose
             cargo install --locked wasm-bindgen-cli --verbose
             cargo install --locked wasm-opt --verbose
+            echo "wasm-pack version"
             wasm-pack --version
       
       - name: Upload wheels
