@@ -237,7 +237,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+          
+      - name: Install wasm-pack
+        run: |
+          cargo install --locked wasm-pack --verbose
+          cargo install --locked wasm-bindgen-cli --verbose
+          cargo install --locked wasm-opt --verbose
+          
       - name: Cache Rust toolchain
         uses: actions/cache@v3
         with:
@@ -247,40 +255,8 @@ jobs:
             cargo-${{ runner.os }}-
       
       - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: >-
-            --release
-            --out dist
-            --find-interpreter
-          manylinux: auto
-          before-script-linux: |
-            # If we're running on rhel centos, install needed packages.
-            if command -v yum &> /dev/null; then
-                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang
-
-                # If we're running on i686 we need to symlink libatomic
-                # in order to build openssl with -latomic flag.
-                if [[ ! -d "/usr/lib64" ]]; then
-                    ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
-                fi
-                
-                echo "finished yum install"
-            else
-                # If we're running on debian-based system.
-                apt update -y && apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang 
-                
-                echo "finished apt install"
-            fi
-
-            clang --version
-            export CC="clang --target=wasm32-unknown-unknown"
-            cargo install wasm-pack
-            cargo install wasm-opt
-            echo "wasm-pack version"
-            wasm-pack --version
-            which wasm-pack
+        run: |
+          maturin build --release --target ${{ matrix.target }} --out dist
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
