@@ -259,18 +259,11 @@ jobs:
                 echo "finished apt install"
             fi
             
-      - uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: 'latest'
-          
-      - name: Cache Rust toolchain
-        uses: actions/cache@v3
-        with:
-          path: ~/.cargo
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-      
+      - name: install wasm-pack
+        run: |
+          cargo install wasm-pack
+          wasm-pack --version
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
