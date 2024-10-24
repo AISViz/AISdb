@@ -262,6 +262,8 @@ jobs:
       - name: install wasm-pack
         run: |
           cargo install wasm-pack
+          cargo install wasm-bindgen-cli
+          cargo install wasm-opt
           wasm-pack --version
 
       - name: Build wheels
