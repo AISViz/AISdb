@@ -271,6 +271,7 @@ jobs:
                 if [[ ! -d "/usr/lib64" ]]; then
                     ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
                 fi
+                
                 echo "finished yum install"
             else
                 # If we're running on debian-based system.
@@ -278,11 +279,11 @@ jobs:
                 echo "finished apt install"
             fi
 
-            export PATH="$(brew --prefix llvm)/bin:$PATH"
-            export CC="$(brew --prefix llvm)/bin/clang --target=wasm32-unknown-unknown"
+            export PATH="/usr/lib/llvm-$(llvm-config --version)/bin:$PATH"
+            export CC="/usr/lib/llvm-$(llvm-config --version)/bin/clang --target=wasm32-unknown-unknown"
             echo "export PATH=$PATH" >> $GITHUB_ENV
             echo "CC=$CC" >> $GITHUB_ENV
-      
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
