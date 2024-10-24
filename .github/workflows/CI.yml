@@ -250,6 +250,9 @@ jobs:
         run: |
           rustup target add ${{ matrix.target }}
           rustup target add wasm32-unknown-unknown
+      
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
