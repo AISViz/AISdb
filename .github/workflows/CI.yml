@@ -230,7 +230,7 @@ jobs:
     needs: [sdist]
     strategy:
       matrix:
-        target: [ x86_64-unknown-linux-gnu, i686-unknown-linux-gnu ]
+        target: [ x86_64, x86 ]
     steps:
       - uses: actions/checkout@v4
       
@@ -245,6 +245,20 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-
+
+      - name: Install clang
+        run: |
+          if command -v yum &> /dev/null; then
+              yum update -y && yum install -y clang
+          else
+              # If we're running on debian-based system.
+              apt update -y && apt-get install -y clang
+          fi
+          clang --version
+          export CC="clang"
+          export CFLAGS="--target=wasm32-unknown-unknown"
+          echo "CC=$CC" >> $GITHUB_ENV
+          echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -282,12 +296,6 @@ jobs:
                 
                 echo "finished apt install"
             fi
-            
-            clang --version
-            export CC="clang"
-            export CFLAGS="--target=wasm32-unknown-unknown"
-            echo "CC=$CC" >> $GITHUB_ENV
-            echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
