@@ -245,21 +245,7 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-
-
-      - name: Install clang
-        run: |
-          if command -v yum &> /dev/null; then
-              yum update -y && yum install -y clang
-          else
-              # If we're running on debian-based system.
-              apt update -y && apt-get install -y clang
-          fi
-          clang --version
-          export CC="clang"
-          export CFLAGS="--target=wasm32-unknown-unknown"
-          echo "CC=$CC" >> $GITHUB_ENV
-          echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
-
+          
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -270,6 +256,20 @@ jobs:
             --find-interpreter
           manylinux: auto
           before-script-linux: |
+            
+            if command -v yum &> /dev/null; then
+                yum update -y && yum install -y clang
+            else
+                # If we're running on debian-based system.
+                apt update -y && apt-get install -y clang
+            fi
+            
+            clang --version
+            export CC="clang"
+            export CFLAGS="--target=wasm32-unknown-unknown"
+            echo "CC=$CC" >> $GITHUB_ENV
+            echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
+
             cargo install wasm-pack
             cargo install wasm-opt
             echo "wasm-pack version"
@@ -278,7 +278,7 @@ jobs:
 
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
-                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang
+                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic
 
                 # If we're running on i686 we need to symlink libatomic
                 # in order to build openssl with -latomic flag.
@@ -289,10 +289,7 @@ jobs:
                 echo "finished yum install"
             else
                 # If we're running on debian-based system.
-                apt update -y && apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang
-                
-                llvm-config --prefix
-                llvm-config --version
+                apt update -y && apt-get install -y libssl-dev openssl pkg-config zlib1g-dev
                 
                 echo "finished apt install"
             fi
