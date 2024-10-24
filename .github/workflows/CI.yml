@@ -264,30 +264,30 @@ jobs:
 
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
-                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic llvm
+                yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang
 
                 # If we're running on i686 we need to symlink libatomic
                 # in order to build openssl with -latomic flag.
                 if [[ ! -d "/usr/lib64" ]]; then
                     ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
                 fi
-
-                llvm-config --prefix
-                llvm-config --version
                 
                 echo "finished yum install"
             else
                 # If we're running on debian-based system.
-                apt update -y && apt-get install -y libssl-dev openssl pkg-config zlib1g-dev llvm
+                apt update -y && apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang
                 
                 llvm-config --prefix
                 llvm-config --version
                 
                 echo "finished apt install"
             fi
-
-            export CC="/$(llvm-config --prefix)/bin/clang --target=wasm32-unknown-unknown"
+            
+            clang --version
+            export CC="clang"
+            export CFLAGS="--target=wasm32-unknown-unknown"
             echo "CC=$CC" >> $GITHUB_ENV
+            echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
