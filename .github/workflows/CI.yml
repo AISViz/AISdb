@@ -256,10 +256,10 @@ jobs:
             --find-interpreter
           manylinux: auto
           before-script-linux: |
-            . "$HOME/.cargo/env"
-            rustup target add ${{ matrix.target }}
+            cargo update
             rustup target add wasm32-unknown-unknown
             echo "finished rustup target add"
+            
             # If we're running on rhel centos, install needed packages.
             if command -v yum &> /dev/null; then
                 yum update -y && yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang
