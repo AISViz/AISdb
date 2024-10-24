@@ -251,14 +251,6 @@ jobs:
           rustup target add ${{ matrix.target }}
           rustup target add wasm32-unknown-unknown
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.6
-
-      - name: Set up sccache
-        run: |
-          export RUSTC_WRAPPER=$(which sccache)
-          echo "RUSTC_WRAPPER=$(which sccache)" >> $GITHUB_ENV
-
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -267,7 +259,6 @@ jobs:
             --release
             --out dist
             --find-interpreter
-          sccache: 'true'
           manylinux: auto
           before-script-linux: |
             . "$HOME/.cargo/env"
