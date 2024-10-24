@@ -286,7 +286,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.target }}
           path: dist
 
       - name: Clean Up
@@ -326,9 +326,9 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: 'true'
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.target }}
           path: dist
       - name: Clean Up
         run: |
@@ -383,9 +383,9 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: 'true'
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.target }}
           path: dist
       - name: Clean Up
         run: |
