@@ -238,6 +238,8 @@ jobs:
         with:
           python-version: '3.10'
       
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      
       - name: Cache Rust toolchain
         uses: actions/cache@v3
         with:
@@ -251,8 +253,13 @@ jobs:
           rustup target add ${{ matrix.target }}
           rustup target add wasm32-unknown-unknown
       
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.6
+      - name: Install sccache
+        run: |
+          cargo install sccache
+
+      - name: Verify sccache installation
+        run: |
+          sccache --version
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
