@@ -245,6 +245,11 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             cargo-${{ runner.os }}-
+      
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "10.0"
           
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -256,20 +261,6 @@ jobs:
             --find-interpreter
           manylinux: auto
           before-script-linux: |
-            
-            if command -v yum &> /dev/null; then
-                yum update -y && yum install -y clang
-            else
-                # If we're running on debian-based system.
-                apt update -y && apt-get install -y clang
-            fi
-            
-            clang --version
-            export CC="clang"
-            export CFLAGS="--target=wasm32-unknown-unknown"
-            echo "CC=$CC" >> $GITHUB_ENV
-            echo "CFLAGS=$CFLAGS" >> $GITHUB_ENV
-
             cargo install wasm-pack
             cargo install wasm-opt
             echo "wasm-pack version"
