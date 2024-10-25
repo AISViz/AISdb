@@ -43,8 +43,6 @@ jobs:
         cargo install --locked wasm-bindgen-cli --verbose
         cargo install --locked wasm-opt --verbose
         wasm-pack --version
-        wasm-bindgen-cli --version
-        wasm-opt --version
 
     - name: Build and Install aisdb
       run: |
