@@ -33,17 +33,12 @@ jobs:
           sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o docs/source/api aisdb aisdb/tests/*
           python -m sphinx -a -j auto -q -b=html docs/source docs/dist_sphinx
 
-      - name: Upload docs to gh-pages branch
-        run: |
-          cp -r docs/dist_sphinx/* gh-pages/
-          cd gh-pages
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
           # Upload entire repository
-          path: '.'
-
+          path: 'docs/dist_sphinx/'
+          
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
