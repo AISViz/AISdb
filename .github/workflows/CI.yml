@@ -46,8 +46,8 @@ jobs:
           cp -r docs/dist_sphinx/* gh-pages/
           cd gh-pages
           git add .
-          git commit -m "Update docs"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/AISViz/AISdb.git gh-pages
+          git commit -m "Update docs" || echo "No changes to commit"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/AISViz/AISdb.git gh-pages || echo "Push failed"
 
       - name: Clean Up
         run: |
