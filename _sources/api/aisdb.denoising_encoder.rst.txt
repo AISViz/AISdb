@@ -1,0 +1,7 @@
+aisdb.denoising\_encoder module
+===============================
+
+.. automodule:: aisdb.denoising_encoder
+   :members:
+   :undoc-members:
+   :show-inheritance:

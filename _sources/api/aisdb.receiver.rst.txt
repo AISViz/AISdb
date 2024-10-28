@@ -1,0 +1,7 @@
+aisdb.receiver module
+=====================
+
+.. automodule:: aisdb.receiver
+   :members:
+   :undoc-members:
+   :show-inheritance:

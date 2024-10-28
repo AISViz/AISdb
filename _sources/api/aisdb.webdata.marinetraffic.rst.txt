@@ -1,0 +1,7 @@
+aisdb.webdata.marinetraffic module
+==================================
+
+.. automodule:: aisdb.webdata.marinetraffic
+   :members:
+   :undoc-members:
+   :show-inheritance:

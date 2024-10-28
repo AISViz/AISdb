@@ -1,0 +1,7 @@
+aisdb.gis module
+================
+
+.. automodule:: aisdb.gis
+   :members:
+   :undoc-members:
+   :show-inheritance:

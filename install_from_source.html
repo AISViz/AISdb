@@ -1,0 +1,144 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installing from Source &mdash; AISDB  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.svg"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Docker" href="docker.html" />
+    <link rel="prev" title="Introduction" href="intro.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AISDB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installing from Source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
+<li class="toctree-l1"><a class="reference internal" href="webapp.html">Web Application Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="database.html">SQL Database Info</a></li>
+<li class="toctree-l1"><a class="reference internal" href="receiver.html">Setting up an AIS receiver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">AISdb Tutorial 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials2.html">AISdb Tutorial 2</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Docs:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/aisdb.html">aisdb package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AISDB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Installing from Source</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/install_from_source.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="installing-from-source">
+<h1>Installing from Source<a class="headerlink" href="#installing-from-source" title="Link to this heading"></a></h1>
+<p>The <a class="reference external" href="https://maturin.rs/develop.html">maturin build system</a> can be used to compile dependencies and install AISDB.
+Conda users may need to <a class="reference external" href="https://maturin.rs/installation.html#conda">install maturin from conda-forge</a>.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># installing the rust toolchain may be required</span>
+curl<span class="w"> </span>--proto<span class="w"> </span><span class="s1">&#39;=https&#39;</span><span class="w"> </span>--tlsv1.2<span class="w"> </span>-sSf<span class="w"> </span>https://sh.rustup.rs<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
+<span class="c1"># Windows users can instead download the installer:</span>
+<span class="c1"># https://forge.rust-lang.org/infra/other-installation-methods.html#rustup</span>
+<span class="c1"># https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe</span>
+
+<span class="c1"># create a virtual python environment and install maturin</span>
+python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>env_ais
+<span class="nb">source</span><span class="w"> </span>./env_ais/bin/activate
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>maturin
+
+<span class="c1"># clone source and navigate to the package root</span>
+git<span class="w"> </span>clone<span class="w"> </span>http://git-dev.cs.dal.ca/meridian/aisdb.git
+<span class="nb">cd</span><span class="w"> </span>aisdb
+
+<span class="c1"># install AISDB</span>
+maturin<span class="w"> </span>develop<span class="w"> </span>--release<span class="w"> </span>--extras<span class="o">=</span>test,docs
+</pre></div>
+</div>
+<p>Also see <code class="docutils literal notranslate"><span class="pre">maturin</span> <span class="pre">build</span></code> for compiling package wheels instead of a local installation.</p>
+<p>Read more about the docker services for this package in <code class="docutils literal notranslate"><span class="pre">docker-compose.yml</span></code> and <a class="reference external" href="docker">AISDB docker services</a>.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="intro.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="docker.html" class="btn btn-neutral float-right" title="Docker" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, MERIDIAN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

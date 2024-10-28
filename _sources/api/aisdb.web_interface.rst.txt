@@ -1,0 +1,7 @@
+aisdb.web\_interface module
+===========================
+
+.. automodule:: aisdb.web_interface
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,584 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Introduction &mdash; AISDB  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.svg"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installing from Source" href="install_from_source.html" />
+    <link rel="prev" title="AISDB Docs: Index" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AISDB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#index">Index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python-environment">0. Python Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-creation">1. Database Creation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#creating-a-database-from-live-streaming-data">Creating a database from live streaming data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#creating-a-database-from-historical-data-files">Creating a database from historical data files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#querying-the-database">2. Querying the Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#processing">3. Processing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#voyage-modelling">Voyage Modelling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-cleaning-and-mmsi-deduplication">Data cleaning and MMSI deduplication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#interpolating-geofencing-and-filtering">Interpolating, geofencing and filtering</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exporting-as-csv">Exporting as CSV</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#integration-with-external-metadata">4. Integration with external metadata</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#bathymetric-charts">Bathymetric charts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rasters">Rasters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detailed-metadata-from-marinetraffic-com">Detailed metadata from marinetraffic.com</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#visualization">5. Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-collection-and-sharing">6. Data collection and sharing</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="install_from_source.html">Installing from Source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
+<li class="toctree-l1"><a class="reference internal" href="webapp.html">Web Application Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="database.html">SQL Database Info</a></li>
+<li class="toctree-l1"><a class="reference internal" href="receiver.html">Setting up an AIS receiver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">AISdb Tutorial 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials2.html">AISdb Tutorial 2</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Docs:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/aisdb.html">aisdb package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AISDB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Introduction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/intro.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="introduction">
+<span id="intro"></span><h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h1>
+<p>AISDB was created to provide a complete set of tools to aid in the collection and processing of AIS data.
+AISDB can be used with either livestreaming AIS or historical raw AIS data files.
+The core data model behind AISDB is an SQLite database, and AISDB provides a Python interface to interact with the database; from database creation, querying, data processing, visualization, and exportation of data in CSV format.
+AISDB also provides tools for integrating AIS with environmental data in raster file formats.
+For example, AISDB provides convenience functions to download ocean bathymetric chart grids which may be used to query seafloor depth beneath each surface vessel position, although any raster data using longitude/latitude coordinate grid cells may be appended.</p>
+<iframe src="https://aisdb.meridian.cs.dal.ca/?24h" title="AISDB" style="width:100%;height:60vh;"></iframe><section id="index">
+<span id="id1"></span><h2>Index<a class="headerlink" href="#index" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ol class="arabic simple" start="0">
+<li><dl class="simple">
+<dt><a class="reference internal" href="#python-env"><span class="std std-ref">Python Environment</span></a></dt><dd><ul class="simple">
+<li><p>Install with Pip</p></li>
+<li><p>Install with Docker</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference internal" href="#db-create"><span class="std std-ref">Database Creation</span></a></dt><dd><ul class="simple">
+<li><p>From MERIDIAN’s data livestream</p></li>
+<li><p>From historical AIS data files</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference internal" href="#query"><span class="std std-ref">Querying the database</span></a></dt><dd><ul class="simple">
+<li><p>Connect to the database</p></li>
+<li><p>Get vessel trajectories from the database</p></li>
+<li><p>Query a bounding box encapsulating a collection of zone polygons</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference internal" href="#processing"><span class="std std-ref">Processing AIS messages</span></a></dt><dd><ul class="simple">
+<li><p>Voyage modelling</p></li>
+<li><p>Data cleaning and MMSI deduplication</p></li>
+<li><p>Interpolating, Geofencing, and filtering</p></li>
+<li><p>Exporting as CSV</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference internal" href="#external-data"><span class="std std-ref">Integration with external metadata</span></a></dt><dd><ul class="simple">
+<li><p>Retrieve detailed vessel metadata from marinetraffic.com</p></li>
+<li><p>Bathymetric charts</p></li>
+<li><p>Rasters</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference internal" href="#visualization"><span class="std std-ref">Visualization</span></a></dt><dd><ul class="simple">
+<li><p>Display AIS data in the web interface</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference internal" href="#data-sharing"><span class="std std-ref">Data collection and sharing</span></a></dt><dd><ul class="simple">
+<li><p>Setting up an AIS receiving antenna</p></li>
+<li><p>Sharing data to external networks</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ol>
+</div></blockquote>
+</section>
+<section id="python-environment">
+<span id="python-env"></span><h2>0. Python Environment<a class="headerlink" href="#python-environment" title="Link to this heading"></a></h2>
+<p>AISDB may also be used with docker-compose to run as services, for more info see <a class="reference internal" href="docker.html#docker"><span class="std std-ref">AISDB Docker docs</span></a>.
+The Python code in the rest of this document can then be run in the new Python environment.
+When using an interpreter such as <a class="reference external" href="https://jupyter.org/">Jupyter</a>, ensure that jupyter is installed in the same environment as AISDB.</p>
+</section>
+<section id="database-creation">
+<span id="db-create"></span><h2>1. Database Creation<a class="headerlink" href="#database-creation" title="Link to this heading"></a></h2>
+<section id="creating-a-database-from-live-streaming-data">
+<h3>Creating a database from live streaming data<a class="headerlink" href="#creating-a-database-from-live-streaming-data" title="Link to this heading"></a></h3>
+<p>A typical workflow for using AISDB requires a database of recorded AIS messages.
+The following code snippet demonstrates how to create a new database from MERIDIAN’s AIS data stream.
+with the argument <code class="docutils literal notranslate"><span class="pre">stdout=True</span></code>, the raw message input will be copied to stdout before it is decoded and added to the database.
+Also see the receiver api docs: <code class="xref py py-func docutils literal notranslate"><span class="pre">aisdb.receiver.start_receiver()</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">aisdb.receiver</span> <span class="kn">import</span> <span class="n">start_receiver</span>
+
+<span class="n">start_receiver</span><span class="p">(</span><span class="n">connect_addr</span><span class="o">=</span><span class="s1">&#39;aisdb.meridian.cs.dal.ca:9920&#39;</span><span class="p">,</span> <span class="n">sqlite_dbpath</span><span class="o">=</span><span class="s1">&#39;AIS.sqlitedb&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="creating-a-database-from-historical-data-files">
+<h3>Creating a database from historical data files<a class="headerlink" href="#creating-a-database-from-historical-data-files" title="Link to this heading"></a></h3>
+<p>An SQLite database file will be created at the specified database path <code class="docutils literal notranslate"><span class="pre">dbpath</span></code>.
+The <code class="docutils literal notranslate"><span class="pre">source</span></code> string will be stored in the database along with the decoded message data, making it easier to integrate data from multiple sources into the same database.
+A checksum of the first 1000 bytes from the input file will be stored to prevent processing the same data file twice.
+Checksum validation can be disabled by adding the argument <code class="docutils literal notranslate"><span class="pre">skip_checksum=True</span></code>.
+Decoding speed can be improved by placing the raw data files on a seperate hard drive from the database.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">aisdb</span>
+
+<span class="n">aisdb</span><span class="o">.</span><span class="n">decode_msgs</span><span class="p">(</span>
+  <span class="n">filepaths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;aisdb/tests/test_data_20210701.csv&#39;</span><span class="p">,</span> <span class="s1">&#39;aisdb/tests/test_data_20211101.nm4&#39;</span><span class="p">],</span>
+  <span class="n">dbpath</span><span class="o">=</span><span class="s1">&#39;AIS.sqlitedb&#39;</span><span class="p">,</span>
+  <span class="n">dbconn</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">DBConn</span><span class="p">(),</span>
+  <span class="n">source</span><span class="o">=</span><span class="s1">&#39;TESTING&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The decoder accepts raw AIS data in the <code class="docutils literal notranslate"><span class="pre">.nm4</span></code> format, as long as a timestamp is included in the message header.
+For example:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>\s:41925,c:1635731889,t:1635731965*66\!AIVDM,1,1,,,19NSRM@01v;inKaVqpGVUmN:00Rh,0*7C
+\s:41925,c:1635731889,t:1635731965*66\!AIVDM,1,1,,,15Benl0000&lt;P7Te`HQFVrU&lt;804;`,0*39
+\s:41925,c:1635731889,t:1635731965*66\!AIVDM,1,1,,,17`BO@7P@9;sbjwUDa7uSH:@00RQ,0*35
+</pre></div>
+</div>
+<p>CSV formatted data files can also be used to create a database.
+When using CSV, the following header is expected:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>MMSI,Message_ID,Repeat_indicator,Time,Millisecond,Region,Country,Base_station,Online_data,Group_code,Sequence_ID,Channel,Data_length,Vessel_Name,Call_sign,IMO,Ship_Type,Dimension_to_Bow,Dimension_to_stern,Dimension_to_port,Dimension_to_starboard,Draught,Destination,AIS_version,Navigational_status,ROT,SOG,Accuracy,Longitude,Latitude,COG,Heading,Regional,Maneuver,RAIM_flag,Communication_flag,Communication_state,UTC_year,UTC_month,UTC_day,UTC_hour,UTC_minute,UTC_second,Fixing_device,Transmission_control,ETA_month,ETA_day,ETA_hour,ETA_minute,Sequence,Destination_ID,Retransmit_flag,Country_code,Functional_ID,Data,Destination_ID_1,Sequence_1,Destination_ID_2,Sequence_2,Destination_ID_3,Sequence_3,Destination_ID_4,Sequence_4,Altitude,Altitude_sensor,Data_terminal,Mode,Safety_text,Non-standard_bits,Name_extension,Name_extension_padding,Message_ID_1_1,Offset_1_1,Message_ID_1_2,Offset_1_2,Message_ID_2_1,Offset_2_1,Destination_ID_A,Offset_A,Increment_A,Destination_ID_B,offsetB,incrementB,data_msg_type,station_ID,Z_count,num_data_words,health,unit_flag,display,DSC,band,msg22,offset1,num_slots1,timeout1,Increment_1,Offset_2,Number_slots_2,Timeout_2,Increment_2,Offset_3,Number_slots_3,Timeout_3,Increment_3,Offset_4,Number_slots_4,Timeout_4,Increment_4,ATON_type,ATON_name,off_position,ATON_status,Virtual_ATON,Channel_A,Channel_B,Tx_Rx_mode,Power,Message_indicator,Channel_A_bandwidth,Channel_B_bandwidth,Transzone_size,Longitude_1,Latitude_1,Longitude_2,Latitude_2,Station_Type,Report_Interval,Quiet_Time,Part_Number,Vendor_ID,Mother_ship_MMSI,Destination_indicator,Binary_flag,GNSS_status,spare,spare2,spare3,spare4
+</pre></div>
+</div>
+<p>The <code class="xref py py-func docutils literal notranslate"><span class="pre">aisdb.database.decoder.decode_msgs()</span></code> function also accepts compressed <code class="docutils literal notranslate"><span class="pre">.zip</span></code> and <code class="docutils literal notranslate"><span class="pre">.gz</span></code> file formats as long as they can be decoded into either nm4 or CSV.</p>
+</section>
+</section>
+<section id="querying-the-database">
+<span id="query"></span><h2>2. Querying the Database<a class="headerlink" href="#querying-the-database" title="Link to this heading"></a></h2>
+<p>Parameters for the database query can be defined using <code class="xref py py-class docutils literal notranslate"><span class="pre">aisdb.database.dbqry.DBQuery</span></code>.
+Iterate over rows returned from the database for each vessel with <code class="xref py py-func docutils literal notranslate"><span class="pre">aisdb.database.dbqry.DBQuery.gen_qry()</span></code>.
+Convert the results into generator yielding dictionaries with numpy arrays describing position vectors e.g. lon, lat, and time using <code class="xref py py-func docutils literal notranslate"><span class="pre">aisdb.track_gen.TrackGen()</span></code>.</p>
+<p>The following query will return vessel positions from the past 48 hours:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">aisdb</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+
+<span class="k">with</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBConn</span><span class="p">()</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+  <span class="n">qry</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBQuery</span><span class="p">(</span>
+    <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+    <span class="n">dbpath</span><span class="o">=</span><span class="s1">&#39;AIS.sqlitedb&#39;</span><span class="p">,</span>
+    <span class="n">callback</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">sql_query_strings</span><span class="o">.</span><span class="n">in_timerange</span><span class="p">,</span>
+    <span class="n">start</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">48</span><span class="p">),</span>
+    <span class="n">end</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span>
+  <span class="p">)</span>
+
+  <span class="k">for</span> <span class="n">vessel</span> <span class="ow">in</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">()):</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">vessel</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A specific region can be queried for AIS data using <code class="xref py py-class docutils literal notranslate"><span class="pre">aisdb.gis.Domain</span></code> or one of its subclasses to define a collection of <code class="docutils literal notranslate"><span class="pre">shapely</span></code> polygon features.
+For this example, the domain contains a single bounding box polygon derived from a longitude/latitude coordinate pair and radial distance specified in meters.
+If multiple features are included in the domain object, the domain boundaries will encompass the convex hull of all features contained within.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">DBConn</span><span class="p">()</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+    <span class="n">domain</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DomainFromPoints</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="p">[(</span><span class="o">-</span><span class="mf">63.6</span><span class="p">,</span> <span class="mf">44.6</span><span class="p">),],</span> <span class="n">radial_distances</span><span class="o">=</span><span class="p">[</span><span class="mi">5000</span><span class="p">,])</span>
+    <span class="n">qry</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBQuery</span><span class="p">(</span>
+        <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+        <span class="n">dbpath</span><span class="o">=</span><span class="s1">&#39;AIS.sqlitedb&#39;</span><span class="p">,</span>
+        <span class="n">callback</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">sqlfcn_callbacks</span><span class="o">.</span><span class="n">in_bbox_time_validmmsi</span><span class="p">,</span>
+        <span class="n">start</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">48</span><span class="p">),</span>
+        <span class="n">end</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span>
+        <span class="n">xmin</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;xmin&#39;</span><span class="p">],</span>
+        <span class="n">xmax</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;xmax&#39;</span><span class="p">],</span>
+        <span class="n">ymin</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;ymin&#39;</span><span class="p">],</span>
+        <span class="n">ymax</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;ymax&#39;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+  <span class="k">for</span> <span class="n">vessel</span> <span class="ow">in</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">()):</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">vessel</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Additional query callbacks for filtering by region, timeframe, identifier, etc. can be found in <code class="xref py py-mod docutils literal notranslate"><span class="pre">aisdb.database.sql_query_strings</span></code> and <code class="xref py py-mod docutils literal notranslate"><span class="pre">aisdb.database.sqlfcn_callbacks</span></code></p>
+</section>
+<section id="processing">
+<span id="id2"></span><h2>3. Processing<a class="headerlink" href="#processing" title="Link to this heading"></a></h2>
+<section id="voyage-modelling">
+<h3>Voyage Modelling<a class="headerlink" href="#voyage-modelling" title="Link to this heading"></a></h3>
+<p>The generator described above can be input into a processing function, yielding modified results.
+For example, to model the activity of vessels on a per-voyage or per-transit basis, each voyage is defined as a continuous vector of vessel positions where the time between observed timestamps never exceeds a 24-hour period.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">aisdb</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+
+<span class="n">maxdelta</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBConn</span><span class="p">()</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+  <span class="n">qry</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBQuery</span><span class="p">(</span>
+    <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+    <span class="n">dbpath</span><span class="o">=</span><span class="s1">&#39;AIS.sqlitedb&#39;</span><span class="p">,</span>
+    <span class="n">callback</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">sql_query_strings</span><span class="o">.</span><span class="n">in_timerange</span><span class="p">,</span>
+    <span class="n">start</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">48</span><span class="p">),</span>
+    <span class="n">end</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span>
+  <span class="p">)</span>
+
+  <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">())</span>
+  <span class="n">track_segments</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">split_timedelta</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span> <span class="n">maxdelta</span><span class="p">)</span>
+
+  <span class="k">for</span> <span class="n">segment</span> <span class="ow">in</span> <span class="n">track_segments</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="data-cleaning-and-mmsi-deduplication">
+<h3>Data cleaning and MMSI deduplication<a class="headerlink" href="#data-cleaning-and-mmsi-deduplication" title="Link to this heading"></a></h3>
+<p>A common issue with AIS is that the data is noisy, and databases may contain multiple vessels broadcasting with same identifier at the same time.
+The <code class="xref py py-func docutils literal notranslate"><span class="pre">aisdb.denoising_encoder.encode_greatcircledistance()</span></code> function uses an encoder to check the approximate distance between each vessel’s position, and then segments resulting vectors where a surface vessel couldn’t reasonably travel there using the most direct path, e.g. above 50 knots.
+A distance threshold and speed threshold are used as a hard limit on the maximum delta distance or delta time allowed between messages to be considered continuous.
+A score is computed for each position delta, with sequential messages in close proximity at shorter intervals given a higher score, calculated by haversine distance divided by elapsed time.
+Any deltas with a score not reaching the minimum threshold are considered as the start of a new segment.
+Finally, the beginning of each new segment is compared to the end of each existing segment with a matching vessel identifier, and if the delta exceeds the minimum score, the segments are concatenated.
+If multiple existing trajectories meet the minimum score threshold, the new segment will be concatenated the existing segment with the highest score.</p>
+<p>Processing functions may be executed in sequence as a processing chain or pipeline, so after segmenting the individual voyages as shown above, results can be input into the encoder to effectively remove noise and correct for vessels with duplicate identifiers.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">aisdb</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+
+<span class="n">maxdelta</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+<span class="n">distance_threshold</span> <span class="o">=</span> <span class="mi">200000</span>  <span class="c1"># meters</span>
+<span class="n">speed_threshold</span> <span class="o">=</span> <span class="mi">50</span>  <span class="c1"># knots</span>
+<span class="n">minscore</span> <span class="o">=</span> <span class="mf">1e-6</span>
+
+<span class="k">with</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBConn</span><span class="p">()</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+    <span class="n">qry</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBQuery</span><span class="p">(</span>
+      <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+      <span class="n">dbpath</span><span class="o">=</span><span class="s1">&#39;AIS.sqlitedb&#39;</span><span class="p">,</span>
+      <span class="n">callback</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">sql_query_strings</span><span class="o">.</span><span class="n">in_timerange</span><span class="p">,</span>
+      <span class="n">start</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">48</span><span class="p">),</span>
+      <span class="n">end</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">())</span>
+    <span class="n">track_segments</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">split_timedelta</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span> <span class="n">maxdelta</span><span class="p">)</span>
+    <span class="n">tracks_encoded</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">encode_greatcircledistance</span><span class="p">(</span><span class="n">track_segments</span><span class="p">,</span> <span class="n">distance_threshold</span><span class="o">=</span><span class="n">distance_threshold</span><span class="p">,</span> <span class="n">speed_threshold</span><span class="o">=</span><span class="n">speed_threshold</span><span class="p">,</span> <span class="n">minscore</span><span class="o">=</span><span class="n">minscore</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this second example, artificial noise is introduced into the tracks as a hyperbolic demonstration of the denoising capability.
+The resulting cleaned tracks are then displayed in the web interface.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="kn">import</span> <span class="nn">shapely</span>
+<span class="kn">from</span> <span class="nn">aisdb.tests.test_09_marinetraffic</span> <span class="kn">import</span> <span class="n">testdir</span>
+<span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+
+<span class="kn">import</span> <span class="nn">aisdb</span>
+<span class="kn">from</span> <span class="nn">aisdb</span> <span class="kn">import</span> <span class="n">DBQuery</span><span class="p">,</span> <span class="n">DBConn</span>
+<span class="kn">from</span> <span class="nn">aisdb.gis</span> <span class="kn">import</span> <span class="n">Domain</span>
+
+<span class="n">load_dotenv</span><span class="p">()</span>
+
+<span class="n">dbpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;EXAMPLE_NOISE_DB&#39;</span><span class="p">,</span> <span class="s1">&#39;AIS.sqlitedb&#39;</span><span class="p">)</span>
+
+<span class="n">trafficDBpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">testdir</span><span class="p">,</span> <span class="s1">&#39;marinetraffic_test.db&#39;</span><span class="p">)</span>
+<span class="c1"># trafficDBpath = os.environ.get(&#39;AISDBMARINETRAFFIC&#39;, &#39;marinetraffic.db&#39;)</span>
+<span class="n">domain</span> <span class="o">=</span> <span class="n">domain</span> <span class="o">=</span> <span class="n">Domain</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;example&#39;</span><span class="p">,</span> <span class="n">zones</span><span class="o">=</span><span class="p">[{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;zone1&#39;</span><span class="p">,</span>
+                                                 <span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="n">shapely</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">Polygon</span><span class="p">(</span>
+                                                     <span class="p">[(</span><span class="o">-</span><span class="mi">40</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">40</span><span class="p">,</span> <span class="mi">61</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">41</span><span class="p">,</span> <span class="mi">61</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">41</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">40</span><span class="p">,</span> <span class="mi">60</span><span class="p">)])</span>
+                                                 <span class="p">},</span> <span class="p">])</span>  <span class="c1"># DomainFromTxts(&#39;EastCoast&#39;, folder=os.environ.get(&#39;AISDBZONES&#39;))</span>
+
+<span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2021</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">end</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2021</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">default_boundary</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;xmin&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="s1">&#39;xmax&#39;</span><span class="p">:</span> <span class="mi">180</span><span class="p">,</span> <span class="s1">&#39;ymin&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">90</span><span class="p">,</span> <span class="s1">&#39;ymax&#39;</span><span class="p">:</span> <span class="mi">90</span><span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">random_noise</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="n">default_boundary</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">track</span> <span class="ow">in</span> <span class="n">tracks</span><span class="p">:</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">track</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]):</span>
+            <span class="n">track</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">*=</span> <span class="n">track</span><span class="p">[</span><span class="s1">&#39;mmsi&#39;</span><span class="p">]</span>
+            <span class="n">track</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">%=</span> <span class="p">(</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;xmax&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;xmin&#39;</span><span class="p">])</span>
+            <span class="n">track</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;xmin&#39;</span><span class="p">]</span>
+            <span class="n">track</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">*=</span> <span class="n">track</span><span class="p">[</span><span class="s1">&#39;mmsi&#39;</span><span class="p">]</span>
+            <span class="n">track</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">%=</span> <span class="p">(</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;ymax&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;ymin&#39;</span><span class="p">])</span>
+            <span class="n">track</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;ymin&#39;</span><span class="p">]</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">2</span>
+        <span class="k">yield</span> <span class="n">track</span>
+
+
+<span class="k">with</span> <span class="n">DBConn</span><span class="p">(</span><span class="n">dbpath</span><span class="p">)</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+    <span class="n">vinfoDB</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">webdata</span><span class="o">.</span><span class="n">marinetraffic</span><span class="o">.</span><span class="n">VesselInfo</span><span class="p">(</span><span class="n">trafficDBpath</span><span class="p">)</span><span class="o">.</span><span class="n">trafficDB</span>
+
+    <span class="n">qry</span> <span class="o">=</span> <span class="n">DBQuery</span><span class="p">(</span>
+        <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+        <span class="n">dbpath</span><span class="o">=</span><span class="n">dbpath</span><span class="p">,</span>
+        <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
+        <span class="n">callback</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">sqlfcn_callbacks</span><span class="o">.</span><span class="n">in_bbox_time_validmmsi</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">rowgen</span> <span class="o">=</span> <span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">(</span><span class="n">fcn</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">sqlfcn</span><span class="o">.</span><span class="n">crawl_dynamic_static</span><span class="p">)</span>
+
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">track_gen</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">rowgen</span><span class="p">,</span> <span class="n">decimate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">webdata</span><span class="o">.</span><span class="n">marinetraffic</span><span class="o">.</span><span class="n">vessel_info</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span> <span class="n">vinfoDB</span><span class="p">)</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">random_noise</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">)</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">encode_greatcircledistance</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span>
+                                              <span class="n">distance_threshold</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span>
+                                              <span class="n">minscore</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+                                              <span class="n">speed_threshold</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+        <span class="n">aisdb</span><span class="o">.</span><span class="n">web_interface</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span>
+            <span class="n">tracks</span><span class="p">,</span>
+            <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
+            <span class="n">visualearth</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">open_browser</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="interpolating-geofencing-and-filtering">
+<h3>Interpolating, geofencing and filtering<a class="headerlink" href="#interpolating-geofencing-and-filtering" title="Link to this heading"></a></h3>
+<p>Building on the above processing pipeline, the resulting cleaned trajectories can then be geofenced and filtered for results contained by atleast one domain polygon, and interpolated for uniformity.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ...</span>
+    <span class="n">domain</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DomainFromPoints</span><span class="p">(</span><span class="n">points</span><span class="o">=</span><span class="p">[(</span><span class="o">-</span><span class="mf">63.6</span><span class="p">,</span> <span class="mf">44.6</span><span class="p">),],</span> <span class="n">radial_distances</span><span class="o">=</span><span class="p">[</span><span class="mi">5000</span><span class="p">,])</span>
+    <span class="n">tracks_filtered</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">track_gen</span><span class="o">.</span><span class="n">fence_tracks</span><span class="p">(</span><span class="n">tracks_encoded</span><span class="p">,</span> <span class="n">domain</span><span class="p">)</span>
+    <span class="n">tracks_interp</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">interp_time</span><span class="p">(</span><span class="n">tracks_filtered</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">15</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">segment</span> <span class="ow">in</span> <span class="n">track_segments</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Additional processing functions can be found in the <code class="xref py py-mod docutils literal notranslate"><span class="pre">aisdb.track_gen</span></code> module.</p>
+</section>
+<section id="exporting-as-csv">
+<h3>Exporting as CSV<a class="headerlink" href="#exporting-as-csv" title="Link to this heading"></a></h3>
+<p>The resulting processed voyage data can be exported in CSV format instead of being printed:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ...</span>
+    <span class="n">aisdb</span><span class="o">.</span><span class="n">write_csv</span><span class="p">(</span><span class="n">tracks_interp</span><span class="p">,</span> <span class="s1">&#39;ais_24h_processed.csv&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="integration-with-external-metadata">
+<span id="external-data"></span><h2>4. Integration with external metadata<a class="headerlink" href="#integration-with-external-metadata" title="Link to this heading"></a></h2>
+<p>AISDB supports integration with external data sources such as bathymetric charts and other raster grids.</p>
+<section id="bathymetric-charts">
+<h3>Bathymetric charts<a class="headerlink" href="#bathymetric-charts" title="Link to this heading"></a></h3>
+<p>To determine the approximate ocean depth at each vessel position, the <code class="xref py py-mod docutils literal notranslate"><span class="pre">aisdb.webdata.bathymetry</span></code> module can be used.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">aisdb</span>
+
+<span class="c1"># set the data storage directory</span>
+<span class="n">data_dir</span> <span class="o">=</span> <span class="s1">&#39;./testdata/&#39;</span>
+
+<span class="c1"># download bathymetry grid from the internet</span>
+<span class="n">bathy</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">webdata</span><span class="o">.</span><span class="n">bathymetry</span><span class="o">.</span><span class="n">Gebco</span><span class="p">(</span><span class="n">data_dir</span><span class="o">=</span><span class="n">data_dir</span><span class="p">)</span>
+<span class="n">bathy</span><span class="o">.</span><span class="n">fetch_bathymetry_grid</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Once the data has been downloaded, the <code class="docutils literal notranslate"><span class="pre">Gebco()</span></code> class may be used to append bathymetric data to tracks in the context of a <code class="docutils literal notranslate"><span class="pre">TrackGen</span></code> processing pipeline in the same manner as the processing functions described above.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ...</span>
+     <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">())</span>
+     <span class="n">tracks_bathymetry</span> <span class="o">=</span> <span class="n">bathy</span><span class="o">.</span><span class="n">merge_tracks</span><span class="p">(</span><span class="n">tracks</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Also see <code class="xref py py-class docutils literal notranslate"><span class="pre">aisdb.webdata.shore_dist.ShoreDist</span></code> for determining approximate nearest distance to shore from vessel positions.</p>
+</section>
+<section id="rasters">
+<h3>Rasters<a class="headerlink" href="#rasters" title="Link to this heading"></a></h3>
+<p>Similarly, abritrary raster coordinate-gridded data may be appended to vessel tracks</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ...</span>
+     <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">())</span>
+     <span class="n">raster_path</span> <span class="s1">&#39;./GMT_intermediate_coast_distance_01d.tif&#39;</span>
+     <span class="n">raster</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">webdata</span><span class="o">.</span><span class="n">load_raster</span><span class="o">.</span><span class="n">RasterFile</span><span class="p">(</span><span class="n">raster_path</span><span class="p">)</span>
+     <span class="n">tracks</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">merge_tracks</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span> <span class="n">new_track_key</span><span class="o">=</span><span class="s2">&quot;coast_distance&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="detailed-metadata-from-marinetraffic-com">
+<h3>Detailed metadata from marinetraffic.com<a class="headerlink" href="#detailed-metadata-from-marinetraffic-com" title="Link to this heading"></a></h3>
+</section>
+</section>
+<section id="visualization">
+<span id="id3"></span><h2>5. Visualization<a class="headerlink" href="#visualization" title="Link to this heading"></a></h2>
+<p>AIS data from the database may be overlayed on a map such as the one shown above by using the <code class="xref py py-func docutils literal notranslate"><span class="pre">aisdb.web_interface.visualize()</span></code> function.
+This function accepts a generator of track dictionaries such as those output by <code class="xref py py-func docutils literal notranslate"><span class="pre">aisdb.track_gen.TrackGen()</span></code>.
+The color of each vessel track is determined by vessel type metadata.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+
+<span class="kn">import</span> <span class="nn">aisdb.web_interface</span>
+<span class="kn">from</span> <span class="nn">aisdb.tests.create_testing_data</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">sample_database_file</span><span class="p">,</span>
+    <span class="n">random_polygons_domain</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">domain</span> <span class="o">=</span> <span class="n">random_polygons_domain</span><span class="p">()</span>
+
+<span class="n">example_dir</span> <span class="o">=</span> <span class="s1">&#39;testdata&#39;</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">example_dir</span><span class="p">):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">example_dir</span><span class="p">)</span>
+
+<span class="n">dbpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">example_dir</span><span class="p">,</span> <span class="s1">&#39;example_visualize.db&#39;</span><span class="p">)</span>
+<span class="n">months</span> <span class="o">=</span> <span class="n">sample_database_file</span><span class="p">(</span><span class="n">dbpath</span><span class="p">)</span>
+<span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">months</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">months</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">end</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">months</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">months</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">color_tracks</span><span class="p">(</span><span class="n">tracks</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; set the color of each vessel track using a color name or RGB value &#39;&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">track</span> <span class="ow">in</span> <span class="n">tracks</span><span class="p">:</span>
+        <span class="n">track</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;red&#39;</span> <span class="ow">or</span> <span class="s1">&#39;rgb(255,0,0)&#39;</span>
+        <span class="k">yield</span> <span class="n">track</span>
+
+
+<span class="k">with</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">SQLiteDBConn</span><span class="p">(</span><span class="n">dbpath</span><span class="p">)</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+    <span class="n">qry</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBQuery</span><span class="p">(</span>
+        <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+        <span class="n">dbpath</span><span class="o">=</span><span class="n">dbpath</span><span class="p">,</span>
+        <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
+        <span class="n">callback</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">sqlfcn_callbacks</span><span class="o">.</span><span class="n">valid_mmsi</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">rowgen</span> <span class="o">=</span> <span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">()</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">track_gen</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">rowgen</span><span class="p">,</span> <span class="n">decimate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">tracks_segment</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">track_gen</span><span class="o">.</span><span class="n">split_timedelta</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span>
+                                                     <span class="n">timedelta</span><span class="p">(</span><span class="n">weeks</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+    <span class="n">tracks_colored</span> <span class="o">=</span> <span class="n">color_tracks</span><span class="p">(</span><span class="n">tracks_segment</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+        <span class="n">aisdb</span><span class="o">.</span><span class="n">web_interface</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span>
+            <span class="n">tracks_colored</span><span class="p">,</span>
+            <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
+            <span class="n">visualearth</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">open_browser</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="data-collection-and-sharing">
+<span id="data-sharing"></span><h2>6. Data collection and sharing<a class="headerlink" href="#data-collection-and-sharing" title="Link to this heading"></a></h2>
+<p>AIS station operators are may set up an AIS base station with a Raspberry Pi receiver client, and store messages in a database with the receiver server.
+For instructions on transmitting AIS from a Raspberry Pi to the receiver server, see <a class="reference internal" href="receiver.html#receiver"><span class="std std-ref">Setting up an AIS receiver client</span></a>.
+The receiver server can then forward incoming filtered messages to a downstream UDP multicast channel:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">aisdb</span>
+
+<span class="c1"># listen for incoming raw AIS messages on port 9921 and share with MERIDIAN network</span>
+<span class="n">aisdb</span><span class="o">.</span><span class="n">start_receiver</span><span class="p">(</span>
+  <span class="n">udp_listen_addr</span><span class="o">=</span><span class="s1">&#39;0.0.0.0:9921&#39;</span><span class="p">,</span>
+  <span class="n">multicast_rebroadcast_addr</span><span class="o">=</span><span class="s1">&#39;aisdb.meridian.cs.dal.ca:9921&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="AISDB Docs: Index" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="install_from_source.html" class="btn btn-neutral float-right" title="Installing from Source" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, MERIDIAN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

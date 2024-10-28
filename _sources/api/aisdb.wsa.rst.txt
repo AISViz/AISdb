@@ -1,0 +1,7 @@
+aisdb.wsa module
+================
+
+.. automodule:: aisdb.wsa
+   :members:
+   :undoc-members:
+   :show-inheritance:

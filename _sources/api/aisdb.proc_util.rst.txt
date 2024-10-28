@@ -1,0 +1,7 @@
+aisdb.proc\_util module
+=======================
+
+.. automodule:: aisdb.proc_util
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,7 @@
+aisdb.database.decoder module
+=============================
+
+.. automodule:: aisdb.database.decoder
+   :members:
+   :undoc-members:
+   :show-inheritance:

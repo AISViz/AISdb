@@ -1,0 +1,371 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AISdb Tutorial 1 &mdash; AISDB  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.svg"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="AISdb Tutorial 2" href="tutorials2.html" />
+    <link rel="prev" title="Setting up an AIS receiver" href="receiver.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AISDB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_from_source.html">Installing from Source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
+<li class="toctree-l1"><a class="reference internal" href="webapp.html">Web Application Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="database.html">SQL Database Info</a></li>
+<li class="toctree-l1"><a class="reference internal" href="receiver.html">Setting up an AIS receiver</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">AISdb Tutorial 1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#install-requirements">1. Install Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#load-ais-data-into-a-database">2. Load AIS data into a database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#visualize-ais-data">3. Visualize AIS data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-ais-data-processing">4. Basic AIS data processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#process-ais-data-with-external-data-source">5. Process AIS data with External Data Source</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials2.html">AISdb Tutorial 2</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Docs:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/aisdb.html">aisdb package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AISDB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">AISdb Tutorial 1</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tutorials.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="aisdb-tutorial-1">
+<h1>AISdb Tutorial 1<a class="headerlink" href="#aisdb-tutorial-1" title="Link to this heading"></a></h1>
+<p>This tutorial will show you how to use the AISdb package to load AIS data into a database and query it.</p>
+<section id="install-requirements">
+<h2>1. Install Requirements<a class="headerlink" href="#install-requirements" title="Link to this heading"></a></h2>
+<p>Before we start, we need to install the required packages. The following code will install the required packages for this tutorial.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># install aisdb</span>
+<span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="n">aisdb</span>
+
+<span class="c1"># install nest-asyncio for enabling asyncio.run() in Jupyter Notebook</span>
+<span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="n">nest</span><span class="o">-</span><span class="n">asyncio</span>
+
+<span class="c1"># Some of the system may show the following error when running user interface:</span>
+<span class="c1"># urllib3 v2.0 only supports OpenSSL 1.1.1+, currently the &#39;ssl&#39; module is compiled with &#39;LibreSSL 2.8.3&#39;.</span>
+<span class="c1"># install urllib3 v1.26.6 to avoid this error</span>
+<span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="n">urllib3</span><span class="o">==</span><span class="mf">1.26.6</span>
+</pre></div>
+</div>
+<p>import required packages</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">aisdb</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">nest_asyncio</span>
+<span class="n">nest_asyncio</span><span class="o">.</span><span class="n">apply</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="load-ais-data-into-a-database">
+<h2>2. Load AIS data into a database<a class="headerlink" href="#load-ais-data-into-a-database" title="Link to this heading"></a></h2>
+<p>In this section, we will provide a comprehensive demonstration of how to efficiently load AIS data into a database.</p>
+<p>Additionally, in real-world scenarios, you have the flexibility to actively listen for stream data and effortlessly load it into the designated database.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># list the test data files included in the package</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">aisdb</span><span class="o">.</span><span class="n">sqlpath</span><span class="p">,</span> <span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;tests&#39;</span><span class="p">,</span> <span class="s1">&#39;testdata&#39;</span><span class="p">)))</span>
+
+<span class="n">dbpath</span> <span class="o">=</span> <span class="s1">&#39;./AIS2.db&#39;</span>
+<span class="c1"># use test_data_20210701.csv as the test data</span>
+<span class="n">filepaths</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">aisdb</span><span class="o">.</span><span class="n">sqlpath</span><span class="p">,</span> <span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;tests&#39;</span><span class="p">,</span> <span class="s1">&#39;testdata&#39;</span><span class="p">,</span> <span class="s1">&#39;test_data_20210701.csv&#39;</span><span class="p">)]</span>
+<span class="k">with</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBConn</span><span class="p">()</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+    <span class="n">aisdb</span><span class="o">.</span><span class="n">decode_msgs</span><span class="p">(</span><span class="n">filepaths</span><span class="o">=</span><span class="n">filepaths</span><span class="p">,</span> <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+                      <span class="n">dbpath</span><span class="o">=</span><span class="n">dbpath</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s1">&#39;TESTING&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="visualize-ais-data">
+<h2>3. Visualize AIS data<a class="headerlink" href="#visualize-ais-data" title="Link to this heading"></a></h2>
+<p>In this section we will directly visualize AIS data without processing it. This is useful for quickly checking the data.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;2021-07-01 00:00:00&quot;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;2021-07-02 00:00:00&quot;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">SQLiteDBConn</span><span class="p">()</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+    <span class="n">qry</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBQuery</span><span class="p">(</span>
+        <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+        <span class="n">dbpath</span><span class="o">=</span><span class="s1">&#39;./AIS2.db&#39;</span><span class="p">,</span>
+        <span class="n">callback</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">sql_query_strings</span><span class="o">.</span><span class="n">in_timerange</span><span class="p">,</span>
+        <span class="n">start</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span>
+        <span class="n">end</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">rowgen</span> <span class="o">=</span> <span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">()</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">track_gen</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">rowgen</span><span class="p">,</span> <span class="n">decimate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+        <span class="n">aisdb</span><span class="o">.</span><span class="n">web_interface</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span>
+            <span class="n">tracks</span><span class="p">,</span>
+            <span class="n">visualearth</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">open_browser</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="basic-ais-data-processing">
+<h2>4. Basic AIS data processing<a class="headerlink" href="#basic-ais-data-processing" title="Link to this heading"></a></h2>
+<p>In this section we will show how to process AIS data to extract useful information.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;2021-07-01 00:00:00&quot;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;2021-07-02 00:00:00&quot;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">SQLiteDBConn</span><span class="p">()</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+
+    <span class="n">qry</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBQuery</span><span class="p">(</span>
+        <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+        <span class="n">dbpath</span><span class="o">=</span><span class="s1">&#39;./AIS2.db&#39;</span><span class="p">,</span>
+        <span class="n">callback</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">sqlfcn_callbacks</span><span class="o">.</span><span class="n">in_timerange</span><span class="p">,</span>
+        <span class="n">start</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span>
+        <span class="n">end</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">rowgen</span> <span class="o">=</span> <span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">()</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">track_gen</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">rowgen</span><span class="p">,</span> <span class="n">decimate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># split trajectories by time without AIS message transmission</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">split_timedelta</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">24</span><span class="p">))</span>
+    <span class="c1"># filter the tracks by distance and speed</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">encode_greatcircledistance</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span>
+                                              <span class="n">distance_threshold</span><span class="o">=</span><span class="mi">200000</span><span class="p">,</span>
+                                              <span class="n">speed_threshold</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+    <span class="c1"># interpolate time</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">interp_time</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">5</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+        <span class="n">aisdb</span><span class="o">.</span><span class="n">web_interface</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span>
+            <span class="n">tracks</span><span class="p">,</span>
+            <span class="n">visualearth</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">open_browser</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="process-ais-data-with-external-data-source">
+<h2>5. Process AIS data with External Data Source<a class="headerlink" href="#process-ais-data-with-external-data-source" title="Link to this heading"></a></h2>
+<p>In this section, we will demonstrate the process of integrating AIS data with external Bathymetric data to enhance our analysis.</p>
+<p>Our objective is to identify all vessels located within circular areas with a radius of 1000m around Cape Town, South Africa, specifically on the date of 2021-07-01.</p>
+<p>Subsequently, we will apply a filtering criterion to exclude vessels that have the shortest distance to the coast.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Download bathymetry data</span>
+
+<span class="c1"># set the path to the data storage directory</span>
+<span class="n">bathymetry_data_dir</span> <span class="o">=</span> <span class="s2">&quot;./bathymetry_data/&quot;</span>
+
+<span class="c1"># check if the directory exists</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">bathymetry_data_dir</span><span class="p">):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">bathymetry_data_dir</span><span class="p">)</span>
+
+<span class="c1"># check if the directory is empty\</span>
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">bathymetry_data_dir</span><span class="p">)</span> <span class="o">==</span> <span class="p">[]:</span>
+    <span class="c1"># download the bathymetry data</span>
+    <span class="n">bathy</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">webdata</span><span class="o">.</span><span class="n">bathymetry</span><span class="o">.</span><span class="n">Gebco</span><span class="p">(</span><span class="n">data_dir</span><span class="o">=</span><span class="n">bathymetry_data_dir</span><span class="p">)</span>
+    <span class="n">bathy</span><span class="o">.</span><span class="n">fetch_bathymetry_grid</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Bathymetry data already exists.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;2021-07-01 00:00:00&quot;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;2021-07-02 00:00:00&quot;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+
+<span class="c1"># define a function to add color to the tracks</span>
+<span class="k">def</span> <span class="nf">add_color</span><span class="p">(</span><span class="n">tracks</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">track</span> <span class="ow">in</span> <span class="n">tracks</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">track</span><span class="p">[</span><span class="s1">&#39;coast_distance&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="n">track</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;yellow&quot;</span>
+        <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">track</span><span class="p">[</span><span class="s1">&#39;coast_distance&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="mi">1000</span><span class="p">:</span>
+            <span class="n">track</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;orange&quot;</span>
+        <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">track</span><span class="p">[</span><span class="s1">&#39;coast_distance&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="mi">20000</span><span class="p">:</span>
+            <span class="n">track</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;pink&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">track</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;red&quot;</span>
+        <span class="k">yield</span> <span class="n">track</span>
+
+<span class="k">with</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">SQLiteDBConn</span><span class="p">()</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+
+    <span class="c1"># define the region of interest</span>
+    <span class="c1"># In this example, we use a circle with a center at cape town in South Africa, and a radius of 800 km</span>
+    <span class="n">domain</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DomainFromPoints</span><span class="p">(</span>
+        <span class="n">points</span><span class="o">=</span><span class="p">[(</span><span class="mf">18.4157</span><span class="p">,</span> <span class="o">-</span><span class="mf">33.9646</span><span class="p">),],</span> <span class="n">radial_distances</span><span class="o">=</span><span class="p">[</span><span class="mi">800000</span><span class="p">,])</span>
+
+    <span class="n">qry</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBQuery</span><span class="p">(</span>
+        <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+        <span class="n">dbpath</span><span class="o">=</span><span class="s1">&#39;./AIS2.db&#39;</span><span class="p">,</span>
+        <span class="n">callback</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">sqlfcn_callbacks</span><span class="o">.</span><span class="n">in_bbox_time_validmmsi</span><span class="p">,</span>
+        <span class="n">start</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span>
+        <span class="n">end</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span>
+        <span class="n">xmin</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;xmin&#39;</span><span class="p">],</span>
+        <span class="n">xmax</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;xmax&#39;</span><span class="p">],</span>
+        <span class="n">ymin</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;ymin&#39;</span><span class="p">],</span>
+        <span class="n">ymax</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;ymax&#39;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">rowgen</span> <span class="o">=</span> <span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">()</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">track_gen</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">rowgen</span><span class="p">,</span> <span class="n">decimate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># merge the tracks with the raster data</span>
+    <span class="n">raster_path</span> <span class="o">=</span> <span class="s2">&quot;./bathymetry_data/gebco_2022_n0.0_s-90.0_w0.0_e90.0.tif&quot;</span>
+    <span class="n">raster</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">webdata</span><span class="o">.</span><span class="n">load_raster</span><span class="o">.</span><span class="n">RasterFile</span><span class="p">(</span><span class="n">raster_path</span><span class="p">)</span>
+    <span class="n">tracks_raster</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">merge_tracks</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span> <span class="n">new_track_key</span><span class="o">=</span><span class="s2">&quot;coast_distance&quot;</span><span class="p">)</span>
+
+    <span class="c1"># add color to the tracks</span>
+    <span class="n">tracks_colored</span> <span class="o">=</span> <span class="n">add_color</span><span class="p">(</span><span class="n">tracks_raster</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+        <span class="n">aisdb</span><span class="o">.</span><span class="n">web_interface</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span>
+            <span class="n">tracks_colored</span><span class="p">,</span>
+            <span class="n">visualearth</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">open_browser</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+</pre></div>
+</div>
+<p>Furthermore, the processed data can be effortlessly integrated into your existing pipeline, allowing for seamless migration to other third-party tools (e.g., visualization tools) that align with your specific requirements.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># install the packages for visualization with plotly</span>
+
+<span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="n">plotly</span>
+<span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="n">pandas</span>
+<span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="n">nbformat</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">plotly.express</span> <span class="k">as</span> <span class="nn">px</span>
+<span class="kn">import</span> <span class="nn">nbformat</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;2021-07-01 00:00:00&quot;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+<span class="n">end_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;2021-07-02 00:00:00&quot;</span><span class="p">,</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">SQLiteDBConn</span><span class="p">()</span> <span class="k">as</span> <span class="n">dbconn</span><span class="p">:</span>
+
+    <span class="c1"># define the region of interest</span>
+    <span class="c1"># In this example, we use a circle with a center at cape town in South Africa, and a radius of 800 km</span>
+    <span class="n">domain</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DomainFromPoints</span><span class="p">(</span>
+        <span class="n">points</span><span class="o">=</span><span class="p">[(</span><span class="mf">18.4157</span><span class="p">,</span> <span class="o">-</span><span class="mf">33.9646</span><span class="p">),],</span> <span class="n">radial_distances</span><span class="o">=</span><span class="p">[</span><span class="mi">800000</span><span class="p">,])</span>
+
+    <span class="n">qry</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">DBQuery</span><span class="p">(</span>
+        <span class="n">dbconn</span><span class="o">=</span><span class="n">dbconn</span><span class="p">,</span>
+        <span class="n">dbpath</span><span class="o">=</span><span class="s1">&#39;./AIS2.db&#39;</span><span class="p">,</span>
+        <span class="n">callback</span><span class="o">=</span><span class="n">aisdb</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">sqlfcn_callbacks</span><span class="o">.</span><span class="n">in_bbox_time_validmmsi</span><span class="p">,</span>
+        <span class="n">start</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span>
+        <span class="n">end</span><span class="o">=</span><span class="n">end_time</span><span class="p">,</span>
+        <span class="n">xmin</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;xmin&#39;</span><span class="p">],</span>
+        <span class="n">xmax</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;xmax&#39;</span><span class="p">],</span>
+        <span class="n">ymin</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;ymin&#39;</span><span class="p">],</span>
+        <span class="n">ymax</span><span class="o">=</span><span class="n">domain</span><span class="o">.</span><span class="n">boundary</span><span class="p">[</span><span class="s1">&#39;ymax&#39;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">rowgen</span> <span class="o">=</span> <span class="n">qry</span><span class="o">.</span><span class="n">gen_qry</span><span class="p">()</span>
+    <span class="n">tracks</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">track_gen</span><span class="o">.</span><span class="n">TrackGen</span><span class="p">(</span><span class="n">rowgen</span><span class="p">,</span> <span class="n">decimate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># merge the tracks with the raster data</span>
+    <span class="n">raster_path</span> <span class="o">=</span> <span class="s2">&quot;./bathymetry_data/gebco_2022_n0.0_s-90.0_w0.0_e90.0.tif&quot;</span>
+    <span class="n">raster</span> <span class="o">=</span> <span class="n">aisdb</span><span class="o">.</span><span class="n">webdata</span><span class="o">.</span><span class="n">load_raster</span><span class="o">.</span><span class="n">RasterFile</span><span class="p">(</span><span class="n">raster_path</span><span class="p">)</span>
+    <span class="n">tracks_raster</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">merge_tracks</span><span class="p">(</span><span class="n">tracks</span><span class="p">,</span> <span class="n">new_track_key</span><span class="o">=</span><span class="s2">&quot;coast_distance&quot;</span><span class="p">)</span>
+
+    <span class="n">track_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tracks_raster</span><span class="p">)</span>
+    <span class="c1"># sort the tracks by the costal distance</span>
+    <span class="n">track_list</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;coast_distance&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The vessel with the longest distance to the coast is in this area:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">track_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1">#</span>
+    <span class="c1"># The following code will be used to visualize the track with plotly</span>
+    <span class="c1">#</span>
+
+    <span class="c1"># convert the track list to a pandas dataframe</span>
+    <span class="n">track_dataframe</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">track_list</span><span class="p">)</span>
+
+    <span class="n">track_dataframe</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">track_dataframe</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">track_dataframe</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">track_dataframe</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">track_dataframe</span><span class="p">[</span><span class="s1">&#39;coast_distance&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">track_dataframe</span><span class="p">[</span><span class="s1">&#39;coast_distance&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># draw a map grapsed on the raster data use plotly</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter_geo</span><span class="p">(</span><span class="n">track_dataframe</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="n">lon</span><span class="o">=</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;coast_distance&#39;</span><span class="p">,</span> <span class="n">hover_data</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mmsi&#39;</span><span class="p">])</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="receiver.html" class="btn btn-neutral float-left" title="Setting up an AIS receiver" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorials2.html" class="btn btn-neutral float-right" title="AISdb Tutorial 2" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, MERIDIAN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

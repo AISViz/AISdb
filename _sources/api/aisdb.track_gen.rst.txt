@@ -1,0 +1,7 @@
+aisdb.track\_gen module
+=======================
+
+.. automodule:: aisdb.track_gen
+   :members:
+   :undoc-members:
+   :show-inheritance:

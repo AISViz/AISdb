@@ -1,0 +1,489 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Docker &mdash; AISDB  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.svg"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Web Application Development" href="webapp.html" />
+    <link rel="prev" title="Installing from Source" href="install_from_source.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AISDB
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_from_source.html">Installing from Source</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Docker</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#python-docker-quick-start">Python Docker Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#compose-services">Compose Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#development-and-deployment">Development and Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#environment">Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interacting-with-postgres-database">Interacting with Postgres Database</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#python-api">Python API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#web-api">Web API</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#interacting-with-the-map">Interacting with the Map</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="webapp.html">Web Application Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="database.html">SQL Database Info</a></li>
+<li class="toctree-l1"><a class="reference internal" href="receiver.html">Setting up an AIS receiver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">AISdb Tutorial 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials2.html">AISdb Tutorial 2</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Docs:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/aisdb.html">aisdb package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AISDB</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Docker</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/docker.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="docker">
+<span id="id1"></span><h1>Docker<a class="headerlink" href="#docker" title="Link to this heading"></a></h1>
+<section id="python-docker-quick-start">
+<h2>Python Docker Quick Start<a class="headerlink" href="#python-docker-quick-start" title="Link to this heading"></a></h2>
+<p id="docker-quickstart">For most users, the recommended way to use the AISDB Python package is by installing it with pip.
+The main purpose of the Python docker images in this repository is to provide a build environment for the Python wheel files that can be used for pip installation, as well as providing a reference and testing environment.
+The <code class="docutils literal notranslate"><span class="pre">meridiancfi/aisdb:latest</span></code> image is based on <code class="docutils literal notranslate"><span class="pre">python:slim</span></code> with the AISDB package wheel installed.
+In the <code class="docutils literal notranslate"><span class="pre">meridiancfi/aisdb-manylinux:latest</span></code> image, wheel binary files are compiled from Rust and Python source code using a <code class="docutils literal notranslate"><span class="pre">manylinux</span></code> base docker image.
+The <a class="reference external" href="https://github.com/pypa/manylinux">Manylinux project</a> aims to provide a convenient way to distribute binary Python extensions as wheels on Linux.
+To start the container, ensure that <code class="docutils literal notranslate"><span class="pre">docker</span></code> and <code class="docutils literal notranslate"><span class="pre">docker-compose</span></code> are installed, and enter into the command line:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>meridiancfi/aisdb
+docker<span class="w"> </span>run<span class="w"> </span>--interactive<span class="w"> </span>--tty<span class="w"> </span>--volume<span class="w"> </span>./:/aisdb/<span class="w"> </span>meridiancfi/aisdb
+</pre></div>
+</div>
+<p id="docker-compose">The current working directory will be mounted inside the container as a volume.
+The same can be achieved with <code class="docutils literal notranslate"><span class="pre">docker-compose</span></code> in the context of the repository compose file:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>docker-compose<span class="w"> </span>--file<span class="w"> </span>./docker-compose.yml<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>--volume<span class="w"> </span><span class="s2">&quot;`pwd`:/aisdb&quot;</span><span class="w"> </span>aisdb-python
+</pre></div>
+</div>
+</section>
+<section id="compose-services">
+<h2>Compose Services<a class="headerlink" href="#compose-services" title="Link to this heading"></a></h2>
+<p>In addition to the Python AISDB docker image, AISDB provides a complete suite of cloud services for storing, accessing, viewing, and networking AIS data.
+These services are defined in the <code class="docutils literal notranslate"><span class="pre">docker-compose.yml</span></code> file in the project repository.
+Cloud services are implemented in a microservices architecture, using a software-defined network defined in the compose file.
+Services include:</p>
+<ul class="simple">
+<li><p>docserver</p>
+<ul>
+<li><p>NodeJS webserver to display Sphinx documentation (such as this webpage)</p></li>
+</ul>
+</li>
+<li><p>webserver</p>
+<ul>
+<li><p>NodeJS web application front-end interface for AISDB.</p></li>
+</ul>
+</li>
+<li><p>postgresdb</p>
+<ul>
+<li><p>AISDB Postgres database storage.</p></li>
+</ul>
+</li>
+<li><p>db-</p>
+<ul>
+<li><p>Web application back-end. Serves vectorized AIS tracks from the Postgres database in response to JSON-formatted queries.</p></li>
+</ul>
+</li>
+<li><p>receiver</p>
+<ul>
+<li><p>Listens for IP-enabled AIS transmitters over TLS/TCP or UDP channels, and stores incoming AIS messages in the postgres database. Optionally forwards filtered messages to a downstream UDP channel in raw or parsed format.</p></li>
+</ul>
+</li>
+<li><p>upstream-ais</p>
+<ul>
+<li><p>Live streaming AIS server. Listens for AIS messages forwarded by the <code class="docutils literal notranslate"><span class="pre">receiver</span></code> service, and reverse-proxy messages to downstream TCP clients or UDP channels. This service provides live-streaming data to the front end <code class="docutils literal notranslate"><span class="pre">webserver</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+<p>To start all AISDB cloud services, navigate to the repository root directory and enter into the command line (root permissions may be required):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>docker-compose<span class="w"> </span>up<span class="w"> </span>--build<span class="w"> </span>nginx<span class="w"> </span>db-server<span class="w"> </span>webserver<span class="w"> </span>docserver<span class="w"> </span>receiver<span class="w"> </span>upstream-ais
+</pre></div>
+</div>
+</section>
+<section id="development-and-deployment">
+<h2>Development and Deployment<a class="headerlink" href="#development-and-deployment" title="Link to this heading"></a></h2>
+<p>The following services are used for the development and deployment of AISDB</p>
+<ul>
+<li><p>build-wheels</p>
+<ul class="simple">
+<li><p>Build manylinux-compatible wheels for Python package distribution. The resulting wheel file is installed in aisdb-python.</p></li>
+</ul>
+</li>
+<li><p>python-test</p>
+<ul class="simple">
+<li><p>Run Python package integration tests. Based on the aisdb-python docker image..</p></li>
+</ul>
+</li>
+<li><p>nginx</p>
+<ul>
+<li><p>NGINX gateway router. Routes incoming traffic to the appropriate cloud service. The following ports are exposed by the gateway:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">80</span></code>: redirects to port 443</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">443</span></code>: serves web application endpoints over HTTPS</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">9920</span></code>: Proxy for the <code class="docutils literal notranslate"><span class="pre">upstream-ais</span></code> service stream output (raw format).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">9922</span></code>: Proxy for the <code class="docutils literal notranslate"><span class="pre">receiver</span></code> service stream output (JSON format).</p></li>
+</ul>
+<p>The following endpoints are available over HTTPS:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/</span></code>: Proxy for the <code class="docutils literal notranslate"><span class="pre">webserver</span></code> service.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/doc</span></code>: Proxy for the <code class="docutils literal notranslate"><span class="pre">docserver</span></code> service.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/ws</span></code>: Proxy for the <code class="docutils literal notranslate"><span class="pre">db-server</span></code> service.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/stream</span></code>: Alias of port <code class="docutils literal notranslate"><span class="pre">9922</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/stream-raw</span></code>: Alias of port <code class="docutils literal notranslate"><span class="pre">9920</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/coverage</span></code>: Alias of <code class="docutils literal notranslate"><span class="pre">/docs/coverage</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>certbot</p>
+<ul class="simple">
+<li><p>TLS/SSL certificate renewal service. Renews certificates used by the <code class="docutils literal notranslate"><span class="pre">nginx</span></code> service. <code class="docutils literal notranslate"><span class="pre">privkey.pem</span></code> and <code class="docutils literal notranslate"><span class="pre">fullchain.pem</span></code> certificates are mounted in the <code class="docutils literal notranslate"><span class="pre">nginx</span></code> container inside directory <code class="docutils literal notranslate"><span class="pre">/etc/letsencrypt/live/$FQDN/</span></code>,  where <code class="docutils literal notranslate"><span class="pre">$FQDN</span></code> is the domain name, e.g. <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="environment">
+<span id="id2"></span><h2>Environment<a class="headerlink" href="#environment" title="Link to this heading"></a></h2>
+<p>Services running with docker compose will read environment variables from a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file in the project root directory.
+An example <code class="docutils literal notranslate"><span class="pre">.env</span></code> file is included here:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Front end config (bundled with Vite for NodeJS)</span>
+
+<span class="c1"># AISDB database server and livestream server hostname</span>
+<span class="nv">VITE_AISDBHOST</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span>
+
+<span class="c1"># Bing maps token</span>
+<span class="c1"># Get your token here: https://www.bingmapsportal.com/</span>
+<span class="c1">#VITE_BINGMAPSKEY=&#39;&lt;my-token-here&gt;&#39;</span>
+
+<span class="c1"># Disable SSL/TLS for incoming livestream data.</span>
+<span class="c1"># When using this option, the front end will connect to the livestream</span>
+<span class="c1"># server at ws://$VITE_AISDBHOST:9922</span>
+<span class="c1"># Otherwise, the front end will connect to wss://$VITE_AISDBHOST/stream</span>
+<span class="nv">VITE_DISABLE_SSL_STREAM</span><span class="o">=</span><span class="m">1</span>
+
+<span class="c1"># Disable SSL for the database server connection</span>
+<span class="nv">VITE_DISABLE_SSL_DB</span><span class="o">=</span><span class="m">1</span>
+
+<span class="c1"># Port used for database server connection.</span>
+<span class="c1"># This setting is only active when VITE_DISABLE_SSL_DB is enabled,</span>
+<span class="c1"># otherwise, an SSL connection will be made to https://VITE_AISDBHOST/ws</span>
+<span class="nv">VITE_AISDBPORT</span><span class="o">=</span><span class="m">9924</span>
+
+<span class="c1"># Allow users to query an unlimited amount of data at one time</span>
+<span class="c1">#VITE_NO_DB_LIMIT=1</span>
+
+<span class="c1"># if enabled, Bing Maps will be used for WMTS instead of OpenStreetMaps</span>
+<span class="nv">VITE_BINGMAPTILES</span><span class="o">=</span><span class="m">1</span>
+
+<span class="c1"># Default WMTS server</span>
+<span class="c1">#VITE_TILESERVER=&quot;dev.virtualearth.net&quot;</span>
+<span class="nv">VITE_TILESERVER</span><span class="o">=</span><span class="s2">&quot;aisdb.meridian.cs.dal.ca&quot;</span>
+
+
+<span class="c1"># Back end config</span>
+
+<span class="c1"># Hostname</span>
+<span class="nv">AISDBHOST</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span>
+<span class="c1">#AISDBHOST=&#39;aisdb.meridian.cs.dal.ca&#39;</span>
+
+<span class="c1"># Database server port</span>
+<span class="nv">AISDBPORT</span><span class="o">=</span><span class="m">9924</span>
+
+<span class="c1"># Python database path</span>
+<span class="nv">AISDBPATH</span><span class="o">=</span><span class="s1">&#39;./AIS.sqlitedb&#39;</span>
+
+<span class="c1"># Postgres database client config</span>
+<span class="nv">PGPASSFILE</span><span class="o">=</span><span class="nv">$HOME</span>/.pgpass
+<span class="nv">PGUSER</span><span class="o">=</span><span class="s2">&quot;postgres&quot;</span>
+<span class="nv">PGHOST</span><span class="o">=</span><span class="s2">&quot;[fc00::9]&quot;</span>
+<span class="nv">PGPORT</span><span class="o">=</span><span class="s2">&quot;5432&quot;</span>
+
+<span class="c1"># Postgres database server config</span>
+<span class="c1"># More info here: https://hub.docker.com/_/postgres/</span>
+<span class="nv">POSTGRES_PASSWORD</span><span class="o">=</span><span class="s2">&quot;example&quot;</span>
+
+<span class="c1"># This volume will be mounted for the postgres data directory</span>
+<span class="nv">POSTGRES_VOLUME_DIR</span><span class="o">=</span><span class="s1">&#39;./postgres_data&#39;</span>
+
+<span class="c1"># NGINX CSP header endpoints</span>
+<span class="nv">NGINX_CSP_FRAME_ANCESTORS</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+<span class="c1">#NGINX_CSP_FRAME_ANCESTORS=&quot;https://aisdb.meridian.cs.dal.ca/&quot;</span>
+
+
+<span class="c1"># Tests config</span>
+
+<span class="c1"># Mounted AISDB metadata directory.</span>
+<span class="c1"># Will be used during testing</span>
+<span class="nv">AISDBDATADIR</span><span class="o">=</span><span class="s1">&#39;/RAID0/ais/&#39;</span>
+<span class="nv">AISDBMARINETRAFFIC</span><span class="o">=</span><span class="s1">&#39;/RAID0/ais/marinetraffic_V2.db&#39;</span>
+</pre></div>
+</div>
+</section>
+<section id="interacting-with-postgres-database">
+<h2>Interacting with Postgres Database<a class="headerlink" href="#interacting-with-postgres-database" title="Link to this heading"></a></h2>
+<p>In some cases, Postgres may preferred over SQLite.
+Postgres offers improved concurrency and scalability over SQLite, at the cost of requiring more disk space and compute resources.
+The easiest and recommended way to use AISDB with the Postgresql database is via docker (to manually install dependencies, see <a class="reference internal" href="webapp.html#webapp"><span class="std std-ref">Web Application Development</span></a>).
+To get started, navigate to the repository root directory, and ensure docker and docker-compose are installed.
+Start the AIS receiver, database server, and postgres database docker images.
+Sudo permissions may be required for Docker and docker-compose.</p>
+<section id="python-api">
+<h3>Python API<a class="headerlink" href="#python-api" title="Link to this heading"></a></h3>
+<p>The receiver will fetch live data streaming from the MERIDIAN AIS network, and store it in the postgres database.
+Start the AIS receiver and Postgres database services from the command line with docker-compose:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">POSTGRES_PASSWORD</span><span class="o">=</span><span class="s2">&quot;example&quot;</span>
+docker-compose<span class="w"> </span>up<span class="w"> </span>--build<span class="w"> </span>receiver<span class="w"> </span>postgresdb
+</pre></div>
+</div>
+<p>The Postgres database may be interfaced using Python in the same manner as the default SQLite database by using <code class="xref py py-class docutils literal notranslate"><span class="pre">aisdb.database.dbconn.PostgresDBConn</span></code> as a drop-in replacement for the default <code class="xref py py-class docutils literal notranslate"><span class="pre">aisdb.database.dbconn.DBConn</span></code> that uses SQLite.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">aisdb.database.dbconn</span> <span class="kn">import</span> <span class="n">PostgresDBConn</span>
+
+<span class="c1"># keyword arguments</span>
+<span class="n">dbconn</span> <span class="o">=</span> <span class="n">PostgresDBConn</span><span class="p">(</span>
+    <span class="n">hostaddr</span><span class="o">=</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span>
+    <span class="n">user</span><span class="o">=</span><span class="s1">&#39;postgres&#39;</span><span class="p">,</span>
+    <span class="n">port</span><span class="o">=</span><span class="mi">5432</span><span class="p">,</span>
+    <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;POSTGRES_PASSWORD&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Alternatively, connect using a connection string:</span>
+<span class="n">dbconn</span> <span class="o">=</span> <span class="n">PostgresDBConn</span><span class="p">(</span><span class="s1">&#39;Postgresql://localhost:5433&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The resulting dbconn may then be used similar to how <code class="docutils literal notranslate"><span class="pre">DBConn</span></code> is used in the <a class="reference internal" href="intro.html#intro"><span class="std std-ref">Intro Doc</span></a></p>
+</section>
+<section id="web-api">
+<h3>Web API<a class="headerlink" href="#web-api" title="Link to this heading"></a></h3>
+<p>Start the AIS receiver, Postgres database, and database webserver services from the command line using the following command.
+See <a class="reference internal" href="#docker"><span class="std std-ref">Docker</span></a> for more info on docker services.
+Alternatively, the services can be run in a local environment instead of a docker environment as described in <a class="reference internal" href="webapp.html#webapp"><span class="std std-ref">Web Application Development</span></a>.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>docker-compose<span class="w"> </span>up<span class="w"> </span>--build<span class="w"> </span>receiver<span class="w"> </span>postgresdb<span class="w"> </span>db-server
+</pre></div>
+</div>
+<p>The receiver service will listen for new data from MERIDIAN’s AIS receiver, and store it in the postgres database.
+The db-server service provides a web API for the AIS data stored in the postgres database.
+This listens for WebSocket connections on port 9924, and returns JSON-formatted vessel tracks in response to queries.
+The following Python code provides an example of how to asynchronously query AIS data from db-server.
+This code can either run in a local Python environment or in the aisdb-python docker image.
+While this example uses Python, the web API can be accessed using any language or package using the <a class="reference external" href="https://www.rfc-editor.org/rfc/rfc6455">Websocket Protocol</a>, such as JavaScript, as long as requests are formatted as utf8-encoded JSON.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Python standard library packages</span>
+<span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+
+<span class="c1"># These packages need to be installed with pip</span>
+<span class="kn">import</span> <span class="nn">orjson</span>
+<span class="kn">import</span> <span class="nn">websockets.client</span>
+
+<span class="c1"># Query the MERIDIAN web API, or reconfigure the URL with an environment variable</span>
+<span class="n">db_hostname</span> <span class="o">=</span> <span class="s1">&#39;wss://aisdb.meridian.cs.dal.ca/ws&#39;</span>
+<span class="n">db_hostname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;AISDBHOST&#39;</span><span class="p">,</span> <span class="n">db_hostname</span><span class="p">)</span>
+
+
+<span class="c1"># Default docker IPv6 address and port number.</span>
+<span class="c1"># See docker-compose.yml for configuration.</span>
+<span class="c1"># db_hostname = &#39;ws://[fc00::6]:9924&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">DatabaseRequest</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; Methods in this class are used to generate JSON-formatted AIS requests,</span>
+<span class="sd">        as an interface to the AISDB WebSocket API.</span>
+<span class="sd">        The orjson library is used for fast utf8-encoded JSON serialization.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">validrange</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">orjson</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;msgtype&#39;</span><span class="p">:</span> <span class="s1">&#39;validrange&#39;</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">zones</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">orjson</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;msgtype&#39;</span><span class="p">:</span> <span class="s1">&#39;zones&#39;</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="nf">track_vectors</span><span class="p">(</span><span class="n">x0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">y1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                      <span class="n">start</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39; database query for a given time range and bounding box &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">orjson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;msgtype&quot;</span><span class="p">:</span> <span class="s2">&quot;track_vectors&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">start</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()),</span>
+                <span class="s2">&quot;end&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">end</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()),</span>
+                <span class="s2">&quot;area&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;x0&quot;</span><span class="p">:</span> <span class="n">x0</span><span class="p">,</span>
+                    <span class="s2">&quot;x1&quot;</span><span class="p">:</span> <span class="n">x1</span><span class="p">,</span>
+                    <span class="s2">&quot;y0&quot;</span><span class="p">:</span> <span class="n">y0</span><span class="p">,</span>
+                    <span class="s2">&quot;y1&quot;</span><span class="p">:</span> <span class="n">y1</span>
+                <span class="p">}</span>
+            <span class="p">},</span>
+            <span class="n">option</span><span class="o">=</span><span class="n">orjson</span><span class="o">.</span><span class="n">OPT_SERIALIZE_NUMPY</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">query_valid_daterange</span><span class="p">(</span><span class="n">db_socket</span><span class="p">:</span> <span class="n">websockets</span><span class="o">.</span><span class="n">client</span><span class="p">,</span> <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; Query the database server for minimum and maximum time range values.</span>
+<span class="sd">        Values are formatted as unix epoch seconds, i.e. the total number of</span>
+<span class="sd">        seconds since Jan 1 1970, 12am UTC.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Create a new server daterange request using a dictionary</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">DatabaseRequest</span><span class="o">.</span><span class="n">validrange</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">db_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+
+    <span class="c1"># Wait for server response, and parse JSON from the response binary</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">orjson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="k">await</span> <span class="n">db_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Received daterange response from server: </span><span class="si">{</span><span class="n">response</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Print the server response</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">])</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;start&#39;</span><span class="p">:</span> <span class="n">start</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">:</span> <span class="n">end</span><span class="p">}</span>
+
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">query_tracks_24h</span><span class="p">(</span><span class="n">db_socket</span><span class="p">:</span> <span class="n">websockets</span><span class="o">.</span><span class="n">client</span><span class="p">,</span> <span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; query recent ship movements near Dalhousie &#39;&#39;&#39;</span>
+
+    <span class="n">boundary</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x0&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">64.8131</span><span class="p">,</span> <span class="s1">&#39;x1&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">62.2928</span><span class="p">,</span> <span class="s1">&#39;y0&#39;</span><span class="p">:</span> <span class="mf">43.5686</span><span class="p">,</span> <span class="s1">&#39;y1&#39;</span><span class="p">:</span> <span class="mf">45.3673</span><span class="p">}</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">DatabaseRequest</span><span class="o">.</span><span class="n">track_vectors</span><span class="p">(</span>
+        <span class="n">start</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">24</span><span class="p">),</span>
+        <span class="n">end</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
+        <span class="o">**</span><span class="n">boundary</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">await</span> <span class="n">db_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="n">orjson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="k">await</span> <span class="n">db_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">())</span>
+    <span class="k">while</span> <span class="n">response</span><span class="p">[</span><span class="s1">&#39;msgtype&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;track_vector&#39;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;got track vector data:</span><span class="se">\n\t</span><span class="si">{</span><span class="n">response</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">orjson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="k">await</span> <span class="n">db_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">query_zones</span><span class="p">(</span><span class="n">db_socket</span><span class="p">:</span> <span class="n">websockets</span><span class="o">.</span><span class="n">client</span><span class="p">,</span> <span class="p">):</span>
+    <span class="k">await</span> <span class="n">db_socket</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">DatabaseRequest</span><span class="o">.</span><span class="n">zones</span><span class="p">())</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="n">orjson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="k">await</span> <span class="n">db_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">())</span>
+    <span class="k">while</span> <span class="n">response</span><span class="p">[</span><span class="s1">&#39;msgtype&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;zone&#39;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;got zone polygon data:</span><span class="se">\n\t</span><span class="si">{</span><span class="n">response</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">orjson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="k">await</span> <span class="n">db_socket</span><span class="o">.</span><span class="n">recv</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39; asynchronously query the web API for valid timerange, 24 hours of</span>
+<span class="sd">        vectorized vessel data, and zone polygons</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">useragent</span> <span class="o">=</span> <span class="s1">&#39;AISDB WebSocket Client&#39;</span>
+    <span class="n">useragent</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; (</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">implementation</span><span class="o">.</span><span class="n">cache_tag</span><span class="si">}</span><span class="s1">)&#39;</span>
+
+    <span class="k">async</span> <span class="k">with</span> <span class="n">websockets</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="n">db_hostname</span><span class="p">,</span> <span class="n">user_agent_header</span><span class="o">=</span><span class="n">useragent</span><span class="p">)</span> <span class="k">as</span> <span class="n">db_socket</span><span class="p">:</span>
+        <span class="n">daterange</span> <span class="o">=</span> <span class="k">await</span> <span class="n">query_valid_daterange</span><span class="p">(</span><span class="n">db_socket</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;start=</span><span class="si">{</span><span class="n">daterange</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="si">}</span><span class="se">\t</span><span class="s1">&#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;end=</span><span class="si">{</span><span class="n">daterange</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">end</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">await</span> <span class="n">query_tracks_24h</span><span class="p">(</span><span class="n">db_socket</span><span class="p">)</span>
+
+        <span class="k">await</span> <span class="n">query_zones</span><span class="p">(</span><span class="n">db_socket</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="interacting-with-the-map">
+<h2>Interacting with the Map<a class="headerlink" href="#interacting-with-the-map" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="install_from_source.html" class="btn btn-neutral float-left" title="Installing from Source" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="webapp.html" class="btn btn-neutral float-right" title="Web Application Development" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, MERIDIAN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

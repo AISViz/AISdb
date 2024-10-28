@@ -1,0 +1,7 @@
+aisdb.webdata.shore\_dist module
+================================
+
+.. automodule:: aisdb.webdata.shore_dist
+   :members:
+   :undoc-members:
+   :show-inheritance:
