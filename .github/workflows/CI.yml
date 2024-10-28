@@ -11,12 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-
-env:
-  pguser: "postgres"
-  pghost: "127.0.0.1"
-  pgpass: ${{ secrets.PGPASS }}
+  contents: read
 
 jobs:
   publish-docs:
@@ -40,15 +35,19 @@ jobs:
 
       - name: Upload docs to gh-pages branch
         run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-          git clone --branch gh-pages --single-branch https://github.com/AISViz/AISdb.git gh-pages
           cp -r docs/dist_sphinx/* gh-pages/
           cd gh-pages
-          git add .
-          git commit -m "Update docs" || echo "No changes to commit"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/AISViz/AISdb.git gh-pages || echo "Push failed"
 
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          # Upload entire repository
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
+        
       - name: Clean Up
         run: |
           rm -rf gh-pages
