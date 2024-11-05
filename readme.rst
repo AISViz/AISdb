@@ -28,12 +28,12 @@
    :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/documentation/
 .. |aisdb_tut| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/tutorials/
    :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.gitbook.io/tutorials/
-.. |aisdb_rtd| image:: https://img.shields.io/website?url=https%3A%2F%2Faisdb.meridian.cs.dal.ca/doc/readme.html
-   :target: https://img.shields.io/website?url=https%3A%2F%2Faisdb.meridian.cs.dal.ca/doc/readme.html
+.. |aisdb_rtd| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.cs.dal.ca/AISdb/
+   :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.cs.dal.ca/AISdb/
 
 - |aisviz| |space| `AISViz Website <https://aisviz.github.io>`_
 - |aisgpt| |space| `AISViz ChatBot <https://chat.openai.com/g/g-hTTH0rUBv-aisdb-assistant>`_ *(with GPT-4)*
-- |aisdb_rtd| |space| `AISdb ReadTheDocs <https://aisdb.meridian.cs.dal.ca/doc/readme.html>`_ *(outdated)*
+- |aisdb_rtd| |space| `AISdb ReadTheDocs <https://aisviz.cs.dal.ca/AISdb/>`_ 
 - |aisdb_tut| |space| `AISdb GitBook Tutorials <https://aisviz.gitbook.io/tutorials>`_
 - |aisdb_doc| |space| `AISdb GitBook Documentation <https://aisviz.gitbook.io/documentation>`_
 
