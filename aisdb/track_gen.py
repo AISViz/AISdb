@@ -201,9 +201,7 @@ def split_tracks(tracks, max_distance=25000, max_time=timedelta(hours=24),
     Args:
         tracks (aisdb.track_gen.TrackGen): track vectors generator
         max_distance (float): Maximum allowable distance (meters) between points in a segment.
-        min_distance (float): Minimum allowable distance (meters) between points in a segment.
         max_time (timedelta): Maximum allowable time difference between points in a segment.
-        min_time (timedelta): Minimum allowable time difference between points in a segment.
         max_speed (float): Maximum allowable speed (knots).
         min_speed (float): Minimum allowable speed (knots).
         min_segment_length (int): Minimum number of points required in a segment.

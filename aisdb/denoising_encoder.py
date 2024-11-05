@@ -1,11 +1,15 @@
+import os
 import warnings
 from functools import reduce
-
 import numpy as np
 from aisdb.aisdb import encoder_score_fcn
-
 from aisdb.gis import delta_knots, delta_meters
+from aisdb.webdata.shore_dist import download_unzip
 
+import geopandas as gpd
+from shapely.geometry import Point, MultiPoint
+from shapely import prepare
+import pickle
 
 def _score_idx(scores):
     ''' Returns indices of score array where value at index is equal to the
@@ -243,3 +247,72 @@ def remove_pings_wrt_speed(tracks, speed_threshold):
     for tr__ in tracks:
         assert isinstance(tr__, dict), f'got {type(tr__)} {tr__}'
         yield from update_dict_(tr__)
+
+
+class InlandDenoising:
+    data_url = "http://bigdata5.research.cs.dal.ca/geo_land_water_NorthAmerica.7z"
+
+    def __init__(self, data_dir, land_cache='land.pkl', water_cache='water.pkl'):
+        download_unzip(self.data_url, data_dir, bytesize=337401807)
+        self.land_path = os.path.join(data_dir, land_cache)
+        self.water_path = os.path.join(data_dir, water_cache)
+        assert os.path.isfile(self.land_path), f"Land file not found at {self.land_path}"
+        assert os.path.isfile(self.water_path), f"Water file not found at {self.water_path}"
+
+        # Load geometries during initialization
+        with open(self.land_path, 'rb') as f1, open(self.water_path, 'rb') as f2:
+            self.land_geom = pickle.load(f1)
+            self.water_geom = pickle.load(f2)
+            prepare(self.land_geom)
+            prepare(self.water_geom)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Cleanup if needed
+        pass
+
+    # def filter_noisy_points(self, tracks):
+    def filter_noisy_points(self, tracks: iter) -> dict:
+        """
+        Filter points that fall in land but not in water features.
+        """
+        print("Processing trajectories...")
+        for i, traj in enumerate(tracks):
+            # Create points for batch processing
+            try:
+                points = MultiPoint([(lon, lat) for lon, lat in zip(traj['lon'], traj['lat'])])
+            except Exception as e:
+                print(f"Error creating MultiPoint at trajectory {i}: {e}")
+                continue
+
+            # Find points in land but not in water
+            try:
+                if hasattr(points, 'geoms'):
+                    noisy_mask = [
+                        self.land_geom.contains(point) and not self.water_geom.contains(point)
+                        for point in points.geoms
+                    ]
+                else:
+                    noisy_mask = [self.land_geom.contains(points) and not self.water_geom.contains(points)]
+            except Exception as e:
+                print(f"Error checking points at trajectory {i}: {e}")
+                continue
+
+            noisy_indices = np.where(noisy_mask)[0]
+
+            # Create boolean mask for clean points
+            clean_mask = np.ones(len(traj['time']), dtype=bool)
+            clean_mask[noisy_indices] = False
+
+            # Create cleaned trajectory
+            cleaned_traj = dict(
+                **{k: traj[k] for k in traj['static']},
+                **{k: traj[k][clean_mask] for k in traj['dynamic']},
+                static=traj['static'],
+                dynamic=traj['dynamic']
+            )
+
+            if len(cleaned_traj['time']) > 0:
+                yield cleaned_traj
