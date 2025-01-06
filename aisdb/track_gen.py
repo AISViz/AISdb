@@ -188,7 +188,8 @@ def split_timedelta(tracks, maxdelta=timedelta(weeks=2)):
                     mmsi_count[mmsi_value] += 1
 
                 # Modify the mmsi value to attach an index
-                segmented_track["mmsi"] = f"{mmsi_value}-{mmsi_count[mmsi_value]}"
+                # segmented_track["mmsi"] = f"{mmsi_value}-{mmsi_count[mmsi_value]}"
+                segmented_track["idx"] = mmsi_count[mmsi_value]
 
             # Yield the segmented track with modified mmsi
             yield segmented_track
@@ -297,3 +298,8 @@ def min_speed_filter(tracks, minspeed):
             static=track['static'],
             dynamic=track['dynamic'],
         )
+
+def min_track_length_filter(tracks, min_length=300):
+    for track in tracks:
+        if len(track['time']) >= min_length:
+            yield track
