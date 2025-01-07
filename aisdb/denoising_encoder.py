@@ -273,7 +273,6 @@ class InlandDenoising:
         # Cleanup if needed
         pass
 
-    # def filter_noisy_points(self, tracks):
     def filter_noisy_points(self, tracks: iter) -> dict:
         """
         Filter points that fall in land but not in water features.
