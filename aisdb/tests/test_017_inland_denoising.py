@@ -9,7 +9,8 @@ y3, x3 = 44.10511509303621, -64.3325524220706
 data_dir = os.environ.get("AISDBDATADIR",
                           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "testdata", ), )
 
-tracks_short = [dict(lon=np.array([x1, x2, x3]), lat=np.array([y1, y2, y3]), time=[1, 2, 3], dynamic=set(["time"]), )]
+tracks_short = [dict(lon=np.array([x1, x2, x3]), lat=np.array([y1, y2, y3]), time=[1, 2, 3],
+                     dynamic=set(["lon", "lat", "time"]), static=set())]
 
 
 def test_inland_denoising():
