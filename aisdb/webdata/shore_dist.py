@@ -80,13 +80,15 @@ def download_unzip(data_url, data_dir, bytesize=0, timeout=(10, 30)):
     if zip_file.endswith('.zip'):
         with zipfile.ZipFile(zip_file, 'r') as zip_ref:
             members = list(
-                fpath for fpath in set(zip_ref.namelist()) - set(sorted(os.listdir(data_dir))) if '.tif' in fpath)
+                fpath for fpath in set(zip_ref.namelist()) - set(sorted(os.listdir(data_dir)))
+                if any(ext in fpath for ext in ['.tif', '.pkl']))
             if len(members) > 0:
                 zip_ref.extractall(path=data_dir, members=members)
     elif zip_file.endswith('.7z'):
         with py7zr.SevenZipFile(zip_file, mode='r') as zip_ref:
             members = list(
-                fpath for fpath in set(zip_ref.getnames()) - set(sorted(os.listdir(data_dir))) if '.tif' in fpath)
+                fpath for fpath in set(zip_ref.getnames()) - set(sorted(os.listdir(data_dir)))
+                if any(ext in fpath for ext in ['.tif', '.pkl']))
             if len(members) > 0:
                 zip_ref.extract(targets=members, path=data_dir)
     else:
