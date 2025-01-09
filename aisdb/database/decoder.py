@@ -155,8 +155,8 @@ def fast_unzip(zip_filenames, dirname):
         fcn(file)
 
 
-def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False,
-                workers=4, type_preference="all", raw_insertion=False, verbose=True):
+def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
+                workers=4, type_preference="all", raw_insertion=True, verbose=True):
     """
     Decode messages from filepaths and insert them into a database.
 
@@ -266,15 +266,15 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False,
     # drop constraints and indexes to speed up insert,
     # and rebuild them after inserting
     if isinstance(dbconn, PostgresDBConn):
-        with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
+        with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
             create_dynamic_table_stmt = f.read()
-        with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
+        with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
             create_static_table_stmt = f.read()
         for month in months:
             dbconn.execute(create_dynamic_table_stmt.format(month))
             dbconn.execute(create_static_table_stmt.format(month))
-            for idx_name in ("mmsi", "time", "longitude", "latitude"):
-                dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name};")
+            # for idx_name in ("mmsi", "time", "longitude", "latitude"):
+            #     dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name};")
         dbconn.commit()
         completed_files = decoder(dbpath="",
                                   psql_conn_string=dbconn.connection_string, files=raw_files,
