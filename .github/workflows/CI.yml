@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - doc_ci
     tags:
       - '*'
   pull_request:
@@ -440,11 +441,15 @@ jobs:
         run: |
           python -m pip install sphinx
           python -m pip install sphinx-rtd-theme
+          python -m pip install maturin
+          maturin develop --release
+          python -m pip install matplotlib
+          python -m pip install joblib
 
       - name: Build docs
         run: |
-          sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o docs/source/api aisdb aisdb/tests/*
-          python -m sphinx -a -j auto -q -b=html docs/source docs/dist_sphinx
+          sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/*
+          python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
