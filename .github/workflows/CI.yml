@@ -279,7 +279,24 @@ jobs:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
           sccache: 'true'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip || exit 1
+          python -m pip install sphinx sphinx-rtd-theme matplotlib joblib || exit 1
+          python -m pip install dist/*.whl || exit 1
+          
+      - name: Build docs
+        run: |
+          sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/*
+          python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx
 
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: sphinx-docs
+          path: docs/dist_sphinx
+      
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -435,26 +452,11 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Download wheels
+      - name: Download documentation
         uses: actions/download-artifact@v4
         with:
-          name: wheels-linux-${{ matrix.target }}
-          path: dist
-  
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip || exit 1
-          python -m pip install sphinx sphinx-rtd-theme matplotlib joblib || exit 1
-          python -m pip install dist/*.whl || exit 1
-      - name: Build docs
-        run: |
-          sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/*
-          python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          # Upload entire repository
-          path: 'docs/dist_sphinx/'
+          name: sphinx-docs
+          path: docs/dist_sphinx
           
       - name: Deploy to GitHub Pages
         id: deployment
