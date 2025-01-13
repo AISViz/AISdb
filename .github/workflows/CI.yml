@@ -437,11 +437,17 @@ jobs:
         with:
           python-version: '3.10'
       
+      - name: Setup Python environment
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+
       - name: Install dependencies
         run: |
+          source .venv/bin/activate
           python -m pip install sphinx
           python -m pip install sphinx-rtd-theme
-          pip install maturin
+          python -m pip install maturin
           maturin develop --release
           python -m pip install matplotlib
           python -m pip install joblib
