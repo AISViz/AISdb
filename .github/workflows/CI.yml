@@ -291,7 +291,6 @@ jobs:
       
       - name: Run Tests
         run: |
-          source ./AISdb/bin/activate
           pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
 
       - name: Upload wheels
