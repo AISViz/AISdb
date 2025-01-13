@@ -274,12 +274,22 @@ jobs:
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
 
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
+      # - name: Build wheels
+      #   uses: PyO3/maturin-action@v1
+      #   with:
+      #     target: ${{ matrix.target }}
+      #     args: --release --out dist --find-interpreter
+      #     sccache: 'true'
+
+      - name: Create Python Virtual Environment and Install Dependencies
+        run: |
+          python -m venv AISdb
+          source ./AISdb/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install maturin
+          maturin develop --release --extras=test,docs
+          python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+
       
       - name: Setup PostgreSQL
         run: |
@@ -291,6 +301,7 @@ jobs:
       
       - name: Run Tests
         run: |
+          source ./AISdb/bin/activate
           pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
 
       - name: Upload wheels
