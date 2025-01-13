@@ -439,7 +439,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          source .venv/bin/activate
           python -m pip install sphinx
           python -m pip install sphinx-rtd-theme
           python -m pip install matplotlib
