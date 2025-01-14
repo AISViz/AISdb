@@ -444,6 +444,11 @@ jobs:
         run: |
           sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/*
           python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: docs/dist_sphinx
         
       - name: Deploy to GitHub Pages
         id: deployment
