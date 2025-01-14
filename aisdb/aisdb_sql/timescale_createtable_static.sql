@@ -1,4 +1,4 @@
-CREATE TABLE ais_${0}_static
+CREATE TABLE ais_{0}_static
 (
     mmsi           INTEGER NOT NULL,
     time           INTEGER NOT NULL CHECK (time >= ${start_ts} AND time < ${end_ts}),
@@ -23,14 +23,14 @@ CREATE TABLE ais_${0}_static
 );
 
 SELECT create_hypertable(
-        'ais_${0}_static',
+        'ais_{0}_static',
         'time',
         partitioning_column => 'mmsi',
         number_partitions => 4,
         chunk_time_interval => 604800
 );
 
-ALTER TABLE ais_${0}_static SET (
+ALTER TABLE ais_{0}_static SET (
     timescaledb.compress = false,
     timescaledb.compress_orderby = 'time ASC',
     timescaledb.compress_segmentby = 'mmsi'
