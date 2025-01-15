@@ -61,7 +61,10 @@ pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringReco
 
 /// convert ISO8601 time format (NOAA in use) to epoch seconds
 pub fn iso8601_2_epoch(dt: &str) -> i64 {
-    let mut utctime = NaiveDateTime::parse_from_str(dt, "%Y-%m-%dT%H:%M:%S");
+    let utctime = NaiveDateTime::parse_from_str(dt, "%Y-%m-%dT%H:%M:%S");
+    if let Err(e) = utctime {
+        panic!("parsing timestamp from '{}': {}", dt, e);
+    }
     Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
 }
 
@@ -367,11 +370,16 @@ pub fn postgres_decodemsgs_noaa_csv(
         count += 1;
         let row = row_option.unwrap();
         let row_clone = row.clone();
-        let epoch = iso8601_2_epoch(row_clone.get().as_ref().unwrap()) as i32;
+        let epoch = iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) as i32;
         let payload_dynamic = VesselDynamicData {
             own_vessel: true,
             station: Station::BaseStation,
-            ais_type: AisClass::new(row.get(16).unwrap().parse().unwrap_or_default()),
+//             ais_type: AisClass::new(row.get(16).unwrap().parse().unwrap_or_default()),
+            ais_type: match row.get(16) {
+                Some("A") => AisClass::ClassA,
+                Some("B") => AisClass::ClassB,
+                _ => AisClass::Unknown,
+            },
             mmsi: row.get(0).unwrap().parse().unwrap(),
             nav_status: NavigationStatus::new(row.get(11).unwrap().parse().unwrap_or_default()),
             rot: None,
@@ -382,7 +390,7 @@ pub fn postgres_decodemsgs_noaa_csv(
             longitude: row.get(3).unwrap().parse().ok(),
             cog: row.get(5).unwrap().parse().ok(),
             heading_true: row.get(6).unwrap().parse().ok(),
-            timestamp_seconds: None,
+            timestamp_seconds: 0, // enforced field
             positioning_system_meta: None,
             current_gnss_position: None,
             special_manoeuvre: None,
@@ -404,9 +412,13 @@ pub fn postgres_decodemsgs_noaa_csv(
 
         let payload_static = VesselStaticData {
             own_vessel: true,
-            ais_type: AisClass::new(row.get(16).unwrap().parse().unwrap_or_default()),
+            ais_type: match row.get(16) {
+                Some("A") => AisClass::ClassA,
+                Some("B") => AisClass::ClassB,
+                _ => AisClass::Unknown,
+            },
             mmsi: row.get(0).unwrap().parse().unwrap(),
-            ais_version_indicator: None,
+            ais_version_indicator: 0, // NOAA does not contain such info but an u8 data type is enforced, we give default value 0 same with unsuccessful parsing of Spire data
             imo_number: row.get(8).unwrap().parse().ok(),
             call_sign: row.get(9).unwrap().parse().ok(),
             name: Some(row.get(7).unwrap_or("").to_string()),

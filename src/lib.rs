@@ -13,7 +13,7 @@ use nmea_parser::NmeaParser;
 use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, PyResult, Python};
 use sysinfo::{RefreshKind, System, SystemExt};
 
-use aisdb_lib::csvreader::{postgres_decodemsgs_ee_csv, sqlite_decodemsgs_ee_csv};
+use aisdb_lib::csvreader::{postgres_decodemsgs_ee_csv, sqlite_decodemsgs_ee_csv, postgres_decodemsgs_noaa_csv};
 use aisdb_lib::decode::{postgres_decode_insert_msgs, sqlite_decode_insert_msgs};
 use aisdb_receiver::{start_receiver, ReceiverArgs};
 
@@ -241,30 +241,57 @@ pub fn decoder(
                     if !psql_conn_string.is_empty() {
                         let sender = sender.clone();
                         let future = async move {
-                            match postgres_decodemsgs_ee_csv(
-                                &psql_conn_string,
-                                &f,
-                                &source,
-                                verbose,
-                            ) {
-                                Err(e) => {
-                                    eprintln!("CSV decoder error: {}\n", e);
-                                    sender.send(Err(f.clone())).unwrap_or_else(|e| {
+                            if source.to_lowercase().contains("noaa") {
+                                match postgres_decodemsgs_noaa_csv(
+                                    &psql_conn_string,
+                                    &f,
+                                    &source,
+                                    verbose,
+                                ) {
+                                    Err(e) => {
+                                        eprintln!("CSV decoder error: {}\n", e);
+                                        sender.send(Err(f.clone())).unwrap_or_else(|e| {
+                                            eprintln!(
+                                                "sending errored CSV filepath from worker {}\n{}",
+                                                f.display(),
+                                                e
+                                            )
+                                        });
+                                    }
+                                    Ok(_) => sender.send(Ok(f.clone())).unwrap_or_else(|e| {
                                         eprintln!(
-                                            "sending errored CSV filepath from worker {}\n{}",
+                                            "sending completed CSV filepath from worker {}\n{}",
                                             f.display(),
                                             e
                                         )
-                                    });
-                                }
-                                Ok(_) => sender.send(Ok(f.clone())).unwrap_or_else(|e| {
-                                    eprintln!(
-                                        "sending completed CSV filepath from worker {}\n{}",
-                                        f.display(),
-                                        e
-                                    )
-                                }),
-                            };
+                                    }),
+                                };
+                            } else {
+                                match postgres_decodemsgs_ee_csv(
+                                    &psql_conn_string,
+                                    &f,
+                                    &source,
+                                    verbose,
+                                ) {
+                                    Err(e) => {
+                                        eprintln!("CSV decoder error: {}\n", e);
+                                        sender.send(Err(f.clone())).unwrap_or_else(|e| {
+                                            eprintln!(
+                                                "sending errored CSV filepath from worker {}\n{}",
+                                                f.display(),
+                                                e
+                                            )
+                                        });
+                                    }
+                                    Ok(_) => sender.send(Ok(f.clone())).unwrap_or_else(|e| {
+                                        eprintln!(
+                                            "sending completed CSV filepath from worker {}\n{}",
+                                            f.display(),
+                                            e
+                                        )
+                                    }),
+                                };
+                            }
                         };
                         pool.spawn_ok(future);
                         in_process += 1;
