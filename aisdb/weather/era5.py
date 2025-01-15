@@ -22,8 +22,27 @@ def epoch_to_iso8601(epoch_time):
 
     return iso_format
 
+class MyClass:
+    def __init__(self, short_names, epoch_time):
+
+        
+        self.short_names = short_names
+        self.epoch_time = epoch_time
+
+# Example usage:
+try:
+    obj = MyClass(["name1", "name2"], 1609459200)
+except ValueError as e:
+    print(e)
+
+
 class WeatherData:
-    def __init__(self,short_names,epoch_time):
+    def __init__(self,short_names: list, epoch_time):
+        if not isinstance(short_names, list) or not all(isinstance(name, str) for name in short_names):
+            raise ValueError("short_names should be a list of strings.")
+        if not isinstance(epoch_time, int) or epoch_time < 0:
+            raise ValueError("epoch_time should be a non-negative integer.")
+        
         self.short_names = short_names
         self.epoch_time = epoch_time
         self.weatherds = self._load_weather_data(short_names, epoch_time)
@@ -67,7 +86,6 @@ class WeatherData:
         )
 
         return weather_ds
-
 
 # Example usage
 short_names = ['10u']
