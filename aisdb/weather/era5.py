@@ -1,8 +1,10 @@
 import datetime
-import xarray as xr
-from aisdb.database.decoder import fast_unzip
+import numpy as np
 import os
 import tempfile
+import xarray as xr
+
+from aisdb.database.decoder import fast_unzip
 
 weather_data_path = os.getenv('WEATHER_DATA_PATH')  # Returns None if the variable is not set
 
@@ -22,32 +24,57 @@ def epoch_to_iso8601(epoch_time):
 
     return iso_format
 
-class MyClass:
-    def __init__(self, short_names, epoch_time):
+def get_monthly_range(start: datetime.datetime, end: datetime.datetime) -> list:
+    """
+    Generates a list of 'yyyy-mm' values representing each month between the start and end dates (inclusive).
 
+    Args:
+        start (datetime.datetime): The start date.
+        end (datetime.datetime): The end date.
+
+    Returns:
+        list: List of strings in the format 'yyyy-mm' for each month between start and end.
+    """
+    months = []
+    current = start
+
+    while current <= end:
+        # Format the current date as 'yyyy-mm'
+        months.append(current.strftime('%Y-%m'))
         
-        self.short_names = short_names
-        self.epoch_time = epoch_time
+        # Move to the next month
+        if current.month == 12:
+            current = current.replace(year=current.year + 1, month=1)
+        else:
+            current = current.replace(month=current.month + 1)
+    
+    return months
 
-# Example usage:
-try:
-    obj = MyClass(["name1", "name2"], 1609459200)
-except ValueError as e:
-    print(e)
 
-
-class WeatherData:
-    def __init__(self,short_names: list, epoch_time):
+class WeatherDataFromServer:
+    def __init__(self,short_names: list, start:datetime.datetime,end: datetime.datetime):
+        # Validate weather_data_path
+        if weather_data_path =="":
+            raise ValueError("WEATHER_DATA_PATH environment variable is not set.")
+        
+        # Validate parameter_names
         if not isinstance(short_names, list) or not all(isinstance(name, str) for name in short_names):
             raise ValueError("short_names should be a list of strings.")
-        if not isinstance(epoch_time, int) or epoch_time < 0:
-            raise ValueError("epoch_time should be a non-negative integer.")
         
-        self.short_names = short_names
-        self.epoch_time = epoch_time
-        self.weatherds = self._load_weather_data(short_names, epoch_time)
+        # Validate timestamp
+        if not isinstance(start, datetime.datetime):
+            raise ValueError("start_time should be a valid datetime object.")
+        
+        # Validate timestamp
+        if not isinstance(end, datetime.datetime):
+            raise ValueError("end_time should be a valid datetime object.")
+            
+        self.start = start
+        self.end = end
+        self.months = get_monthly_range(start, end)
+        self.weather_ds = self._load_weather_data(self)
 
-    def _load_weather_data(short_names: list, epoch_time) -> xr.core.dataset.Dataset:
+    def _load_weather_data(self):
         """
         Fetch and process a GRIB file for specific weather parameters and a given time.
 
@@ -62,32 +89,64 @@ class WeatherData:
             - GRIB file is packaged as a zip file with the same name plus a ".zip" extension.
             - Extracts the GRIB file to a temporary directory for processing.
         """
+        weather_dataset_instances = []
+
         # Create a temporary directory for extraction
         tmp_dir = tempfile.mkdtemp()
 
-        # Convert epoch time to ISO 8601 format and derive file name
-        time_iso8601 = epoch_to_iso8601(epoch_time)
-        yymm = time_iso8601[:7]  # Extract year and month (YYYY-MM)
-        file_name = f"{weather_data_path}/{yymm}.grib"
+        for month in self.months:
+            file_name = f"{weather_data_path}/{month}.grib"
+            
+            # Unzip the GRIB file
+            zip_path = f"{file_name}.zip"
+            fast_unzip(zip_path, tmp_dir)
 
-        # Unzip the GRIB file
-        zip_path = f"{file_name}.zip"
-        fast_unzip(zip_path, tmp_dir)
-
-        # Load the weather dataset from the extracted GRIB file
-        weather_ds = xr.open_dataset(
-            os.path.join(tmp_dir, file_name),
-            engine="cfgrib",
-            backend_kwargs={
-                'filter_by_keys': {
-                    'shortName': short_names,
+            # Load the weather dataset from the extracted GRIB file
+            weather_ds = xr.open_dataset(
+                os.path.join(tmp_dir, file_name),
+                engine="cfgrib",
+                backend_kwargs={
+                    'filter_by_keys': {
+                        'shortName': self.short_names,
+                    }
                 }
-            }
-        )
+            )
 
-        return weather_ds
+            weather_dataset_instances.append(weather_ds)
 
-# Example usage
-short_names = ['10u']
-epoch_time = 1672531200 
-weather_ds = WeatherData(short_names, epoch_time)
+        return xr.concat(weather_dataset_instances, dim='time')
+
+    def extract_value(self, latitude, longitude, epoch_time) -> np.ndarray:
+        """
+        Get the value of a weather variable at a specific latitude, longitude, and time.
+
+        Args:
+            lat (float): Latitude of the location.
+            lon (float): Longitude of the location.
+            epoch_time (int): Time in epoch seconds.
+
+        Returns:
+            float: Value of the variable at the given location and time.
+        """
+        # Convert epoch time to datetime object
+        dt = epoch_to_iso8601(epoch_time)
+
+        # Select the variable based on the short name -- example short_name '10u' has data_variable 'u10' which corresponds to 10-meter U-component wind velocity
+        ds_variables = list(self.weather_ds.data_vars)
+
+        # Initialize an empty dictionary to store values for each variable
+        values = {}
+
+        # Loop through each variable (e.g., wind, wave)
+        for var in ds_variables:
+            # Extract the value at the specified lat, lon, and time for each variable
+            values[var] = self.weather_ds[var].sel(latitude=latitude, longitude=longitude, time=dt, method='nearest').values
+
+
+        return values
+    
+    def close(self):
+        """
+        Close the weather dataset.
+        """
+        self.weather_ds.close()
