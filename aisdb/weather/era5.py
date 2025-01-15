@@ -6,7 +6,7 @@ import xarray as xr
 
 from aisdb.database.decoder import fast_unzip
 
-weather_data_path = os.getenv('WEATHER_DATA_PATH')  # Returns None if the variable is not set
+weather_data_path = os.getenv('WEATHER_DATA_PATH')
 
 def epoch_to_iso8601(epoch_time):
     """
@@ -50,8 +50,11 @@ def get_monthly_range(start: datetime.datetime, end: datetime.datetime) -> list:
     
     return months
 
-
 class WeatherDataFromServer:
+    """
+    Load weather data from a server and process it.
+    Call WeatherDataFromServer.Close() to release resources after use.
+    """
     def __init__(self,short_names: list, start:datetime.datetime,end: datetime.datetime):
         # Validate weather_data_path
         if weather_data_path =="":
@@ -116,7 +119,7 @@ class WeatherDataFromServer:
 
         return xr.concat(weather_dataset_instances, dim='time')
 
-    def extract_value(self, latitude, longitude, epoch_time) -> np.ndarray:
+    def extract_value(self, latitude, longitude, epoch_time) -> dict:
         """
         Get the value of a weather variable at a specific latitude, longitude, and time.
 
@@ -141,7 +144,6 @@ class WeatherDataFromServer:
         for var in ds_variables:
             # Extract the value at the specified lat, lon, and time for each variable
             values[var] = self.weather_ds[var].sel(latitude=latitude, longitude=longitude, time=dt, method='nearest').values
-
 
         return values
     
