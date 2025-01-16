@@ -13,7 +13,7 @@ use nmea_parser::NmeaParser;
 use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, PyResult, Python};
 use sysinfo::{RefreshKind, System, SystemExt};
 
-use aisdb_lib::csvreader::{postgres_decodemsgs_ee_csv, sqlite_decodemsgs_ee_csv, postgres_decodemsgs_noaa_csv};
+use aisdb_lib::csvreader::{postgres_decodemsgs_ee_csv, sqlite_decodemsgs_ee_csv, postgres_decodemsgs_noaa_csv, sqlite_decodemsgs_noaa_csv};
 use aisdb_lib::decode::{postgres_decode_insert_msgs, sqlite_decode_insert_msgs};
 use aisdb_receiver::{start_receiver, ReceiverArgs};
 
@@ -234,8 +234,11 @@ pub fn decoder(
                 }
                 Some("csv") | Some("CSV") => {
                     if dbpath != PathBuf::from("") {
-                        sqlite_decodemsgs_ee_csv(d.to_path_buf(), f.clone(), &source, verbose)
-                            .expect("decoding CSV");
+                        if source.to_lowercase().contains("noaa") {
+                            sqlite_decodemsgs_noaa_csv(d.to_path_buf(), f.clone(), &source, verbose).expect("decoding CSV");
+                        } else {
+                            sqlite_decodemsgs_ee_csv(d.to_path_buf(), f.clone(), &source, verbose).expect("decoding CSV");
+                        }
                         update_done_files(&mut completed, &mut errored, Ok(f.clone()));
                     }
                     if !psql_conn_string.is_empty() {
