@@ -22,15 +22,51 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
+          if command -v yum &> /dev/null; then
+                sudo yum update -y && sudo yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang gcc-multilib 
+                # If we're running on i686 we need to symlink libatomic
+                # in order to build openssl with -latomic flag.
+                if [[ ! -d "/usr/lib64" ]]; then
+                    sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+                fi
+                
+                echo "finished yum install"
+            else
+                # If we're running on debian-based system.
+                sudo apt update -y && sudo apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang gcc-multilib  
+                
+                echo "finished apt install"
+            fi
+      
+      - name: Install Rust Target for wasm
+        run: |
+          rustup target add wasm32-unknown-unknown
+            
+      - name: install wasm-pack
+        run: |
+          cargo install --locked wasm-pack --verbose
+          cargo install --locked wasm-bindgen-cli --verbose
+          cargo install --locked wasm-opt --verbose
+          wasm-pack --version
+
+      - name: Build wheels for AISdb
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'  
+            
+      - name: Install built package
+        run: |
+          pip install dist/*.whl
+
+      - name: Install dependencies for API docs
+        run: |
           python -m pip install --upgrade pip || exit 1
-          python -m pip install aisdb || exit 1
           python -m pip install sphinx sphinx-rtd-theme matplotlib joblib || exit 1
             
       - name: Build docs
         run: |
-          source .venv/bin/activate || exit 1
           ls
           sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/* || exit 1
           python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx || exit 1
