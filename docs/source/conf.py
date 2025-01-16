@@ -17,7 +17,7 @@ from datetime import datetime
 # -- Project information -----------------------------------------------------
 
 project = 'AISDB'
-copyright = f'{datetime.today().year}, MERIDIAN'
+copyright = f'{datetime.today().year}, AISViz'
 author = 'AISViz'
 
 # -- General configuration ---------------------------------------------------
