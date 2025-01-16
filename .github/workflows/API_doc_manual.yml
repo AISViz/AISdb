@@ -48,17 +48,7 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
-
-      - name: Build wheels for AISdb
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'  
-            
-      - name: Install built package
-        run: |
-          pip install dist/*.whl
+          maturin build
 
       - name: Install dependencies for API docs
         run: |
