@@ -68,7 +68,7 @@ pub fn iso8601_2_epoch(dt: &str) -> i64 {
     Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
 }
 
-/// perform database input
+/// perform database input from Spire
 #[cfg(feature = "sqlite")]
 pub fn sqlite_decodemsgs_ee_csv(
     dbpath: std::path::PathBuf,
@@ -208,7 +208,7 @@ pub fn sqlite_decodemsgs_ee_csv(
     Ok(())
 }
 
-/// perform database input
+/// perform database input from Spire data
 #[cfg(feature = "postgres")]
 pub fn postgres_decodemsgs_ee_csv(
     connect_str: &str,
@@ -347,7 +347,147 @@ pub fn postgres_decodemsgs_ee_csv(
     Ok(())
 }
 
-/// perform database input for NOAA data - init version
+/// progress database input from NOAA
+#[cfg(feature = "sqlite")]
+pub fn sqlite_decodemsgs_noaa_csv(
+    dbpath: std::path::PathBuf,
+    filename: std::path::PathBuf,
+    source: &str,
+    verbose: bool,
+) -> Result<(), Error> {
+    assert_eq!(&filename.extension().expect("getting file ext"), &"csv");
+
+    let start = Instant::now();
+
+    let mut reader = csv::Reader::from_reader(
+        File::open(&filename).unwrap_or_else(|_| panic!("cannot open file {:?}", filename)),
+    );
+    let mut stat_msgs = <Vec<VesselData>>::new();
+    let mut positions = <Vec<VesselData>>::new();
+    let mut count = 0;
+
+    let mut c = get_db_conn(dbpath).expect("getting db conn");
+
+    for row_option in reader.records(){
+        count += 1;
+        let row = row_option.unwrap();
+        let row_clone = row.clone();
+        let epoch = iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) as i32;
+        let payload_dynamic = VesselDynamicData {
+            own_vessel: true,
+            station: Station::BaseStation,
+            ais_type: match row.get(16) {
+                Some("A") => AisClass::ClassA,
+                Some("B") => AisClass::ClassB,
+                _ => AisClass::Unknown,
+            },
+            mmsi: row.get(0).unwrap().parse().unwrap(),
+            nav_status: NavigationStatus::new(row.get(11).unwrap().parse().unwrap_or_default()),
+            rot: None,
+            rot_direction: None,
+            sog_knots: row.get(4).unwrap().parse::<f64>().ok(),
+            high_position_accuracy: false,
+            latitude: row.get(2).unwrap().parse().ok(),
+            longitude: row.get(3).unwrap().parse().ok(),
+            cog: row.get(5).unwrap().parse().ok(),
+            heading_true: row.get(6).unwrap().parse().ok(),
+            timestamp_seconds: 0, // enforced field
+            positioning_system_meta: None,
+            current_gnss_position: None,
+            special_manoeuvre: None,
+            raim_flag: false,
+            class_b_unit_flag: None,
+            class_b_display: None,
+            class_b_dsc: None,
+            class_b_band_flag: None,
+            class_b_msg22_flag: None,
+            class_b_mode_flag: None,
+            class_b_css_flag: None,
+            radio_status: None,
+        };
+        let message_dyn = VesselData {
+            epoch: Some(epoch),
+            payload: Some(ParsedMessage::VesselDynamicData(payload_dynamic)),
+        };
+        positions.push(message_dyn);
+
+        let payload_static = VesselStaticData {
+            own_vessel: true,
+            ais_type: match row.get(16) {
+                Some("A") => AisClass::ClassA,
+                Some("B") => AisClass::ClassB,
+                _ => AisClass::Unknown,
+            },
+            mmsi: row.get(0).unwrap().parse().unwrap(),
+            ais_version_indicator: 0, // NOAA does not contain such info but an u8 data type is enforced, we give default value 0 same with unsuccessful parsing result from Spire
+            imo_number: row.get(8).unwrap().parse().ok(),
+            call_sign: row.get(9).unwrap().parse().ok(),
+            name: Some(row.get(7).unwrap_or("").to_string()),
+            ship_type: ShipType::new(row.get(10).unwrap().parse().unwrap_or_default()),
+            cargo_type: CargoType::new(row.get(15).unwrap().parse().unwrap_or_default()),
+            equipment_vendor_id: None,
+            equipment_model: None,
+            equipment_serial_number: None,
+            dimension_to_bow: None,
+            dimension_to_stern: None,
+            dimension_to_port: None,
+            dimension_to_starboard: None,
+            position_fix_type: None,
+            eta: None,
+            draught10: row.get(14).unwrap_or_default().parse().ok(),
+            destination: None,
+            mothership_mmsi: None,
+        };
+        let message_stat = VesselData {
+            epoch: Some(epoch),
+            payload: Some(ParsedMessage::VesselStaticData(payload_static)),
+        };
+        stat_msgs.push(message_stat);
+
+        if positions.len() >= BATCHSIZE {
+            let _d = sqlite_prepare_tx_dynamic(&mut c, source, positions);
+            positions = vec![];
+        };
+        if stat_msgs.len() >= BATCHSIZE {
+            let _s = sqlite_prepare_tx_static(&mut c, source, stat_msgs);
+            stat_msgs = vec![];
+        }
+    }
+
+    if !positions.is_empty() {
+        let _d = sqlite_prepare_tx_dynamic(&mut c, source, positions);
+    }
+    if !stat_msgs.is_empty() {
+        let _s = sqlite_prepare_tx_static(&mut c, source, stat_msgs);
+    }
+
+    let elapsed = start.elapsed();
+    let f3 = filename.to_str().unwrap();
+    let f4 = Path::new(f3);
+    let fname = f4.file_name().unwrap().to_str().unwrap();
+    let fname1 = format!("{:<1$}", fname, 64);
+    let elapsed1 = format!(
+        "elapsed: {:>1$}s",
+        format!("{:.2 }", elapsed.as_secs_f32()),
+        7
+    );
+    let rate1 = format!(
+        "rate: {:>1$} msgs/s",
+        format!("{:.0}", count as f32 / elapsed.as_secs_f32()),
+        8
+    );
+
+    if verbose {
+        println!(
+            "{} count:{: >8}    {}    {}",
+            fname1, count, elapsed1, rate1,
+        );
+    }
+
+    Ok(())
+}
+
+/// progress database input from NOAA
 #[cfg(feature = "postgres")]
 pub fn postgres_decodemsgs_noaa_csv(
     connect_str: &str,
@@ -418,7 +558,7 @@ pub fn postgres_decodemsgs_noaa_csv(
                 _ => AisClass::Unknown,
             },
             mmsi: row.get(0).unwrap().parse().unwrap(),
-            ais_version_indicator: 0, // NOAA does not contain such info but an u8 data type is enforced, we give default value 0 same with unsuccessful parsing of Spire data
+            ais_version_indicator: 0,
             imo_number: row.get(8).unwrap().parse().ok(),
             call_sign: row.get(9).unwrap().parse().ok(),
             name: Some(row.get(7).unwrap_or("").to_string()),
