@@ -22,25 +22,30 @@ jobs:
 
       - name: Install dependencies
         run: |
+          python -m venv .venv
+          source .venv/bin/activate
           python -m pip install --upgrade pip || exit 1
           python -m pip install aisdb || exit 1
           python -m pip install sphinx sphinx-rtd-theme matplotlib joblib || exit 1
             
       - name: Build docs
         run: |
-          sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/*
-          python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx
+          source .venv/bin/activate || exit 1
+          ls
+          sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/* || exit 1
+          python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx || exit 1
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: docs/dist_sphinx
         
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
         
       - name: Clean Up
         run: |
-          rm -rf gh-pages
+          source .venv/bin/activate || exit 1
+          rm -rf gh-pages || exit 1
           rm -rf docs/dist_sphinx
