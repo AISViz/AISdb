@@ -51,17 +51,21 @@ jobs:
       
       - name: Build AISdb
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install maturin
-          maturin develop
+          python -m venv .venv
+          source .venv/bin/activate || exit 1
+          python -m pip install --upgrade pip || exit 1
+          python -m pip install maturin || exit 1
+          maturin develop || exit 1
 
       - name: Install dependencies for API docs
         run: |
+          source .venv/bin/activate || exit 1
           python -m pip install --upgrade pip || exit 1
           python -m pip install sphinx sphinx-rtd-theme matplotlib joblib || exit 1
             
       - name: Build docs
         run: |
+          source .venv/bin/activate || exit 1
           ls
           sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/* || exit 1
           python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx || exit 1
@@ -80,3 +84,4 @@ jobs:
           source .venv/bin/activate || exit 1
           rm -rf gh-pages || exit 1
           rm -rf docs/dist_sphinx
+          rm -rf .venv
