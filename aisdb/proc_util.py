@@ -339,10 +339,9 @@ def getfiledate(filename, source=None):
             except StopIteration:
                 return False
             rowdict = {a: b for a, b in zip(head, row1)}
-            if "noaa" in source.lower():
-                fdate = datetime.strptime(rowdict['BaseDateTime'], '%Y-%m-%dT%H:%M:%S').date()
-            else:
-                fdate = datetime.strptime(rowdict['Time'], '%Y%m%d_%H%M%S').date()
+            time_key = 'BaseDateTime' if source and "noaa" in source.lower() else 'Time'
+            time_format = '%Y-%m-%dT%H:%M:%S' if time_key == 'BaseDateTime' else '%Y%m%d_%H%M%S'
+            fdate = datetime.strptime(rowdict[time_key], time_format).date()
             return fdate
 
         elif extension == ".nm4":
