@@ -75,6 +75,7 @@ def test_glob_files():
 def test_getfiledate():
     aisdb.proc_util.getfiledate(os.path.join(os.path.dirname(__file__), "testdata", "test_data_20211101.nm4"))
     aisdb.proc_util.getfiledate(os.path.join(os.path.dirname(__file__), "testdata", "test_data_20210701.csv"))
+    aisdb.proc_util.getfiledate(os.path.join(os.path.dirname(__file__), "testdata", "test_data_noaa_20230101.csv"), source='NOAA')
 
 
 def test_binarysearch():

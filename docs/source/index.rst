@@ -32,7 +32,6 @@ AISDB Docs: Index
    :caption: Contents:
 
    intro
-   readme
    install_from_source
    docker
    webapp
@@ -44,12 +43,12 @@ AISDB Docs: Index
 
 .. toctree::
    :maxdepth: 5
-   :caption: API Docs:
-   :titlesonly:
+   :caption: API Documentation:
+   :glob:
 
    api/aisdb
-   changelog
-
+   api/aisdb.*
+   api/modules
 
 Indices and tables
 ==================
