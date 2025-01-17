@@ -313,14 +313,16 @@ def glob_files(dirpath, ext='.txt', keyorder=lambda key: key):
     return sorted(extpaths, key=keyorder)
 
 
-def getfiledate(filename):
+def getfiledate(filename, source=None):
     ''' attempt to parse the first valid epoch timestamp from .nm4 data file.
         timestamp will be returned as :class:`datetime.date` if successful,
         otherwise will return False if no date could be found
 
         args:
             filename (string)
-                raw AIS data file in .nm4 format
+                raw AIS data file in .nm4 or .csv format
+            source (string)
+                data source of CSV file; time column handle is different if "NOAA" (case insensitive) is specified
     '''
     filesize = os.path.getsize(filename)
     if filesize == 0:  # pragma: no cover
@@ -330,7 +332,6 @@ def getfiledate(filename):
         extension = os.path.splitext(filename)[1].lower()
 
         if extension == ".csv":
-            # if filename.lower()[-3:] == "csv":
             reader = csv.reader(f)
             try:
                 head = next(reader)
@@ -338,7 +339,9 @@ def getfiledate(filename):
             except StopIteration:
                 return False
             rowdict = {a: b for a, b in zip(head, row1)}
-            fdate = datetime.strptime(rowdict['Time'], '%Y%m%d_%H%M%S').date()
+            time_key = 'BaseDateTime' if source and "noaa" in source.lower() else 'Time'
+            time_format = '%Y-%m-%dT%H:%M:%S' if time_key == 'BaseDateTime' else '%Y%m%d_%H%M%S'
+            fdate = datetime.strptime(rowdict[time_key], time_format).date()
             return fdate
 
         elif extension == ".nm4":

@@ -113,3 +113,31 @@ def test_compare_sqlite_postgres_query_output(tmpdir):
 
     for a, b in zip(tracks1, tracks2):
         assert a['lat'] == b['lat']
+
+def test_noaa_data_ingest_compare(tmpdir):
+    testdatacsv = os.path.join(os.path.dirname(__file__), "testdata", "test_data_noaa_20230101.csv")
+    filepaths = [testdatacsv]
+
+    testdbpath = os.path.join(tmpdir, "test_sqlite_noaa.db")
+
+    start_time = datetime(2023, 1, 1)
+    end_time = datetime(2023, 1, 31)
+
+    with PostgresDBConn(conn_information) as pgdb, DBConn(testdbpath) as sqlitedb:
+        decode_msgs(filepaths, dbconn=pgdb, source='NOAA', vacuum=False, verbose=True, skip_checksum=True)
+        pgdb.commit()
+
+        decode_msgs(filepaths, dbconn=sqlitedb, source='NOAA', vacuum=False, verbose=True, skip_checksum=True)
+        sqlitedb.commit()
+
+        rowgen1 = DBQuery(dbconn=sqlitedb, start=start_time, end=end_time,
+                          callback=sqlfcn_callbacks.in_timerange_validmmsi, ).gen_qry(reaggregate_static=True)
+
+        rowgen2 = DBQuery(dbconn=pgdb, start=start_time, end=end_time,
+                          callback=sqlfcn_callbacks.in_timerange_validmmsi, ).gen_qry(reaggregate_static=True)
+
+        tracks1 = list(TrackGen(rowgen1, decimate=False))
+        tracks2 = list(TrackGen(rowgen2, decimate=False))
+
+    for a, b in zip(tracks1, tracks2):
+        assert a['time'] == b['time']
