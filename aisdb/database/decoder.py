@@ -251,7 +251,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False,
 
     if verbose:
         print("checking file dates...")
-    filedates = [getfiledate(f) for f in raw_files]
+    filedates = [getfiledate(f, source) for f in raw_files]
     months = [
         month.strftime("%Y%m") for month in rrule(
             freq=MONTHLY,
