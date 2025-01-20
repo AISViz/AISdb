@@ -1,7 +1,7 @@
 CREATE TABLE ais_{0}_static
 (
     mmsi           INTEGER NOT NULL,
-    time           INTEGER NOT NULL CHECK (time >= ${start_ts} AND time < ${end_ts}),
+    time           INTEGER NOT NULL,
     vessel_name    TEXT,
     ship_type      INTEGER,
     call_sign      TEXT,
