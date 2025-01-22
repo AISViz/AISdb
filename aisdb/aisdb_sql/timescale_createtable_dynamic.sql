@@ -1,4 +1,4 @@
-CREATE TABLE ais_{0}_dynamic
+CREATE TABLE IF NOT EXISTS ais_{0}_dynamic
 (
     mmsi          INTEGER NOT NULL,
     time          INTEGER NOT NULL,
