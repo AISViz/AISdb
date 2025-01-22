@@ -164,10 +164,10 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     :param dbconn: database connection to use for insertion
     :param source: source identifier for the decoded messages
     :param vacuum: whether to vacuum the database after insertion (default is False)
-    :param skip_checksum: whether to skip checksum validation (default is False)
+    :param skip_checksum: whether to skip checksum validation (default is True)
     :param workers: number of parallel workers to use (default is 4)
     :param type_preference: preferred file type to be used (default is "all")
-    :param raw_insertion: whether to insert messages without indexing them (default is False)
+    :param raw_insertion: whether to insert messages without indexing them (default is True)
     :param verbose: whether to print verbose output (default is True)
     :return: None
     """
