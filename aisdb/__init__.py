@@ -73,7 +73,12 @@ from .denoising_encoder import (
     remove_pings_wrt_speed
 )
 
+from .kinematic import (
+    feature
+)
+
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',
                     level=LOGLEVEL,
                     datefmt='%Y-%m-%d %I:%M:%S')
+
