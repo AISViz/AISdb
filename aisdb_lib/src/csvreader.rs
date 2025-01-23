@@ -58,12 +58,18 @@ pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringReco
     match msgtype {
         "1" | "2" | "3" | "18" | "19" | "27" => Some((
             row,
-            csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
+//             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
+            csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()).unwrap_or_else(|e| {
+                eprintln!("Failed to parse timestamp: {}", e);
+                0 }) as i32,
             true,
         )),
         "5" | "24" => Some((
             row,
-            csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
+//             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
+            csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()).unwrap_or_else(|e| {
+                eprintln!("Failed to parse timestamp: {}", e);
+                0 }) as i32,
             false,
         )),
         _ => None,
