@@ -35,6 +35,8 @@ use aisdb_receiver::{start_receiver, ReceiverArgs, BackupConfig};
 ///
 /// Example:
 ///     ```python
+///     from aisdb import ReceiverBackupConfig
+/// 
 ///     config = ReceiverBackupConfig(
 ///         enabled=True,
 ///         backup_dir="/home/pi/ais_backup",
