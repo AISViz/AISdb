@@ -20,16 +20,27 @@ use crate::decode::VesselData;
 
 const BATCHSIZE: usize = 50000;
 
-/// convert time string to epoch seconds
-pub fn csvdt_2_epoch(dt: &str) -> i64 {
-    let mut utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S");
-    if let Err(_e) = utctime {
-        utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%dT%H%M%SZ")
+// /// convert time string to epoch seconds
+// pub fn csvdt_2_epoch(dt: &str) -> i64 {
+//     let mut utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S");
+//     if let Err(_e) = utctime {
+//         utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%dT%H%M%SZ")
+//     }
+//     if let Err(e) = utctime {
+//         panic!("parsing timestamp from '{}': {}", dt, e);
+//     }
+//     Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
+// }
+
+/// Convert time string to epoch seconds
+pub fn csvdt_2_epoch(dt: &str) -> Result<i64, String> {
+    let utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S")
+        .or_else(|_| NaiveDateTime::parse_from_str(dt, "%Y%m%dT%H%M%SZ"));
+
+    match utctime {
+        Ok(parsed_time) => Ok(Utc.from_utc_datetime(&parsed_time).timestamp()),
+        Err(e) => Err(format!("Failed to parse timestamp '{}': {}", dt, e)),
     }
-    if let Err(e) = utctime {
-        panic!("parsing timestamp from '{}': {}", dt, e);
-    }
-    Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
 }
 
 /// filter everything but vessel data, sort vessel data into static and dynamic vectors
