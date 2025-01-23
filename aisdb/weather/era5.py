@@ -1,5 +1,4 @@
 import datetime
-import numpy as np
 import os
 import tempfile
 import xarray as xr
@@ -75,8 +74,10 @@ class WeatherDataFromServer:
         self.start = start
         self.end = end
         self.months = get_monthly_range(start, end)
-        self.weather_ds = self._load_weather_data(self)
-
+        self.short_names = short_names
+        self.weather_ds = self._load_weather_data()
+        
+        
     def _load_weather_data(self):
         """
         Fetch and process a GRIB file for specific weather parameters and a given time.
@@ -96,14 +97,18 @@ class WeatherDataFromServer:
 
         # Create a temporary directory for extraction
         tmp_dir = tempfile.mkdtemp()
-
+        zipped_grib_files = []
+        
         for month in self.months:
             file_name = f"{weather_data_path}/{month}.grib"
             
             # Unzip the GRIB file
             zip_path = f"{file_name}.zip"
-            fast_unzip(zip_path, tmp_dir)
+            zipped_grib_files.append(zip_path)
 
+        fast_unzip(zipped_grib_files, tmp_dir)
+
+        for _ in self.months:
             # Load the weather dataset from the extracted GRIB file
             weather_ds = xr.open_dataset(
                 os.path.join(tmp_dir, file_name),
