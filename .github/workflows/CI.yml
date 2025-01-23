@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - doc_ci
     tags:
       - '*'
   pull_request:
@@ -117,7 +118,6 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
-
       - name: Setup PostgreSQL
         run: |
           sudo apt-get update -y
@@ -125,7 +125,6 @@ jobs:
           sudo systemctl enable postgresql
           sudo systemctl start postgresql
           sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
-
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
           python -m venv AISdb
@@ -134,17 +133,15 @@ jobs:
           python -m pip install maturin
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-
       - name: Run Tests
         run: |
           source ./AISdb/bin/activate
           pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
-
       - name: Clean Up
         run: |
           rm -rf AISdb
           sudo apt-get clean
-
+          
   build-and-test-macos:
     runs-on: macos-latest
     needs: [macos]
@@ -244,7 +241,6 @@ jobs:
         run: |
           if command -v yum &> /dev/null; then
                 sudo yum update -y && sudo yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang gcc-multilib 
-
                 # If we're running on i686 we need to symlink libatomic
                 # in order to build openssl with -latomic flag.
                 if [[ ! -d "/usr/lib64" ]]; then
@@ -277,14 +273,12 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
-
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
-
+          sccache: 'true'      
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -426,41 +420,41 @@ jobs:
           command: upload
           args: --non-interactive --skip-existing *
 
-  publish-docs:
-    runs-on: ubuntu-latest
-    needs: [release]
-    steps:
-      - uses: actions/checkout@v4
+  # publish-docs:
+  #   runs-on: ubuntu-latest
+  #   needs: [release]
+  #   # needs: [linux]
+  #   strategy:
+  #     matrix:
+  #       target: [ x86_64 ]
+  #   steps:
+  #     - uses: actions/checkout@v4
       
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      
-      - name: Install dependencies
-        run: |
-          python -m pip install sphinx
-          python -m pip install sphinx-rtd-theme
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.10'
 
-      - name: Build docs
-        run: |
-          sphinx-apidoc --separate --force --implicit-namespaces --module-first --no-toc -o docs/source/api aisdb aisdb/tests/*
-          python -m sphinx -a -j auto -q -b=html docs/source docs/dist_sphinx
+  #     - name: Install dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip || exit 1
+  #         python -m pip install aisdb || exit 1
+  #         python -m pip install sphinx sphinx-rtd-theme matplotlib joblib || exit 1
+            
+  #     - name: Build docs
+  #       run: |
+  #         sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/*
+  #         python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          # Upload entire repository
-          path: 'docs/dist_sphinx/'
-          
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+  #     - name: Upload Pages artifact
+  #       uses: actions/upload-pages-artifact@v2
+  #       with:
+  #         path: docs/dist_sphinx
         
-      - name: Clean Up
-        run: |
-          rm -rf gh-pages
-          rm -rf docs/dist_sphinx
-
-
-
-
+  #     - name: Deploy to GitHub Pages
+  #       id: deployment
+  #       uses: actions/deploy-pages@v2
+        
+  #     - name: Clean Up
+  #       run: |
+  #         rm -rf gh-pages
+  #         rm -rf docs/dist_sphinx
