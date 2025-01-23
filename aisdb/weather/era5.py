@@ -2,7 +2,7 @@ import datetime
 import os
 import tempfile
 import xarray as xr
-
+import numpy as np
 from aisdb.database.decoder import fast_unzip
 
 weather_data_path = os.getenv('WEATHER_DATA_PATH')
@@ -49,7 +49,7 @@ def get_monthly_range(start: datetime.datetime, end: datetime.datetime) -> list:
     
     return months
 
-class WeatherDataFromServer:
+class ClimateDataStore:
     """
     Load weather data from a server and process it.
     Call WeatherDataFromServer.Close() to release resources after use.
@@ -101,7 +101,7 @@ class WeatherDataFromServer:
         
         for month in self.months:
             file_name = f"{weather_data_path}/{month}.grib"
-            
+
             # Unzip the GRIB file
             zip_path = f"{file_name}.zip"
             zipped_grib_files.append(zip_path)
@@ -124,7 +124,7 @@ class WeatherDataFromServer:
 
         return xr.concat(weather_dataset_instances, dim='time')
 
-    def extract_value(self, latitude, longitude, epoch_time) -> dict:
+    def extract_weather(self, latitude, longitude, time) -> dict:
         """
         Get the value of a weather variable at a specific latitude, longitude, and time.
 
@@ -137,7 +137,7 @@ class WeatherDataFromServer:
             float: Value of the variable at the given location and time.
         """
         # Convert epoch time to datetime object
-        dt = epoch_to_iso8601(epoch_time)
+        dt = epoch_to_iso8601(time)
 
         # Select the variable based on the short name -- example short_name '10u' has data_variable 'u10' which corresponds to 10-meter U-component wind velocity
         ds_variables = list(self.weather_ds.data_vars)
@@ -151,6 +151,58 @@ class WeatherDataFromServer:
             values[var] = self.weather_ds[var].sel(latitude=latitude, longitude=longitude, time=dt, method='nearest').values
 
         return values
+    def extract_weather_multiple_points(self, latitudes, longitudes, timestamps) -> dict:
+        """
+        Retrieve weather data for multiple geographical points and times.
+
+        This method queries weather data for a list of latitude, longitude, and timestamp values,
+        and aggregates the results into a dictionary of numpy arrays, where each key represents
+        a weather variable (short name) and the value is an array of data for that variable.
+
+        Args:
+            latitudes (list[float]): A list of latitude values for the query points.
+            longitudes (list[float]): A list of longitude values for the query points.
+            timestamps (list[int]): A list of epoch timestamps (in seconds) for the query points.
+
+        Returns:
+            dict[str, numpy.ndarray]: A dictionary where:
+                - The keys are short names of weather variables (e.g., '10u', '10v').
+                - The values are numpy arrays containing the queried weather data for the corresponding variable.
+
+        Raises:
+            KeyError: If the queried weather variable is not available in the dataset.
+            ValueError: If the lengths of `latitudes`, `longitudes`, and `timestamps` do not match.
+
+        Example:
+        ```
+            latitudes = [45.0, 46.5, 47.2]
+            longitudes = [-122.3, -123.5, -124.8]
+            timestamps = [1672934400, 1672938000, 1672941600]
+
+            result = climate_data_store.extract_weather_multiple_points(latitudes, longitudes, timestamps)
+        ```
+        Output:
+            # result:
+            # {
+            #     '10u': array([5.2, 5.5, 5.8]),
+            #     '10v': array([2.3, 2.7, 3.0])
+            # }
+        """
+        # Initialize a dictionary to store weather data for each short name (weather variable)
+        weather_data_dict = {short_name: [] for short_name in self.short_names}
+
+        for i in range(len(longitudes)):
+            # Retrieve the weather data for the current (latitude, longitude, time)
+            weather_data = self.extract_weather(latitude=latitudes[i], longitude=longitudes[i], epoch_time=timestamps[i])
+
+            for key, value in weather_data.items():
+                weather_data_dict[key].append(value)
+
+        # Convert lists to numpy arrays for each short name
+        weather_numpy_dict = {short_name: np.array(weather_data_dict[short_name], dtype=float) 
+                            for short_name in self.short_names}
+        
+        return weather_numpy_dict
     
     def close(self):
         """
