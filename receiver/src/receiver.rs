@@ -13,6 +13,8 @@ use aisdb_lib::db::{
 use aisdb_lib::db::{PGClient, SqliteConnection};
 use aisdb_lib::decode::VesselData;
 
+use crate::backup::{BackupConfig, BackupManager};
+
 // external
 use mproxy_client::target_socket_interface;
 use mproxy_forward::proxy_tcp_udp;
@@ -95,6 +97,7 @@ pub struct ReceiverArgs {
     pub udp_output_addr: Option<String>,
     pub dynamic_msg_bufsize: Option<usize>,
     pub static_msg_bufsize: Option<usize>,
+    pub backup_config: Option<BackupConfig>,
     pub tee: Option<bool>,
 }
 
@@ -121,6 +124,7 @@ fn parse_args() -> Result<ReceiverArgs, pico_args::Error> {
         dynamic_msg_bufsize: pargs.opt_value_from_str("--dynamic-msg-bufsize")?,
         static_msg_bufsize: pargs.opt_value_from_str("--static-msg-bufsize")?,
         tee: Some(pargs.contains(["-t", "--tee"])),
+        backup_config: None,
     };
 
     let remaining = pargs.finish();
@@ -271,6 +275,11 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
     )
     .unwrap();
 
+    // Initialize backup manager if enabled
+    let mut backup_manager = args.backup_config.map(|config| {
+        BackupManager::new(config).expect("Failed to initialize backup manager")
+    });
+
     // downstream UDP multicast channel for raw data
     let mut target_raw: Option<(SocketAddr, UdpSocket)> = None;
     if let Some(rawaddr) = &args.multicast_addr_rawdata {
@@ -336,6 +345,13 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
                 // forward raw + parsed downstream via UDP channels
                 match listen_socket.recv_from(&mut buf[0..]) {
                     Ok((c, _remote_addr)) => {
+                        // Write to backup if enabled
+                        if let Some(ref mut manager) = backup_manager {
+                            if let Err(e) = manager.write_data(&buf[0..c]) {
+                                eprintln!("Error writing to backup: {}", e);
+                            }
+                        }
+
                         for (msg, raw) in split_parse_filter_msgs(&buf, c, &mut parser) {
                             match &msg {
                                 VesselPing::Dynamic(_m) => {
@@ -562,6 +578,7 @@ mod tests {
             udp_listen_addr: Some(DEFAULT_UDP_LISTEN_ADDR.to_string()),
             //udp_output_addr: Some("localhost:9921".to_string()),
             udp_output_addr: None,
+            backup_config: None,
         };
         let threads = start_receiver(args);
 

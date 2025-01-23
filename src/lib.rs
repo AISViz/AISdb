@@ -11,11 +11,78 @@ use geo::{point, HaversineDistance, SimplifyVwIdx};
 use geo_types::{Coord, LineString};
 use nmea_parser::NmeaParser;
 use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, PyResult, Python};
+use pyo3::prelude::*;
 use sysinfo::{RefreshKind, System, SystemExt};
 
 use aisdb_lib::csvreader::{postgres_decodemsgs_ee_csv, sqlite_decodemsgs_ee_csv, postgres_decodemsgs_noaa_csv, sqlite_decodemsgs_noaa_csv};
 use aisdb_lib::decode::{postgres_decode_insert_msgs, sqlite_decode_insert_msgs};
-use aisdb_receiver::{start_receiver, ReceiverArgs};
+use aisdb_receiver::{start_receiver, ReceiverArgs, BackupConfig};
+
+/// Configuration for local file backup functionality on Raspberry Pi.
+/// This class allows you to configure how AIS messages are backed up to local files,
+/// including storage limits and rotation policies.
+///
+/// Args:
+///     enabled (bool):
+///         Whether to enable local file backup
+///     backup_dir (str):
+///         Directory path where backup files will be stored
+///     max_storage_mb (int):
+///         Maximum storage space to use in megabytes. When exceeded,
+///         oldest files will be deleted
+///     rotation_interval_hours (int):
+///         Interval in hours after which a new backup file will be created
+///
+/// Example:
+///     ```python
+///     config = ReceiverBackupConfig(
+///         enabled=True,
+///         backup_dir="/home/pi/ais_backup",
+///         max_storage_mb=1000,  # 1GB
+///         rotation_interval_hours=24
+///     )
+///     ```
+#[pyclass]
+#[derive(Clone)]
+pub struct ReceiverBackupConfig {
+    #[pyo3(get, set)]
+    enabled: bool,
+    #[pyo3(get, set)]
+    backup_dir: String,
+    #[pyo3(get, set)]
+    max_storage_mb: u64,
+    #[pyo3(get, set)]
+    rotation_interval_hours: u64,
+}
+
+#[pymethods]
+impl ReceiverBackupConfig {
+    #[new]
+    fn new(
+        enabled: bool,
+        backup_dir: String,
+        max_storage_mb: u64,
+        rotation_interval_hours: u64,
+    ) -> Self {
+        Self {
+            enabled,
+            backup_dir,
+            max_storage_mb,
+            rotation_interval_hours,
+        }
+    }
+}
+
+impl From<ReceiverBackupConfig> for BackupConfig {
+    fn from(config: ReceiverBackupConfig) -> Self {
+        Self {
+            enabled: config.enabled,
+            backup_dir: PathBuf::from(config.backup_dir),
+            max_storage_mb: config.max_storage_mb,
+            rotation_interval_hours: config.rotation_interval_hours,
+        }
+    }
+}
 
 macro_rules! zip {
     ($x: expr) => ($x);
@@ -495,6 +562,14 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
 ///     static_msg_bufsize (Option<usize>)
 ///         Number of static messages to keep before inserting into database.
 ///         Defaults to 64
+///     backup_config (Option<ReceiverBackupConfig>)
+///         Configuration for local file backup on Raspberry Pi. If provided and enabled,
+///         raw messages will be saved to files and automatically rotated based on time
+///         and storage constraints. The config includes:
+///         - enabled: Whether to enable local backup
+///         - backup_dir: Directory to store backup files
+///         - max_storage_mb: Maximum storage space in MB
+///         - rotation_interval_hours: File rotation interval in hours
 ///     tee (bool)
 ///         If True, raw input will be copied to stdout
 #[pyfunction]
@@ -510,6 +585,7 @@ pub fn receiver(
     udp_output_addr: Option<String>,
     dynamic_msg_bufsize: Option<usize>,
     static_msg_bufsize: Option<usize>,
+    backup_config: Option<ReceiverBackupConfig>,
     tee: Option<bool>,
     py: Python<'_>,
 ) {
@@ -525,6 +601,7 @@ pub fn receiver(
         udp_output_addr,
         dynamic_msg_bufsize,
         static_msg_bufsize,
+        backup_config: backup_config.map(|c| c.into()),
         tee,
     });
     while threads
@@ -543,6 +620,7 @@ pub fn receiver(
 #[pymodule]
 #[allow(unused_variables)]
 pub fn aisdb(py: Python, module: &PyModule) -> PyResult<()> {
+    module.add_class::<ReceiverBackupConfig>()?;
     module.add_wrapped(wrap_pyfunction!(decoder))?;
     module.add_wrapped(wrap_pyfunction!(binarysearch_vector))?;
     module.add_wrapped(wrap_pyfunction!(encoder_score_fcn))?;
