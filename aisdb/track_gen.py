@@ -71,7 +71,9 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001, weather_short
         idx = simplify_linestring_idx(lon, lat, precision=decimate)
     else:
         idx = np.array(range(len(lon)))
-    trackdict = dict(**{col: rows[0][col]for col in staticcols},
+    trackdict = dict(
+        **{col: rows[0][col]
+           for col in staticcols},
         dynamic=dynamiccols,
         static=staticcols,
         time=time[idx],
