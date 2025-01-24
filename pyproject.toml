@@ -39,8 +39,15 @@ tutorials = "https://aisviz.gitbook.io/tutorials/"
 documentation = "https://aisviz.gitbook.io/documentation/"
 
 [project.optional-dependencies]
-test = [ "coverage", "pytest", "pytest-cov", "pytest-dotenv", ]
-docs = [ "sphinx", "sphinx-rtd-theme", ]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-dotenv>=0.5.2",
+    "coverage>=7.0.0",
+    "numpy>=1.20.0",
+    "xarray>=2023.1.0",
+]
+docs = ["sphinx", "sphinx-rtd-theme"]
 devel = []
 
 [tool.maturin]

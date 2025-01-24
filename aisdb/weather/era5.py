@@ -54,10 +54,12 @@ class ClimateDataStore:
     Load weather data from a server and process it.
     Call WeatherDataFromServer.Close() to release resources after use.
     """
-    def __init__(self,short_names: list, start:datetime.datetime,end: datetime.datetime):
+    def __init__(self,short_names: list, start:datetime.datetime,end: datetime.datetime, weather_data_path: str = None):
         # Validate weather_data_path
-        if weather_data_path =="":
-            raise ValueError("WEATHER_DATA_PATH environment variable is not set.")
+        if weather_data_path is None:
+            weather_data_path = os.getenv('WEATHER_DATA_PATH')
+            if weather_data_path == "":
+                raise ValueError("You must set the WEATHER_DATA_PATH environment variable, or pass it as an argument to the ClimateDataStore constructor.")
         
         # Validate parameter_names
         if not isinstance(short_names, list) or not all(isinstance(name, str) for name in short_names):

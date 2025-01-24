@@ -4,7 +4,7 @@ import tempfile
 import os
 import numpy as np
 from unittest.mock import patch, MagicMock
-from aisdb.weather.era5 import epoch_to_iso8601, get_monthly_range, ClimateDataStore  # Replace 'your_module' with the actual module name
+from aisdb.weather.era5 import epoch_to_iso8601, get_monthly_range, ClimateDataStore
 
 class TestEpochToISO8601(unittest.TestCase):
     def test_epoch_to_iso8601(self):
@@ -19,16 +19,16 @@ class TestGetMonthlyRange(unittest.TestCase):
         expected = ["2023-01", "2023-02", "2023-03"]
         self.assertEqual(get_monthly_range(start, end), expected)
 
-    def test_get_monthly_range_same_month(self):
+    def test_get_monthly_range_same_month(self): 
         start = datetime.datetime(2023, 1, 1)
         end = datetime.datetime(2023, 1, 31)
         expected = ["2023-01"]
         self.assertEqual(get_monthly_range(start, end), expected)
 
 class TestClimateDataStore(unittest.TestCase):
-    @patch("your_module.fast_unzip")
-    @patch("your_module.xarray.open_dataset")
-    @patch("your_module.os.getenv")
+    @patch("aisdb.weather.era5.fast_unzip")
+    @patch("xarray.open_dataset")
+    @patch("os.getenv")
     def test_init(self, mock_getenv, mock_open_dataset, mock_fast_unzip):
         mock_getenv.return_value = tempfile.mkdtemp()
         mock_open_dataset.return_value = MagicMock()
@@ -45,8 +45,8 @@ class TestClimateDataStore(unittest.TestCase):
         self.assertEqual(cds.short_names, short_names)
         self.assertEqual(cds.months, ["2023-01"])
 
-    @patch("your_module.xarray.open_dataset")
-    @patch("your_module.epoch_to_iso8601")
+    @patch("xarray.open_dataset")
+    @patch("aisdb.weather.era5.epoch_to_iso8601")
     def test_extract_weather(self, mock_epoch_to_iso8601, mock_open_dataset):
         mock_open_dataset.return_value = MagicMock()
         mock_epoch_to_iso8601.return_value = "2023-01-01T00:00:00.000000000"
@@ -60,7 +60,7 @@ class TestClimateDataStore(unittest.TestCase):
 
         self.assertEqual(result, {"10u": 5.2})
 
-    @patch("your_module.xarray.open_dataset")
+    @patch("xarray.open_dataset")
     def test_extract_weather_multiple_points(self, mock_open_dataset):
         mock_open_dataset.return_value = MagicMock()
 
@@ -81,7 +81,7 @@ class TestClimateDataStore(unittest.TestCase):
         np.testing.assert_array_equal(result["10u"], np.array([5.2, 5.5, 5.8]))
         np.testing.assert_array_equal(result["10v"], np.array([2.3, 2.7, 3.0]))
 
-    @patch("your_module.xarray.open_dataset")
+    @patch("xarray.open_dataset")
     def test_close(self, mock_open_dataset):
         mock_open_dataset.return_value = MagicMock()
 
