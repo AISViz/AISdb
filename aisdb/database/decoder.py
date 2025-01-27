@@ -313,19 +313,19 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
         os.remove(tmpfile)
     os.removedirs(dbindex.tmp_dir)
 
-    if isinstance(dbconn, PostgresDBConn):
-        if verbose:
-            print("rebuilding indexes...")
-        for month in months:
-            dbconn.execute(create_dynamic_table_stmt.format(month))
-            dbconn.execute(create_static_table_stmt.format(month))
-            if not raw_insertion:
-                for idx_name in ("mmsi", "time", "longitude", "latitude"):
-                    dbconn.execute(f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} "
-                                   f"ON ais_{month}_dynamic ({idx_name});")
-                dbconn.rebuild_indexes(month, verbose)
-                dbconn.execute("ANALYZE")
-        dbconn.commit()
+    # if isinstance(dbconn, PostgresDBConn):
+    #     if verbose:
+    #         print("rebuilding indexes...")
+    #     for month in months:
+    #         dbconn.execute(create_dynamic_table_stmt.format(month))
+    #         dbconn.execute(create_static_table_stmt.format(month))
+    #         if not raw_insertion:
+    #             for idx_name in ("mmsi", "time", "longitude", "latitude"):
+    #                 dbconn.execute(f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} "
+    #                                f"ON ais_{month}_dynamic ({idx_name});")
+    #             dbconn.rebuild_indexes(month, verbose)
+    #             dbconn.execute("ANALYZE")
+    #     dbconn.commit()
 
     dbconn.aggregate_static_msgs(months, verbose)
 
