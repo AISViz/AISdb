@@ -54,7 +54,7 @@ def _segment_longitude(track, tolerance=300):
         yield tracksplit
 
 
-def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001, weather_short_names = []):
+def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001, weather_short_names = [],weather_data_path: str = ""):
     if decimate is True:
         decimate = 0.0001
     lon = np.array([r['longitude'] for r in rows], dtype=float)
@@ -64,8 +64,9 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001, weather_short
     weather_data = {}
     
     if len(weather_short_names)!=0 and len(lat)!=0:
-        climate_data_store = ClimateDataStore(weather_short_names, time[0], time[-1])
+        climate_data_store = ClimateDataStore(weather_short_names, time[0], time[-1],weather_data_path)
         weather_data = climate_data_store.extract_weather_multiple_points(lat, lon, time)
+        climate_data_store.close() # prone to deadlocks if used concurrently.
 
     if decimate is not False:
         idx = simplify_linestring_idx(lon, lat, precision=decimate)
@@ -87,7 +88,7 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001, weather_short
     # Add weather_data to trackdict dynamically
     if weather_data:
         for key, value in weather_data.items():
-            trackdict[key] = value[idx]  # Decimate weather data if needed
+            trackdict[key] = value 
 
     assert 'time' in trackdict.keys()
 
@@ -101,7 +102,7 @@ class EmptyRowsException(Exception):
     pass
 
 
-def TrackGen(rowgen: iter, decimate: False, weather_short_names: list = []) -> dict:
+def TrackGen(rowgen: iter, decimate: False, weather_short_names: list = [],weather_data_path:str = "") -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
         each row contains columns from database: mmsi time lon lat name ...
@@ -163,7 +164,7 @@ def TrackGen(rowgen: iter, decimate: False, weather_short_names: list = []) -> d
                                                       'latitude']))
             dynamiccols = dynamiccols.union(set(['lon', 'lat']))
             firstrow = False
-        for track in _yieldsegments(rows, static, dynamiccols, decimate,weather_short_names):
+        for track in _yieldsegments(rows, static, dynamiccols, decimate,weather_short_names,weather_data_path):
             yield track
 
 
