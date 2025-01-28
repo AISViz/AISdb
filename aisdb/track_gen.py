@@ -147,6 +147,9 @@ def TrackGen(rowgen: iter, decimate: False, weather_short_names: list = [],weath
     '''
         >>> os.remove(dbpath)
     '''
+    if (weather_short_names and not weather_data_path) or (weather_data_path and not weather_short_names):
+        raise ValueError("Both 'weather_short_names' and 'weather_data_path' must be provided together.")
+    
     firstrow = True
     assert isinstance(rowgen, types.GeneratorType)
     for rows in rowgen:
