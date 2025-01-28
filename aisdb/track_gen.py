@@ -13,8 +13,6 @@ from aisdb import Domain
 from aisdb.gis import delta_knots
 from aisdb.proc_util import _segment_rng, _segment_rng_all
 
-from aisdb.weather.era5 import ClimateDataStore
-
 staticcols = set([
     'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'maneuver',
     'dim_stern', 'dim_port', 'dim_star', 'imo', 'draught', 'heading', 'rot',
@@ -54,20 +52,13 @@ def _segment_longitude(track, tolerance=300):
         yield tracksplit
 
 
-def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001, weather_short_names = [],weather_data_path: str = ""):
+def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001):
     if decimate is True:
         decimate = 0.0001
     lon = np.array([r['longitude'] for r in rows], dtype=float)
     lat = np.array([r['latitude'] for r in rows], dtype=float)
     time = np.array([r['time'] for r in rows], dtype=np.uint32)
-
-    weather_data = {}
     
-    if len(weather_short_names)!=0 and len(lat)!=0:
-        climate_data_store = ClimateDataStore(weather_short_names, time[0], time[-1],weather_data_path)
-        weather_data = climate_data_store.extract_weather_multiple_points(lat, lon, time)
-        climate_data_store.close() # prone to deadlocks if used concurrently.
-
     if decimate is not False:
         idx = simplify_linestring_idx(lon, lat, precision=decimate)
     else:
@@ -85,11 +76,6 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001, weather_short
         utc_second=np.array([r['utc_second'] for r in rows], dtype=np.uint32)[idx],
     )
 
-    # Add weather_data to trackdict dynamically
-    if weather_data:
-        for key, value in weather_data.items():
-            trackdict[key] = value 
-
     assert 'time' in trackdict.keys()
 
     for segment in _segment_longitude(trackdict):
@@ -102,7 +88,7 @@ class EmptyRowsException(Exception):
     pass
 
 
-def TrackGen(rowgen: iter, decimate: False, weather_short_names: list = [],weather_data_path:str = "") -> dict:
+def TrackGen(rowgen: iter, decimate: False) -> dict:
     ''' generator converting sets of rows sorted by MMSI to a
         dictionary containing track column vectors.
         each row contains columns from database: mmsi time lon lat name ...
@@ -147,9 +133,6 @@ def TrackGen(rowgen: iter, decimate: False, weather_short_names: list = [],weath
     '''
         >>> os.remove(dbpath)
     '''
-    if (weather_short_names and not weather_data_path) or (weather_data_path and not weather_short_names):
-        raise ValueError("Both 'weather_short_names' and 'weather_data_path' must be provided together.")
-    
     firstrow = True
     assert isinstance(rowgen, types.GeneratorType)
     for rows in rowgen:
@@ -167,7 +150,7 @@ def TrackGen(rowgen: iter, decimate: False, weather_short_names: list = [],weath
                                                       'latitude']))
             dynamiccols = dynamiccols.union(set(['lon', 'lat']))
             firstrow = False
-        for track in _yieldsegments(rows, static, dynamiccols, decimate,weather_short_names,weather_data_path):
+        for track in _yieldsegments(rows, static, dynamiccols, decimate):
             yield track
 
 
