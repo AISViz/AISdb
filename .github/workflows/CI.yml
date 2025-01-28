@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - doc_ci
     tags:
       - '*'
   pull_request:
@@ -66,7 +67,6 @@ jobs:
           python -m venv AISdb
           AISdb\Scripts\activate
           python -m pip install --upgrade pip
-          python -m pip install xarray
           python -m pip install maturin
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
@@ -130,7 +130,6 @@ jobs:
           python -m venv AISdb
           source ./AISdb/bin/activate
           python -m pip install --upgrade pip
-          python -m pip install xarray
           python -m pip install maturin
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
@@ -212,7 +211,6 @@ jobs:
           python -m venv AISdb
           source ./AISdb/bin/activate
           python -m pip install --upgrade pip
-          python -m pip install xarray
           python -m pip install maturin
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
