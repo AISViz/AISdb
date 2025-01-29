@@ -6,56 +6,29 @@ import numpy as np
 from aisdb.database.decoder import fast_unzip
 
 
-def epoch_to_iso8601(epoch_time):
-    """
-    Convert epoch time to ISO 8601 format with nanoseconds.
-
-    Parameters:
-        epoch_time (int): The epoch time in seconds.
-
-    Returns:
-        str: The ISO 8601 formatted string with nanoseconds.
-    """
-    dt = datetime.datetime.fromtimestamp(epoch_time, datetime.UTC)
+def dt_to_iso8601(timestamp):
+    dt = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
     # Format datetime object to ISO 8601 with nanoseconds (compatible with ERA-5 timestamp)
     iso_format = dt.strftime('%Y-%m-%dT%H:%M:%S.%f') + '000'
 
     return iso_format
-
-
-def epoch_to_datetime(epoch: np.uint32) -> datetime.datetime:
-    """
-    Converts epoch time (numpy.uint32) to a datetime.datetime object.
-
-    Args:
-        epoch (np.uint32): The epoch time in seconds.
-
-    Returns:
-        datetime.datetime: The corresponding datetime object.
-    """
-    return datetime.datetime.fromtimestamp(int(epoch))
-
     
-
+    
 def get_monthly_range(start: np.uint32, end: np.uint32) -> list:
     """
     Generates a list of 'yyyy-mm' values representing each month between the start and end dates (inclusive).
 
     Args:
-        start (np.uint32): The start date in epoch seconds.
-        end (np.uint32): The end date in epoch seconds.
+        start (np.uint32): The start date
+        end (np.uint32): The end date
 
     Returns:
         list: List of strings in the format 'yyyy-mm' for each month between start and end.
     """
-    # Convert epoch to datetime
-    start_dt = epoch_to_datetime(start)
-    end_dt = epoch_to_datetime(end)
-
     months = []
-    current = start_dt
+    current = start
 
-    while current <= end_dt:
+    while current <= end:
         # Format the current date as 'yyyy-mm'
         months.append(current.strftime('%Y-%m'))
         
@@ -88,6 +61,9 @@ class ClimateDataStore:
         self.start = start
         self.end = end
         self.months = get_monthly_range(start, end)
+
+        print(f"months: {self.months}")
+        
         self.short_names = short_names
         self.weather_data_path = weather_data_path
 
@@ -134,13 +110,13 @@ class ClimateDataStore:
         Args:
             lat (float): Latitude of the location.
             lon (float): Longitude of the location.
-            epoch_time (int): Time in epoch seconds.
+            time (int): Time in yyyy-mm-dd.
 
         Returns:
             float: Value of the variable at the given location and time.
         """
-        # Convert epoch time to datetime object
-        dt = epoch_to_iso8601(time)
+        # Convert time to iso format
+        dt = dt_to_iso8601(time)
 
         # Select the variable based on the short name -- example short_name '10u' has data_variable 'u10' which corresponds to 10-meter U-component wind velocity
         ds_variables = list(self.weather_ds.data_vars)
@@ -156,8 +132,7 @@ class ClimateDataStore:
         return values
         
     def extract_weather_multiple_points(self, latitudes, longitudes, timestamps) -> dict:
-        # Convert epoch times to datetime objects
-        dt = [epoch_to_iso8601(t) for t in timestamps]
+        dt = [dt_to_iso8601(t) for t in timestamps]
         
         # Initialize a dictionary to store weather data for each short name (weather variable)
         weather_data_dict = {short_name: [] for short_name in self.short_names}
