@@ -7,24 +7,42 @@ from aisdb.database.decoder import fast_unzip
 
 
 def dt_to_iso8601(timestamp):
+    """
+    Convert a any timestamp to an ISO 8601 formatted string.
+
+    Args:
+        timestamp (float): Any timestamp (seconds since epoch).
+
+    Returns:
+        str: The timestamp in ISO 8601 format (e.g., '2025-01-29T12:34:56.000000000').
+
+    Example:
+        >>> dt_to_iso8601(1674963000)
+        '2023-01-29T12:30:00.000000000'
+    """
+
     dt = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
-    # Format datetime object to ISO 8601 with nanoseconds (compatible with ERA-5 timestamp)
     iso_format = dt.strftime('%Y-%m-%dT%H:%M:%S.%f') + '000'
 
     return iso_format
     
     
-def get_monthly_range(start: np.uint32, end: np.uint32) -> list:
+def get_monthly_range(start,end) -> list:
     """
-    Generates a list of 'yyyy-mm' values representing each month between the start and end dates (inclusive).
+    Generate a list of month-year strings between two given timestamps.
 
     Args:
-        start (np.uint32): The start date
-        end (np.uint32): The end date
+        start: The start timestamp.
+        end: The end timestamp.
 
     Returns:
-        list: List of strings in the format 'yyyy-mm' for each month between start and end.
+        list: A list of strings representing the month-year range (e.g., ['2023-01', '2023-02']).
+
+    Example:
+        >>> get_monthly_range(1672531200, 1675123200)
+        ['2023-01', '2023-02']
     """
+
     months = []
     current = start
 
@@ -41,11 +59,24 @@ def get_monthly_range(start: np.uint32, end: np.uint32) -> list:
     return months
 
 class ClimateDataStore:
-    """
-    Load weather data from a server and process it.
-    Call WeatherDataFromServer.Close() to release resources after use.
-    """
     def __init__(self,short_names: list, start:datetime.datetime,end: datetime.datetime, weather_data_path: str):
+        """
+        Initialize a ClimateDataStore object to handle weather data extraction.
+
+        Args:
+            short_names (list): List of weather variable short names (e.g., ['10u', '10v']).
+            start (datetime): Start date for the weather data.
+            end (datetime): End date for the weather data.
+            weather_data_path (str): Path to the directory containing weather data files.
+
+        Example:
+            >>> store = ClimateDataStore(['10u', '10v'], datetime.datetime(2023, 1, 1), datetime.datetime(2023, 2, 1), '/data/weather')
+        
+        Note:
+            After using this object, make sure to call the `close` method to free resources.
+        >>> store.close()
+        """
+                
         # Validate parameter_names
         if not isinstance(short_names, list) or not all(isinstance(name, str) for name in short_names):
             raise ValueError("short_names should be a list of strings.")
@@ -60,16 +91,20 @@ class ClimateDataStore:
             
         self.start = start
         self.end = end
-        self.months = get_monthly_range(start, end)
-
-        print(f"months: {self.months}")
-        
+        self.months = get_monthly_range(start, end)        
         self.short_names = short_names
         self.weather_data_path = weather_data_path
 
         self.weather_ds = self._load_weather_data()
            
     def _load_weather_data(self):
+        """
+        Load and extract weather data from GRIB files for the given date range.
+
+        Returns:
+            xarray.Dataset: The concatenated dataset of weather data.
+        """
+
         weather_dataset_instances = []
 
         # Create a temporary directory for extraction
@@ -105,28 +140,29 @@ class ClimateDataStore:
 
     def extract_weather(self, latitude, longitude, time) -> dict:
         """
-        Get the value of a weather variable at a specific latitude, longitude, and time.
+        Extract weather data for a specific latitude, longitude, and timestamp.
 
         Args:
-            lat (float): Latitude of the location.
-            lon (float): Longitude of the location.
-            time (int): Time in yyyy-mm-dd.
+            latitude (float): Latitude of the point.
+            longitude (float): Longitude of the point.
+            time (int): Timestamp.
 
         Returns:
-            float: Value of the variable at the given location and time.
+            dict: A dictionary containing the extracted weather data (e.g., {'10u': 5.2, '10v': 3.1}).
+
+        Example:
+            >>> store.extract_weather(40.7128, -74.0060, 1674963000)
+            {'10u': 5.2, '10v': 3.1}
+            >>> store.extract_weather(40.7128, -74.0060, 2023-05-01T12:00:00)
+            {'10u': 5.2, '10v': 3.1}
         """
-        # Convert time to iso format
+
         dt = dt_to_iso8601(time)
-
-        # Select the variable based on the short name -- example short_name '10u' has data_variable 'u10' which corresponds to 10-meter U-component wind velocity
         ds_variables = list(self.weather_ds.data_vars)
-
-        # Initialize an empty dictionary to store values for each variable
         values = {}
 
         # Loop through each variable (e.g., wind, wave)
         for var in ds_variables:
-            # Extract the value at the specified lat, lon, and time for each variable
             values[var] = self.weather_ds[var].sel(latitude=latitude, longitude=longitude, time=dt, method='nearest').values
 
         return values
