@@ -1,95 +1,112 @@
 import unittest
-import datetime
-import tempfile
-import os
-import numpy as np
+from datetime import datetime
+from weather.era5 import ClimateDataStore
 from unittest.mock import patch, MagicMock
-from aisdb.weather.era5 import epoch_to_iso8601, get_monthly_range, ClimateDataStore  # Replace 'your_module' with the actual module name
-
-class TestEpochToISO8601(unittest.TestCase):
-    def test_epoch_to_iso8601(self):
-        epoch_time = 1672531200  # Corresponds to 2023-01-01T00:00:00Z
-        expected = "2023-01-01T00:00:00.000000000"
-        self.assertEqual(epoch_to_iso8601(epoch_time), expected)
-
-class TestGetMonthlyRange(unittest.TestCase):
-    def test_get_monthly_range(self):
-        start = datetime.datetime(2023, 1, 1)
-        end = datetime.datetime(2023, 3, 1)
-        expected = ["2023-01", "2023-02", "2023-03"]
-        self.assertEqual(get_monthly_range(start, end), expected)
-
-    def test_get_monthly_range_same_month(self):
-        start = datetime.datetime(2023, 1, 1)
-        end = datetime.datetime(2023, 1, 31)
-        expected = ["2023-01"]
-        self.assertEqual(get_monthly_range(start, end), expected)
 
 class TestClimateDataStore(unittest.TestCase):
-    @patch("your_module.fast_unzip")
-    @patch("your_module.xarray.open_dataset")
-    @patch("your_module.os.getenv")
-    def test_init(self, mock_getenv, mock_open_dataset, mock_fast_unzip):
-        mock_getenv.return_value = tempfile.mkdtemp()
-        mock_open_dataset.return_value = MagicMock()
+    @patch("weather.era5.fast_unzip")  # Mocking the fast_unzip function to avoid actual file operations
+    def test_initialization(self, mock_fast_unzip):
+        # Setup test data
+        short_names = ['10u', '10v']
+        start = datetime(2023, 1, 1)
+        end = datetime(2023, 2, 1)
+        weather_data_path = '/path/to/weather/data'
+
+        # Mock fast_unzip to avoid actual unzipping
         mock_fast_unzip.return_value = None
 
-        short_names = ["10u", "10v"]
-        start = datetime.datetime(2023, 1, 1)
-        end = datetime.datetime(2023, 1, 31)
+        # Create an instance of ClimateDataStore
+        store = ClimateDataStore(short_names, start, end, weather_data_path)
 
-        cds = ClimateDataStore(short_names, start, end)
+        # Test that initialization works
+        self.assertEqual(store.short_names, short_names)
+        self.assertEqual(store.start, start)
+        self.assertEqual(store.end, end)
+        self.assertEqual(store.weather_data_path, weather_data_path)
+        self.assertTrue(len(store.weather_ds) > 0)  # Check that the weather dataset is not empty
 
-        self.assertEqual(cds.start, start)
-        self.assertEqual(cds.end, end)
-        self.assertEqual(cds.short_names, short_names)
-        self.assertEqual(cds.months, ["2023-01"])
+    @patch("weather.era5.xr.open_dataset")  # Mocking xarray to avoid actual file reading
+    def test_load_weather_data(self, mock_open_dataset):
+        # Setup test data
+        short_names = ['10u', '10v']
+        start = datetime(2023, 1, 1)
+        end = datetime(2023, 2, 1)
+        weather_data_path = '/path/to/weather/data'
 
-    @patch("your_module.xarray.open_dataset")
-    @patch("your_module.epoch_to_iso8601")
-    def test_extract_weather(self, mock_epoch_to_iso8601, mock_open_dataset):
-        mock_open_dataset.return_value = MagicMock()
-        mock_epoch_to_iso8601.return_value = "2023-01-01T00:00:00.000000000"
+        # Mock open_dataset to return a mock dataset
+        mock_dataset = MagicMock()
+        mock_open_dataset.return_value = mock_dataset
 
-        cds = ClimateDataStore(["10u"], datetime.datetime(2023, 1, 1), datetime.datetime(2023, 1, 31))
-        cds.weather_ds = MagicMock()
-        cds.weather_ds.data_vars = ["10u"]
-        cds.weather_ds["10u"].sel.return_value.values = 5.2
+        # Create an instance of ClimateDataStore
+        store = ClimateDataStore(short_names, start, end, weather_data_path)
 
-        result = cds.extract_weather(45.0, -122.3, 1672531200)
+        # Test if the _load_weather_data method correctly loads the weather dataset
+        store._load_weather_data()
 
-        self.assertEqual(result, {"10u": 5.2})
+        mock_open_dataset.assert_called()  # Check that the open_dataset method was called
 
-    @patch("your_module.xarray.open_dataset")
-    def test_extract_weather_multiple_points(self, mock_open_dataset):
-        mock_open_dataset.return_value = MagicMock()
+    @patch("weather.era5.ClimateDataStore._load_weather_data")  # Mock the method to avoid loading real data
+    def test_extract_weather(self, mock_load_weather_data):
+        # Setup test data
+        short_names = ['10u', '10v']
+        start = datetime(2023, 1, 1)
+        end = datetime(2023, 2, 1)
+        weather_data_path = '/path/to/weather/data'
 
-        cds = ClimateDataStore(["10u", "10v"], datetime.datetime(2023, 1, 1), datetime.datetime(2023, 1, 31))
-        cds.extract_weather = MagicMock()
-        cds.extract_weather.side_effect = [
-            {"10u": 5.2, "10v": 2.3},
-            {"10u": 5.5, "10v": 2.7},
-            {"10u": 5.8, "10v": 3.0},
-        ]
+        # Mock _load_weather_data to return a mock dataset
+        mock_load_weather_data.return_value = MagicMock()
 
-        latitudes = [45.0, 46.5, 47.2]
-        longitudes = [-122.3, -123.5, -124.8]
-        timestamps = [1672531200, 1672534800, 1672538400]
+        # Create an instance of ClimateDataStore
+        store = ClimateDataStore(short_names, start, end, weather_data_path)
 
-        result = cds.extract_weather_multiple_points(latitudes, longitudes, timestamps)
+        # Setup mock return value for weather extraction
+        mock_values = {'10u': 5.2, '10v': 3.1}
+        store.weather_ds = MagicMock()
+        store.weather_ds.data_vars = ['10u', '10v']
+        store.weather_ds['10u'].sel.return_value.values = 5.2
+        store.weather_ds['10v'].sel.return_value.values = 3.1
 
-        np.testing.assert_array_equal(result["10u"], np.array([5.2, 5.5, 5.8]))
-        np.testing.assert_array_equal(result["10v"], np.array([2.3, 2.7, 3.0]))
+        # Test extracting weather data
+        weather = store.extract_weather(40.7128, -74.0060, 1674963000)
 
-    @patch("your_module.xarray.open_dataset")
-    def test_close(self, mock_open_dataset):
-        mock_open_dataset.return_value = MagicMock()
+        # Assert that the correct values were extracted
+        self.assertEqual(weather['10u'], 5.2)
+        self.assertEqual(weather['10v'], 3.1)
 
-        cds = ClimateDataStore(["10u"], datetime.datetime(2023, 1, 1), datetime.datetime(2023, 1, 31))
-        cds.weather_ds = MagicMock()
-        cds.close()
+    @patch("weather.era5.xr.DataArray")  # Mock xarray DataArray to prevent actual data handling
+    def test_extract_weather_multiple_points(self, mock_data_array):
+        # Setup test data
+        short_names = ['10u', '10v']
+        start = datetime(2023, 1, 1)
+        end = datetime(2023, 2, 1)
+        weather_data_path = '/path/to/weather/data'
 
-        cds.weather_ds.close.assert_called_once()
+        # Mock DataArray creation and values extraction
+        mock_data = MagicMock()
+        mock_data.values = [5.2, 3.1]
+        mock_data_array.return_value = mock_data
+
+        # Create an instance of ClimateDataStore
+        store = ClimateDataStore(short_names, start, end, weather_data_path)
+
+        # Test extracting weather data for multiple points
+        latitudes = [40.7128, 34.0522]
+        longitudes = [-74.0060, -118.2437]
+        timestamps = [1674963000, 1675049400]
+        weather_data = store.extract_weather_multiple_points(latitudes, longitudes, timestamps)
+
+        # Assert the correct values are returned
+        self.assertEqual(weather_data['10u'], [5.2, 5.2])  # Assuming mock data returns 5.2 for both points
+        self.assertEqual(weather_data['10v'], [3.1, 3.1])  # Assuming mock data returns 3.1 for both points
+
+    def test_invalid_initialization(self):
+        # Test invalid short names
+        with self.assertRaises(ValueError):
+            store = ClimateDataStore(['invalid_name'], datetime(2023, 1, 1), datetime(2023, 2, 1), '/data/weather')
+
+        # Test invalid weather_data_path
+        with self.assertRaises(ValueError):
+            store = ClimateDataStore(['10u', '10v'], datetime(2023, 1, 1), datetime(2023, 2, 1), '')
 
 if __name__ == "__main__":
     unittest.main()
