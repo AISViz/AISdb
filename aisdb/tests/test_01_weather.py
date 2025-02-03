@@ -86,7 +86,4 @@ class TestClimateDataStore(unittest.TestCase):
 
         # Assert that the correct values were extracted
         self.assertEqual(weather['10u'], 5.2)  # Ensure 10u has the correct mocked value
-
-
-if __name__ == "__main__":
-    unittest.main()
+        
