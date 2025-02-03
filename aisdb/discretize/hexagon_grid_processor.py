@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from shapely.ops import unary_union
 from shapely.geometry import Point, Polygon, MultiPolygon
+import folium
 
 class HexagonGridProcessor:
     def __init__(self, shapefile_path, resolution):
@@ -25,14 +26,23 @@ class HexagonGridProcessor:
         self.gdf_significant_overlap = None
         self.gdf_largest_cc = None
 
-        self.load_shapefile()
+        self._load_shapefile()
 
-    def load_shapefile(self):
+    def _load_shapefile(self):
         self.gdf_gulf = gpd.read_file(self.shapefile_path)
         self.gdf_gulf = self.gdf_gulf.to_crs(epsg=4326)
         self.gulf_polygon = unary_union(self.gdf_gulf.geometry)
+    
+    def process(self,render_html_map = True):
+        self._generate_hexagons()
+        self._filter_fully_within()
+        self._filter_significant_overlap()
+        self._filter_largest_connected_component()
+        self._save_outputs()
+        if render_html_map:
+            self._render_html_map()
 
-    def generate_hexagons(self):
+    def _generate_hexagons(self):
         min_x, min_y, max_x, max_y = self.gulf_polygon.bounds
         lat_range = np.arange(min_y, max_y, 0.01)
         lon_range = np.arange(min_x, max_x, 0.01)
@@ -45,11 +55,11 @@ class HexagonGridProcessor:
         hexagon_polygons = [(hex_id, Polygon(h3.h3_to_geo_boundary(hex_id, geo_json=True))) for hex_id in hexagons]
         self.gdf_hex = gpd.GeoDataFrame(hexagon_polygons, columns=['hex_id', 'geometry'], crs='EPSG:4326')
 
-    def filter_fully_within(self):
+    def _filter_fully_within(self):
         self.gdf_hex['is_fully_within'] = self.gdf_hex['geometry'].apply(lambda x: self.gulf_polygon.contains(x))
         self.gdf_fully_within_hex = self.gdf_hex[self.gdf_hex['is_fully_within']].drop(columns='is_fully_within')
 
-    def filter_significant_overlap(self):
+    def _filter_significant_overlap(self):
         gdf_gulf_utm = self.gdf_gulf.to_crs(epsg=32619)
         self.gdf_hex = self.gdf_hex.to_crs(epsg=32619)
         gulf_polygon_utm = unary_union(gdf_gulf_utm.geometry)
@@ -58,7 +68,7 @@ class HexagonGridProcessor:
         self.gdf_hex['percentage_overlap'] = (self.gdf_hex['overlap_area_km2'] / self.gdf_hex['area_km2']) * 100
         self.gdf_significant_overlap = self.gdf_hex[self.gdf_hex['percentage_overlap'] > 70]
 
-    def filter_largest_connected_component(self):
+    def _filter_largest_connected_component(self):
         G = nx.Graph()
         for hex_id, polygon in zip(self.gdf_significant_overlap['hex_id'], self.gdf_significant_overlap['geometry']):
             G.add_node(hex_id, geometry=polygon)
@@ -71,7 +81,7 @@ class HexagonGridProcessor:
         largest_cc_hex_ids = list(largest_cc)
         self.gdf_largest_cc = self.gdf_significant_overlap[self.gdf_significant_overlap['hex_id'].isin(largest_cc_hex_ids)]
 
-    def save_outputs(self,output_file_path="."):
+    def _save_outputs(self,output_file_path="."):
         self.gdf_fully_within_hex.to_file(f"{output_file_path}/2_Hexagons.shp", driver='ESRI Shapefile')
         self.gdf_significant_overlap.to_file(f"{output_file_path}/3_Hexagons.shp", driver='ESRI Shapefile')
         self.gdf_largest_cc.to_file(f"{output_file_path}/4_Hexagons.shp", driver='ESRI Shapefile')
@@ -91,12 +101,14 @@ class HexagonGridProcessor:
             plt.savefig(f"{image_path}/hexagon_final_hist.svg", format='svg', bbox_inches='tight')
         plt.show()
 
-    def process(self):
-        self.generate_hexagons()
-        self.filter_fully_within()
-        self.filter_significant_overlap()
-        self.filter_largest_connected_component()
-        self.save_outputs()
+    def _render_html_map(self, output_file='./hexagon_map.html'):
+        map_center = self.gdf_largest_cc.geometry.centroid.iloc[0].coords[:][0][::-1]
+        folium_map = folium.Map(location=map_center, zoom_start=7)
+        folium.GeoJson(self.gdf_largest_cc.to_json()).add_to(folium_map)
+        folium_map.save(output_file)
+        print(f"Interactive map available at: file://{output_file}")
+
+
 
 # Usage Example
 # processor = HexagonGridProcessor('inputs/gulf.shp', 6)
