@@ -75,6 +75,8 @@ from .denoising_encoder import (
 
 from .weather.era5 import ClimateDataStore
 
+from .discretize.hexagon_grid_processor import HexagonGridProcessor
+
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',
                     level=LOGLEVEL,
