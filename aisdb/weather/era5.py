@@ -21,7 +21,7 @@ def dt_to_iso8601(timestamp):
         '2023-01-29T12:30:00.000000000'
     """
 
-    dt = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
+    dt = datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
     iso_format = dt.strftime('%Y-%m-%dT%H:%M:%S.%f') + '000'
 
     return iso_format
