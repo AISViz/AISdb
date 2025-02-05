@@ -254,7 +254,8 @@ pub fn postgres_decodemsgs_ee_csv(
                 own_vessel: true,
                 station: Station::BaseStation,
                 ais_type: AisClass::Unknown,
-                mmsi: row.get(0).unwrap().parse().unwrap(),
+                // mmsi: row.get(0).unwrap().parse().unwrap(),
+                mmsi: row.get(0).unwrap().parse::<u32>().unwrap_or(0),  // make tolerant with invalid MMSIs
                 nav_status: NavigationStatus::NotDefined,
                 rot: row.get(25).unwrap().parse::<f64>().ok(),
                 rot_direction: None,
