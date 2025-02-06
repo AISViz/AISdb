@@ -3,6 +3,7 @@ import os
 import pickle
 import tempfile
 import zipfile
+import shutil
 from copy import deepcopy
 from datetime import timedelta
 from functools import partial
@@ -262,7 +263,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     ]
 
     if verbose:
-        print("creating tables and dropping table indexes...")
+        print("creating tables...")
 
     # drop constraints and indexes to speed up insert,
     # and rebuild them after inserting
@@ -316,10 +317,15 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
 
     if verbose:
         print("cleaning temporary data...")
-
-    for tmpfile in unzipped:
-        os.remove(tmpfile)
-    os.removedirs(dbindex.tmp_dir)
+    try:
+        for tmpfile in unzipped:
+            os.remove(tmpfile)
+        shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
+    except Exception as e:
+        print(f"Error cleaning temporary files: {e}")
+    # for tmpfile in unzipped:
+    #     os.remove(tmpfile)
+    # os.removedirs(dbindex.tmp_dir)
 
     if isinstance(dbconn, PostgresDBConn):
         if not raw_insertion:
