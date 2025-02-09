@@ -1,0 +1,87 @@
+name: API Doc Generation
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  publish-docs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [ x86_64 ]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          if command -v yum &> /dev/null; then
+                sudo yum update -y && sudo yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang gcc-multilib 
+                # If we're running on i686 we need to symlink libatomic
+                # in order to build openssl with -latomic flag.
+                if [[ ! -d "/usr/lib64" ]]; then
+                    sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+                fi
+                
+                echo "finished yum install"
+            else
+                # If we're running on debian-based system.
+                sudo apt update -y && sudo apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang gcc-multilib  
+                
+                echo "finished apt install"
+            fi
+      
+      - name: Install Rust Target for wasm
+        run: |
+          rustup target add wasm32-unknown-unknown
+            
+      - name: install wasm-pack
+        run: |
+          cargo install --locked wasm-pack --verbose
+          cargo install --locked wasm-bindgen-cli --verbose
+          cargo install --locked wasm-opt --verbose
+          wasm-pack --version
+      
+      - name: Build AISdb
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate || exit 1
+          python -m pip install --upgrade pip || exit 1
+          python -m pip install maturin || exit 1
+          maturin develop || exit 1
+
+      - name: Install dependencies for API docs
+        run: |
+          source .venv/bin/activate || exit 1
+          python -m pip install --upgrade pip || exit 1
+          python -m pip install sphinx sphinx-rtd-theme matplotlib joblib || exit 1
+            
+      - name: Build docs
+        run: |
+          source .venv/bin/activate || exit 1
+          ls
+          sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/* || exit 1
+          python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx || exit 1
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/dist_sphinx
+        
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        
+      - name: Clean Up
+        run: |
+          source .venv/bin/activate || exit 1
+          rm -rf gh-pages || exit 1
+          rm -rf docs/dist_sphinx
+          rm -rf .venv

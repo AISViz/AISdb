@@ -1,15 +1,16 @@
 [build-system]
-requires = [ "maturin>=1.0", "numpy", "wheel", "patchelf", ]
+requires = ["maturin>=1.0", "numpy", "wheel", "patchelf"]
 build-backend = "maturin"
 
 [project]
 name = "aisdb"
 requires-python = ">=3.8"
-requires-dist = [ "maturin>=1.0", "numpy", "wheel", ]
+requires-dist = ["maturin>=1.0", "numpy", "wheel"]
 dependencies = [
     "MarkupSafe", "flask", "packaging", "pillow", "requests", "selenium", "shapely",
-    "python-dateutil", "orjson", "websockets","beautifulsoup4", "pyproj", "py7zr",
+    "python-dateutil", "orjson", "websockets", "beautifulsoup4", "pyproj", "py7zr",
     "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "scipy",
+    "geopandas", "xarray", "cfgrib"
 ]
 zip-safe = false
 version = "1.7.3"
@@ -21,15 +22,15 @@ classifiers = [
     "Topic :: Scientific/Engineering :: GIS", "Intended Audience :: Developers", "Intended Audience :: Science/Research",
     "Programming Language :: SQL", "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Topic :: Database :: Database Engines/Servers", "Topic :: Database :: Front-Ends",
-    "Programming Language :: Python :: 3.10", "Programming Language :: Rust",
+    "Programming Language :: Python :: 3.10", "Programming Language :: Rust"
 ]
 
 [[project.authors]]
 email = "aisviz@dal.ca"
 name = "AISViz Mantainers"
 
-[project.license-files]
-paths = [ "LICENSE", ]
+[project.license]
+file = "LICENSE"
 
 [project.urls]
 homepage = "https://aisviz.cs.dal.ca/"
@@ -38,8 +39,8 @@ tutorials = "https://aisviz.gitbook.io/tutorials/"
 documentation = "https://aisviz.gitbook.io/documentation/"
 
 [project.optional-dependencies]
-test = [ "coverage", "pytest", "pytest-cov", "pytest-dotenv", ]
-docs = [ "sphinx", "sphinx-rtd-theme", ]
+test = ["coverage", "pytest", "pytest-cov", "pytest-dotenv"]
+docs = ["sphinx", "sphinx-rtd-theme"]
 devel = []
 
 [tool.maturin]
@@ -48,11 +49,11 @@ include = [
     "pyproject.toml", "aisdb/*.py", "aisdb/aisdb_sql/*.sql", "aisdb/database/*.py", "aisdb/tests/*.py",
     "aisdb_lib/*", "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map/favicon.png", "aisdb_web/dist_map/favicon.svg",
     "aisdb/tests/testdata/test_data_20210701.csv", "aisdb/tests/testdata/test_data_20211101.nm4", "aisdb/webdata/*.py",
-    "aisdb_web/dist_map/index.html", "aisdb_web/dist_map_bingmaps/assets/*", "aisdb_web/dist_map_bingmaps/favicon.png",
+    "aisdb_web/dist_map/index.html", "aisdb_web/dist_map_bingmaps/assets/*", "aisdb_web/dist_map_bingmaps/favicon.png"
 ]
 bindings = "pyo3"
 compatability = "manylinux2014"
 
 [tool.pytest.ini_options]
-testpaths = [ "aisdb/tests", ]
+testpaths = ["aisdb/tests"]
 addopts = "--color=yes --cov-report term --cov-report html:docs/dist_coverage --cov=aisdb --cov=examples --doctest-modules --envfile .env"
