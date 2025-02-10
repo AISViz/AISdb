@@ -210,9 +210,9 @@ class ClimateDataStore:
             weather_data_dict[var] = data.values  # Extract values as numpy array
         
         # Add weather data to each track
-        for i, track in enumerate(tracks):
+        for track in tracks:
             for key, value in weather_data_dict.items():
-                track[key] = value[i]  # Add weather data to the track dictionary
+                track[key] = value
             yield track
 
 
