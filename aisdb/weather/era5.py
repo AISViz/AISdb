@@ -167,7 +167,11 @@ class ClimateDataStore:
 
         return values
         
-    def extract_weather_multiple_points(self, latitudes, longitudes, timestamps) -> dict:
+    def yield_tracks_with_weather(self, tracks) -> dict:
+        longitudes = np.array([t['lon'] for t in tracks], dtype=float)
+        latitudes = np.array([t['lat'] for t in tracks], dtype=float)
+        timestamps = np.array([t['time'] for t in tracks], dtype=np.uint32)
+    
         dt = [dt_to_iso8601(t) for t in timestamps]
         
         # Initialize a dictionary to store weather data for each short name (weather variable)
@@ -193,7 +197,14 @@ class ClimateDataStore:
             # The shape of the data will be (len(latitudes),) if latitudes, longitudes, and times are 1D
             weather_data_dict[var] = data.values  # Extract values as numpy array
         
-        return weather_data_dict
+        # Add weather data to each track
+        for i, track in enumerate(tracks):
+            for key, value in weather_data_dict.items():
+                track[key] = value[i]  # Add weather data to the track dictionary
+            yield track
+        
+        return  
+
 
     def close(self):
         """
