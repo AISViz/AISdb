@@ -1,6 +1,6 @@
 import datetime
-import os
 import tempfile
+import types
 import xarray as xr
 import numpy as np
 from aisdb.database.decoder import fast_unzip
@@ -168,9 +168,21 @@ class ClimateDataStore:
         return values
         
     def yield_tracks_with_weather(self, tracks) -> dict:
-        longitudes = np.array([t['lon'] for t in tracks], dtype=float)
-        latitudes = np.array([t['lat'] for t in tracks], dtype=float)
-        timestamps = np.array([t['time'] for t in tracks], dtype=np.uint32)
+        assert isinstance(tracks, types.GeneratorType)
+
+        longitudes = []
+        latitudes = []
+        timestamps = []
+
+        for t in tracks:
+            longitudes.extend(t['lon'])
+            latitudes.extend(t['lat'])
+            timestamps.extend(t['time'])
+        
+        # Convert lists to NumPy arrays
+        longitudes = np.array(longitudes)
+        latitudes = np.array(latitudes)
+        timestamps = np.array(timestamps)
     
         dt = [dt_to_iso8601(t) for t in timestamps]
         
@@ -202,8 +214,6 @@ class ClimateDataStore:
             for key, value in weather_data_dict.items():
                 track[key] = value[i]  # Add weather data to the track dictionary
             yield track
-        
-        return  
 
 
     def close(self):
