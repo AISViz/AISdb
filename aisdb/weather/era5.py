@@ -170,6 +170,7 @@ class ClimateDataStore:
     def yield_tracks_with_weather(self, tracks) -> dict:
         assert isinstance(tracks, types.GeneratorType)
 
+        tracks = list(tracks)
         longitudes = []
         latitudes = []
         timestamps = []
