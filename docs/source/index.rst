@@ -3,8 +3,7 @@ AISDB Docs: Index
 
 .. raw:: html
 
-    For hands-on quick start guide for using AISdb, please refer to <a href="https://aisviz.gitbook.io/" target="_blank">AISdb Documentation</a>.
-
+    For a hands-on quick start guide for using AISdb, please refer to the <a href="https://aisviz.gitbook.io/" target="_blank">AISdb Tutorials</a>.<br/><br/>
 
 .. toctree::
    :maxdepth: 5
