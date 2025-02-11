@@ -58,10 +58,10 @@ def get_monthly_range(start,end) -> list:
     
     return months
 
-class ClimateDataStore:
+class WeatherDataStore:
     def __init__(self,short_names: list, start:datetime.datetime,end: datetime.datetime, weather_data_path: str):
         """
-        Initialize a ClimateDataStore object to handle weather data extraction.
+        Initialize a WeatherDataStore object to handle weather data extraction.
 
         Args:
             short_names (list): List of weather variable short names (e.g., ['10u', '10v']).
@@ -70,7 +70,7 @@ class ClimateDataStore:
             weather_data_path (str): Path to the directory containing weather data files.
 
         Example:
-            >>> store = ClimateDataStore(['10u', '10v'], datetime.datetime(2023, 1, 1), datetime.datetime(2023, 2, 1), '/data/weather')
+            >>> store = WeatherDataStore(['10u', '10v'], datetime.datetime(2023, 1, 1), datetime.datetime(2023, 2, 1), '/data/weather')
         
         Note:
             After using this object, make sure to call the `close` method to free resources.
@@ -168,21 +168,22 @@ class ClimateDataStore:
         return values
         
     def yield_tracks_with_weather(self, tracks) -> dict:
-        """Yields tracks with weather. Takes a generator of track dictionaries, retrieves
-    corresponding weather data from an xarray Dataset, and adds the
-    weather data to each track.
+        """
+        Yields tracks with weather. Takes a generator of track dictionaries, retrieves
+        corresponding weather data from an xarray Dataset, and adds the
+        weather data to each track.
 
-    Args:
-        tracks: A generator of dictionaries, where each dictionary
-            represents a track and contains 'lon', 'lat', and 'time' keys
-            with lists or numpy arrays of longitudes, latitudes, and
-            timestamps, respectively.
+        Args:
+            tracks: A generator of dictionaries, where each dictionary
+                represents a track and contains 'lon', 'lat', and 'time' keys
+                with lists or numpy arrays of longitudes, latitudes, and
+                timestamps, respectively.
 
-    Yields:
-        tracks: A generator of dictionaries, where each dictionary is a track
-        with an added 'weather_data' key. The 'weather_data' value is
-        a dictionary containing weather variable names.
-    """
+        Yields:
+            tracks: A generator of dictionaries, where each dictionary is a track
+            with an added 'weather_data' key. The 'weather_data' value is
+            a dictionary containing weather variable names.
+        """
         assert isinstance(tracks, types.GeneratorType)
 
         for track in tracks:      
@@ -217,6 +218,7 @@ class ClimateDataStore:
             track["weather_data"] = weather_data_dict      
                   
             yield track
+        
 
 
     def close(self):
