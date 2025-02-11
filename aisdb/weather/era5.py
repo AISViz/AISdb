@@ -168,6 +168,21 @@ class ClimateDataStore:
         return values
         
     def yield_tracks_with_weather(self, tracks) -> dict:
+        """Yields tracks with weather takes a generator of track dictionaries, retrieves
+    corresponding weather data from an xarray Dataset, and adds the
+    weather data to each track.
+
+    Args:
+        tracks: A generator of dictionaries, where each dictionary
+            represents a track and contains 'lon', 'lat', and 'time' keys
+            with lists or numpy arrays of longitudes, latitudes, and
+            timestamps, respectively.
+
+    Yields:
+        tracks: A generator of dictionaries, where each dictionary is a track
+        with an added 'weather_data' key. The 'weather_data' value is
+        a dictionary containing weather variable names.
+    """
         assert isinstance(tracks, types.GeneratorType)
 
         for track in tracks:      
