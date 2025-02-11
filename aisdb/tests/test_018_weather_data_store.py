@@ -86,4 +86,37 @@ class TestWeatherDataStore(unittest.TestCase):
 
         # Assert that the correct values were extracted
         self.assertEqual(weather['10u'], 5.2)  # Ensure 10u has the correct mocked value
+    
+    def test_yield_tracks_with_weather(self):
+        # Create a mock dataset with weather variables
+        mock_ds = MagicMock(spec=xr.Dataset)
+        mock_ds.data_vars = {'10u': MagicMock(), '10v': MagicMock()}
+        
+        # Mock the 'sel' method for each variable to return a mock value
+        mock_sel = MagicMock()
+        mock_sel.values = np.array([5.2, -1.3])  # Simulated weather values
+        mock_ds['10u'].sel.return_value = mock_sel
+        mock_ds['10v'].sel.return_value = mock_sel
+        
+        with patch.object(WeatherDataStore, '_load_weather_data', return_value=mock_ds):
+            store = WeatherDataStore(short_names=['10u', '10v'], start=datetime(2023, 1, 1), end=datetime(2023, 1, 2), weather_data_path='/fake/path')
+            
+            # Create a sample track generator
+            def track_generator():
+                yield {'lon': [10.0, 20.0], 'lat': [30.0, 40.0], 'time': [datetime(2023, 1, 1), datetime(2023, 1, 2)]}
+            
+            tracks_with_weather = list(store.yield_tracks_with_weather(track_generator()))
+            
+            # Validate the output
+            self.assertEqual(len(tracks_with_weather), 1)
+            self.assertIn('weather_data', tracks_with_weather[0])
+            self.assertEqual(tracks_with_weather[0]['weather_data']['10u'], [5.2, -1.3])
+            self.assertEqual(tracks_with_weather[0]['weather_data']['10v'], [5.2, -1.3])
+            
+            # Ensure the 'sel' method was called
+            mock_ds['10u'].sel.assert_called()
+            mock_ds['10v'].sel.assert_called()
+            
+            # Test the close method
+            store.close()
         
