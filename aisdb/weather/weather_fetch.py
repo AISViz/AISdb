@@ -5,15 +5,11 @@ from datetime import datetime, timedelta
 
 class FetchClimateData:
     AVAILABLE_PARAMETERS = [
-        "variable","day","time","month","temperature_and_pressure", "wind", "mean_rates", 
+        "variable","day","start_time","end_time","month","temperature_and_pressure", "wind", "mean_rates", 
         "radiation_and_heat", "clouds", "year", "area",
         "lakes", "evaporation_and_runoff", "precipitation_and_rain", "snow", "soil",
         "vertical_integrals", "vegetation", "ocean_waves", "other"
     ]
-    MONTH_MAPPING = {
-        "January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06",
-        "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"
-    }
 
     def __init__(self, dataset: str = None, params_requested: dict = None, output_path: str = None):
         """
@@ -32,23 +28,14 @@ class FetchClimateData:
         if not required_keys.issubset(params_requested.keys()):
             raise ValueError(f"Request must contain the following keys: {required_keys}")
         
-        if "product_type" in params_requested and params_requested["product_type"] != "reanalysis":
-            raise ValueError("Product type must always be 'reanalysis'.")
         params_requested["product_type"] = "reanalysis"
-        
-        if "format" in params_requested and params_requested["format"] != "grib":
-            raise ValueError("Data format must always be 'grib'.")
         params_requested["format"] = "grib"
-        
-        if "download_format" in params_requested and params_requested["download_format"] != "unarchived":
-            raise ValueError("Download format must always be 'unarchived'.")
         params_requested["download_format"] = "unarchived"
         
         for param in params_requested.keys():
             if param not in self.AVAILABLE_PARAMETERS and param not in {"start_time", "end_time", "area", "product_type", "format", "download_format"}:
                 raise ValueError(f"Invalid parameter '{param}'. Choose from {self.AVAILABLE_PARAMETERS}")
         
-        # Validate area coordinates (North, West, South, East)
         area = params_requested.get("area", [])
         if len(area) != 4 or not (
             -90 <= area[0] <= 90 and -180 <= area[1] <= 180 and -90 <= area[2] <= 90 and -180 <= area[3] <= 180
@@ -56,28 +43,40 @@ class FetchClimateData:
             raise ValueError("Invalid geographical area. Format: [North, West, South, East] within valid lat/lon bounds.")
         
         try:
-            start_time = datetime.strptime(request["start_time"], "%Y-%m-%d %H:%M")
-            end_time = datetime.strptime(request["end_time"], "%Y-%m-%d %H:%M")
+            start_time = params_requested["start_time"]
+            end_time = params_requested["end_time"]
         except ValueError:
             raise ValueError("Time must be in format 'YYYY-MM-DD HH:MM'.")
         
         if start_time >= end_time:
             raise ValueError("Start time must be earlier than end time.")
         
-        if start_time.year < 1940 or end_time.year > 20205:
-            raise ValueError("Year must be between 1940 and 20205.")
+        if start_time.year < 1940 or end_time.year > 2025:
+            raise ValueError("Year must be between 1940 and 2025.")
         
-        # Generate time intervals
+        # Convert variable to correct format
+        params_requested["variable"] = [params_requested["variable"].replace(" ", "_")]
+        
+        # Generate list of years, months, and days
+        current_date = start_time
+        years, months, days = set(), set(), set()
+        while current_date <= end_time:
+            years.add(str(current_date.year))
+            months.add(str(current_date.month).zfill(2))
+            days.add(str(current_date.day).zfill(2))
+            current_date += timedelta(days=1)
+        
+        params_requested["year"] = sorted(list(years))
+        params_requested["month"] = sorted(list(months))
+        params_requested["day"] = sorted(list(days))
+        
+        # Generate list of hourly timestamps
         time_intervals = []
         current_time = start_time
         while current_time <= end_time:
             time_intervals.append(current_time.strftime("%H:%M"))
             current_time += timedelta(hours=1)
         
-        params_requested["year"] = [str(start_time.year)]
-        month_name = start_time.strftime("%B").lower()
-        params_requested["month"] = [self.MONTH_MAPPING[month_name]]
-        params_requested["day"] = [str(start_time.day).zfill(2)]
         params_requested["time"] = time_intervals
 
         self.dataset = dataset
@@ -88,6 +87,7 @@ class FetchClimateData:
             print("API Key found")
         except Exception as e:
             print(f"Error while fetching API Key: {e}")
+        print(f"Requested data API format: {params_requested}")    
     
     def fetch_data(self):
         """

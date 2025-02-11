@@ -74,6 +74,7 @@ from .denoising_encoder import (
 )
 
 from .weather.era5 import ClimateDataStore
+from .weather.weather_fetch import FetchClimateData
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',
