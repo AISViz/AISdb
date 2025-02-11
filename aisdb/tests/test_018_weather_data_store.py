@@ -1,11 +1,11 @@
 import unittest
 from datetime import datetime
-from aisdb.weather.era5 import ClimateDataStore
+from aisdb.weather.data_store import WeatherDataStore
 from unittest.mock import patch, MagicMock
 import xarray as xr
 
-class TestClimateDataStore(unittest.TestCase):
-    @patch("aisdb.weather.era5.fast_unzip")  # Mocking the fast_unzip function to avoid actual file operations
+class TestWeatherDataStore(unittest.TestCase):
+    @patch("aisdb.weather.data_store.fast_unzip")  # Mocking the fast_unzip function to avoid actual file operations
     @patch("xarray.open_dataset")  # Mocking xarray's open_dataset to avoid reading actual files
     @patch("xarray.concat")  # Mocking xarray's concat to avoid actual concatenation
     def test_initialization(self, mock_concat, mock_open_dataset, mock_fast_unzip):
@@ -36,8 +36,8 @@ class TestClimateDataStore(unittest.TestCase):
         # Ensuring we correctly simulate the typing (T_Dataset)
         mock_concat.return_value = mock_ds
 
-        # Create an instance of ClimateDataStore
-        store = ClimateDataStore(short_names, start, end, weather_data_path)
+        # Create an instance of WeatherDataStore
+        store = WeatherDataStore(short_names, start, end, weather_data_path)
 
         # Test that initialization works
         self.assertEqual(store.short_names, short_names)
@@ -57,7 +57,7 @@ class TestClimateDataStore(unittest.TestCase):
         # Assert that xarray.concat was called to combine the datasets
         mock_concat.assert_called()
 
-    @patch("aisdb.weather.era5.ClimateDataStore._load_weather_data")  # Mock the method to avoid loading real data
+    @patch("aisdb.weather.da.WeatherDataStore._load_weather_data")  # Mock the method to avoid loading real data
     def test_extract_weather(self, mock_load_weather_data):
         # Setup test data
         short_names = ['10u', '10v']
@@ -68,8 +68,8 @@ class TestClimateDataStore(unittest.TestCase):
         # Mock _load_weather_data to return a mock dataset
         mock_load_weather_data.return_value = MagicMock()
 
-        # Create an instance of ClimateDataStore
-        store = ClimateDataStore(short_names, start, end, weather_data_path)
+        # Create an instance of WeatherDataStore
+        store = WeatherDataStore(short_names, start, end, weather_data_path)
 
         # Mock dataset and the 'data_vars' for both '10u' and '10v'
         mock_values = {'10u': 5.2}  # Mock values based on the variable names
