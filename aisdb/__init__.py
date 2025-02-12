@@ -73,7 +73,7 @@ from .denoising_encoder import (
     remove_pings_wrt_speed
 )
 
-from .weather.era5 import ClimateDataStore
+from .weather.data_store import WeatherDataStore
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',

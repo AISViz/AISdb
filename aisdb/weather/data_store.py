@@ -1,6 +1,6 @@
 import datetime
-import os
 import tempfile
+import types
 import xarray as xr
 import numpy as np
 from aisdb.database.decoder import fast_unzip
@@ -58,10 +58,10 @@ def get_monthly_range(start,end) -> list:
     
     return months
 
-class ClimateDataStore:
+class WeatherDataStore:
     def __init__(self,short_names: list, start:datetime.datetime,end: datetime.datetime, weather_data_path: str):
         """
-        Initialize a ClimateDataStore object to handle weather data extraction.
+        Initialize a WeatherDataStore object to handle weather data extraction.
 
         Args:
             short_names (list): List of weather variable short names (e.g., ['10u', '10v']).
@@ -70,7 +70,7 @@ class ClimateDataStore:
             weather_data_path (str): Path to the directory containing weather data files.
 
         Example:
-            >>> store = ClimateDataStore(['10u', '10v'], datetime.datetime(2023, 1, 1), datetime.datetime(2023, 2, 1), '/data/weather')
+            >>> store = WeatherDataStore(['10u', '10v'], datetime.datetime(2023, 1, 1), datetime.datetime(2023, 2, 1), '/data/weather')
         
         Note:
             After using this object, make sure to call the `close` method to free resources.
@@ -167,33 +167,59 @@ class ClimateDataStore:
 
         return values
         
-    def extract_weather_multiple_points(self, latitudes, longitudes, timestamps) -> dict:
-        dt = [dt_to_iso8601(t) for t in timestamps]
+    def yield_tracks_with_weather(self, tracks) -> dict:
+        """
+        Yields tracks with weather. Takes a generator of track dictionaries, retrieves
+        corresponding weather data from an xarray Dataset, and adds the
+        weather data to each track.
+
+        Args:
+            tracks: A generator of dictionaries, where each dictionary
+                represents a track and contains 'lon', 'lat', and 'time' keys
+                with lists or numpy arrays of longitudes, latitudes, and
+                timestamps, respectively.
+
+        Yields:
+            tracks: A generator of dictionaries, where each dictionary is a track
+            with an added 'weather_data' key. The 'weather_data' value is
+            a dictionary containing weather variable names.
+        """
+        assert isinstance(tracks, types.GeneratorType)
+
+        for track in tracks:      
+            longitudes = np.array(track['lon'])
+            latitudes = np.array(track['lat'])
+            timestamps = np.array(track['time'])
         
-        # Initialize a dictionary to store weather data for each short name (weather variable)
-        weather_data_dict = {short_name: [] for short_name in self.short_names}
-        
-        # Create xarray DataArrays for latitudes, longitudes, and times
-        latitudes_da = xr.DataArray(latitudes, dims="points", name="latitude")
-        longitudes_da = xr.DataArray(longitudes, dims="points", name="longitude")
-        times_da = xr.DataArray(dt, dims="points", name="time")
-        
-        # Use xarray's multi-dimensional selection to get values for each variable
-        for var in self.weather_ds.data_vars:
-            # Extract values using xarray's .sel() for multi-dimensional indexing
-            # We need to ensure that xarray knows the lat, lon, and time coordinates are aligned
-            data = self.weather_ds[var].sel(
-                latitude=latitudes_da, 
-                longitude=longitudes_da, 
-                time=times_da, 
-                method="nearest"
-            )
+            dt = [dt_to_iso8601(t) for t in timestamps]
             
-            # Convert xarray DataArray to numpy array and store it
-            # The shape of the data will be (len(latitudes),) if latitudes, longitudes, and times are 1D
-            weather_data_dict[var] = data.values  # Extract values as numpy array
+            # Initialize a dictionary to store weather data for each short name (weather variable)
+            weather_data_dict = {short_name: [] for short_name in self.short_names}
+            
+            # Create xarray DataArrays for latitudes, longitudes, and times
+            latitudes_da = xr.DataArray(latitudes, dims="points", name="latitude")
+            longitudes_da = xr.DataArray(longitudes, dims="points", name="longitude")
+            times_da = xr.DataArray(dt, dims="points", name="time")
+            
+            # Use xarray's multi-dimensional selection to get values for each variable
+            for var in self.weather_ds.data_vars:
+                # Extract values using xarray's .sel() for multi-dimensional indexing
+                # We need to ensure that xarray knows the lat, lon, and time coordinates are aligned
+                data = self.weather_ds[var].sel(
+                    latitude=latitudes_da, 
+                    longitude=longitudes_da, 
+                    time=times_da, 
+                    method="nearest"
+                )
+                
+                
+                weather_data_dict[var] = data.values 
+            
+            track["weather_data"] = weather_data_dict      
+                  
+            yield track
         
-        return weather_data_dict
+
 
     def close(self):
         """
