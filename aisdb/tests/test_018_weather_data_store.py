@@ -3,6 +3,7 @@ from datetime import datetime
 from aisdb.weather.data_store import WeatherDataStore
 from unittest.mock import patch, MagicMock
 import xarray as xr
+import numpy as np
 
 class TestWeatherDataStore(unittest.TestCase):
     @patch("aisdb.weather.data_store.fast_unzip")  # Mocking the fast_unzip function to avoid actual file operations
