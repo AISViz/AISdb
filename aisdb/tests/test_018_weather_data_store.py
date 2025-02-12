@@ -58,7 +58,7 @@ class TestWeatherDataStore(unittest.TestCase):
         # Assert that xarray.concat was called to combine the datasets
         mock_concat.assert_called()
 
-    @patch("aisdb.weather.da.WeatherDataStore._load_weather_data")  # Mock the method to avoid loading real data
+    @patch("aisdb.weather.data.WeatherDataStore._load_weather_data")  # Mock the method to avoid loading real data
     def test_extract_weather(self, mock_load_weather_data):
         # Setup test data
         short_names = ['10u', '10v']
