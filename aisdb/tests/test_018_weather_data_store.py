@@ -3,6 +3,7 @@ from datetime import datetime
 from aisdb.weather.data_store import WeatherDataStore
 from unittest.mock import patch, MagicMock
 import xarray as xr
+import numpy as np
 
 class TestWeatherDataStore(unittest.TestCase):
     @patch("aisdb.weather.data_store.fast_unzip")  # Mocking the fast_unzip function to avoid actual file operations
@@ -57,7 +58,7 @@ class TestWeatherDataStore(unittest.TestCase):
         # Assert that xarray.concat was called to combine the datasets
         mock_concat.assert_called()
 
-    @patch("aisdb.weather.da.WeatherDataStore._load_weather_data")  # Mock the method to avoid loading real data
+    @patch("aisdb.weather.data.WeatherDataStore._load_weather_data")  # Mock the method to avoid loading real data
     def test_extract_weather(self, mock_load_weather_data):
         # Setup test data
         short_names = ['10u', '10v']
