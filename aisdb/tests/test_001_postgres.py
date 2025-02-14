@@ -33,6 +33,28 @@ def test_create_from_CSV_postgres(tmpdir):
         assert "ais_202107_dynamic" in tables
 
 
+def test_create_from_CSV_postgres_timescaledb(tmpdir):
+    testingdata_csv = os.path.join(os.path.dirname(__file__), "testdata", "test_data_20210701.csv")
+    with PostgresDBConn(conn_information) as dbconn:
+        decode_msgs(dbconn=dbconn, filepaths=[testingdata_csv], source="TESTING", vacuum=False,
+                    skip_checksum=True, raw_insertion=True, timescaledb=True)
+        cur = dbconn.cursor()
+        cur.execute(  # need to specify database name in SQL statement
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema = 'public' ORDER BY table_name;")
+        tables = [row["table_name"] for row in cur.fetchall()]
+        assert "ais_202107_dynamic" in tables
+
+        # Fetch and print indexes for the table
+        cur.execute("""
+            SELECT indexname, indexdef 
+            FROM pg_indexes 
+            WHERE tablename = 'ais_202107_dynamic';
+        """)
+        indexes = cur.fetchall()
+        print(indexes)
+
+
 def test_decode_1day_postgres(tmpdir):
     testingdata_nm4 = os.path.join(os.path.dirname(__file__), "testdata", "test_data_20211101.nm4")
     testingdata_csv = os.path.join(os.path.dirname(__file__), "testdata", "test_data_20210701.csv")
