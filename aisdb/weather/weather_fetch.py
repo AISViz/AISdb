@@ -105,12 +105,10 @@ class FetchClimateData:
                 time_intervals.append(current_time.strftime("%H:%M"))
                 current_time += timedelta(hours=1)
         else:
-            # If spanning multiple days, include all 24 hours
             time_intervals = [f"{hour:02d}:00" for hour in range(24)]
 
         self.params_requested["time"] = time_intervals
 
-        # Now remove start_time and end_time from params_requested
         self.params_requested.pop("start_time", None)
         self.params_requested.pop("end_time", None)
 
@@ -119,11 +117,8 @@ class FetchClimateData:
 
         try:
             self.client = cdsapi.Client()
-            print("API Key found")
         except Exception as e:
             print(f"Error while fetching API Key: {e}")
-
-        print(f"Requested data API format: {self.params_requested}")
 
     def fetch_data(self):
         """
