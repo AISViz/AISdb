@@ -3,6 +3,7 @@ import os
 import pickle
 import tempfile
 import zipfile
+import shutil
 from copy import deepcopy
 from datetime import timedelta
 from functools import partial
@@ -155,8 +156,8 @@ def fast_unzip(zip_filenames, dirname):
         fcn(file)
 
 
-def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False,
-                workers=4, type_preference="all", raw_insertion=False, verbose=True):
+def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
+                workers=4, type_preference="all", raw_insertion=True, verbose=True, timescaledb=False):
     """
     Decode messages from filepaths and insert them into a database.
 
@@ -164,11 +165,12 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False,
     :param dbconn: database connection to use for insertion
     :param source: source identifier for the decoded messages
     :param vacuum: whether to vacuum the database after insertion (default is False)
-    :param skip_checksum: whether to skip checksum validation (default is False)
+    :param skip_checksum: whether to skip checksum validation (default is True)
     :param workers: number of parallel workers to use (default is 4)
     :param type_preference: preferred file type to be used (default is "all")
-    :param raw_insertion: whether to insert messages without indexing them (default is False)
+    :param raw_insertion: whether to insert messages without indexing them (default is True)
     :param verbose: whether to print verbose output (default is True)
+    :param timescaledb: whether to insert data to a database with timescale extension (default is False)
     :return: None
     """
     if not isinstance(dbconn,
@@ -261,20 +263,27 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False,
     ]
 
     if verbose:
-        print("creating tables and dropping table indexes...")
+        print("creating tables...")
 
     # drop constraints and indexes to speed up insert,
     # and rebuild them after inserting
     if isinstance(dbconn, PostgresDBConn):
-        with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
-            create_dynamic_table_stmt = f.read()
-        with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
-            create_static_table_stmt = f.read()
+        if timescaledb:
+            with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
+                create_dynamic_table_stmt = f.read()
+            with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
+                create_static_table_stmt = f.read()
+        else:
+            with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
+                create_dynamic_table_stmt = f.read()
+            with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
+                create_static_table_stmt = f.read()
         for month in months:
             dbconn.execute(create_dynamic_table_stmt.format(month))
             dbconn.execute(create_static_table_stmt.format(month))
-            for idx_name in ("mmsi", "time", "longitude", "latitude"):
-                dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name};")
+            if not raw_insertion:
+                dbconn.drop_indexes(month, verbose, timescaledb)
+
         dbconn.commit()
         completed_files = decoder(dbpath="",
                                   psql_conn_string=dbconn.connection_string, files=raw_files,
@@ -308,22 +317,20 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=False,
 
     if verbose:
         print("cleaning temporary data...")
-
-    for tmpfile in unzipped:
-        os.remove(tmpfile)
-    os.removedirs(dbindex.tmp_dir)
+    try:
+        for tmpfile in unzipped:
+            os.remove(tmpfile)
+        shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
+    except Exception as e:
+        print(f"Error cleaning temporary files: {e}")
+    # for tmpfile in unzipped:
+    #     os.remove(tmpfile)
+    # os.removedirs(dbindex.tmp_dir)
 
     if isinstance(dbconn, PostgresDBConn):
-        if verbose:
-            print("rebuilding indexes...")
-        for month in months:
-            dbconn.execute(create_dynamic_table_stmt.format(month))
-            dbconn.execute(create_static_table_stmt.format(month))
-            if not raw_insertion:
-                for idx_name in ("mmsi", "time", "longitude", "latitude"):
-                    dbconn.execute(f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} "
-                                   f"ON ais_{month}_dynamic ({idx_name});")
-                dbconn.rebuild_indexes(month, verbose)
+        if not raw_insertion:
+            for month in months:
+                dbconn.rebuild_indexes(month, verbose, timescaledb)
                 dbconn.execute("ANALYZE")
         dbconn.commit()
 

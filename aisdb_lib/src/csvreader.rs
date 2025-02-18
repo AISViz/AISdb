@@ -20,16 +20,27 @@ use crate::decode::VesselData;
 
 const BATCHSIZE: usize = 50000;
 
-/// convert time string to epoch seconds
-pub fn csvdt_2_epoch(dt: &str) -> i64 {
-    let mut utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S");
-    if let Err(_e) = utctime {
-        utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%dT%H%M%SZ")
+// /// convert time string to epoch seconds
+// pub fn csvdt_2_epoch(dt: &str) -> i64 {
+//     let mut utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S");
+//     if let Err(_e) = utctime {
+//         utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%dT%H%M%SZ")
+//     }
+//     if let Err(e) = utctime {
+//         panic!("parsing timestamp from '{}': {}", dt, e);
+//     }
+//     Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
+// }
+
+/// Convert time string to epoch seconds
+pub fn csvdt_2_epoch(dt: &str) -> Result<i64, String> {
+    let utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S")
+        .or_else(|_| NaiveDateTime::parse_from_str(dt, "%Y%m%dT%H%M%SZ"));
+
+    match utctime {
+        Ok(parsed_time) => Ok(Utc.from_utc_datetime(&parsed_time).timestamp()),
+        Err(e) => Err(format!("Failed to parse timestamp '{}': {}", dt, e)),
     }
-    if let Err(e) = utctime {
-        panic!("parsing timestamp from '{}': {}", dt, e);
-    }
-    Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
 }
 
 /// filter everything but vessel data, sort vessel data into static and dynamic vectors
@@ -47,12 +58,18 @@ pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringReco
     match msgtype {
         "1" | "2" | "3" | "18" | "19" | "27" => Some((
             row,
-            csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
+//             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
+            csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()).unwrap_or_else(|e| {
+                eprintln!("Failed to parse timestamp: {}", e);
+                0 }) as i32,
             true,
         )),
         "5" | "24" => Some((
             row,
-            csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
+//             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
+            csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()).unwrap_or_else(|e| {
+                eprintln!("Failed to parse timestamp: {}", e);
+                0 }) as i32,
             false,
         )),
         _ => None,
@@ -237,7 +254,8 @@ pub fn postgres_decodemsgs_ee_csv(
                 own_vessel: true,
                 station: Station::BaseStation,
                 ais_type: AisClass::Unknown,
-                mmsi: row.get(0).unwrap().parse().unwrap(),
+                // mmsi: row.get(0).unwrap().parse().unwrap(),
+                mmsi: row.get(0).unwrap().parse::<u32>().unwrap_or(0),  // make tolerant with invalid MMSIs
                 nav_status: NavigationStatus::NotDefined,
                 rot: row.get(25).unwrap().parse::<f64>().ok(),
                 rot_direction: None,
