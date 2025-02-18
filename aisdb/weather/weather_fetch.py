@@ -27,7 +27,8 @@ class ClimateDataStore:
             raise ValueError("Start time must be earlier than end time.")
 
         self.params_requested = {**DEFAULT_PARAMS}
-
+        self.dataset = dataset
+        
         area = self.params_requested.get("area", [])
         if len(area) != 4 or not (
             -90 <= area[0] <= 90 and -180 <= area[1] <= 180 and -90 <= area[2] <= 90 and -180 <= area[3] <= 180
@@ -82,10 +83,10 @@ class ClimateDataStore:
 
     def _get_variable_for_shortName(self, short_names: list) -> list:
         variables = []
-        for i in short_names:
-                value =  SHORT_NAMES_TO_VARIABLES[short_names[i]]
+        for short_name in short_names:
+                value =  SHORT_NAMES_TO_VARIABLES[short_name]
                 if value == "":
-                    raise ValueError(f"Invalid shortName: {short_names[i]}.")
+                    raise ValueError(f"Invalid shortName: {short_name}.")
                 
                 variables.append(value)
         return variables
