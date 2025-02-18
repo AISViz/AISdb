@@ -1,4 +1,5 @@
 name: Pipeline
+
 on:
   push:
     branches:
@@ -7,14 +8,17 @@ on:
       - '*'
   pull_request:
   workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 env:
   pguser: "postgres"
   pghost: "127.0.0.1"
   pgpass: ${{ secrets.PGPASS }}
+
 jobs:
   build-and-test-windows:
     runs-on: windows-latest
@@ -36,23 +40,27 @@ jobs:
       
       - name: Checkout Repository
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           architecture: 'x64'
           cache: 'pip'
+
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
           cache: true
+
       - name: Install wasm-pack
         run: |
           cargo install --locked wasm-pack --verbose
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
+
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
           python -m venv AISdb
@@ -62,13 +70,16 @@ jobs:
           python -m pip install maturin
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+
       - name: Run Tests
         run: |
           AISdb\Scripts\activate
           pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+
       - name: Clean Up
         run: |
           Remove-Item -Recurse -Force AISdb
+
   build-and-test-linux:
     runs-on: ubuntu-latest
     needs: [linux]
@@ -88,11 +99,13 @@ jobs:
       
       - name: Checkout Repository
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
+
       - name: Install Rust Toolchain
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -114,23 +127,6 @@ jobs:
           sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
-
-    
-          
-            
-    
-
-          
-          Expand Down
-          
-            
-    
-
-          
-          Expand Up
-    
-    @@ -459,4 +464,4 @@ jobs:
-  
           python -m venv AISdb
           source ./AISdb/bin/activate
           python -m pip install --upgrade pip
@@ -166,11 +162,13 @@ jobs:
       
       - name: Checkout Repository
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
+
       - name: Install Rust Toolchain
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -190,21 +188,25 @@ jobs:
           brew install zlib
           export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig
           echo "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+
       - name: Install wasm-pack
         run: |
           cargo install --locked wasm-pack --verbose
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
+
       - name: Install PostgreSQL
         run: |
           brew install postgresql@14
           brew services start postgresql@14
           brew link postgresql@14 --force
           brew cleanup
+
       - name: Configure PostgreSQL
         run: |
           psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
+
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
           python -m venv AISdb
@@ -214,13 +216,16 @@ jobs:
           python -m pip install maturin
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+
       - name: Run Tests
         run: |
           source ./AISdb/bin/activate
           pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+
       - name: Clean Up
         run: |
           rm -rf AISdb
+
   linux:
     runs-on: ubuntu-latest
     needs: [sdist]
@@ -233,6 +238,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+
       - name: Install dependencies
         run: |
           if command -v yum &> /dev/null; then
@@ -280,6 +286,7 @@ jobs:
         with:
           name: wheels-linux-${{ matrix.target }}
           path: dist
+
       - name: Clean Up
         run: |
           rm -rf AISdb
@@ -325,6 +332,7 @@ jobs:
         run: |
           Remove-Item -Recurse -Force AISdb
           Remove-Item -Recurse -Force C:\Users\runneradmin\.cargo\*
+
   macos:
     runs-on: macos-latest
     needs: [sdist]
@@ -381,6 +389,7 @@ jobs:
         run: |
           rm -rf AISdb
           rm -rf ~/.cargo
+
   sdist:
     runs-on: ubuntu-latest
     steps:
@@ -395,6 +404,7 @@ jobs:
         with:
           name: wheels
           path: dist
+
   release:
     name: Release
     runs-on: ubuntu-latest
@@ -411,6 +421,7 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing *
+
   # publish-docs:
   #   runs-on: ubuntu-latest
   #   needs: [release]
@@ -424,6 +435,7 @@ jobs:
   #     - uses: actions/setup-python@v5
   #       with:
   #         python-version: '3.10'
+
   #     - name: Install dependencies
   #       run: |
   #         python -m pip install --upgrade pip || exit 1
@@ -434,6 +446,7 @@ jobs:
   #       run: |
   #         sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/*
   #         python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx
+
   #     - name: Upload Pages artifact
   #       uses: actions/upload-pages-artifact@v2
   #       with:
