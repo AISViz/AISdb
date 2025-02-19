@@ -124,10 +124,10 @@ jobs:
       #     sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
       #     sudo apt-get autoremove -y
       #     sudo apt-get autoclean -y
-      - name: Check PostgreSQL Listening Port
-        run: |
-          echo "Checking PostgreSQL port from configuration..."
-          sudo -u postgres psql -c "SHOW port;"
+      # - name: Check PostgreSQL Listening Port
+      #   run: |
+      #     echo "Checking PostgreSQL port from configuration..."
+      #     sudo -u postgres psql -c "SHOW port;"
 
       - name: Setup PostgreSQL 17 Default
         run: |
@@ -137,6 +137,8 @@ jobs:
           sudo apt install postgresql-server-dev-17
           sudo systemctl enable postgresql
           sudo systemctl start postgresql
+          echo "Checking PostgreSQL port from configuration..."
+          sudo -u postgres psql -c "SHOW port;"
           sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
       
       - name: Check PostgreSQL Version
