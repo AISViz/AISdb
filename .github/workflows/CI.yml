@@ -119,23 +119,24 @@ jobs:
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
 
-      - name: Check PostgreSQL Versions
-        run: |
-          dpkg -l | grep postgresql
-          ls /usr/lib/postgresql/
-          sudo -u postgres psql -c "SHOW server_version;"
-          
-      - name: Setup PostgreSQL 17
+      - name: Setup PostgreSQL 17 Default
         run: |
           sudo apt-get update -y
           sudo apt install gnupg postgresql-common apt-transport-https lsb-release wget
           yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
           sudo apt install postgresql-server-dev-17
+          sudo update-alternatives --install /usr/bin/psql psql /usr/lib/postgresql/17/bin/psql 100
+          sudo update-alternatives --config psql
           sudo systemctl enable postgresql
           sudo systemctl start postgresql
           sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
+      
+      - name: Check PostgreSQL Version
+        run: |
+          sudo -u postgres psql -c "SHOW server_version;"
+          ls /usr/lib/postgresql/
 
-      - name: Add TimescaleDB
+      - name: Add TimescaleDB Package
         run: |
           echo "deb https://packagecloud.io/timescale/timescaledb/ubuntu/ $(lsb_release -c -s) main" | sudo tee /etc/apt/sources.list.d/timescaledb.list
           wget --quiet -O - https://packagecloud.io/timescale/timescaledb/gpgkey | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/timescaledb.gpg
@@ -223,14 +224,39 @@ jobs:
 
       - name: Install PostgreSQL
         run: |
-          brew install postgresql@14
-          brew services start postgresql@14
-          brew link postgresql@14 --force
+          brew update
+          brew install postgresql@17
+          brew link postgresql@17 --force
+          brew services start postgresql@17
           brew cleanup
 
       - name: Configure PostgreSQL
         run: |
           psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
+
+      - name: Install TimescaleDB
+        run: |
+          brew tap timescale/tap
+          brew install timescaledb
+          timescaledb-tune --quiet --yes
+          brew services restart postgresql
+          brew cleanup
+
+      - name: Setup TimescaleDB
+        run: |
+          TSDB_PATH=$(brew --prefix timescaledb)/bin
+          
+          if [ -f "$TSDB_PATH/timescaledb_move.sh" ]; then
+            cd "$TSDB_PATH"
+            ./timescaledb_move.sh
+          else
+            echo "Error: timescaledb_move.sh not found!"
+            exit 1
+          fi
+          
+          brew services restart postgresql
+          sleep 5
+          psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
 
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
