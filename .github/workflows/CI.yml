@@ -119,11 +119,15 @@ jobs:
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
 
-      - name: Remove Old PostgreSQL Versions
+      # - name: Remove Old PostgreSQL Versions
+      #   run: |
+      #     sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
+      #     sudo apt-get autoremove -y
+      #     sudo apt-get autoclean -y
+      - name: Check PostgreSQL Listening Port
         run: |
-          sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
-          sudo apt-get autoremove -y
-          sudo apt-get autoclean -y
+          echo "Checking PostgreSQL port from configuration..."
+          sudo -u postgres psql -c "SHOW port;"
 
       - name: Setup PostgreSQL 17 Default
         run: |
@@ -139,6 +143,8 @@ jobs:
         run: |
           sudo -u postgres psql -c "SHOW server_version;"
           ls /usr/lib/postgresql/
+          echo "Checking PostgreSQL port from configuration..."
+          sudo -u postgres psql -c "SHOW port;"
 
       - name: Add TimescaleDB Package
         run: |
