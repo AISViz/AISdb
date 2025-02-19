@@ -119,24 +119,26 @@ jobs:
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
 
-      # - name: Remove Old PostgreSQL Versions
-      #   run: |
-      #     sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
-      #     sudo apt-get autoremove -y
-      #     sudo apt-get autoclean -y
-      # - name: Check PostgreSQL Listening Port
-      #   run: |
-      #     echo "Checking PostgreSQL port from configuration..."
-      #     sudo -u postgres psql -c "SHOW port;"
-
+      - name: Stop PostgreSQL 16 Service
+        run: |
+          if systemctl is-active --quiet postgresql@16-main; then
+            echo "PostgreSQL 16 is active. Stopping and removing it."
+            sudo systemctl stop postgresql@16-main
+            sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
+            sudo apt-get autoremove -y
+            sudo apt-get autoclean -y
+          else
+            echo "PostgreSQL 16 is not active. No need to stop or remove it."
+          fi
+          
       - name: Setup PostgreSQL 17 Default
         run: |
           sudo apt-get update -y
           sudo apt install gnupg postgresql-common apt-transport-https lsb-release wget
           yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
           sudo apt install postgresql-server-dev-17
-          sudo systemctl enable postgresql
-          sudo systemctl start postgresql
+          sudo systemctl enable postgresql@17-main
+          sudo systemctl start postgresql@17-main
           echo "Checking PostgreSQL port from configuration..."
           sudo -u postgres psql -c "SHOW port;"
           sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
