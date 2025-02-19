@@ -119,14 +119,18 @@ jobs:
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
 
+      - name: Remove Old PostgreSQL Versions
+        run: |
+          sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean -y
+
       - name: Setup PostgreSQL 17 Default
         run: |
           sudo apt-get update -y
           sudo apt install gnupg postgresql-common apt-transport-https lsb-release wget
           yes | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
           sudo apt install postgresql-server-dev-17
-          sudo update-alternatives --install /usr/bin/psql psql /usr/lib/postgresql/17/bin/psql 100
-          sudo update-alternatives --config psql
           sudo systemctl enable postgresql
           sudo systemctl start postgresql
           sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
