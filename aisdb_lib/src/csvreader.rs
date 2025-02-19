@@ -78,12 +78,11 @@ pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringReco
 }
 
 /// convert ISO8601 time format (NOAA in use) to epoch seconds
-pub fn iso8601_2_epoch(dt: &str) -> i64 {
-    let utctime = NaiveDateTime::parse_from_str(dt, "%Y-%m-%dT%H:%M:%S");
-    if let Err(e) = utctime {
-        panic!("parsing timestamp from '{}': {}", dt, e);
+pub fn iso8601_2_epoch(dt: &str) -> Option<i64> {
+    match NaiveDateTime::parse_from_str(dt, "%Y-%m-%dT%H:%M:%S") {
+        Ok(utctime) => Some(Utc.from_utc_datetime(&utctime).timestamp()),
+        Err(_) => None,  // Return None instead of panicking
     }
-    Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
 }
 
 /// perform database input from Spire
@@ -392,7 +391,13 @@ pub fn sqlite_decodemsgs_noaa_csv(
         count += 1;
         let row = row_option.unwrap();
         let row_clone = row.clone();
-        let epoch = iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) as i32;
+        let epoch = match iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) {
+            Some(epoch) => epoch as i32,
+            None => {
+                eprintln!("Skipping row due to invalid timestamp: {:?}", row_cl$
+                return Ok(());
+            }
+        };
         let mmsi: u32 = row.get(0).unwrap().parse().unwrap();
         let payload_dynamic = VesselDynamicData {
             own_vessel: true,
@@ -402,7 +407,6 @@ pub fn sqlite_decodemsgs_noaa_csv(
                 Some("B") => AisClass::ClassB,
                 _ => AisClass::Unknown,
             },
-            // mmsi: row.get(0).unwrap().parse().unwrap(),
             mmsi: mmsi,
             nav_status: NavigationStatus::new(row.get(11).unwrap().parse().unwrap_or_default()),
             rot: None,
@@ -536,7 +540,13 @@ pub fn postgres_decodemsgs_noaa_csv(
         count += 1;
         let row = row_option.unwrap();
         let row_clone = row.clone();
-        let epoch = iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) as i32;
+        let epoch = match iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) {
+            Some(epoch) => epoch as i32,
+            None => {
+                eprintln!("Skipping row due to invalid timestamp: {:?}", row_cl$
+                return Ok(());
+            }
+        };
         let mmsi: u32 = row.get(0).unwrap().parse().unwrap();
         let payload_dynamic = VesselDynamicData {
             own_vessel: true,
