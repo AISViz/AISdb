@@ -383,7 +383,7 @@ pub fn sqlite_decodemsgs_noaa_csv(
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
     let mut count = 0;
-    // let mut static_seen: HashSet<u32> = HashSet::new(); // 
+    let mut static_seen: HashSet<u32> = HashSet::new();
 
     let mut c = get_db_conn(dbpath).expect("getting db conn");
 
@@ -394,7 +394,7 @@ pub fn sqlite_decodemsgs_noaa_csv(
         let epoch = match iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) {
             Some(epoch) => epoch as i32,
             None => {
-                eprintln!("Skipping row due to invalid timestamp: {:?}", row_cl$
+                eprintln!("Skipping row due to invalid timestamp: {:?}", row_clone.get(1));
                 return Ok(());
             }
         };
@@ -445,7 +445,6 @@ pub fn sqlite_decodemsgs_noaa_csv(
                     Some("B") => AisClass::ClassB,
                     _ => AisClass::Unknown,
                 },
-                // mmsi: row.get(0).unwrap().parse().unwrap(),
                 mmsi: mmsi,
                 ais_version_indicator: 0, // NOAA does not contain such info but an u8 data type is enforced, we give default value 0 same with unsuccessful parsing result from Spire
                 imo_number: row.get(8).unwrap().parse().ok(),
@@ -543,7 +542,7 @@ pub fn postgres_decodemsgs_noaa_csv(
         let epoch = match iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) {
             Some(epoch) => epoch as i32,
             None => {
-                eprintln!("Skipping row due to invalid timestamp: {:?}", row_cl$
+                eprintln!("Skipping row due to invalid timestamp: {:?}", row_clone.get(1));
                 return Ok(());
             }
         };
