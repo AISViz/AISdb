@@ -118,6 +118,12 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
+
+      - name: Check PostgreSQL Versions
+        run: |
+          dpkg -l | grep postgresql
+          ls /usr/lib/postgresql/
+          sudo -u postgres psql -c "SHOW server_version;"
           
       - name: Setup PostgreSQL 17
         run: |
