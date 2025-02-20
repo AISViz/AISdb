@@ -148,16 +148,7 @@ jobs:
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
           psql ${{ steps.postgres.outputs.connection-uri }} -c 'SHOW config_file'
-      
-      - name: Install PostgreSQL Client
-        run: |
-          sudo apt update
-          sudo apt install -y postgresql-client-17
-    
-      - name: Verify pg_ctl
-        run: |
-          which pg_ctl
-          pg_ctl --version
+          sudo systemctl status postgresql
 
       - name: Add TimescaleDB Package
         run: |
@@ -181,9 +172,9 @@ jobs:
           sudo bash -c "echo \"shared_preload_libraries = 'timescaledb'\" >> $CONFIG_PATH"
           echo "TimescaleDB preloaded in $CONFIG_PATH"
 
-      - name: Restart PostgreSQL using pg_ctl
+      - name: Restart PostgreSQL
         run: |
-          sudo /usr/lib/postgresql/17/bin/pg_ctl restart -D /home/runner/work/_temp/pgdata
+          sudo systemctl restart postgresql
           sleep 3
     
       - name: Create TimescaleDB Extension
