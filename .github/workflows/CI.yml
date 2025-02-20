@@ -114,24 +114,24 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.cargo/env
       
-      # - name: Install wasm-pack
-      #   run: |
-      #     cargo install --locked wasm-pack --verbose
-      #     cargo install --locked wasm-bindgen-cli --verbose
-      #     cargo install --locked wasm-opt --verbose
-      #     wasm-pack --version
+      - name: Install wasm-pack
+        run: |
+          cargo install --locked wasm-pack --verbose
+          cargo install --locked wasm-bindgen-cli --verbose
+          cargo install --locked wasm-opt --verbose
+          wasm-pack --version
 
-      # - name: Stop PostgreSQL 16 Service
-      #   run: |
-      #     if systemctl is-active --quiet postgresql@16-main; then
-      #       echo "PostgreSQL 16 is active. Stopping and removing it."
-      #       sudo systemctl stop postgresql@16-main
-      #       sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
-      #       sudo apt-get autoremove -y
-      #       sudo apt-get autoclean -y
-      #     else
-      #       echo "PostgreSQL 16 is not active. No need to stop or remove it."
-      #     fi
+      - name: Stop PostgreSQL 16 Service
+        run: |
+          if systemctl is-active --quiet postgresql@16-main; then
+            echo "PostgreSQL 16 is active. Stopping and removing it."
+            sudo systemctl stop postgresql@16-main
+            sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
+            sudo apt-get autoremove -y
+            sudo apt-get autoclean -y
+          else
+            echo "PostgreSQL 16 is not active. No need to stop or remove it."
+          fi
           
       - name: Setup PostgreSQL 17 Default
         uses: ikalnytskyi/action-setup-postgres@v7
@@ -186,25 +186,25 @@ jobs:
           sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
           echo "TimescaleDB Extension created"
           
-      # - name: Create Python Virtual Environment and Install Dependencies
-      #   run: |
-      #     python -m venv AISdb
-      #     source ./AISdb/bin/activate
-      #     python -m pip install --upgrade pip
-      #     python -m pip install xarray
-      #     python -m pip install maturin
-      #     maturin develop --release --extras=test,docs
-      #     python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+      - name: Create Python Virtual Environment and Install Dependencies
+        run: |
+          python -m venv AISdb
+          source ./AISdb/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install xarray
+          python -m pip install maturin
+          maturin develop --release --extras=test,docs
+          python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
       
-      # - name: Run Tests
-      #   run: |
-      #     source ./AISdb/bin/activate
-      #     pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+      - name: Run Tests
+        run: |
+          source ./AISdb/bin/activate
+          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
       
-      # - name: Clean Up
-      #   run: |
-      #     rm -rf AISdb
-      #     sudo apt-get clean
+      - name: Clean Up
+        run: |
+          rm -rf AISdb
+          sudo apt-get clean
           
   # build-and-test-macos:
   #   runs-on: macos-latest
