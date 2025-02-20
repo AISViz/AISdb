@@ -149,6 +149,15 @@ jobs:
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
           psql ${{ steps.postgres.outputs.connection-uri }} -c 'SHOW config_file'
       
+      - name: Install PostgreSQL Client
+        run: |
+          sudo apt update
+          sudo apt install -y postgresql-client-17
+    
+      - name: Verify pg_ctl
+        run: |
+          which pg_ctl
+          pg_ctl --version
 
       - name: Add TimescaleDB Package
         run: |
