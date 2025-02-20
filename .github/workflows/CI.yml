@@ -136,9 +136,9 @@ jobs:
           sudo apt-get update -y
           sudo apt-get upgrade -y
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg postgresql-common apt-transport-https lsb-release wget
-          # sudo apt-get install -y postgresql-17 postgresql-client-17
-          echo | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
-          sudo apt-get install -y postgresql-server-dev-17
+          sudo apt-get install -y postgresql-17 postgresql-client-17 postgresql-server-dev-17
+          # echo | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+          # sudo apt-get install -y postgresql-server-dev-17
           sudo systemctl enable postgresql@17-main
           sudo systemctl start postgresql@17-main
           echo "Checking PostgreSQL port from configuration..."
@@ -274,7 +274,7 @@ jobs:
             exit 1
           fi
           
-          brew services restart postgresql
+          brew services restart postgresql@17
           sleep 5
           psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
 
