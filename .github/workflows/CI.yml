@@ -166,12 +166,22 @@ jobs:
         run: |
           sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17
           echo "TimescaleDB Extension installed"
-          sudo echo "shared_preload_libraries = 'timescaledb'" >> /home/runner/work/_temp/pgdata/postgresql.conf
-          echo "shared_preload_libraries added to postgresql.conf"
-          sudo timescaledb-tune --yes
-          echo "TimescaleDB tuned"
-          sudo systemctl restart postgresql
+
+      - name: Apply TimescaleDB tuning
+        run: |
+          sudo timescaledb-tune --quiet --yes
+          echo "TimescaleDB tuning applied"
+        
+      - name: Restart PostgreSQL
+        run: |
+          PGDATA=$(psql ${{ steps.postgres.outputs.connection-uri }} -tAc "SHOW data_directory;")
+          echo "PostgreSQL data directory: $PGDATA"
+          sudo pg_ctl restart -D "$PGDATA" -m fast
+          sleep 3
           echo "PostgreSQL restarted"
+        
+      - name: Create TimescaleDB Extension
+        run: |
           sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
           echo "TimescaleDB Extension created"
           
