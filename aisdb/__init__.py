@@ -74,7 +74,7 @@ from .denoising_encoder import (
 )
 
 from .kinematic import (
-    feature
+    track_feature,
 )
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
