@@ -121,31 +121,36 @@ jobs:
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
 
-      - name: Stop PostgreSQL 16 Service
-        run: |
-          if systemctl is-active --quiet postgresql@16-main; then
-            echo "PostgreSQL 16 is active. Stopping and removing it."
-            sudo systemctl stop postgresql@16-main
-            sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
-            sudo apt-get autoremove -y
-            sudo apt-get autoclean -y
-          else
-            echo "PostgreSQL 16 is not active. No need to stop or remove it."
-          fi
+      # - name: Stop PostgreSQL 16 Service
+      #   run: |
+      #     if systemctl is-active --quiet postgresql@16-main; then
+      #       echo "PostgreSQL 16 is active. Stopping and removing it."
+      #       sudo systemctl stop postgresql@16-main
+      #       sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
+      #       sudo apt-get autoremove -y
+      #       sudo apt-get autoclean -y
+      #     else
+      #       echo "PostgreSQL 16 is not active. No need to stop or remove it."
+      #     fi
           
       - name: Setup PostgreSQL 17 Default
+        uses: ikalnytskyi/action-setup-postgres@v7
+        with:
+          username: ${{ secrets.PGUSER }}
+          password:  ${{ secrets.PGPASS }}
+          database: test
+          port: 34837
+          postgres-version: "17"
+          ssl: true
+        id: postgres
+      
+      - name: Test PostgreSQL Connection
         run: |
-          sudo apt-get update -y
-          sudo apt-get upgrade -y
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg postgresql-common apt-transport-https lsb-release wget
-          # sudo apt-get install -y postgresql-17 postgresql-client-17 postgresql-server-dev-17
-          printf "\n" | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
-          sudo apt-get install -y postgresql-server-dev-17
-          sudo systemctl enable postgresql@17-main
-          sudo systemctl start postgresql@17-main
-          echo "Checking PostgreSQL port from configuration..."
-          sudo -u postgres psql -c "SHOW port;"
-          sudo -u postgres psql postgres -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
+          psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
+          psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
+          psql -c "SELECT 1"
+          env:
+            PGSERVICE: ${{ steps.postgres.outputs.service-name }}
       
       # - name: Check PostgreSQL Version
       #   run: |
