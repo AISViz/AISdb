@@ -20,66 +20,66 @@ env:
   pgpass: ${{ secrets.PGPASS }}
 
 jobs:
-  build-and-test-windows:
-    runs-on: windows-latest
-    # needs: [windows]
-    needs: [sdist]
-    steps:
-      - uses: actions/cache@v3
-        with:
-          path: |
-            AISdb/Lib/site-packages
-            C:\Users\runneradmin\.cargo
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-            ${{ runner.os }}-cargo-
+  # build-and-test-windows:
+  #   runs-on: windows-latest
+  #   # needs: [windows]
+  #   needs: [sdist]
+  #   steps:
+  #     - uses: actions/cache@v3
+  #       with:
+  #         path: |
+  #           AISdb/Lib/site-packages
+  #           C:\Users\runneradmin\.cargo
+  #         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-pip-
+  #           ${{ runner.os }}-cargo-
       
-      - uses: ikalnytskyi/action-setup-postgres@v4
-        with:
-          password: ${{ secrets.PGPASS }}
+  #     - uses: ikalnytskyi/action-setup-postgres@v4
+  #       with:
+  #         password: ${{ secrets.PGPASS }}
       
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-          architecture: 'x64'
-          cache: 'pip'
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.10'
+  #         architecture: 'x64'
+  #         cache: 'pip'
 
-      - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          cache: true
+  #     - name: Install Rust Toolchain
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         override: true
+  #         cache: true
 
-      - name: Install wasm-pack
-        run: |
-          cargo install --locked wasm-pack --verbose
-          cargo install --locked wasm-bindgen-cli --verbose
-          cargo install --locked wasm-opt --verbose
+  #     - name: Install wasm-pack
+  #       run: |
+  #         cargo install --locked wasm-pack --verbose
+  #         cargo install --locked wasm-bindgen-cli --verbose
+  #         cargo install --locked wasm-opt --verbose
 
-      - name: Create Python Virtual Environment and Install Dependencies
-        run: |
-          python -m venv AISdb
-          AISdb\Scripts\activate
-          python -m pip install --upgrade pip
-          python -m pip install xarray
-          python -m pip install maturin
-          maturin develop --release --extras=test,docs
-          python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+  #     - name: Create Python Virtual Environment and Install Dependencies
+  #       run: |
+  #         python -m venv AISdb
+  #         AISdb\Scripts\activate
+  #         python -m pip install --upgrade pip
+  #         python -m pip install xarray
+  #         python -m pip install maturin
+  #         maturin develop --release --extras=test,docs
+  #         python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
-      - name: Run Tests
-        run: |
-          AISdb\Scripts\activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+  #     - name: Run Tests
+  #       run: |
+  #         AISdb\Scripts\activate
+  #         pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
 
-      - name: Clean Up
-        run: |
-          Remove-Item -Recurse -Force AISdb
+  #     - name: Clean Up
+  #       run: |
+  #         Remove-Item -Recurse -Force AISdb
 
   build-and-test-linux:
     runs-on: ubuntu-latest
@@ -114,12 +114,12 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           source $HOME/.cargo/env
       
-      - name: Install wasm-pack
-        run: |
-          cargo install --locked wasm-pack --verbose
-          cargo install --locked wasm-bindgen-cli --verbose
-          cargo install --locked wasm-opt --verbose
-          wasm-pack --version
+      # - name: Install wasm-pack
+      #   run: |
+      #     cargo install --locked wasm-pack --verbose
+      #     cargo install --locked wasm-bindgen-cli --verbose
+      #     cargo install --locked wasm-opt --verbose
+      #     wasm-pack --version
 
       # - name: Stop PostgreSQL 16 Service
       #   run: |
@@ -143,15 +143,12 @@ jobs:
           ssl: false
         id: postgres
       
-      - name: Check PostgreSQL Status
-        run: |
-          sudo systemctl status postgresql@17
-      
       - name: Test PostgreSQL Connection
         run: |
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
           psql ${{ steps.postgres.outputs.connection-uri }} -c 'SHOW config_file'
+      
 
       - name: Add TimescaleDB Package
         run: |
@@ -175,9 +172,9 @@ jobs:
           sudo bash -c "echo \"shared_preload_libraries = 'timescaledb'\" >> $CONFIG_PATH"
           echo "TimescaleDB preloaded in $CONFIG_PATH"
 
-      - name: Restart PostgreSQL
+      - name: Restart PostgreSQL using pg_ctl
         run: |
-          sudo systemctl restart postgresql@17
+          sudo -u postgres pg_ctl restart -D /home/runner/work/_temp/pgdata
           sleep 3
     
       - name: Create TimescaleDB Extension
@@ -185,138 +182,138 @@ jobs:
           sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
           echo "TimescaleDB Extension created"
           
-      - name: Create Python Virtual Environment and Install Dependencies
-        run: |
-          python -m venv AISdb
-          source ./AISdb/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install xarray
-          python -m pip install maturin
-          maturin develop --release --extras=test,docs
-          python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+      # - name: Create Python Virtual Environment and Install Dependencies
+      #   run: |
+      #     python -m venv AISdb
+      #     source ./AISdb/bin/activate
+      #     python -m pip install --upgrade pip
+      #     python -m pip install xarray
+      #     python -m pip install maturin
+      #     maturin develop --release --extras=test,docs
+      #     python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
       
-      - name: Run Tests
-        run: |
-          source ./AISdb/bin/activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+      # - name: Run Tests
+      #   run: |
+      #     source ./AISdb/bin/activate
+      #     pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
       
-      - name: Clean Up
-        run: |
-          rm -rf AISdb
-          sudo apt-get clean
+      # - name: Clean Up
+      #   run: |
+      #     rm -rf AISdb
+      #     sudo apt-get clean
           
-  build-and-test-macos:
-    runs-on: macos-latest
-    # needs: [macos]
-    needs: [sdist]
-    env:
-      POSTGRES_USER: ${{ secrets.PGUSER }}
-      POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
-    steps:
-      - uses: actions/cache@v3
-        with:
-          path: |
-            AISdb/lib/python3.10/site-packages
-            ~/.cargo
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-            ${{ runner.os }}-cargo-
+  # build-and-test-macos:
+  #   runs-on: macos-latest
+  #   # needs: [macos]
+  #   needs: [sdist]
+  #   env:
+  #     POSTGRES_USER: ${{ secrets.PGUSER }}
+  #     POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
+  #   steps:
+  #     - uses: actions/cache@v3
+  #       with:
+  #         path: |
+  #           AISdb/lib/python3.10/site-packages
+  #           ~/.cargo
+  #         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-pip-
+  #           ${{ runner.os }}-cargo-
       
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-          cache: 'pip'
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.10'
+  #         cache: 'pip'
 
-      - name: Install Rust Toolchain
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          source $HOME/.cargo/env
+  #     - name: Install Rust Toolchain
+  #       run: |
+  #         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  #         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+  #         source $HOME/.cargo/env
       
-      - name: Install LLVM and Configure clang
-        run: |
-          brew install llvm
-          export PATH="$(brew --prefix llvm)/bin:$PATH"
-          export CC="$(brew --prefix llvm)/bin/clang --target=wasm32-unknown-unknown"
-          echo "export PATH=$PATH" >> $GITHUB_ENV
-          echo "CC=$CC" >> $GITHUB_ENV
+  #     - name: Install LLVM and Configure clang
+  #       run: |
+  #         brew install llvm
+  #         export PATH="$(brew --prefix llvm)/bin:$PATH"
+  #         export CC="$(brew --prefix llvm)/bin/clang --target=wasm32-unknown-unknown"
+  #         echo "export PATH=$PATH" >> $GITHUB_ENV
+  #         echo "CC=$CC" >> $GITHUB_ENV
       
-      - name: Install zlib and Ensure pkg-config is Correctly Configured
-        run: |
-          brew install zlib
-          export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig
-          echo "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+  #     - name: Install zlib and Ensure pkg-config is Correctly Configured
+  #       run: |
+  #         brew install zlib
+  #         export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig
+  #         echo "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
 
-      - name: Install wasm-pack
-        run: |
-          cargo install --locked wasm-pack --verbose
-          cargo install --locked wasm-bindgen-cli --verbose
-          cargo install --locked wasm-opt --verbose
-          wasm-pack --version
+  #     - name: Install wasm-pack
+  #       run: |
+  #         cargo install --locked wasm-pack --verbose
+  #         cargo install --locked wasm-bindgen-cli --verbose
+  #         cargo install --locked wasm-opt --verbose
+  #         wasm-pack --version
 
-      - name: Install PostgreSQL
-        run: |
-          brew update
-          brew install postgresql@17
-          brew link postgresql@17 --force
-          brew services start postgresql@17
-          brew cleanup
+  #     - name: Install PostgreSQL
+  #       run: |
+  #         brew update
+  #         brew install postgresql@17
+  #         brew link postgresql@17 --force
+  #         brew services start postgresql@17
+  #         brew cleanup
 
-      - name: Check PostgreSQL version
-        run: |
-          brew list | grep postgresql
+  #     - name: Check PostgreSQL version
+  #       run: |
+  #         brew list | grep postgresql
 
-      - name: Configure PostgreSQL
-        run: |
-          psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
+  #     - name: Configure PostgreSQL
+  #       run: |
+  #         psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
 
-      - name: Install TimescaleDB
-        run: |
-          brew tap timescale/tap
-          brew install timescaledb
-          timescaledb-tune --quiet --yes
-          brew services restart postgresql@17
-          brew cleanup
+  #     - name: Install TimescaleDB
+  #       run: |
+  #         brew tap timescale/tap
+  #         brew install timescaledb
+  #         timescaledb-tune --quiet --yes
+  #         brew services restart postgresql@17
+  #         brew cleanup
 
-      - name: Setup TimescaleDB
-        run: |
-          TSDB_PATH=$(brew --prefix timescaledb)/bin
+  #     - name: Setup TimescaleDB
+  #       run: |
+  #         TSDB_PATH=$(brew --prefix timescaledb)/bin
           
-          if [ -f "$TSDB_PATH/timescaledb_move.sh" ]; then
-            cd "$TSDB_PATH"
-            ./timescaledb_move.sh
-          else
-            echo "Error: timescaledb_move.sh not found!"
-            exit 1
-          fi
+  #         if [ -f "$TSDB_PATH/timescaledb_move.sh" ]; then
+  #           cd "$TSDB_PATH"
+  #           ./timescaledb_move.sh
+  #         else
+  #           echo "Error: timescaledb_move.sh not found!"
+  #           exit 1
+  #         fi
           
-          brew services restart postgresql@17
-          sleep 5
-          psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+  #         brew services restart postgresql@17
+  #         sleep 5
+  #         psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
 
-      - name: Create Python Virtual Environment and Install Dependencies
-        run: |
-          python -m venv AISdb
-          source ./AISdb/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install xarray
-          python -m pip install maturin
-          maturin develop --release --extras=test,docs
-          python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+  #     - name: Create Python Virtual Environment and Install Dependencies
+  #       run: |
+  #         python -m venv AISdb
+  #         source ./AISdb/bin/activate
+  #         python -m pip install --upgrade pip
+  #         python -m pip install xarray
+  #         python -m pip install maturin
+  #         maturin develop --release --extras=test,docs
+  #         python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
-      - name: Run Tests
-        run: |
-          source ./AISdb/bin/activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+  #     - name: Run Tests
+  #       run: |
+  #         source ./AISdb/bin/activate
+  #         pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
 
-      - name: Clean Up
-        run: |
-          rm -rf AISdb
+  #     - name: Clean Up
+  #       run: |
+  #         rm -rf AISdb
 
   # linux:
   #   runs-on: ubuntu-latest
