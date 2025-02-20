@@ -404,7 +404,13 @@ pub fn sqlite_decodemsgs_noaa_csv(
                 return Ok(());
             }
         };
-        let mmsi: u32 = row.get(0).unwrap().parse().unwrap();
+        let mmsi: u32 = match row.get(0).and_then(|m| m.parse::<u32>().ok()) {
+            Some(mmsi) => mmsi,
+            None => {
+                eprintln!("Skipping row due to invalid MMSI: {:?}", row.get(0));
+                continue; // Skip this row and move to the next one
+            }
+        };
         let payload_dynamic = VesselDynamicData {
             own_vessel: true,
             station: Station::BaseStation,
@@ -558,7 +564,14 @@ pub fn postgres_decodemsgs_noaa_csv(
                 return Ok(());
             }
         };
-        let mmsi: u32 = row.get(0).unwrap().parse().unwrap();
+        let mmsi: u32 = match row.get(0).and_then(|m| m.parse::<u32>().ok()) {
+            Some(mmsi) => mmsi,
+            None => {
+                eprintln!("Skipping row due to invalid MMSI: {:?}", row.get(0));
+                continue; // Skip this row and move to the next one
+            }
+        };
+        
         let payload_dynamic = VesselDynamicData {
             own_vessel: true,
             station: Station::BaseStation,
