@@ -389,7 +389,13 @@ pub fn sqlite_decodemsgs_noaa_csv(
 
     for row_option in reader.records(){
         count += 1;
-        let row = row_option.unwrap();
+        let row = match row_option {
+            Ok(row) => row,
+            Err(err) => {
+                eprintln!("Skipping row due to CSV parsing error: {}", err);
+                continue; // Skip this row and proceed with the next one
+            }
+        };
         let row_clone = row.clone();
         let epoch = match iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) {
             Some(epoch) => epoch as i32,
@@ -537,7 +543,13 @@ pub fn postgres_decodemsgs_noaa_csv(
 
     for row_option in reader.records(){
         count += 1;
-        let row = row_option.unwrap();
+        let row = match row_option {
+            Ok(row) => row,
+            Err(err) => {
+                eprintln!("Skipping row due to CSV parsing error: {}", err);
+                continue; // Skip this row and proceed with the next one
+            }
+        };
         let row_clone = row.clone();
         let epoch = match iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) {
             Some(epoch) => epoch as i32,
