@@ -174,12 +174,9 @@ jobs:
         
       - name: Restart PostgreSQL
         run: |
-          PGDATA=$(psql ${{ steps.postgres.outputs.connection-uri }} -tAc "SHOW data_directory;")
-          echo "PostgreSQL data directory: $PGDATA"
-          sudo pg_ctl restart -D "$PGDATA" -m fast
+          sudo service postgresql restart
           sleep 3
-          echo "PostgreSQL restarted"
-        
+    
       - name: Create TimescaleDB Extension
         run: |
           sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
