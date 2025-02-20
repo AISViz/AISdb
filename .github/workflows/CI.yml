@@ -139,7 +139,6 @@ jobs:
           username: ${{ secrets.PGUSER }}
           password:  ${{ secrets.PGPASS }}
           database: test
-          port: 34837
           postgres-version: "17"
           ssl: true
         id: postgres
