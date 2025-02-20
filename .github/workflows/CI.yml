@@ -165,6 +165,7 @@ jobs:
         run: |
           sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17
           sudo timescaledb-tune --yes
+          echo "shared_preload_libraries = 'timescaledb'" >> /home/runner/work/_temp/pgdata/postgresql.conf
           sudo systemctl restart postgresql
           sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
           
