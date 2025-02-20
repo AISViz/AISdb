@@ -140,7 +140,7 @@ jobs:
           password:  ${{ secrets.PGPASS }}
           database: test
           postgres-version: "17"
-          ssl: true
+          ssl: false
         id: postgres
       
       - name: Test PostgreSQL Connection
