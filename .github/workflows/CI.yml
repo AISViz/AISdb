@@ -147,7 +147,8 @@ jobs:
         run: |
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
-      
+          psql ${{ steps.postgres.outputs.connection-uri }} -c 'SHOW config_file'
+
       # - name: Check PostgreSQL Version
       #   run: |
       #     sudo -u postgres psql -c "SHOW server_version;"
@@ -165,7 +166,7 @@ jobs:
         run: |
           sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17
           echo "TimescaleDB Extension installed"
-          sudo echo "shared_preload_libraries = 'timescaledb'" >> /home/runner/work/_temp/pgdata/postgresql.conf
+          sudo echo "shared_preload_libraries = 'timescaledb'" >> /etc/postgresql/17/main/postgresql.conf
           echo "shared_preload_libraries added to postgresql.conf"
           sudo timescaledb-tune --yes
           echo "TimescaleDB tuned"
