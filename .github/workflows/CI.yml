@@ -122,8 +122,8 @@ jobs:
       - name: Setup PostgreSQL 17
         uses: ikalnytskyi/action-setup-postgres@v7
         with:
-          username: ${{ secrets.PGUSER }}
-          password:  ${{ secrets.PGPASS }}
+          username: ${{ env.POSTGRES_USER }}
+          password:  ${{ env.POSTGRES_PASSWORD }}
           database: test
           postgres-version: "17"
           ssl: false
@@ -134,6 +134,7 @@ jobs:
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
           psql ${{ steps.postgres.outputs.connection-uri }} -c 'SHOW config_file'
+          psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE ROLE ${{ env.POSTGRES_USER }} WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
 
       - name: Add TimescaleDB Package
         run: |
