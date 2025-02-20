@@ -1,11 +1,7 @@
 import numpy as np
-import scipy
-import math
 import warnings
-import aisdb
-from webdata import load_raster
 
-def feature(tracks, type='all'):
+def track_feature(tracks, type='all'):
     """
     Calculate the kinematic feature of a track.
 
@@ -33,8 +29,7 @@ def feature(tracks, type='all'):
             continue
 
         if track['time'].size <= 1:
-            # yield track
-            warnings.warn('cannot calculate kinematic features for track of length 1, skipping...')
+            warnings.warn('Cannot calculate kinematic features for track of length 1, skipping...')
             continue
 
         # sort time and dynamic data by time
@@ -42,14 +37,15 @@ def feature(tracks, type='all'):
 
         # incorporate kinematic features from calculations
         valid_features = []
-        for key in track['dynamic']:   # attach original dynamic keys
+        for key in track['dynamic']:  # attach original dynamic keys
             track[key] = track[key][sorted_indices]
+    
         for new_feature in type:
             if new_feature in type_mapping:
                 track[new_feature] = type_mapping[new_feature](track)
                 valid_features.append(new_feature)
             else:
-                warnings.warn(f'unknown feature type: {new_feature}, skipping...')
+                warnings.warn(f'Unknown feature type: {new_feature}, skipping...')
 
         track['dynamic'] = set(track['dynamic']).union(set(valid_features))
 
@@ -58,17 +54,30 @@ def feature(tracks, type='all'):
 
 def _calculate_course(track):
     """
-    Calculate the course of the track.
+    Calculate the course (bearing) of the track.
     """
+    lat1 = np.radians(track['lat'][:-1])
+    lat2 = np.radians(track['lat'][1:])
+    lon1 = np.radians(track['lon'][:-1])
+    lon2 = np.radians(track['lon'][1:])
 
+    dlon = lon2 - lon1
 
-    pass
+    x = np.sin(dlon) * np.cos(lat2)
+    y = np.cos(lat1) * np.sin(lat2) - np.sin(lat1) * np.cos(lat2) * np.cos(dlon)
+    course = np.degrees(np.arctan2(x, y))
+    course = (course + 360) % 360  # Normalize to [0, 360] degrees
+
+    return np.pad(course, (0, 1), 'edge')
+
 
 def _course_diff(track):
     """
     Calculate the course difference of the track.
     """
-    pass
+    course = _calculate_course(track)
+    return np.pad(np.diff(course), (0, 1), 'constant')
+
 
 def _calculate_speed(track):
     """
@@ -76,10 +85,10 @@ def _calculate_speed(track):
     :return NumPy array: The speed of each track point.
     """
     time_diff = np.diff(track['time'].astype('datetime64[s]')) / np.timedelta64(1, 'h')  # Convert to hours
-    dist = _distance(track)   # this should in nautic miles or in meters? (Assume it's in meters)
+    dist = _distance(track)  # this should in nautic miles or in meters? (Assume it's in meters)
     dist_nm = 0.000539957 * dist
     # Calculate speed in knots (nautical miles per hour)
-    speed = dist_nm / time_diff   # speed is in knots
+    speed = dist_nm / time_diff  # speed is in knots
 
     # Pad with last value to match original array length
     return np.pad(speed, (0, 1), 'edge')
@@ -89,13 +98,19 @@ def _speed_diff(track):
     """
     Calculate the speed difference of the track.
     """
-    pass
+    speed = _calculate_speed(track)
+    return np.pad(np.diff(speed), (0, 1), 'constant')
+
 
 def _acceleration(track):
     """
-    Calculate the acceleration (in knots) at each point of the track.
+    Calculate the acceleration (knots/hour) at each point of the track.
     """
-    pass
+    time_diff = np.diff(track['time'].astype('datetime64[s]')) / np.timedelta64(1, 'h')
+    speed_diff = np.diff(_calculate_speed(track))
+    acceleration = speed_diff / time_diff  # knots per hour
+    return np.pad(acceleration, (0, 1), 'constant')
+
 
 def _jerk(track):
     """
@@ -103,7 +118,11 @@ def _jerk(track):
     Jerk measures the change of an object's acceleration over time.
     :return:
     """
-    pass
+    time_diff = np.diff(track['time'].astype('datetime64[s]')) / np.timedelta64(1, 'h')
+    accel_diff = np.diff(_acceleration(track))
+    jerk = accel_diff / time_diff  # knots per hour²
+    return np.pad(jerk, (0, 1), 'constant')
+
 
 def _distance(track):
     """
@@ -127,15 +146,10 @@ def _distance(track):
     # Pad with zero at the start to match original array length
     return np.pad(distances, (0, 1), 'constant')
 
+
 def _cumulative_distance(track):
     """
     Calculate the cumulative distance of the track.
     """
     distances = _distance(track)
     return np.cumsum(distances)
-
-# def _bathymetry(track):
-#     """
-#     Calculate the bathymetry of the track.
-#     """
-#     pass
