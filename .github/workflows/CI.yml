@@ -163,8 +163,8 @@ jobs:
         run: |
           sudo chown -R postgres:postgres /home/runner/work/_temp/pgdata
           sudo chmod 700 /home/runner/work/_temp/pgdata
-          ls -ld /home/runner/work/_temp/pgdata
-          ls -l /home/runner/work/_temp/pgdata/global/pg_filenode.map
+          sudo ls -ld /home/runner/work/_temp/pgdata
+          sudo ls -l /home/runner/work/_temp/pgdata/global/pg_filenode.map
 
       - name: Add TimescaleDB Package
         run: |
