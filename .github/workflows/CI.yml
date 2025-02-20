@@ -148,7 +148,11 @@ jobs:
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
           psql ${{ steps.postgres.outputs.connection-uri }} -c 'SHOW config_file'
-          sudo systemctl status postgresql
+    
+      - name: Verify pg_ctl
+        run: |
+          which pg_ctl
+          pg_ctl --version
 
       - name: Add TimescaleDB Package
         run: |
@@ -172,9 +176,9 @@ jobs:
           sudo bash -c "echo \"shared_preload_libraries = 'timescaledb'\" >> $CONFIG_PATH"
           echo "TimescaleDB preloaded in $CONFIG_PATH"
 
-      - name: Restart PostgreSQL
+      - name: Restart PostgreSQL using
         run: |
-          sudo systemctl restart postgresql
+          sudo pg_ctl restart --pgdata="/home/runner/work/_temp/pgdata"
           sleep 3
     
       - name: Create TimescaleDB Extension
