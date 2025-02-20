@@ -183,7 +183,7 @@ jobs:
 
       - name: Restart PostgreSQL using pg_ctl
         run: |
-          sudo -u postgres pg_ctl restart -D /home/runner/work/_temp/pgdata
+          sudo -u postgres /usr/lib/postgresql/17/bin/pg_ctl restart -D /home/runner/work/_temp/pgdata
           sleep 3
     
       - name: Create TimescaleDB Extension
