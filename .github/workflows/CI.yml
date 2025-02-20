@@ -164,10 +164,15 @@ jobs:
       - name: Install and Configure TimescaleDB Extension
         run: |
           sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17
+          echo "TimescaleDB Extension installed"
+          sudo echo "shared_preload_libraries = 'timescaledb'" >> /home/runner/work/_temp/pgdata/postgresql.conf
+          echo "shared_preload_libraries added to postgresql.conf"
           sudo timescaledb-tune --yes
-          echo "shared_preload_libraries = 'timescaledb'" >> /home/runner/work/_temp/pgdata/postgresql.conf
+          echo "TimescaleDB tuned"
           sudo systemctl restart postgresql
+          echo "PostgreSQL restarted"
           sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+          echo "TimescaleDB Extension created"
           
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
