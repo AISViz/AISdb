@@ -159,6 +159,12 @@ jobs:
           which pg_ctl
           pg_ctl --version
 
+      - name: Fix PostgreSQL Data Directory Permissions
+        run: |
+          sudo chown -R postgres:postgres /home/runner/work/_temp/pgdata
+          sudo chmod 700 /home/runner/work/_temp/pgdata
+          ls -ld /home/runner/work/_temp/pgdata
+
       - name: Add TimescaleDB Package
         run: |
           echo "deb https://packagecloud.io/timescale/timescaledb/ubuntu/ $(lsb_release -c -s) main" | sudo tee /etc/apt/sources.list.d/timescaledb.list
