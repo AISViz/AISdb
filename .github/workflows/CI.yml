@@ -178,7 +178,7 @@ jobs:
 
       - name: Restart PostgreSQL using
         run: |
-          sudo pg_ctl restart --pgdata="/home/runner/work/_temp/pgdata"
+          pg_ctl restart --pgdata="/home/runner/work/_temp/pgdata"
           sleep 3
     
       - name: Create TimescaleDB Extension
