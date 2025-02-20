@@ -166,7 +166,7 @@ jobs:
           sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17
           sudo timescaledb-tune --yes
           sudo systemctl restart postgresql
-          sudo -u postgres psql -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+          sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
           
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
