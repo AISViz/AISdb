@@ -145,7 +145,7 @@ jobs:
       
       - name: Check PostgreSQL Status
         run: |
-          sudo service postgresql status
+          sudo systemctl status postgresql@17
       
       - name: Test PostgreSQL Connection
         run: |
@@ -177,7 +177,7 @@ jobs:
 
       - name: Restart PostgreSQL
         run: |
-          sudo service postgresql restart
+          sudo systemctl restart postgresql@17
           sleep 3
     
       - name: Create TimescaleDB Extension
