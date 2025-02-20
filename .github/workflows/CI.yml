@@ -168,7 +168,7 @@ jobs:
         
       - name: Enable TimescaleDB in PostgreSQL Config
         run: |
-          CONFIG_PATH=$(sudo -u postgres psql -Atc "SHOW config_file;")
+          CONFIG_PATH=$(sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -Atc "SHOW config_file;")
           sudo bash -c "echo \"shared_preload_libraries = 'timescaledb'\" >> $CONFIG_PATH"
           echo "TimescaleDB preloaded in $CONFIG_PATH"
 
