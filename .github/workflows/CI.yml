@@ -22,7 +22,8 @@ env:
 jobs:
   build-and-test-windows:
     runs-on: windows-latest
-    needs: [windows]
+    # needs: [windows]
+    needs: [sdist]
     steps:
       - uses: actions/cache@v3
         with:
@@ -82,7 +83,8 @@ jobs:
 
   build-and-test-linux:
     runs-on: ubuntu-latest
-    needs: [linux]
+    # needs: [linux]
+    needs: [sdist]
     env:
       POSTGRES_USER: ${{ secrets.PGUSER }}
       POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
@@ -136,9 +138,9 @@ jobs:
           sudo apt-get update -y
           sudo apt-get upgrade -y
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg postgresql-common apt-transport-https lsb-release wget
-          sudo apt-get install -y postgresql-17 postgresql-client-17 postgresql-server-dev-17
-          # echo | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
-          # sudo apt-get install -y postgresql-server-dev-17
+          # sudo apt-get install -y postgresql-17 postgresql-client-17 postgresql-server-dev-17
+          printf "\n" | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+          sudo apt-get install -y postgresql-server-dev-17
           sudo systemctl enable postgresql@17-main
           sudo systemctl start postgresql@17-main
           echo "Checking PostgreSQL port from configuration..."
@@ -187,7 +189,8 @@ jobs:
           
   build-and-test-macos:
     runs-on: macos-latest
-    needs: [macos]
+    # needs: [macos]
+    needs: [sdist]
     env:
       POSTGRES_USER: ${{ secrets.PGUSER }}
       POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
@@ -297,169 +300,169 @@ jobs:
         run: |
           rm -rf AISdb
 
-  linux:
-    runs-on: ubuntu-latest
-    needs: [sdist]
-    strategy:
-      matrix:
-        target: [ x86_64, x86 ]
-    steps:
-      - uses: actions/checkout@v4
+  # linux:
+  #   runs-on: ubuntu-latest
+  #   needs: [sdist]
+  #   strategy:
+  #     matrix:
+  #       target: [ x86_64, x86 ]
+  #   steps:
+  #     - uses: actions/checkout@v4
       
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.10'
 
-      - name: Install dependencies
-        run: |
-          if command -v yum &> /dev/null; then
-                sudo yum update -y && sudo yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang gcc-multilib 
-                # If we're running on i686 we need to symlink libatomic
-                # in order to build openssl with -latomic flag.
-                if [[ ! -d "/usr/lib64" ]]; then
-                    sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
-                fi
+  #     - name: Install dependencies
+  #       run: |
+  #         if command -v yum &> /dev/null; then
+  #               sudo yum update -y && sudo yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang gcc-multilib 
+  #               # If we're running on i686 we need to symlink libatomic
+  #               # in order to build openssl with -latomic flag.
+  #               if [[ ! -d "/usr/lib64" ]]; then
+  #                   sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+  #               fi
                 
-                echo "finished yum install"
-            else
-                # If we're running on debian-based system.
-                sudo apt update -y && sudo apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang gcc-multilib  
+  #               echo "finished yum install"
+  #           else
+  #               # If we're running on debian-based system.
+  #               sudo apt update -y && sudo apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang gcc-multilib  
                 
-                echo "finished apt install"
-            fi
+  #               echo "finished apt install"
+  #           fi
             
-      - name: Cache Rust toolchain
-        uses: actions/cache@v3
-        with:
-          path: C:\Users\runneradmin\.cargo
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
+  #     - name: Cache Rust toolchain
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: C:\Users\runneradmin\.cargo
+  #         key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+  #         restore-keys: |
+  #           cargo-${{ runner.os }}-
       
-      - name: Install Rust Target for wasm
-        run: |
-          rustup target add wasm32-unknown-unknown
+  #     - name: Install Rust Target for wasm
+  #       run: |
+  #         rustup target add wasm32-unknown-unknown
             
-      - name: install wasm-pack
-        run: |
-          cargo install --locked wasm-pack --verbose
-          cargo install --locked wasm-bindgen-cli --verbose
-          cargo install --locked wasm-opt --verbose
-          wasm-pack --version
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'      
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-linux-${{ matrix.target }}
-          path: dist
+  #     - name: install wasm-pack
+  #       run: |
+  #         cargo install --locked wasm-pack --verbose
+  #         cargo install --locked wasm-bindgen-cli --verbose
+  #         cargo install --locked wasm-opt --verbose
+  #         wasm-pack --version
+  #     - name: Build wheels
+  #       uses: PyO3/maturin-action@v1
+  #       with:
+  #         target: ${{ matrix.target }}
+  #         args: --release --out dist --find-interpreter
+  #         sccache: 'true'      
+  #     - name: Upload wheels
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: wheels-linux-${{ matrix.target }}
+  #         path: dist
 
-      - name: Clean Up
-        run: |
-          rm -rf AISdb
-          rm -rf ~/.cargo
+  #     - name: Clean Up
+  #       run: |
+  #         rm -rf AISdb
+  #         rm -rf ~/.cargo
                 
-  windows:
-    runs-on: windows-latest
-    needs: [sdist]
-    strategy:
-      matrix:
-        target: [ x64, x86 ]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-          architecture: ${{ matrix.target }}
-          cache: 'pip'
-      - name: Cache Rust toolchain
-        uses: actions/cache@v3
-        with:
-          path: C:\Users\runneradmin\.cargo
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-      - name: Install wasm-pack
-        run: |
-          cargo install --locked wasm-pack --verbose
-          cargo install --locked wasm-bindgen-cli --verbose
-          cargo install --locked wasm-opt --verbose
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-windows-${{ matrix.target }}
-          path: dist
-      - name: Clean Up
-        run: |
-          Remove-Item -Recurse -Force AISdb
-          Remove-Item -Recurse -Force C:\Users\runneradmin\.cargo\*
+  # windows:
+  #   runs-on: windows-latest
+  #   needs: [sdist]
+  #   strategy:
+  #     matrix:
+  #       target: [ x64, x86 ]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.10'
+  #         architecture: ${{ matrix.target }}
+  #         cache: 'pip'
+  #     - name: Cache Rust toolchain
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: C:\Users\runneradmin\.cargo
+  #         key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+  #         restore-keys: |
+  #           cargo-${{ runner.os }}-
+  #     - name: Install wasm-pack
+  #       run: |
+  #         cargo install --locked wasm-pack --verbose
+  #         cargo install --locked wasm-bindgen-cli --verbose
+  #         cargo install --locked wasm-opt --verbose
+  #     - name: Build wheels
+  #       uses: PyO3/maturin-action@v1
+  #       with:
+  #         target: ${{ matrix.target }}
+  #         args: --release --out dist --find-interpreter
+  #         sccache: 'true'
+  #     - name: Upload wheels
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: wheels-windows-${{ matrix.target }}
+  #         path: dist
+  #     - name: Clean Up
+  #       run: |
+  #         Remove-Item -Recurse -Force AISdb
+  #         Remove-Item -Recurse -Force C:\Users\runneradmin\.cargo\*
 
-  macos:
-    runs-on: macos-latest
-    needs: [sdist]
-    env:
-      MACOSX_DEPLOYMENT_TARGET: 10.13
-    strategy:
-      matrix:
-        target: [ x86_64, aarch64 ]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-          cache: 'pip'
-      - name: Cache Rust toolchain
-        uses: actions/cache@v3
-        with:
-          path: ~/.cargo
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-      - name: Install LLVM and Configure clang
-        run: |
-          brew install llvm
-          export PATH="$(brew --prefix llvm)/bin:$PATH"
-          export CC="$(brew --prefix llvm)/bin/clang --target=wasm32-unknown-unknown"
-          echo "export PATH=$PATH" >> $GITHUB_ENV
-          echo "CC=$CC" >> $GITHUB_ENV
-      - name: Install zlib and Ensure pkg-config is Correctly Configured
-        run: |
-          brew install zlib
-          export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig
-          echo "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
-      - name: Install Rust Target for wasm
-        run: |
-          rustup target add wasm32-unknown-unknown        
-      - name: Install wasm-pack
-        run: |
-          cargo install --locked wasm-pack --verbose
-          cargo install --locked wasm-bindgen-cli --verbose
-          cargo install --locked wasm-opt --verbose
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: 'true'
-      - name: Upload wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-macos-${{ matrix.target }}
-          path: dist
-      - name: Clean Up
-        run: |
-          rm -rf AISdb
-          rm -rf ~/.cargo
+  # macos:
+  #   runs-on: macos-latest
+  #   needs: [sdist]
+  #   env:
+  #     MACOSX_DEPLOYMENT_TARGET: 10.13
+  #   strategy:
+  #     matrix:
+  #       target: [ x86_64, aarch64 ]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.10'
+  #         cache: 'pip'
+  #     - name: Cache Rust toolchain
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: ~/.cargo
+  #         key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+  #         restore-keys: |
+  #           cargo-${{ runner.os }}-
+  #     - name: Install LLVM and Configure clang
+  #       run: |
+  #         brew install llvm
+  #         export PATH="$(brew --prefix llvm)/bin:$PATH"
+  #         export CC="$(brew --prefix llvm)/bin/clang --target=wasm32-unknown-unknown"
+  #         echo "export PATH=$PATH" >> $GITHUB_ENV
+  #         echo "CC=$CC" >> $GITHUB_ENV
+  #     - name: Install zlib and Ensure pkg-config is Correctly Configured
+  #       run: |
+  #         brew install zlib
+  #         export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig
+  #         echo "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+  #     - name: Install Rust Target for wasm
+  #       run: |
+  #         rustup target add wasm32-unknown-unknown        
+  #     - name: Install wasm-pack
+  #       run: |
+  #         cargo install --locked wasm-pack --verbose
+  #         cargo install --locked wasm-bindgen-cli --verbose
+  #         cargo install --locked wasm-opt --verbose
+  #     - name: Build wheels
+  #       uses: PyO3/maturin-action@v1
+  #       with:
+  #         target: ${{ matrix.target }}
+  #         args: --release --out dist --find-interpreter
+  #         sccache: 'true'
+  #     - name: Upload wheels
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: wheels-macos-${{ matrix.target }}
+  #         path: dist
+  #     - name: Clean Up
+  #       run: |
+  #         rm -rf AISdb
+  #         rm -rf ~/.cargo
 
   sdist:
     runs-on: ubuntu-latest
