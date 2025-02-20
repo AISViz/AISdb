@@ -118,20 +118,8 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
-
-      - name: Stop PostgreSQL 16 Service
-        run: |
-          if systemctl is-active --quiet postgresql@16-main; then
-            echo "PostgreSQL 16 is active. Stopping and removing it."
-            sudo systemctl stop postgresql@16-main
-            sudo apt-get remove --purge -y postgresql-16 postgresql-client-16 || true
-            sudo apt-get autoremove -y
-            sudo apt-get autoclean -y
-          else
-            echo "PostgreSQL 16 is not active. No need to stop or remove it."
-          fi
           
-      - name: Setup PostgreSQL 17 Default
+      - name: Setup PostgreSQL 17
         uses: ikalnytskyi/action-setup-postgres@v7
         with:
           username: ${{ secrets.PGUSER }}
