@@ -143,18 +143,15 @@ jobs:
           ssl: false
         id: postgres
       
+      - name: Check PostgreSQL Status
+        run: |
+          sudo service postgresql status
+      
       - name: Test PostgreSQL Connection
         run: |
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
           psql ${{ steps.postgres.outputs.connection-uri }} -c 'SHOW config_file'
-
-      # - name: Check PostgreSQL Version
-      #   run: |
-      #     sudo -u postgres psql -c "SHOW server_version;"
-      #     ls /usr/lib/postgresql/
-      #     echo "Checking PostgreSQL port from configuration..."
-      #     sudo -u postgres psql -c "SHOW port;"
 
       - name: Add TimescaleDB Package
         run: |
@@ -172,6 +169,12 @@ jobs:
           sudo timescaledb-tune --quiet --yes
           echo "TimescaleDB tuning applied"
         
+      - name: Enable TimescaleDB in PostgreSQL Config
+        run: |
+          CONFIG_PATH=$(sudo -u postgres psql -Atc "SHOW config_file;")
+          sudo bash -c "echo \"shared_preload_libraries = 'timescaledb'\" >> $CONFIG_PATH"
+          echo "TimescaleDB preloaded in $CONFIG_PATH"
+
       - name: Restart PostgreSQL
         run: |
           sudo service postgresql restart
