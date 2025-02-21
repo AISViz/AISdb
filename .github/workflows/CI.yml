@@ -134,8 +134,7 @@ jobs:
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
           psql ${{ steps.postgres.outputs.connection-uri }} -c 'SHOW config_file'
-          psql ${{ steps.postgres.outputs.connection-uri }} -c "DROP ROLE IF EXISTS ${{ env.POSTGRES_USER }};"
-          psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE ROLE ${{ env.POSTGRES_USER }} WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
+          psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE ROLE test_user WITH LOGIN PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
 
       - name: Add TimescaleDB Package
         run: |
