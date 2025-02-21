@@ -26,11 +26,18 @@ def test_create_from_CSV_postgres(tmpdir):
     with PostgresDBConn(conn_information) as dbconn:
         decode_msgs(dbconn=dbconn, filepaths=[testingdata_csv], source="TESTING", vacuum=False, )
         cur = dbconn.cursor()
-        cur.execute(# need to specify database name in SQL statement
+        cur.execute(
             "SELECT table_name FROM information_schema.tables "
             "WHERE table_schema = 'public' ORDER BY table_name;")
         tables = [row["table_name"] for row in cur.fetchall()]
         assert "ais_202107_dynamic" in tables
+        cur.execute(
+            """
+            DROP TABLE IF EXISTS ais_202107_dynamic CASCADE;
+            DROP TABLE IF EXISTS ais_202107_static CASCADE;
+            DROP TABLE IF EXISTS static_202107_aggregate CASCADE;
+            """
+        )
 
 
 def test_create_from_CSV_postgres_timescaledb(tmpdir):
@@ -39,7 +46,7 @@ def test_create_from_CSV_postgres_timescaledb(tmpdir):
         decode_msgs(dbconn=dbconn, filepaths=[testingdata_csv], source="TESTING", vacuum=False,
                     skip_checksum=True, raw_insertion=True, timescaledb=True)
         cur = dbconn.cursor()
-        cur.execute(  # need to specify database name in SQL statement
+        cur.execute(
             "SELECT table_name FROM information_schema.tables "
             "WHERE table_schema = 'public' ORDER BY table_name;")
         tables = [row["table_name"] for row in cur.fetchall()]
