@@ -1,5 +1,8 @@
 import cdsapi
+import os
+import calendar
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 from aisdb.weather.utils import SHORT_NAMES_TO_VARIABLES
 
 DEFAULT_PARAMS = {
@@ -29,12 +32,11 @@ class ClimateDataStore:
         self.params_requested = {**DEFAULT_PARAMS}
         self.dataset = dataset
         
-        area = self.params_requested.get("area", [])
-        if len(area) != 4 or not (
-            -90 <= area[0] <= 90 and -180 <= area[1] <= 180 and -90 <= area[2] <= 90 and -180 <= area[3] <= 180
-        ):
-            raise ValueError("Invalid geographical area. Format: [North, West, South, East] within valid lat/lon bounds.")
- 
+        xmin, xmax, ymin, ymax = area 
+        if not (-90 <= ymin <= 90 and -90 <= ymax <= 90 and -180 <= xmin <= 180 and -180 <= xmax <= 180):
+            raise ValueError("Invalid geographical bounds. Longitude: [-180, 180], Latitude: [-90, 90]")
+
+        self.params_requested["area"] = [ymax, xmin, ymin, xmax]
         self.params_requested["variable"] = self._get_variable_for_shortName(short_names)
 
         current_date = start_time
@@ -53,7 +55,6 @@ class ClimateDataStore:
         time_intervals = []
 
         if start_time.date() == end_time.date():
-            # If within the same day, only include relevant hours
             current_time = start_time
             while current_time <= end_time:
                 time_intervals.append(current_time.strftime("%H:%M"))
@@ -64,20 +65,67 @@ class ClimateDataStore:
         self.params_requested["time"] = time_intervals
         self.params_requested.pop("start_time", None)
         self.params_requested.pop("end_time", None)
-
         try:
             self.client = cdsapi.Client()
         except Exception as e:
             print(f"Error while establishing connection with cdsapi: {e}")
 
-    def download_grib_file(self, output_path = str):
+
+    def download_grib_file(self, output_folder):
         """
-        Fetch climate data from the Copernicus Climate Data Store and save it to the specified location.
+        Fetch climate data from the Copernicus Climate Data Store and save it to separate monthly files.
         """
         try:
-            result = self.client.retrieve(self.dataset, self.params_requested)
-            result.download(output_path)
-            print(f"Data successfully downloaded to {output_path}")
+            start_date = datetime.strptime(
+                f"{self.params_requested['year'][0]}-{self.params_requested['month'][0]}-{self.params_requested['day'][0]}",
+                "%Y-%m-%d"
+            )
+            end_date = datetime.strptime(
+                f"{self.params_requested['year'][-1]}-{self.params_requested['month'][-1]}-{self.params_requested['day'][-1]}",
+                "%Y-%m-%d"
+            )
+
+            current_date = start_date
+
+            while current_date <= end_date:
+                month_str = current_date.strftime("%m_%Y")
+
+                month_start = current_date.replace(day=1)
+                last_day = calendar.monthrange(month_start.year, month_start.month)[1]
+                print(f"Processing {month_start.year}-{month_start.month}: Last day is {last_day}")
+
+                month_end = datetime(month_start.year, month_start.month, last_day)
+                if month_end > end_date:
+                    month_end = end_date
+
+                days_list = [str(i).zfill(2) for i in range(1, (month_end.day if month_end.month == end_date.month and month_end.year == end_date.year else last_day) + 1)]
+                print(f"Days being requested: {days_list}")
+
+                original_params = self.params_requested.copy()
+
+                self.params_requested["year"] = [month_start.strftime("%Y")]
+                self.params_requested["month"] = [month_start.strftime("%m")]
+                self.params_requested["day"] = days_list
+
+                print(f"Final request parameters: {self.params_requested}")
+
+                try:
+                    result = self.client.retrieve(self.dataset, self.params_requested)
+                    file_name = f"{month_str}.grib"
+                    current_directory = os.getcwd()
+                    new_output_folder = os.path.join(current_directory, output_folder)
+                    if not os.path.exists(new_output_folder):
+                        os.makedirs(new_output_folder)
+                    output_path = os.path.join(new_output_folder, file_name)
+                    result.download(output_path)
+                    print(f"Data for {month_str} successfully downloaded to {output_path}")
+                except Exception as e:
+                    print(f"Error while fetching weather data: {e}")
+
+                self.params_requested = original_params
+
+                current_date = month_start + relativedelta(months=1)
+
         except Exception as e:
             print(f"Error while fetching weather data: {e}")
 
