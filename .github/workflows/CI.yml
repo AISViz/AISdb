@@ -124,7 +124,7 @@ jobs:
         with:
           username: ${{ env.POSTGRES_USER }}
           password:  ${{ env.POSTGRES_PASSWORD }}
-          database: test
+          database: ${{ env.POSTGRES_USER }}
           postgres-version: "17"
           ssl: false
         id: postgres
@@ -160,14 +160,15 @@ jobs:
 
       - name: Restart PostgreSQL using
         run: |
-          # pg_ctl restart --pgdata="/home/runner/work/_temp/pgdata"
-          sudo systemctl restart postgresql@17
+          pg_ctl restart --pgdata="/home/runner/work/_temp/pgdata"
           sleep 3
     
       - name: Create TimescaleDB Extension
         run: |
-          sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+          # sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+          psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
           echo "TimescaleDB Extension created"
+          psql -U postgres -c "SELECT datname FROM pg_database;"
           
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
