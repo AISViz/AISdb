@@ -131,10 +131,12 @@ jobs:
       
       - name: Test PostgreSQL Connection
         run: |
+          echo "Connection URI: ${{ steps.postgres.outputs.connection-uri }}"
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
           psql ${{ steps.postgres.outputs.connection-uri }} -c 'SHOW config_file'
           psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
+          echo "Connection URI: ${{ steps.postgres.outputs.connection-uri }}"
 
       - name: Add TimescaleDB Package
         run: |
