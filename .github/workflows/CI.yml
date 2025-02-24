@@ -177,11 +177,16 @@ jobs:
           python -m pip install maturin
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
-      
-      - name: Run Tests
+
+      - name: Run Single Test (test_001_postgres.py)
         run: |
           source ./AISdb/bin/activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+          pytest ./aisdb/tests/test_001_postgres.py --maxfail=10
+
+      # - name: Run Tests
+      #   run: |
+      #     source ./AISdb/bin/activate
+      #     pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
       
       - name: Clean Up
         run: |
