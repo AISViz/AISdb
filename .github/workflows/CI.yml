@@ -161,14 +161,12 @@ jobs:
       - name: Restart PostgreSQL using
         run: |
           pg_ctl restart --pgdata="/home/runner/work/_temp/pgdata"
-          sleep 3
+          sleep 5
     
       - name: Create TimescaleDB Extension
         run: |
-          # sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
-          psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
-          echo "TimescaleDB Extension created"
-          psql -U postgres -c "SELECT datname FROM pg_database;"
+          sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+          echo "TimescaleDB Extension created."
           
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
