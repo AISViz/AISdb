@@ -69,12 +69,14 @@ jobs:
         run: |
           # Download the official TimescaleDB installer for PostgreSQL 14.
           Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/latest/download/timescaledb-postgresql-14-windows-amd64.zip" -OutFile "timescaledb.zip"
-          # Extract the installer to a temporary folder.
-          Expand-Archive -Path "timescaledb.zip" -DestinationPath "$env:TEMP\timescaledb"
-          # Unblock the setup executable so Windows will allow it to run.
-          Unblock-File -Path "$env:TEMP\timescaledb\timescaledb\setup.exe"
-          # Run the installer in silent mode with the working directory set.
-          Start-Process -FilePath "$env:TEMP\timescaledb\timescaledb\setup.exe" -ArgumentList "/S" -WorkingDirectory "$env:TEMP\timescaledb\timescaledb" -Wait -Verb RunAsAdministrator
+          # Create a dedicated folder for the installer.
+          New-Item -ItemType Directory -Force -Path "C:\timescaledb"
+          # Extract the ZIP into C:\timescaledb
+          Expand-Archive -Path "timescaledb.zip" -DestinationPath "C:\timescaledb"
+          # Unblock the setup executable so it can run.
+          Unblock-File -Path "C:\timescaledb\setup.exe"
+          # Run the installer in silent mode with the working directory set to the extraction folder.
+          Start-Process -FilePath "C:\timescaledb\setup.exe" -ArgumentList "/S" -WorkingDirectory "C:\timescaledb" -Wait -Verb RunAsAdministrator
           # Enable the TimescaleDB extension in PostgreSQL.
           psql -h 127.0.0.1 -p 5432 -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
         shell: pwsh
