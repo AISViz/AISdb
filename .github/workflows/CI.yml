@@ -86,6 +86,7 @@ jobs:
     env:
       POSTGRES_USER: ${{ secrets.PGUSER }}
       POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
+      PGPASSWORD: ${{ secrets.PGPASS }}
     steps:
       - uses: actions/cache@v3
         with:
