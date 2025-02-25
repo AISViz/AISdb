@@ -78,6 +78,8 @@ jobs:
           Write-Host "Found setup executable at: $setupPath"
           # Unblock the setup executable so it can run.
           Unblock-File -Path $setupPath
+          # Check directory tree
+          Get-ChildItem -Path "C:\timescaledb" -Recurse | Format-Table -AutoSize
           # Use cmd.exe to run the setup executable in silent mode.
           Start-Process -FilePath "cmd.exe" -ArgumentList '/c', "`"$setupPath`" /S" -WorkingDirectory (Split-Path $setupPath) -Wait -Verb RunAsAdministrator
           # Enable the TimescaleDB extension in PostgreSQL.
@@ -94,10 +96,15 @@ jobs:
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
-      - name: Run Tests
+      # - name: Run Tests
+      #   run: |
+      #     AISdb\Scripts\activate
+      #     pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+
+      - name: Run Single Test (test_001_postgres.py)
         run: |
           AISdb\Scripts\activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+          pytest ./aisdb/tests/test_001_postgres.py --maxfail=10
 
       - name: Clean Up
         run: |
@@ -203,15 +210,10 @@ jobs:
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
-      - name: Run Single Test (test_001_postgres.py)
+      - name: Run Tests
         run: |
           source ./AISdb/bin/activate
-          pytest ./aisdb/tests/test_001_postgres.py --maxfail=10
-
-      # - name: Run Tests
-      #   run: |
-      #     source ./AISdb/bin/activate
-      #     pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
       
       - name: Clean Up
         run: |
