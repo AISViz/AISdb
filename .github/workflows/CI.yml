@@ -23,6 +23,10 @@ jobs:
   build-and-test-windows:
     runs-on: windows-latest
     needs: [windows]
+    env:
+      pguser: "postgres"
+      pghost: "127.0.0.1"
+      pgpass: ${{ secrets.PGPASS }}
     steps:
       - uses: actions/cache@v3
         with:
@@ -61,6 +65,18 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
 
+      - name: Install TimescaleDB on Windows
+        run: |
+          # Download the official TimescaleDB installer for PostgreSQL 14.
+          Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/latest/download/timescaledb-postgresql-14-windows-amd64.zip" -OutFile "timescaledb.zip"
+          # Extract the installer to a temporary folder.
+          Expand-Archive -Path "timescaledb.zip" -DestinationPath "$env:TEMP\timescaledb"
+          # Run the installer in silent mode. (Assuming the installer supports the /S flag.)
+          Start-Process -FilePath "$env:TEMP\timescaledb\timescaledb\setup.exe" -ArgumentList "/S" -Wait -Verb RunAsAdministrator
+          # Enable the TimescaleDB extension in PostgreSQL.
+          psql -h 127.0.0.1 -p 5432 -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+        shell: pwsh
+
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
           python -m venv AISdb
@@ -85,7 +101,6 @@ jobs:
     needs: [linux]
     env:
       POSTGRES_USER: ${{ secrets.PGUSER }}
-      POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
       PGPASSWORD: ${{ secrets.PGPASS }}
     steps:
       - uses: actions/cache@v3
@@ -124,7 +139,7 @@ jobs:
         uses: ikalnytskyi/action-setup-postgres@v7
         with:
           username: ${{ env.POSTGRES_USER }}
-          password:  ${{ env.POSTGRES_PASSWORD }}
+          password:  ${{ env.PGPASSWORD }}
           database: postgres
           postgres-version: "17"
           ssl: false
@@ -506,7 +521,6 @@ jobs:
   publish-docs:
     runs-on: ubuntu-latest
     needs: [release]
-    # needs: [linux]
     strategy:
       matrix:
         target: [ x86_64 ]
