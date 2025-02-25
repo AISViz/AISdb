@@ -124,19 +124,18 @@ jobs:
         with:
           username: ${{ env.POSTGRES_USER }}
           password:  ${{ env.POSTGRES_PASSWORD }}
-          database: ${{ env.POSTGRES_USER }}
+          database: postgres
           postgres-version: "17"
           ssl: false
         id: postgres
       
       - name: Test PostgreSQL Connection
         run: |
-          echo "Connection URI: ${{ steps.postgres.outputs.connection-uri }}"
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
           psql ${{ steps.postgres.outputs.connection-uri }} -c 'SHOW config_file'
           psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
-          echo "Connection URI: ${{ steps.postgres.outputs.connection-uri }}"
+          psql -h 127.0.0.1 -p 5432 -U postgres -c "\l+"
 
       - name: Add TimescaleDB Package
         run: |
