@@ -71,8 +71,10 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/latest/download/timescaledb-postgresql-14-windows-amd64.zip" -OutFile "timescaledb.zip"
           # Extract the installer to a temporary folder.
           Expand-Archive -Path "timescaledb.zip" -DestinationPath "$env:TEMP\timescaledb"
-          # Run the installer in silent mode. (Assuming the installer supports the /S flag.)
-          Start-Process -FilePath "$env:TEMP\timescaledb\timescaledb\setup.exe" -ArgumentList "/S" -Wait -Verb RunAsAdministrator
+          # Unblock the setup executable so Windows will allow it to run.
+          Unblock-File -Path "$env:TEMP\timescaledb\timescaledb\setup.exe"
+          # Run the installer in silent mode with the working directory set.
+          Start-Process -FilePath "$env:TEMP\timescaledb\timescaledb\setup.exe" -ArgumentList "/S" -WorkingDirectory "$env:TEMP\timescaledb\timescaledb" -Wait -Verb RunAsAdministrator
           # Enable the TimescaleDB extension in PostgreSQL.
           psql -h 127.0.0.1 -p 5432 -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
         shell: pwsh
@@ -101,6 +103,7 @@ jobs:
     needs: [linux]
     env:
       POSTGRES_USER: ${{ secrets.PGUSER }}
+      POSTGRES_PASSWORD: ${{ secrets.PGPASS }}
       PGPASSWORD: ${{ secrets.PGPASS }}
     steps:
       - uses: actions/cache@v3
@@ -139,7 +142,7 @@ jobs:
         uses: ikalnytskyi/action-setup-postgres@v7
         with:
           username: ${{ env.POSTGRES_USER }}
-          password:  ${{ env.PGPASSWORD }}
+          password:  ${{ env.POSTGRES_PASSWORD }}
           database: postgres
           postgres-version: "17"
           ssl: false
