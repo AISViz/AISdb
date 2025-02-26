@@ -80,7 +80,9 @@ jobs:
           Unblock-File -Path $setupPath
           # Use cmd.exe to run the setup executable in silent mode.
           # Start-Process -FilePath "cmd.exe" -ArgumentList '/c', "`"$setupPath`" /S" -WorkingDirectory (Split-Path $setupPath) -Wait -Verb RunAsAdministrator
-          Start-Process -FilePath $setupPath -ArgumentList "/S" -WorkingDirectory (Split-Path $setupPath) -Wait -Verb RunAsAdministrator
+          # Start-Process -FilePath $setupPath -ArgumentList "/S" -WorkingDirectory (Split-Path $setupPath) -Wait -Verb RunAsAdministrator
+          Start-Process -FilePath $setupPath -Wait -Verb RunAsAdministrator
+          
           # Enable the TimescaleDB extension in PostgreSQL.
           psql -h 127.0.0.1 -p 5432 -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
         shell: pwsh
