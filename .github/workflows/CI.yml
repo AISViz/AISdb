@@ -38,9 +38,9 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-cargo-
       
-      - uses: ikalnytskyi/action-setup-postgres@v4
-        with:
-          password: ${{ secrets.PGPASS }}
+      # - uses: ikalnytskyi/action-setup-postgres@v4
+      #   with:
+      #     password: ${{ secrets.PGPASS }}
       
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -86,13 +86,13 @@ jobs:
           Set-Location -Path $setupDir
           # Run the installer
           Write-Host "Running setup.exe..."
-          Start-Process -FilePath $setupPath -ArgumentList "/S" -WorkingDirectory $setupDir -Wait -NoNewWindow
-          # Use cmd.exe to run the setup executable in silent mode.
-          # Start-Process -FilePath "cmd.exe" -ArgumentList '/c', "`"$setupPath`" /S" -WorkingDirectory (Split-Path $setupPath) -Wait -Verb RunAsAdministrator
-          # Start-Process -FilePath $setupPath -ArgumentList "/S" -WorkingDirectory (Split-Path $setupPath) -Wait -Verb RunAsAdministrator
-          # Start-Process -FilePath $setupPath -Wait -Verb RunAsAdministrator
+          ECHO y | Start-Process -FilePath $setupPath -ArgumentList "/S" -WorkingDirectory $setupDir -Wait -NoNewWindow
           # Enable the TimescaleDB extension in PostgreSQL.
-          psql -h 127.0.0.1 -p 5432 -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+          Write-Host "Configuring PostgreSQL authentication..."
+          $env:PGPASSWORD="${{ env.pgpass }}"
+          psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+          # psql -h 127.0.0.1 -p 5432 -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+          # psql -U postgres -h 127.0.0.1 -p 5432 -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
         shell: pwsh
 
       - name: Create Python Virtual Environment and Install Dependencies
