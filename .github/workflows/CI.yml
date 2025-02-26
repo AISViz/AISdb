@@ -86,7 +86,7 @@ jobs:
           Set-Location -Path $setupDir
           # Run the installer
           Write-Host "Running setup.exe..."
-          ECHO y | Start-Process -FilePath $setupPath -ArgumentList "/S" -WorkingDirectory $setupDir -Wait -NoNewWindow
+          Start-Process -FilePath $setupPath -ArgumentList "/S" -WorkingDirectory $setupDir -Wait -NoNewWindow
           # Enable the TimescaleDB extension in PostgreSQL.
           Write-Host "Configuring PostgreSQL authentication..."
           $env:PGPASSWORD="${{ env.pgpass }}"
