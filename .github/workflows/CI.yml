@@ -88,19 +88,12 @@ jobs:
           Write-Host "Running setup.exe..."
           Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -WorkingDirectory $setupDir -Wait -NoNewWindow
           # Modify postgresql.conf to preload TimescaleDB
-          $pgConfigPath = "D:/a/_temp/pgdata/postgresql.conf"
-          if (Test-Path $pgConfigPath) {
-              (Get-Content $pgConfigPath) -replace "#?shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
-              Write-Host "Successfully updated postgresql.conf!"
-          } else {
-              Write-Host "ERROR: postgresql.conf not found!"
-              Exit 1
-          }
-          # Restart PostgreSQL
-          Write-Host "Restarting PostgreSQL..."
-          net stop postgresql-x64-14
-          Start-Sleep -Seconds 5
-          net start postgresql-x64-14
+          echo "shared_preload_libraries = 'timescaledb'" >> D:/a/_temp/pgdata/postgresql.conf 
+          # # Restart PostgreSQL
+          # Write-Host "Restarting PostgreSQL..."
+          # net stop postgresql-x64-14
+          # Start-Sleep -Seconds 5
+          # net start postgresql-x64-14
           # Enable the TimescaleDB extension in PostgreSQL.
           Write-Host "Configuring PostgreSQL authentication..."
           $env:PGPASSWORD="${{ env.pgpass }}"
