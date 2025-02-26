@@ -38,9 +38,9 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-cargo-
       
-      # - uses: ikalnytskyi/action-setup-postgres@v4
-      #   with:
-      #     password: ${{ secrets.PGPASS }}
+      - uses: ikalnytskyi/action-setup-postgres@v4
+        with:
+          password: ${{ secrets.PGPASS }}
       
       - name: Checkout Repository
         uses: actions/checkout@v4
