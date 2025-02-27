@@ -69,37 +69,52 @@ jobs:
         run: |
           # Download the official TimescaleDB installer for PostgreSQL 14.
           Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/latest/download/timescaledb-postgresql-14-windows-amd64.zip" -OutFile "timescaledb.zip"
+          
           # Create a dedicated folder for the installer.
           New-Item -ItemType Directory -Force -Path "C:\timescaledb"
+          
           # Extract the ZIP into C:\timescaledb.
           Expand-Archive -Path "timescaledb.zip" -DestinationPath "C:\timescaledb"
+          
           # Find the setup.exe file in the extracted folder.
           $setupPath = Get-ChildItem -Path "C:\timescaledb" -Recurse -Filter "setup.exe" | Select-Object -First 1 | ForEach-Object { $_.FullName }
           Write-Host "Found setup executable at: $setupPath"
+          
           # Unblock the setup executable so it can run.
           Write-Host "Unblocking setup.exe..."
           Unblock-File -Path $setupPath
           Set-ExecutionPolicy Bypass -Scope Process -Force
+
+          # Modify postgresql.conf to preload TimescaleDB before installation
+          echo "shared_preload_libraries = 'timescaledb'" >> D:/a/_temp/pgdata/postgresql.conf
+          Write-Host "Restarting PostgreSQL to apply new settings..."
+          net stop postgresql-x64-14
+          Start-Sleep -Seconds 5
+          net start postgresql-x64-14
+          
           # Setup working directory
           $setupDir = Split-Path -Path $setupPath
           Write-Host "Setting working directory to: $setupDir"
           Set-Location -Path $setupDir
+          
           # Run the installer
           Write-Host "Running setup.exe..."
           Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -WorkingDirectory $setupDir -Wait -NoNewWindow
-          # Modify postgresql.conf to preload TimescaleDB
-          echo "shared_preload_libraries = 'timescaledb'" >> D:/a/_temp/pgdata/postgresql.conf 
-          # # Restart PostgreSQL
-          # Write-Host "Restarting PostgreSQL..."
-          # net stop postgresql-x64-14
-          # Start-Sleep -Seconds 5
-          # net start postgresql-x64-14
+          
+          # Restart PostgreSQL
+          Write-Host "Restarting PostgreSQL after installation..."
+          net stop postgresql-x64-14
+          Start-Sleep -Seconds 5
+          net start postgresql-x64-14
+          
           # Enable the TimescaleDB extension in PostgreSQL.
           Write-Host "Configuring PostgreSQL authentication..."
           $env:PGPASSWORD="${{ env.pgpass }}"
+          Write-Host "Verifying PostgreSQL connection..."
+          psql -U postgres -c "SELECT version();"
+          Write-Host "Create TimescaleDB extension for database..."
           psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
           # psql -h 127.0.0.1 -p 5432 -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
-          # psql -U postgres -h 127.0.0.1 -p 5432 -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
         shell: pwsh
 
       - name: Create Python Virtual Environment and Install Dependencies
