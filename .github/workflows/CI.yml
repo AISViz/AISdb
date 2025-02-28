@@ -53,18 +53,18 @@ jobs:
           architecture: 'x64'
           cache: 'pip'
 
-      - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          cache: true
+      # - name: Install Rust Toolchain
+      #   uses: actions-rs/toolchain@v1
+      #   with:
+      #     toolchain: stable
+      #     override: true
+      #     cache: true
 
-      - name: Install wasm-pack
-        run: |
-          cargo install --locked wasm-pack --verbose
-          cargo install --locked wasm-bindgen-cli --verbose
-          cargo install --locked wasm-opt --verbose
+      # - name: Install wasm-pack
+      #   run: |
+      #     cargo install --locked wasm-pack --verbose
+      #     cargo install --locked wasm-bindgen-cli --verbose
+      #     cargo install --locked wasm-opt --verbose
 
       - name: Check if PostgreSQL 14 is running
         run: |
@@ -234,10 +234,20 @@ jobs:
           sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17
           echo "TimescaleDB Extension installed"
 
-      - name: Apply TimescaleDB tuning
+      # - name: Apply TimescaleDB tuning
+      #   run: |
+      #     sudo timescaledb-tune --quiet --yes
+      #     echo "TimescaleDB tuning applied"
+      - name: Tune TimescaleDB with Correct Config Path
         run: |
-          sudo timescaledb-tune --quiet --yes
-          echo "TimescaleDB tuning applied"
+          PG_CONFIG_PATH=$(pg_config --bindir)/pg_config
+          if [ ! -f "$PG_CONFIG_PATH" ]; then
+            echo "ERROR: pg_config not found!"
+            exit 1
+          fi
+          echo "Using pg_config at: $PG_CONFIG_PATH"
+          sudo timescaledb-tune --pg-config="$PG_CONFIG_PATH" --quiet --yes
+          echo "TimescaleDB tuning applied."
         
       - name: Enable TimescaleDB in PostgreSQL Config
         run: |
