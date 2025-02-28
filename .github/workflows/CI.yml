@@ -66,28 +66,26 @@ jobs:
       #     cargo install --locked wasm-bindgen-cli --verbose
       #     cargo install --locked wasm-opt --verbose
 
-      - name: Check if PostgreSQL 14 is running
-        run: |
-          Write-Host "Checking if PostgreSQL is already running..."
-          $pgDataDir = "C:\Program Files\PostgreSQL\14\data"
-          $pgCtl = "C:\Program Files\PostgreSQL\14\bin\pg_ctl.exe"
+      # - name: Check if PostgreSQL 14 is running
+      #   run: |
+      #     Write-Host "Checking if PostgreSQL is already running..."
+      #     $pgDataDir = "C:\Program Files\PostgreSQL\14\data"
+      #     $pgCtl = "C:\Program Files\PostgreSQL\14\bin\pg_ctl.exe"
           
-          # Ensure PostgreSQL data directory exists
-          if (-Not (Test-Path $pgDataDir)) {
-              Write-Host "ERROR: PostgreSQL data directory not found at $pgDataDir"
-              Exit 1
-          }
+      #     # Ensure PostgreSQL data directory exists
+      #     if (-Not (Test-Path $pgDataDir)) {
+      #         Write-Host "ERROR: PostgreSQL data directory not found at $pgDataDir"
+      #         Exit 1
+      #     }
 
       - name: Locate PostgreSQL Installation Paths
         run: |
-          echo "Finding PostgreSQL paths..."
-          # Find pg_ctl.exe
-          PG_CTL_PATH=$(find "C:/Program Files/PostgreSQL" -type f -name "pg_ctl.exe" 2>/dev/null | head -n 1)
-          echo "Found pg_ctl at: $PG_CTL_PATH"
-          # Find postgresql.conf
-          PG_CONF_PATH=$(find "C:/Program Files/PostgreSQL" -type f -name "postgresql.conf" 2>/dev/null | head -n 1)
-          echo "Found postgresql.conf at: $PG_CONF_PATH"
-
+          Write-Host "Finding PostgreSQL path..."
+          $env:PGPASSWORD="${{ env.pgpass }}"
+          Write-Host "Verifying PostgreSQL connection..."
+          psql -U postgres -c "SELECT version();"
+          psql -U postgres -c "SHOW config_file;"
+          
       - name: Install TimescaleDB on Windows
         run: |
           # Download the official TimescaleDB installer for PostgreSQL 14.
@@ -119,14 +117,14 @@ jobs:
           
           # Modify postgresql.conf to preload TimescaleDB before installation
           # echo "shared_preload_libraries = 'timescaledb'" >> D:/a/_temp/pgdata/postgresql.conf
-          $pgConfigPath = "D:/a/_temp/pgdata/postgresql.conf"
-          if (Test-Path $pgConfigPath) {
-              (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
-              Write-Host "Updated postgresql.conf successfully!"
-          } else {
-              Write-Host "ERROR: postgresql.conf not found!"
-              Exit 1
-          }
+          # $pgConfigPath = "D:/a/_temp/pgdata/postgresql.conf"
+          # if (Test-Path $pgConfigPath) {
+          #     (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
+          #     Write-Host "Updated postgresql.conf successfully!"
+          # } else {
+          #     Write-Host "ERROR: postgresql.conf not found!"
+          #     Exit 1
+          # }
           Write-Host "Restarting PostgreSQL to apply new settings..."
           pg_ctl -D $pgDataDir restart
           Start-Sleep -Seconds 5
