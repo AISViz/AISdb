@@ -234,20 +234,20 @@ jobs:
           sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17
           echo "TimescaleDB Extension installed"
 
-      # - name: Apply TimescaleDB tuning
-      #   run: |
-      #     sudo timescaledb-tune --quiet --yes
-      #     echo "TimescaleDB tuning applied"
-      - name: Tune TimescaleDB with Correct Config Path
+      - name: Apply TimescaleDB tuning
         run: |
-          PG_CONFIG_PATH=$(pg_config --bindir)/pg_config
-          if [ ! -f "$PG_CONFIG_PATH" ]; then
-            echo "ERROR: pg_config not found!"
-            exit 1
-          fi
-          echo "Using pg_config at: $PG_CONFIG_PATH"
-          sudo timescaledb-tune --pg-config="$PG_CONFIG_PATH" --quiet --yes
-          echo "TimescaleDB tuning applied."
+          sudo timescaledb-tune --pg-config="/home/runner/work/_temp/pgdata/postgresql.conf" --quiet --yes
+          echo "TimescaleDB tuning applied"
+      # - name: Tune TimescaleDB with Correct Config Path
+      #   run: |
+      #     PG_CONFIG_PATH=$(pg_config --bindir)/pg_config
+      #     if [ ! -f "$PG_CONFIG_PATH" ]; then
+      #       echo "ERROR: pg_config not found!"
+      #       exit 1
+      #     fi
+      #     echo "Using pg_config at: $PG_CONFIG_PATH"
+      #     sudo timescaledb-tune --pg-config="$PG_CONFIG_PATH" --quiet --yes
+      #     echo "TimescaleDB tuning applied."
         
       - name: Enable TimescaleDB in PostgreSQL Config
         run: |
