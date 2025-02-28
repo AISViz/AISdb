@@ -78,6 +78,16 @@ jobs:
               Exit 1
           }
 
+      - name: Locate PostgreSQL Installation Paths
+        run: |
+          echo "Finding PostgreSQL paths..."
+          # Find pg_ctl.exe
+          PG_CTL_PATH=$(find "C:/Program Files/PostgreSQL" -type f -name "pg_ctl.exe" 2>/dev/null | head -n 1)
+          echo "Found pg_ctl at: $PG_CTL_PATH"
+          # Find postgresql.conf
+          PG_CONF_PATH=$(find "C:/Program Files/PostgreSQL" -type f -name "postgresql.conf" 2>/dev/null | head -n 1)
+          echo "Found postgresql.conf at: $PG_CONF_PATH"
+
       - name: Install TimescaleDB on Windows
         run: |
           # Download the official TimescaleDB installer for PostgreSQL 14.
