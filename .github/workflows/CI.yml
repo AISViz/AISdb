@@ -112,23 +112,17 @@ jobs:
           Set-Location -Path $setupDir
 
           # PostgreSQL paths
-          $pgDataDir = "C:\Program Files\PostgreSQL\14\data"
-          $pgCtl = "C:\Program Files\PostgreSQL\14\bin\pg_ctl.exe"
+          $pgDataDir = "D:\a\_temp\pgdata"
+          $env:PGPASSWORD="${{ env.pgpass }}"
+          $pgConfigPath = $(psql -U postgres -c "SHOW config_file;")
           
           # Modify postgresql.conf to preload TimescaleDB before installation
           # echo "shared_preload_libraries = 'timescaledb'" >> D:/a/_temp/pgdata/postgresql.conf
-          # $pgConfigPath = "D:/a/_temp/pgdata/postgresql.conf"
-          # if (Test-Path $pgConfigPath) {
-          #     (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
-          #     Write-Host "Updated postgresql.conf successfully!"
-          # } else {
-          #     Write-Host "ERROR: postgresql.conf not found!"
-          #     Exit 1
-          # }
+          (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
+          
           Write-Host "Restarting PostgreSQL to apply new settings..."
           pg_ctl -D $pgDataDir restart
           Start-Sleep -Seconds 5
-          # & $pgCtl restart -D $pgDataDir
           
           # Run the installer
           Write-Host "Running setup.exe..."
@@ -142,8 +136,6 @@ jobs:
           # Enable the TimescaleDB extension in PostgreSQL.
           Write-Host "Configuring PostgreSQL authentication..."
           $env:PGPASSWORD="${{ env.pgpass }}"
-          Write-Host "Verifying PostgreSQL connection..."
-          psql -U postgres -c "SELECT version();"
           Write-Host "Create TimescaleDB extension for database..."
           psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
           # psql -h 127.0.0.1 -p 5432 -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
