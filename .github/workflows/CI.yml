@@ -65,6 +65,18 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
 
+      - name: Check if PostgreSQL 14 is running
+        run: |
+          Write-Host "Checking if PostgreSQL is already running..."
+          $pgDataDir = "C:\Program Files\PostgreSQL\14\data"
+          $pgCtl = "C:\Program Files\PostgreSQL\14\bin\pg_ctl.exe"
+          
+          # Ensure PostgreSQL data directory exists
+          if (-Not (Test-Path $pgDataDir)) {
+              Write-Host "ERROR: PostgreSQL data directory not found at $pgDataDir"
+              Exit 1
+          }
+
       - name: Install TimescaleDB on Windows
         run: |
           # Download the official TimescaleDB installer for PostgreSQL 14.
@@ -90,25 +102,16 @@ jobs:
           Write-Host "Setting working directory to: $setupDir"
           Set-Location -Path $setupDir
 
-          # Ensure PostgreSQL service is enabled and running
-          Write-Host "Ensuring PostgreSQL service is enabled..."
-          sc config postgresql-x64-14 start= auto
-          net start postgresql-x64-14 || (
-              Write-Host "PostgreSQL service failed to start. Checking status..."
-              sc query postgresql-x64-14
-              Exit 1
-          )
-
+          # PostgreSQL paths
+          $pgDataDir = "C:\Program Files\PostgreSQL\14\data"
+          $pgCtl = "C:\Program Files\PostgreSQL\14\bin\pg_ctl.exe"
+          
           # Modify postgresql.conf to preload TimescaleDB before installation
           echo "shared_preload_libraries = 'timescaledb'" >> D:/a/_temp/pgdata/postgresql.conf
           Write-Host "Restarting PostgreSQL to apply new settings..."
-          net stop postgresql-x64-14
+          pg_ctl -D $pgDataDir restart
           Start-Sleep -Seconds 5
-          net start postgresql-x64-14 || (
-              Write-Host "PostgreSQL restart failed. Checking status..."
-              sc query postgresql-x64-14
-              Exit 1
-          )
+          # & $pgCtl restart -D $pgDataDir
           
           # Run the installer
           Write-Host "Running setup.exe..."
@@ -116,13 +119,8 @@ jobs:
           
           # Restart PostgreSQL again to apply TimescaleDB settings
           Write-Host "Restarting PostgreSQL after installation..."
-          net stop postgresql-x64-14
+          pg_ctl -D $pgDataDir restart
           Start-Sleep -Seconds 5
-          net start postgresql-x64-14 || (
-              Write-Host "PostgreSQL restart failed. Checking status..."
-              sc query postgresql-x64-14
-              Exit 1
-          )
           
           # Enable the TimescaleDB extension in PostgreSQL.
           Write-Host "Configuring PostgreSQL authentication..."
@@ -228,7 +226,7 @@ jobs:
 
       - name: Apply TimescaleDB tuning
         run: |
-          sudo timescaledb-tune --quiet --yes
+          sudo timescaledb-tune --pg-config="/home/runner/work/_temp/pgdata/postgresql.conf" --quiet --yes
           echo "TimescaleDB tuning applied"
         
       - name: Enable TimescaleDB in PostgreSQL Config
