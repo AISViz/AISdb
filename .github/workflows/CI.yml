@@ -114,7 +114,7 @@ jobs:
           # PostgreSQL paths
           $pgDataDir = "D:\a\_temp\pgdata"
           $env:PGPASSWORD="${{ env.pgpass }}"
-          $pgConfigPath = $(psql -U postgres -c "SHOW config_file;")
+          $pgConfigPath = "D:/a/_temp/pgdata/postgresql.conf"
           
           # Modify postgresql.conf to preload TimescaleDB before installation
           # echo "shared_preload_libraries = 'timescaledb'" >> D:/a/_temp/pgdata/postgresql.conf
