@@ -84,28 +84,45 @@ jobs:
           Write-Host "Unblocking setup.exe..."
           Unblock-File -Path $setupPath
           Set-ExecutionPolicy Bypass -Scope Process -Force
+          
+          # Setup working directory
+          $setupDir = Split-Path -Path $setupPath
+          Write-Host "Setting working directory to: $setupDir"
+          Set-Location -Path $setupDir
+
+          # Ensure PostgreSQL service is enabled and running
+          Write-Host "Ensuring PostgreSQL service is enabled..."
+          sc config postgresql-x64-14 start= auto
+          net start postgresql-x64-14 || (
+              Write-Host "PostgreSQL service failed to start. Checking status..."
+              sc query postgresql-x64-14
+              Exit 1
+          )
 
           # Modify postgresql.conf to preload TimescaleDB before installation
           echo "shared_preload_libraries = 'timescaledb'" >> D:/a/_temp/pgdata/postgresql.conf
           Write-Host "Restarting PostgreSQL to apply new settings..."
           net stop postgresql-x64-14
           Start-Sleep -Seconds 5
-          net start postgresql-x64-14
-          
-          # Setup working directory
-          $setupDir = Split-Path -Path $setupPath
-          Write-Host "Setting working directory to: $setupDir"
-          Set-Location -Path $setupDir
+          net start postgresql-x64-14 || (
+              Write-Host "PostgreSQL restart failed. Checking status..."
+              sc query postgresql-x64-14
+              Exit 1
+          )
           
           # Run the installer
           Write-Host "Running setup.exe..."
           Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -WorkingDirectory $setupDir -Wait -NoNewWindow
           
-          # Restart PostgreSQL
+          # Restart PostgreSQL again to apply TimescaleDB settings
           Write-Host "Restarting PostgreSQL after installation..."
           net stop postgresql-x64-14
           Start-Sleep -Seconds 5
-          net start postgresql-x64-14
+          net start postgresql-x64-14 || (
+              Write-Host "PostgreSQL restart failed. Checking status..."
+              sc query postgresql-x64-14
+              Exit 1
+          )
           
           # Enable the TimescaleDB extension in PostgreSQL.
           Write-Host "Configuring PostgreSQL authentication..."
