@@ -31,11 +31,13 @@
 .. |aisdb_rtd| image:: https://img.shields.io/website?url=https%3A%2F%2Faisviz.cs.dal.ca/AISdb/
    :target: https://img.shields.io/website?url=https%3A%2F%2Faisviz.cs.dal.ca/AISdb/
 
+
 - |aisviz| |space| `AISViz Website <https://aisviz.github.io>`_
-- |aisgpt| |space| `AISViz ChatBot <https://chat.openai.com/g/g-hTTH0rUBv-aisdb-assistant>`_ *(with GPT-4o)*
 - |aisdb_rtd| |space| `AISdb ReadTheDocs <https://aisviz.cs.dal.ca/AISdb/>`_ 
 - |aisdb_tut| |space| `AISdb GitBook Tutorials <https://aisviz.gitbook.io/tutorials>`_
 - |aisdb_doc| |space| `AISdb GitBook Documentation <https://aisviz.gitbook.io/documentation>`_
+- |aisgpt| |space| `AISViz ChatBot A <https://huggingface.co/spaces/vaishnaveswar/AIVIZ-BOT>`_ *(with Gemini - open-source)*
+- |aisgpt| |space| `AISViz ChatBot B <https://chat.openai.com/g/g-hTTH0rUBv-aisdb-assistant>`_ *(with GPT-4o - subscription-based)*
 
 🚢 AISdb Package Overview
 ------------------------
@@ -120,7 +122,7 @@ To set up AISdb in your environment, follow these commands in your terminal:
     source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
     pip install aisdb  # Install the latest pre-compiled AISdb from PyPI
 
-**Note:** The current version of AISdb uses `TimescaleDB` instead of vanilla `PostgreSQL`. `TimescaleDB` is an extension built on top of `PostgreSQL`, specifically optimized for time-series data featuring automatic partitioning and compression.
+**Install Note:** The current version of AISdb uses `TimescaleDB` instead of vanilla `PostgreSQL`. `TimescaleDB` is an extension built on top of `PostgreSQL`, specifically optimized for time-series data featuring automatic partitioning and compression.
 To enhance performance, we recommend fine-tuning your database with the `TimescaleDB` installer and configuring the database to use `7-day` data chunks.
 This strategy enables AISdb's dynamic tables to be further partitioned into four segments, improving database throughput when reading data.
 
