@@ -343,13 +343,31 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         with self.cursor() as cur:
             cur.execute(sql, args)
 
-    def rebuild_indexes(self, month, verbose=True):
+    def drop_indexes(self, month, verbose=True, timescaledb=False):
+        if verbose:
+            print(f'dropping indexes of {month}...')
+        dbconn = self.conn
+        if timescaledb:
+            dbconn.execute(f"DROP INDEX IF EXISTS ais_{month}_dynamic_mmsi_time_idx;")
+            dbconn.execute(f"DROP INDEX IF EXISTS ais_{month}_dynamic_time_idx;")
+        else:
+            for idx_name in ("mmsi", "time", "longitude", "latitude"):
+                dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name};")
+
+
+    def rebuild_indexes(self, month, verbose=True, timescaledb=False):
         if verbose:
             print(f'indexing {month}...')
         dbconn = self.conn
-        for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
-            dbconn.execute(
-                f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} ON ais_{month}_dynamic ({idx_name}) ;")
+        if timescaledb:
+            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_{month}_dynamic_mmsi_time_idx"
+                           f" ON ais_{month}_dynamic (mmsi, time);")
+            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_{month}_dynamic_time_idx"
+                           f" ON ais_{month}_dynamic (time);")
+        else:
+            for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
+                dbconn.execute(
+                    f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} ON ais_{month}_dynamic ({idx_name});")
 
         # dbconn.execute(
         #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_mmsi '
