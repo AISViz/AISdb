@@ -19,10 +19,10 @@ start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
 end = datetime(int(months[1][0:4]), int(months[1][4:6]) + 1, 1)
 
 
-def color_tracks(tracks):
+def color_tracks(tracks, color='yellow'):
     ''' set the color of each vessel track using a color name or RGB value '''
     for track in tracks:
-        track['color'] = 'red' or 'rgb(255,0,0)'
+        track['color'] = color
         yield track
 
 
