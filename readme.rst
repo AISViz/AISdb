@@ -122,7 +122,7 @@ To set up AISdb in your environment, follow these commands in your terminal:
     source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
     pip install aisdb  # Install the latest pre-compiled AISdb from PyPI
 
-**Install Note:** The current version of AISdb uses `TimescaleDB` instead of vanilla `PostgreSQL`. `TimescaleDB` is an extension built on top of `PostgreSQL`, specifically optimized for time-series data featuring automatic partitioning and compression.
+**Note:** The current version of AISdb uses `TimescaleDB` instead of vanilla `PostgreSQL`. `TimescaleDB` is an extension built on top of `PostgreSQL`, specifically optimized for time-series data featuring automatic partitioning and compression.
 To enhance performance, we recommend fine-tuning your database with the `TimescaleDB` installer and configuring the database to use `7-day` data chunks.
 This strategy enables AISdb's dynamic tables to be further partitioned into four segments, improving database throughput when reading data.
 
