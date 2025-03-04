@@ -6,7 +6,8 @@ pub use std::{
     collections::{HashSet},
 };
 
-use chrono::{NaiveDateTime, TimeZone, Utc};
+// use chrono::{NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc, Datelike};
 use csv::StringRecord;
 use nmea_parser::ais::{
     AisClass, CargoType, NavigationStatus, ShipType, Station, VesselDynamicData, VesselStaticData,
@@ -66,6 +67,27 @@ pub fn iso8601_2_epoch(dt: &str) -> Option<i64> {
     match NaiveDateTime::parse_from_str(dt, "%Y-%m-%dT%H:%M:%S") {
         Ok(utctime) => Some(Utc.from_utc_datetime(&utctime).timestamp()),
         Err(_) => None,  // Return None instead of panicking
+    }
+}
+
+/// Encodes the ETA into a 20-bit integer format
+fn parse_eta(row: &csv::StringRecord) -> Option<u32> {
+    let eta_month: Option<u32> = row.get(45).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
+    let eta_day: Option<u32> = row.get(46).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
+    let eta_hour: Option<u32> = row.get(47).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
+    let eta_minute: Option<u32> = row.get(48).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
+
+    match (eta_month, eta_day, eta_hour, eta_minute) {
+        (Some(month), Some(day), Some(hour), Some(minute))
+            if (1..=12).contains(&month) &&
+               (1..=31).contains(&day) &&
+               (0..=23).contains(&hour) &&
+               (0..=59).contains(&minute) =>
+        {
+            let eta_20bit = (month << 16) | (day << 11) | (hour << 6) | minute;
+            Some(eta_20bit)
+        }
+        _ => None, // Return None if values are invalid
     }
 }
 
@@ -148,7 +170,7 @@ pub fn sqlite_decodemsgs_ee_csv(
                 dimension_to_port: row.get(19).unwrap_or_default().parse().ok(),
                 dimension_to_starboard: row.get(20).unwrap_or_default().parse().ok(),
                 position_fix_type: None,
-                eta: None,
+                eta: parse_eta(row),
                 draught10: row.get(21).unwrap_or_default().parse().ok(),
                 destination: row.get(22).unwrap_or_default().parse().ok(),
                 mothership_mmsi: row.get(131).unwrap_or_default().parse().ok(),
@@ -280,7 +302,8 @@ pub fn postgres_decodemsgs_ee_csv(
                 dimension_to_port: row.get(19).unwrap_or_default().parse().ok(),
                 dimension_to_starboard: row.get(20).unwrap_or_default().parse().ok(),
                 position_fix_type: None,
-                eta: None,
+                // eta: None,  // at cols 45-48 ETA month, day, hour, minute, format: float64
+                eta: parse_eta(row),
                 draught10: row.get(21).unwrap_or_default().parse().ok(),
                 destination: row.get(22).unwrap_or_default().parse().ok(),
                 mothership_mmsi: row.get(131).unwrap_or_default().parse().ok(),
