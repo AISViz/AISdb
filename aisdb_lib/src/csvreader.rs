@@ -21,18 +21,6 @@ use crate::decode::VesselData;
 
 const BATCHSIZE: usize = 50000;
 
-// /// convert time string to epoch seconds
-// pub fn csvdt_2_epoch(dt: &str) -> i64 {
-//     let mut utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S");
-//     if let Err(_e) = utctime {
-//         utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%dT%H%M%SZ")
-//     }
-//     if let Err(e) = utctime {
-//         panic!("parsing timestamp from '{}': {}", dt, e);
-//     }
-//     Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
-// }
-
 /// Convert time string to epoch seconds
 pub fn csvdt_2_epoch(dt: &str) -> Result<i64, String> {
     let utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S")
@@ -46,11 +34,7 @@ pub fn csvdt_2_epoch(dt: &str) -> Result<i64, String> {
 
 /// filter everything but vessel data, sort vessel data into static and dynamic vectors
 pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringRecord, i32, bool)> {
-    /*
-    if rowopt.is_none() {
-    return None;
-    }
-    */
+    
     rowopt.as_ref()?;
 
     let row = rowopt.unwrap();
@@ -197,12 +181,6 @@ pub fn sqlite_decodemsgs_ee_csv(
     let f3 = filename.to_str().unwrap();
     let f4 = Path::new(f3);
     let fname = f4.file_name().unwrap().to_str().unwrap();
-//     let fname = filename
-//         .to_str()
-//         .unwrap()
-//         .rsplit_once(std::path::MAIN_SEPARATOR)
-//         .unwrap()
-//         .1;
     let fname1 = format!("{:<1$}", fname, 64);
     let elapsed1 = format!(
         "elapsed: {:>1$}s",
@@ -254,7 +232,6 @@ pub fn postgres_decodemsgs_ee_csv(
                 own_vessel: true,
                 station: Station::BaseStation,
                 ais_type: AisClass::Unknown,
-                // mmsi: row.get(0).unwrap().parse().unwrap(),
                 mmsi: row.get(0).unwrap().parse::<u32>().unwrap_or(0),  // make tolerant with invalid MMSIs
                 nav_status: NavigationStatus::NotDefined,
                 rot: row.get(25).unwrap().parse::<f64>().ok(),
@@ -337,12 +314,6 @@ pub fn postgres_decodemsgs_ee_csv(
     let f3 = filename.to_str().unwrap();
     let f4 = Path::new(f3);
     let fname = f4.file_name().unwrap().to_str().unwrap();
-//     let fname = filename
-//         .to_str()
-//         .unwrap()
-//         .rsplit_once(std::path::MAIN_SEPARATOR)
-//         .unwrap()
-//         .1;
     let fname1 = format!("{:<1$}", fname, 64);
     let elapsed1 = format!(
         "elapsed: {:>1$}s",
@@ -393,7 +364,7 @@ pub fn sqlite_decodemsgs_noaa_csv(
             Ok(row) => row,
             Err(err) => {
                 eprintln!("Skipping row due to CSV parsing error: {}", err);
-                continue; // Skip this row and proceed with the next one
+                continue; // Skip the row and proceed with the next one
             }
         };
         let row_clone = row.clone();
@@ -408,7 +379,7 @@ pub fn sqlite_decodemsgs_noaa_csv(
             Some(mmsi) => mmsi,
             None => {
                 eprintln!("Skipping row due to invalid MMSI: {:?}", row.get(0));
-                continue; // Skip this row and move to the next one
+                continue; // Skip the row and move to the next one
             }
         };
         let payload_dynamic = VesselDynamicData {
@@ -581,7 +552,6 @@ pub fn postgres_decodemsgs_noaa_csv(
                 Some("B") => AisClass::ClassB,
                 _ => AisClass::Unknown,
             },
-            // mmsi: row.get(0).unwrap().parse().unwrap(),
             mmsi: mmsi,
             nav_status: NavigationStatus::new(row.get(11).unwrap().parse().unwrap_or_default()),
             rot: None,
@@ -620,7 +590,6 @@ pub fn postgres_decodemsgs_noaa_csv(
                     Some("B") => AisClass::ClassB,
                     _ => AisClass::Unknown,
                 },
-                // mmsi: row.get(0).unwrap().parse().unwrap(),
                 mmsi: mmsi,
                 ais_version_indicator: 0,
                 imo_number: row.get(8).unwrap().parse().ok(),
