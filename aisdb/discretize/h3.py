@@ -117,8 +117,8 @@ class Discretizer:
             plt.title(f"Changes in Latitude vs. Area for Resolution: {self.resolution}")
             plt.xlabel(r'Latitude (in degrees)')
             plt.xticks(latitudes)
-            plt.xlim(-100, 100)  # Set x-axis limits from -100 to 100 for better visualization
-            plt.ylim(30, 225)    # Set y-axis limits for appropriate area range
+            plt.xlim(min(latitudes) - 10, max(latitudes) + 10)
+            plt.ylim(min(areas) - 10, max(areas) + 10)
             plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Add gridlines for better clarity
             plt.tight_layout()    # Adjust layout to make sure everything fits
             plt.legend(loc='upper right')  # Add a legend for clarity
