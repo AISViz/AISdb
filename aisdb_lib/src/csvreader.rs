@@ -6,8 +6,7 @@ pub use std::{
     collections::{HashSet},
 };
 
-// use chrono::{NaiveDateTime, TimeZone, Utc};
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc, Datelike};
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use csv::StringRecord;
 use nmea_parser::ais::{
     AisClass, CargoType, NavigationStatus, ShipType, Station, VesselDynamicData, VesselStaticData,
@@ -44,7 +43,6 @@ pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringReco
     match msgtype {
         "1" | "2" | "3" | "18" | "19" | "27" => Some((
             row,
-//             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()).unwrap_or_else(|e| {
                 eprintln!("Failed to parse timestamp: {}", e);
                 0 }) as i32,
@@ -52,7 +50,6 @@ pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringReco
         )),
         "5" | "24" => Some((
             row,
-//             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()).unwrap_or_else(|e| {
                 eprintln!("Failed to parse timestamp: {}", e);
                 0 }) as i32,
@@ -71,23 +68,26 @@ pub fn iso8601_2_epoch(dt: &str) -> Option<i64> {
 }
 
 /// Encodes the ETA into a 20-bit integer format
-fn parse_eta(row: &csv::StringRecord) -> Option<u32> {
+fn parse_eta(row: &csv::StringRecord) -> Option<DateTime<Utc>> {
     let eta_month: Option<u32> = row.get(45).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
     let eta_day: Option<u32> = row.get(46).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
     let eta_hour: Option<u32> = row.get(47).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
     let eta_minute: Option<u32> = row.get(48).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
-
+    
     match (eta_month, eta_day, eta_hour, eta_minute) {
         (Some(month), Some(day), Some(hour), Some(minute))
             if (1..=12).contains(&month) &&
                (1..=31).contains(&day) &&
                (0..=23).contains(&hour) &&
                (0..=59).contains(&minute) =>
-        {
-            let eta_20bit = (month << 16) | (day << 11) | (hour << 6) | minute;
-            Some(eta_20bit)
+        {            
+            // Use a fixed pseudo year - 2000, year in ETA will be discarded during insertion
+            let pseudo_year = 2000;
+            
+            // Create a DateTime<Utc> with the pseudo year
+            Utc.with_ymd_and_hms(pseudo_year, month, day, hour, minute, 0).single()
         }
-        _ => None, // Return None if values are invalid
+        _ => None,
     }
 }
 
@@ -170,7 +170,7 @@ pub fn sqlite_decodemsgs_ee_csv(
                 dimension_to_port: row.get(19).unwrap_or_default().parse().ok(),
                 dimension_to_starboard: row.get(20).unwrap_or_default().parse().ok(),
                 position_fix_type: None,
-                eta: parse_eta(row),
+                eta: parse_eta(&row),
                 draught10: row.get(21).unwrap_or_default().parse().ok(),
                 destination: row.get(22).unwrap_or_default().parse().ok(),
                 mothership_mmsi: row.get(131).unwrap_or_default().parse().ok(),
@@ -303,7 +303,7 @@ pub fn postgres_decodemsgs_ee_csv(
                 dimension_to_starboard: row.get(20).unwrap_or_default().parse().ok(),
                 position_fix_type: None,
                 // eta: None,  // at cols 45-48 ETA month, day, hour, minute, format: float64
-                eta: parse_eta(row),
+                eta: parse_eta(&row),
                 draught10: row.get(21).unwrap_or_default().parse().ok(),
                 destination: row.get(22).unwrap_or_default().parse().ok(),
                 mothership_mmsi: row.get(131).unwrap_or_default().parse().ok(),
