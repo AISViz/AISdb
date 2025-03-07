@@ -58,6 +58,7 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001):
     lon = np.array([r['longitude'] for r in rows], dtype=float)
     lat = np.array([r['latitude'] for r in rows], dtype=float)
     time = np.array([r['time'] for r in rows], dtype=np.uint32)
+    
     if decimate is not False:
         idx = simplify_linestring_idx(lon, lat, precision=decimate)
     else:
@@ -74,6 +75,7 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001):
         sog=np.array([r['sog'] for r in rows], dtype=np.float32)[idx],
         utc_second=np.array([r['utc_second'] for r in rows], dtype=np.uint32)[idx],
     )
+
     assert 'time' in trackdict.keys()
 
     for segment in _segment_longitude(trackdict):

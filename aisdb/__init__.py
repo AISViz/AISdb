@@ -77,6 +77,8 @@ from .kinematic import (
     track_feature,
 )
 
+from .weather.data_store import WeatherDataStore
+
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',
                     level=LOGLEVEL,
