@@ -148,7 +148,7 @@ class Discretizer:
         print("- **Hierarchical Structure:** Each hexagon at a given resolution is subdivided into smaller hexagons at the next higher resolution. Specifically, each hexagon is divided into approximately seven smaller hexagons, leading to a reduction in edge length by a factor related to the square root of this subdivision.\n")
 
 
-    def generate_filtered_hexagons_from_shapefile(self, shapefile_path, output_path_and_file_name="1_Hexagons.shp", to_device='CPU', batch_size=1000):
+    def generate_filtered_hexagons_from_shapefile(self, shapefile_path, output_path_and_file_name="1_Hexagons.shp", to_device='cpu', batch_size=1000):
         start_time = time.time()  # Start overall timer
         print("Starting the hexagon generation process. There are 20 steps in total...")
 
@@ -212,12 +212,12 @@ class Discretizer:
                 end_idx = min(start_idx + batch_size, total)
                 batch = gdf_hex.iloc[start_idx:end_idx]
 
-                if to_device == 'CPU':
+                if to_device == 'cpu':
                     # Vectorized intersection test for CPU
                     mask_batch = batch.intersects(polygon)
                     mask_list.append(mask_batch)
                 
-                elif to_device == 'CUDA':
+                elif to_device == 'cuda':
                     # GPU processing using cuspatial for CUDA
                     batch_hex_geo = cuspatial.GeoSeries(batch.geometry)
                     polygons1_batch = cuspatial.GeoSeries([polygon] * len(batch))
