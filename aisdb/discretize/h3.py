@@ -203,8 +203,8 @@ class Discretizer:
         total = len(gdf_hex)
         mask_list = []
 
-        if to_device not in ['CPU', 'CUDA']:
-            raise ValueError("Unsupported device type. Choose 'CPU' or 'CUDA'.")
+        if to_device not in ['cpu', 'cuda']:
+            raise ValueError("Unsupported device type. Choose 'cpu' or 'cuda'.")
 
         # Define the common progress bar
         with tqdm(total=total, desc="Filtering hexagons", unit="hexagon") as pbar:
@@ -220,7 +220,7 @@ class Discretizer:
                 elif to_device == 'cuda':
                     # GPU processing using cuspatial for CUDA
                     batch_hex_geo = cuspatial.GeoSeries(batch.geometry)
-                    polygons1_batch = cuspatial.GeoSeries([polygon] * len(batch))
+                    polygons1_batch = cuspatial.GeoSeries([polygon])
                     distances = cuspatial.pairwise_polygon_distance(polygons1_batch, batch_hex_geo)
                     intersecting_mask_batch = (distances == 0).to_pandas()
                     mask_list.append(intersecting_mask_batch)
