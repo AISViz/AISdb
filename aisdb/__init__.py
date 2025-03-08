@@ -74,6 +74,7 @@ from .denoising_encoder import (
 )
 
 from .weather.data_store import WeatherDataStore
+from .discretize.h3 import Discretizer
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',
