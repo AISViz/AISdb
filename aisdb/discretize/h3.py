@@ -3,12 +3,16 @@ import numpy as np
 import contextily as cx
 import matplotlib.pyplot as plt
 import geopandas as gpd
-from shapely.ops import unary_union
 from shapely.geometry import Polygon
+from shapely.ops import unary_union
 import networkx as nx
-import os 
-from geopandas.tools import sjoin
+import os
 import time
+import cuspatial
+from tqdm import tqdm
+from shapely.prepared import prep
+import pandas as pd
+
 
 class Discretizer:
     def __init__(self, resolution):
@@ -117,8 +121,8 @@ class Discretizer:
             plt.title(f"Changes in Latitude vs. Area for Resolution: {self.resolution}")
             plt.xlabel(r'Latitude (in degrees)')
             plt.xticks(latitudes)
-            plt.xlim(-100, 100)  # Set x-axis limits from -100 to 100 for better visualization
-            plt.ylim(30, 225)    # Set y-axis limits for appropriate area range
+            plt.xlim(min(latitudes) - 10, max(latitudes) + 10)
+            plt.ylim(min(areas) - 10, max(areas) + 10)
             plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Add gridlines for better clarity
             plt.tight_layout()    # Adjust layout to make sure everything fits
             plt.legend(loc='upper right')  # Add a legend for clarity
@@ -144,7 +148,7 @@ class Discretizer:
         print("- **Hierarchical Structure:** Each hexagon at a given resolution is subdivided into smaller hexagons at the next higher resolution. Specifically, each hexagon is divided into approximately seven smaller hexagons, leading to a reduction in edge length by a factor related to the square root of this subdivision.\n")
 
 
-    def generate_filtered_hexagons_from_shapefile(self, shapefile_path, output_path_and_file_name="1_Hexagons.shp"):
+    def generate_filtered_hexagons_from_shapefile(self, shapefile_path, output_path_and_file_name="1_Hexagons.shp", to_device='CPU', batch_size=1000):
         start_time = time.time()  # Start overall timer
         print("Starting the hexagon generation process. There are 20 steps in total...")
 
@@ -193,11 +197,42 @@ class Discretizer:
         gdf_hex = gpd.GeoDataFrame(hexagon_polygons, columns=['hex_id', 'geometry'], crs='EPSG:4326')
         print(f"Time for creating GeoDataFrame: {time.time() - step_start:.2f} seconds")
 
-        # Step 7: Filter hexagons that intersect with the polygon
-        print("Step 7: Filtering hexagons that intersect with the polygon...")
+        # Step 7: Filter hexagons that intersect with the polygon using GPU with progress bar
+        print(f"Step 7: Filtering hexagons that intersect with the polygon using {to_device}...")
         step_start = time.time()
-        gdf_water_hex = gdf_hex[gdf_hex.intersects(polygon)]
+        total = len(gdf_hex)
+        mask_list = []
+
+        if to_device not in ['CPU', 'CUDA']:
+            raise ValueError("Unsupported device type. Choose 'CPU' or 'CUDA'.")
+
+        # Define the common progress bar
+        with tqdm(total=total, desc="Filtering hexagons", unit="hexagon") as pbar:
+            for start_idx in range(0, total, batch_size):
+                end_idx = min(start_idx + batch_size, total)
+                batch = gdf_hex.iloc[start_idx:end_idx]
+
+                if to_device == 'CPU':
+                    # Vectorized intersection test for CPU
+                    mask_batch = batch.intersects(polygon)
+                    mask_list.append(mask_batch)
+                
+                elif to_device == 'CUDA':
+                    # GPU processing using cuspatial for CUDA
+                    batch_hex_geo = cuspatial.GeoSeries(batch.geometry)
+                    polygons1_batch = cuspatial.GeoSeries([polygon] * len(batch))
+                    distances = cuspatial.pairwise_polygon_distance(polygons1_batch, batch_hex_geo)
+                    intersecting_mask_batch = (distances == 0).to_pandas()
+                    mask_list.append(intersecting_mask_batch)
+
+                pbar.update(len(batch))
+
+        # Combine the boolean masks from all batches
+        mask_full = pd.concat(mask_list)
+        gdf_water_hex = gdf_hex[mask_full]
+
         print(f"Time for filtering intersecting hexagons: {time.time() - step_start:.2f} seconds")
+
 
         # Step 8: Project the data to UTM once for efficiency
         print("Step 8: Projecting to UTM...")
@@ -206,11 +241,12 @@ class Discretizer:
         gdf_water_hex_utm['area_km2'] = gdf_water_hex_utm.geometry.area / 1000000
         print(f"Time for projecting to UTM: {time.time() - step_start:.2f} seconds")
 
-        # Step 9: Filter hexagons that are fully within the polygon
-        print("Step 9: Filtering hexagons fully within the polygon...")
+        # Step 9: Filter hexagons that are fully within the polygon using prepared geometry
+        print("Step 9: Filtering hexagons fully within the polygon using prepared geometry...")
         step_start = time.time()
-        gdf_hex['is_fully_within'] = gdf_hex['geometry'].apply(lambda x: polygon.contains(x))
-        gdf_fully_within_hex = gdf_hex[gdf_hex['is_fully_within']].drop(columns='is_fully_within')
+        prepared_polygon = prep(polygon)
+        mask = gdf_hex.geometry.apply(lambda x: prepared_polygon.contains(x))
+        gdf_fully_within_hex = gdf_hex[mask]
         print(f"Time for filtering fully contained hexagons: {time.time() - step_start:.2f} seconds")
 
         # Step 10: Project fully contained hexagons into UTM and calculate area
