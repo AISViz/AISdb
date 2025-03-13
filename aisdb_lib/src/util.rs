@@ -25,7 +25,7 @@ OPTIONS:
 
 use std::fs::read_dir;
 
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 
 /// yields sorted vector of files in dirname with a matching file extension.
 pub fn glob_dir(dirname: std::path::PathBuf, matching: &str) -> Option<Vec<String>> {
@@ -41,8 +41,7 @@ pub fn glob_dir(dirname: std::path::PathBuf, matching: &str) -> Option<Vec<Strin
 }
 
 pub fn epoch_2_dt(e: i64) -> DateTime<Utc> {
-    let time = NaiveDateTime::from_timestamp_opt(e, 0).expect("getting current timestamp");
-    Utc.from_utc_datetime(&time)
+    DateTime::from_timestamp(e, 0).expect("getting current timestamp")
 }
 
 #[cfg(test)]
