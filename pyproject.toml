@@ -13,7 +13,7 @@ dependencies = [
     "geopandas", "xarray", "cfgrib"
 ]
 zip-safe = false
-version = "1.7.3"
+version = "1.8.0-alpha"
 readme = "README"
 description = "Smart AIS data storage and integration"
 classifiers = [
