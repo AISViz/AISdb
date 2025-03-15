@@ -3,9 +3,10 @@ pub use std::{
     io::{BufRead, BufReader, Error, Write},
     time::{Duration, Instant},
     path::{Path},
+    collections::{HashSet},
 };
 
-use chrono::{NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use csv::StringRecord;
 use nmea_parser::ais::{
     AisClass, CargoType, NavigationStatus, ShipType, Station, VesselDynamicData, VesselStaticData,
@@ -20,18 +21,6 @@ use crate::decode::VesselData;
 
 const BATCHSIZE: usize = 50000;
 
-// /// convert time string to epoch seconds
-// pub fn csvdt_2_epoch(dt: &str) -> i64 {
-//     let mut utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S");
-//     if let Err(_e) = utctime {
-//         utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%dT%H%M%SZ")
-//     }
-//     if let Err(e) = utctime {
-//         panic!("parsing timestamp from '{}': {}", dt, e);
-//     }
-//     Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
-// }
-
 /// Convert time string to epoch seconds
 pub fn csvdt_2_epoch(dt: &str) -> Result<i64, String> {
     let utctime = NaiveDateTime::parse_from_str(dt, "%Y%m%d_%H%M%S")
@@ -45,11 +34,7 @@ pub fn csvdt_2_epoch(dt: &str) -> Result<i64, String> {
 
 /// filter everything but vessel data, sort vessel data into static and dynamic vectors
 pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringRecord, i32, bool)> {
-    /*
-    if rowopt.is_none() {
-    return None;
-    }
-    */
+    
     rowopt.as_ref()?;
 
     let row = rowopt.unwrap();
@@ -58,7 +43,6 @@ pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringReco
     match msgtype {
         "1" | "2" | "3" | "18" | "19" | "27" => Some((
             row,
-//             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()).unwrap_or_else(|e| {
                 eprintln!("Failed to parse timestamp: {}", e);
                 0 }) as i32,
@@ -66,7 +50,6 @@ pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringReco
         )),
         "5" | "24" => Some((
             row,
-//             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()) as i32,
             csvdt_2_epoch(clonedrow.get(3).as_ref().unwrap()).unwrap_or_else(|e| {
                 eprintln!("Failed to parse timestamp: {}", e);
                 0 }) as i32,
@@ -77,12 +60,35 @@ pub fn filter_vesseldata_csv(rowopt: Option<StringRecord>) -> Option<(StringReco
 }
 
 /// convert ISO8601 time format (NOAA in use) to epoch seconds
-pub fn iso8601_2_epoch(dt: &str) -> i64 {
-    let utctime = NaiveDateTime::parse_from_str(dt, "%Y-%m-%dT%H:%M:%S");
-    if let Err(e) = utctime {
-        panic!("parsing timestamp from '{}': {}", dt, e);
+pub fn iso8601_2_epoch(dt: &str) -> Option<i64> {
+    match NaiveDateTime::parse_from_str(dt, "%Y-%m-%dT%H:%M:%S") {
+        Ok(utctime) => Some(Utc.from_utc_datetime(&utctime).timestamp()),
+        Err(_) => None,  // Return None instead of panicking
     }
-    Utc.from_utc_datetime(&utctime.unwrap()).timestamp()
+}
+
+/// Encodes the ETA into a 20-bit integer format
+fn parse_eta(row: &csv::StringRecord) -> Option<DateTime<Utc>> {
+    let eta_month: Option<u32> = row.get(45).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
+    let eta_day: Option<u32> = row.get(46).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
+    let eta_hour: Option<u32> = row.get(47).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
+    let eta_minute: Option<u32> = row.get(48).and_then(|s| s.parse::<f64>().ok()).map(|x| x as u32);
+    
+    match (eta_month, eta_day, eta_hour, eta_minute) {
+        (Some(month), Some(day), Some(hour), Some(minute))
+            if (1..=12).contains(&month) &&
+               (1..=31).contains(&day) &&
+               (0..=23).contains(&hour) &&
+               (0..=59).contains(&minute) =>
+        {            
+            // Use a fixed pseudo year - 2000, year in ETA will be discarded during insertion
+            let pseudo_year = 2000;
+            
+            // Create a DateTime<Utc> with the pseudo year
+            Utc.with_ymd_and_hms(pseudo_year, month, day, hour, minute, 0).single()
+        }
+        _ => None,
+    }
 }
 
 /// perform database input from Spire
@@ -164,7 +170,7 @@ pub fn sqlite_decodemsgs_ee_csv(
                 dimension_to_port: row.get(19).unwrap_or_default().parse().ok(),
                 dimension_to_starboard: row.get(20).unwrap_or_default().parse().ok(),
                 position_fix_type: None,
-                eta: None,
+                eta: parse_eta(&row),
                 draught10: row.get(21).unwrap_or_default().parse().ok(),
                 destination: row.get(22).unwrap_or_default().parse().ok(),
                 mothership_mmsi: row.get(131).unwrap_or_default().parse().ok(),
@@ -197,12 +203,6 @@ pub fn sqlite_decodemsgs_ee_csv(
     let f3 = filename.to_str().unwrap();
     let f4 = Path::new(f3);
     let fname = f4.file_name().unwrap().to_str().unwrap();
-//     let fname = filename
-//         .to_str()
-//         .unwrap()
-//         .rsplit_once(std::path::MAIN_SEPARATOR)
-//         .unwrap()
-//         .1;
     let fname1 = format!("{:<1$}", fname, 64);
     let elapsed1 = format!(
         "elapsed: {:>1$}s",
@@ -254,7 +254,6 @@ pub fn postgres_decodemsgs_ee_csv(
                 own_vessel: true,
                 station: Station::BaseStation,
                 ais_type: AisClass::Unknown,
-                // mmsi: row.get(0).unwrap().parse().unwrap(),
                 mmsi: row.get(0).unwrap().parse::<u32>().unwrap_or(0),  // make tolerant with invalid MMSIs
                 nav_status: NavigationStatus::NotDefined,
                 rot: row.get(25).unwrap().parse::<f64>().ok(),
@@ -303,7 +302,8 @@ pub fn postgres_decodemsgs_ee_csv(
                 dimension_to_port: row.get(19).unwrap_or_default().parse().ok(),
                 dimension_to_starboard: row.get(20).unwrap_or_default().parse().ok(),
                 position_fix_type: None,
-                eta: None,
+                // eta: None,  // at cols 45-48 ETA month, day, hour, minute, format: float64
+                eta: parse_eta(&row),
                 draught10: row.get(21).unwrap_or_default().parse().ok(),
                 destination: row.get(22).unwrap_or_default().parse().ok(),
                 mothership_mmsi: row.get(131).unwrap_or_default().parse().ok(),
@@ -337,12 +337,6 @@ pub fn postgres_decodemsgs_ee_csv(
     let f3 = filename.to_str().unwrap();
     let f4 = Path::new(f3);
     let fname = f4.file_name().unwrap().to_str().unwrap();
-//     let fname = filename
-//         .to_str()
-//         .unwrap()
-//         .rsplit_once(std::path::MAIN_SEPARATOR)
-//         .unwrap()
-//         .1;
     let fname1 = format!("{:<1$}", fname, 64);
     let elapsed1 = format!(
         "elapsed: {:>1$}s",
@@ -383,14 +377,34 @@ pub fn sqlite_decodemsgs_noaa_csv(
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
     let mut count = 0;
+    let mut static_seen: HashSet<u32> = HashSet::new();
 
     let mut c = get_db_conn(dbpath).expect("getting db conn");
 
     for row_option in reader.records(){
         count += 1;
-        let row = row_option.unwrap();
+        let row = match row_option {
+            Ok(row) => row,
+            Err(err) => {
+                eprintln!("Skipping row due to CSV parsing error: {}", err);
+                continue; // Skip the row and proceed with the next one
+            }
+        };
         let row_clone = row.clone();
-        let epoch = iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) as i32;
+        let epoch = match iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) {
+            Some(epoch) => epoch as i32,
+            None => {
+                eprintln!("Skipping row due to invalid timestamp: {:?}", row_clone.get(1));
+                return Ok(());
+            }
+        };
+        let mmsi: u32 = match row.get(0).and_then(|m| m.parse::<u32>().ok()) {
+            Some(mmsi) => mmsi,
+            None => {
+                eprintln!("Skipping row due to invalid MMSI: {:?}", row.get(0));
+                continue; // Skip the row and move to the next one
+            }
+        };
         let payload_dynamic = VesselDynamicData {
             own_vessel: true,
             station: Station::BaseStation,
@@ -399,7 +413,7 @@ pub fn sqlite_decodemsgs_noaa_csv(
                 Some("B") => AisClass::ClassB,
                 _ => AisClass::Unknown,
             },
-            mmsi: row.get(0).unwrap().parse().unwrap(),
+            mmsi: mmsi,
             nav_status: NavigationStatus::new(row.get(11).unwrap().parse().unwrap_or_default()),
             rot: None,
             rot_direction: None,
@@ -429,38 +443,40 @@ pub fn sqlite_decodemsgs_noaa_csv(
         };
         positions.push(message_dyn);
 
-        let payload_static = VesselStaticData {
-            own_vessel: true,
-            ais_type: match row.get(16) {
-                Some("A") => AisClass::ClassA,
-                Some("B") => AisClass::ClassB,
-                _ => AisClass::Unknown,
-            },
-            mmsi: row.get(0).unwrap().parse().unwrap(),
-            ais_version_indicator: 0, // NOAA does not contain such info but an u8 data type is enforced, we give default value 0 same with unsuccessful parsing result from Spire
-            imo_number: row.get(8).unwrap().parse().ok(),
-            call_sign: row.get(9).unwrap().parse().ok(),
-            name: Some(row.get(7).unwrap_or("").to_string()),
-            ship_type: ShipType::new(row.get(10).unwrap().parse().unwrap_or_default()),
-            cargo_type: CargoType::new(row.get(15).unwrap().parse().unwrap_or_default()),
-            equipment_vendor_id: None,
-            equipment_model: None,
-            equipment_serial_number: None,
-            dimension_to_bow: None,
-            dimension_to_stern: None,
-            dimension_to_port: None,
-            dimension_to_starboard: None,
-            position_fix_type: None,
-            eta: None,
-            draught10: row.get(14).unwrap_or_default().parse().ok(),
-            destination: None,
-            mothership_mmsi: None,
-        };
-        let message_stat = VesselData {
-            epoch: Some(epoch),
-            payload: Some(ParsedMessage::VesselStaticData(payload_static)),
-        };
-        stat_msgs.push(message_stat);
+        if static_seen.insert(mmsi) {
+            let payload_static = VesselStaticData {
+                own_vessel: true,
+                ais_type: match row.get(16) {
+                    Some("A") => AisClass::ClassA,
+                    Some("B") => AisClass::ClassB,
+                    _ => AisClass::Unknown,
+                },
+                mmsi: mmsi,
+                ais_version_indicator: 0, // NOAA does not contain such info but an u8 data type is enforced, we give default value 0 same with unsuccessful parsing result from Spire
+                imo_number: row.get(8).unwrap().parse().ok(),
+                call_sign: row.get(9).unwrap().parse().ok(),
+                name: Some(row.get(7).unwrap_or("").to_string()),
+                ship_type: ShipType::new(row.get(10).unwrap().parse().unwrap_or_default()),
+                cargo_type: CargoType::new(row.get(15).unwrap().parse().unwrap_or_default()),
+                equipment_vendor_id: None,
+                equipment_model: None,
+                equipment_serial_number: None,
+                dimension_to_bow: None,
+                dimension_to_stern: None,
+                dimension_to_port: None,
+                dimension_to_starboard: None,
+                position_fix_type: None,
+                eta: None,
+                draught10: row.get(14).unwrap_or_default().parse().ok(),
+                destination: None,
+                mothership_mmsi: None,
+            };
+            let message_stat = VesselData {
+                epoch: Some(epoch),
+                payload: Some(ParsedMessage::VesselStaticData(payload_static)),
+            };
+            stat_msgs.push(message_stat);
+        }
 
         if positions.len() >= BATCHSIZE {
             let _d = sqlite_prepare_tx_dynamic(&mut c, source, positions);
@@ -521,14 +537,35 @@ pub fn postgres_decodemsgs_noaa_csv(
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
     let mut count = 0;
+    let mut static_seen: HashSet<u32> = HashSet::new();
 
     let mut c = get_postgresdb_conn(connect_str)?;
 
     for row_option in reader.records(){
         count += 1;
-        let row = row_option.unwrap();
+        let row = match row_option {
+            Ok(row) => row,
+            Err(err) => {
+                eprintln!("Skipping row due to CSV parsing error: {}", err);
+                continue; // Skip this row and proceed with the next one
+            }
+        };
         let row_clone = row.clone();
-        let epoch = iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) as i32;
+        let epoch = match iso8601_2_epoch(row_clone.get(1).as_ref().unwrap()) {
+            Some(epoch) => epoch as i32,
+            None => {
+                eprintln!("Skipping row due to invalid timestamp: {:?}", row_clone.get(1));
+                return Ok(());
+            }
+        };
+        let mmsi: u32 = match row.get(0).and_then(|m| m.parse::<u32>().ok()) {
+            Some(mmsi) => mmsi,
+            None => {
+                eprintln!("Skipping row due to invalid MMSI: {:?}", row.get(0));
+                continue; // Skip this row and move to the next one
+            }
+        };
+        
         let payload_dynamic = VesselDynamicData {
             own_vessel: true,
             station: Station::BaseStation,
@@ -538,7 +575,7 @@ pub fn postgres_decodemsgs_noaa_csv(
                 Some("B") => AisClass::ClassB,
                 _ => AisClass::Unknown,
             },
-            mmsi: row.get(0).unwrap().parse().unwrap(),
+            mmsi: mmsi,
             nav_status: NavigationStatus::new(row.get(11).unwrap().parse().unwrap_or_default()),
             rot: None,
             rot_direction: None,
@@ -568,38 +605,40 @@ pub fn postgres_decodemsgs_noaa_csv(
         };
         positions.push(message_dyn);
 
-        let payload_static = VesselStaticData {
-            own_vessel: true,
-            ais_type: match row.get(16) {
-                Some("A") => AisClass::ClassA,
-                Some("B") => AisClass::ClassB,
-                _ => AisClass::Unknown,
-            },
-            mmsi: row.get(0).unwrap().parse().unwrap(),
-            ais_version_indicator: 0,
-            imo_number: row.get(8).unwrap().parse().ok(),
-            call_sign: row.get(9).unwrap().parse().ok(),
-            name: Some(row.get(7).unwrap_or("").to_string()),
-            ship_type: ShipType::new(row.get(10).unwrap().parse().unwrap_or_default()),
-            cargo_type: CargoType::new(row.get(15).unwrap().parse().unwrap_or_default()),
-            equipment_vendor_id: None,
-            equipment_model: None,
-            equipment_serial_number: None,
-            dimension_to_bow: None,
-            dimension_to_stern: None,
-            dimension_to_port: None,
-            dimension_to_starboard: None,
-            position_fix_type: None,
-            eta: None,
-            draught10: row.get(14).unwrap_or_default().parse().ok(),
-            destination: None,
-            mothership_mmsi: None,
-        };
-        let message_stat = VesselData {
-            epoch: Some(epoch),
-            payload: Some(ParsedMessage::VesselStaticData(payload_static)),
-        };
-        stat_msgs.push(message_stat);
+        if static_seen.insert(mmsi) {
+            let payload_static = VesselStaticData {
+                own_vessel: true,
+                ais_type: match row.get(16) {
+                    Some("A") => AisClass::ClassA,
+                    Some("B") => AisClass::ClassB,
+                    _ => AisClass::Unknown,
+                },
+                mmsi: mmsi,
+                ais_version_indicator: 0,
+                imo_number: row.get(8).unwrap().parse().ok(),
+                call_sign: row.get(9).unwrap().parse().ok(),
+                name: Some(row.get(7).unwrap_or("").to_string()),
+                ship_type: ShipType::new(row.get(10).unwrap().parse().unwrap_or_default()),
+                cargo_type: CargoType::new(row.get(15).unwrap().parse().unwrap_or_default()),
+                equipment_vendor_id: None,
+                equipment_model: None,
+                equipment_serial_number: None,
+                dimension_to_bow: None,
+                dimension_to_stern: None,
+                dimension_to_port: None,
+                dimension_to_starboard: None,
+                position_fix_type: None,
+                eta: None,
+                draught10: row.get(14).unwrap_or_default().parse().ok(),
+                destination: None,
+                mothership_mmsi: None,
+            };
+            let message_stat = VesselData {
+                epoch: Some(epoch),
+                payload: Some(ParsedMessage::VesselStaticData(payload_static)),
+            };
+            stat_msgs.push(message_stat);
+        }
 
         if positions.len() >= BATCHSIZE {
             postgres_prepare_tx_dynamic(&mut c, source, positions)?;
