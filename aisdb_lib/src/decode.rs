@@ -126,64 +126,6 @@ fn is_valid_epoch(epoch: u64) -> bool {
     epoch >= min_valid_epoch && epoch <= current_time
 }
 
-// pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
-//     let (meta, payload) = line.as_ref().unwrap().rsplit_once('\\')?;
-//     for tag_outer in meta.split(',') {
-//         for tag in tag_outer.split('*') {
-//             if tag.len() <= 3 || !&tag.contains("c:") {
-//                 continue;
-//             } else if let Ok(i) = tag[2..].parse::<i32>() {
-//                 return Some((payload.to_string(), i));
-//             } else if let Ok(i) = tag[3..].parse::<i32>() {
-//                 return Some((payload.to_string(), i));
-//             } else if let Ok(i) = tag.split_once(' ').unwrap_or(("", "")).0.parse::<u64>() {
-//                 if 946731600 < i
-//                     && i <= std::time::SystemTime::now()
-//                         .duration_since(std::time::UNIX_EPOCH)
-//                         .unwrap()
-//                         .as_secs()
-//                 {
-//                     return Some((payload.to_string(), i.try_into().unwrap()));
-//                 } else {
-//                     //                     #[cfg(debug_assertions)]
-//                     //                     println!(
-//                     //                         "skipped- tag:{:?}\tmeta:{:?}\tpayload:{:?}",
-//                     //                         tag, meta, payload
-//                     //                     );
-//                     return None;
-//                 }
-//             }
-//         }
-//     }
-//     if meta.contains(' ') {
-//         //         #[cfg(debug_assertions)]
-//         //         println!("{:?}", meta);
-//         let ii = meta.split_once(' ').unwrap().0.parse::<u64>().unwrap_or(0);
-//         if ii == 0 {
-//             return None;
-//         }
-//
-//         let now = std::time::SystemTime::now()
-//             .duration_since(std::time::UNIX_EPOCH)
-//             .unwrap()
-//             .as_secs();
-//         if 946731600 < ii && ii <= now {
-//             Some((payload.to_string(), ii.try_into().unwrap()))
-//         } else {
-//             //             #[cfg(debug_assertions)]
-//             //             println!(
-//             //                 "skipped- ii:{:?}\tmeta:{:?}\tpayload:{:?}",
-//             //                 ii, meta, payload
-//             //             );
-//             None
-//         }
-//     } else {
-//         //         #[cfg(debug_assertions)]
-//         //         println!("skipped- meta:{:?}\tpayload:{:?}", meta, payload);
-//         None
-//     }
-// }
-
 
 fn extract_epoch_from_nmea_line(line: &str) -> i32 {
     // Attempt to extract Unix timestamp from additional fields after the checksum
