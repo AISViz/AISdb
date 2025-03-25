@@ -15,7 +15,7 @@ from aisdb.proc_util import _segment_rng, _segment_rng_all
 
 staticcols = set([
     'mmsi', 'vessel_name', 'ship_type', 'ship_type_txt', 'dim_bow', 'maneuver',
-    'dim_stern', 'dim_port', 'dim_star', 'imo', 'draught', 'heading', 'rot',
+    'dim_stern', 'dim_port', 'dim_star', 'imo', 'draught',
     'destination', 'eta_month', 'eta_day', 'eta_hour', 'eta_minute',
 ])
 
@@ -73,6 +73,8 @@ def _yieldsegments(rows, staticcols, dynamiccols, decimate=0.0001):
         lat=lat[idx].astype(np.float32),
         cog=np.array([r['cog'] for r in rows], dtype=np.uint32)[idx],
         sog=np.array([r['sog'] for r in rows], dtype=np.float32)[idx],
+        heading=np.array([r['heading'] for r in rows], dtype=np.float32)[idx],
+        rot=np.array([r['rot'] for r in rows], dtype=np.float32)[idx],
         utc_second=np.array([r['utc_second'] for r in rows], dtype=np.uint32)[idx],
     )
 
