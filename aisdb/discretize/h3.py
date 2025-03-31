@@ -48,38 +48,6 @@ class Discretizer:
             track['h3_index'] = [self.get_h3_index(lat, lon) for lat, lon in zip(latitudes, longitudes)]
             yield track
 
-    def plot_discretized_tracks(self, tracks, shapefile_path=None, ax=None):
-        """
-        Plot the hexagonal cells for each track ensuring compliance with the given shapefile.
-        """
-        # Collect all unique H3 cells from the track
-        cells = set()
-        for track in tracks:
-            cells.update(track['h3_index'])  # Collect all unique cells from the track 
-
-        if len(cells) == 0:
-            raise ValueError("No value h3_index found in the tracks.")
-
-        # If a shapefile path is given, ensure hexagons comply with the shapefile
-        if shapefile_path:
-            # Load the shapefile containing valid hexagons (that we need to comply with)
-            valid_hexagons = gpd.read_file(shapefile_path)
-            
-            # Filter cells based on whether they are within the valid hexagons in the shapefile
-            # Convert the H3 cells to geometries and filter based on intersection with the shapefile polygons
-            valid_cells = set()
-            for cell in cells:
-                h3_geom = h3.cell_to_boundary(cell)  # Convert H3 cell to polygon
-                h3_polygon = Polygon([(lat, lon) for lon, lat in h3_geom])
-                if valid_hexagons.geometry.intersects(h3_polygon).any():  # Check if the cell intersects any valid hexagon
-                    valid_cells.add(cell)
-            cells = valid_cells
-
-            if len(cells) == 0:
-                raise ValueError("No valid H3 cells found within the shapefile.")
-        
-        _plot_cells(cells, ax=ax)
-
     def get_hexagon_area_at_latitude(self,lat):
         """ 
         Generate a single hexagon at a specific latitude and calculate its area. 
@@ -138,31 +106,3 @@ class Discretizer:
         print("- **Resolution Definition:** In the H3 system, the resolution defines the size of the hexagons. A lower resolution number corresponds to larger hexagons, while a higher resolution number corresponds to smaller hexagons.\n")
         print("- **Edge Length Reduction:** As the resolution increases, the edge length of each hexagon decreases. This allows for more detailed spatial analysis, as smaller hexagons can capture finer geographic details.\n")
         print("- **Hierarchical Structure:** Each hexagon at a given resolution is subdivided into smaller hexagons at the next higher resolution. Specifically, each hexagon is divided into approximately seven smaller hexagons, leading to a reduction in edge length by a factor related to the square root of this subdivision.\n")
-    
-def _plot_df(df, column=None, ax=None):
-    "Plot based on the `geometry` column of a GeoPandas dataframe"
-    df = df.copy()
-    df = df.to_crs(epsg=3857)  # web mercator
-
-    if ax is None:
-        _, ax = plt.subplots(figsize=(8,8))
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-
-    df.plot(
-        ax=ax,
-        alpha=0.5, edgecolor='k',
-        column=column, categorical=True,
-        legend=True, legend_kwds={'loc': 'upper left'},
-    )
-    cx.add_basemap(ax, crs=df.crs, source=cx.providers.CartoDB.Positron)
-
-
-def _plot_shape(shape, ax=None):
-    df = gpd.GeoDataFrame({'geometry': [shape]}, crs='EPSG:4326')
-    _plot_df(df, ax=ax)
-
-
-def _plot_cells(cells, ax=None):
-    shape = h3.cells_to_h3shape(cells)
-    _plot_shape(shape, ax=ax)
