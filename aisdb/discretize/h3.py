@@ -1,6 +1,5 @@
 import h3
 import numpy as np
-import contextily as cx
 import matplotlib.pyplot as plt
 import geopandas as gpd
 from shapely.geometry import Polygon
