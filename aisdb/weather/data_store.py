@@ -100,14 +100,14 @@ class WeatherDataStore:
             if self.area  == None or len(self.area )==0:
                 raise ValueError("""Missing parameter 'area'.""")
               
-            params_provided = {
+            user_params = {
                 "variable": self.short_names,
                 "start_time": self.start,
                 "end_time": self.end,
                 "area": self.area,
             }
 
-            climateDataStore = FetchWeather(dataset="reanalysis-era5-single-levels", params_requested= params_provided)
+            climateDataStore = FetchWeather(dataset="reanalysis-era5-single-levels", params_requested= user_params)
 
             print(f"Downloading weather data from CDS to: {weather_data_path}")
 
