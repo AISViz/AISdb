@@ -74,7 +74,7 @@ from .denoising_encoder import (
 )
 
 from .weather.data_store import WeatherDataStore
-from .weather.weather_fetch import ClimateDataStore
+from .weather.weather_fetch import FetchWeather
 from .weather.utils import SHORT_NAMES_TO_VARIABLES
 
 LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')

@@ -5,7 +5,7 @@ import xarray as xr
 import numpy as np
 from aisdb.database.decoder import fast_unzip
 from aisdb.weather.utils import SHORT_NAMES_TO_VARIABLES
-from aisdb.weather.weather_fetch import ClimateDataStore
+from aisdb.weather.weather_fetch import FetchWeather
 
 def dt_to_iso8601(timestamp):
     """
@@ -107,7 +107,7 @@ class WeatherDataStore:
                 "area": self.area,
             }
 
-            climateDataStore = ClimateDataStore(dataset="reanalysis-era5-single-levels", params_requested= params_provided)
+            climateDataStore = FetchWeather(dataset="reanalysis-era5-single-levels", params_requested= params_provided)
 
             print(f"Downloading weather data from CDS to: {weather_data_path}")
 
