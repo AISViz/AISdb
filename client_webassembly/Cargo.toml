@@ -33,7 +33,7 @@ version = "1.0"
 features = [ "derive",]
 
 [dependencies.wasm-bindgen]
-version = "0.2"
+version = "0.2.88"
 features = [ "serde-serialize",]
 
 [dependencies.web-sys]
