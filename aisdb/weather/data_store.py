@@ -5,7 +5,7 @@ import xarray as xr
 import numpy as np
 from aisdb.database.decoder import fast_unzip
 from aisdb.weather.utils import SHORT_NAMES_TO_VARIABLES
-from aisdb.weather.weather_fetch import FetchWeather
+from aisdb.weather.weather_fetch import ClimateDataStore
 
 def dt_to_iso8601(timestamp):
     """

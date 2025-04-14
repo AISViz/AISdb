@@ -14,7 +14,7 @@ DEFAULT_PARAMS = {
 class ClimateDataStore:
     def __init__(self, dataset: str = None, short_names: list = None, start_time: datetime = None, end_time: datetime = None, area: list = None):
         """
-        Initialize the FetchClimateData class.
+        Initialize the ClimateDataStore class.
 
         :param dataset: The dataset name
         :param params_requested: A dictionary containing request parameters.
