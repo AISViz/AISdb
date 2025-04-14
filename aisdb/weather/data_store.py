@@ -107,7 +107,7 @@ class WeatherDataStore:
                 "area": self.area,
             }
 
-            climateDataStore = FetchWeather(dataset="reanalysis-era5-single-levels", params_requested= user_params)
+            climateDataStore = ClimateDataStore(dataset="reanalysis-era5-single-levels", params_requested= user_params)
 
             print(f"Downloading weather data from CDS to: {weather_data_path}")
 
