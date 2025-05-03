@@ -151,9 +151,57 @@ class DBQuery(UserDict):
             warnings.warn('No data for selected time range! '
                           f'{rng_string}')
 
+    # def _build_tables_postgres(self,
+    #                            cur: psycopg.Cursor,
+    #                            month: str,
+    #                            rng_string: str,
+    #                            reaggregate_static: bool = False,
+    #                            verbose: bool = False):
+
+    #     # check if static tables exist
+    #     static_qry = psycopg.sql.SQL('''
+    #         SELECT table_name
+    #         FROM information_schema.tables
+    #         WHERE information_schema.tables.table_name = {TABLE}
+    #     ''').format(TABLE=psycopg.sql.Literal(f'ais_{month}_static'))
+    #     cur.execute(static_qry)
+    #     count_static = cur.fetchall()
+
+    #     if len(count_static) == 0:
+    #         warnings.warn('No static data for selected time range! '
+    #                       f'{rng_string}')
+
+    #     # check if aggregate tables exist
+    #     cur.execute(
+    #         psycopg.sql.SQL('''
+    #         SELECT table_name
+    #         FROM information_schema.tables
+    #         WHERE table_name = {TABLE}
+    #     ''').format(TABLE=psycopg.sql.Literal(f'static_{month}_aggregate')))
+    #     res = cur.fetchall()
+
+    #     if len(res) == 0 or reaggregate_static:
+    #         if verbose:
+    #             print(f'building static index for month {month}...',
+    #                   flush=True)
+    #         self.dbconn.aggregate_static_msgs([month], verbose)
+
+    #     # check if dynamic tables exist
+    #     cur.execute(
+    #         psycopg.sql.SQL('''
+    #         SELECT table_name
+    #         FROM information_schema.tables
+    #         WHERE table_name = {TABLE}
+    #     ''').format(TABLE=psycopg.sql.Literal(f'ais_{month}_dynamic')))
+
+    #     if len(cur.fetchall()) == 0:  # pragma: no cover
+    #         # if isinstance(self.dbconn, ConnectionType.SQLITE.value):
+    #         #    sqlite_createtable_dynamicreport(self.dbconn, month)
+    #         warnings.warn('No data for selected time range! '
+    #                       f'{rng_string}')
+
     def _build_tables_postgres(self,
                                cur: psycopg.Cursor,
-                               month: str,
                                rng_string: str,
                                reaggregate_static: bool = False,
                                verbose: bool = False):
@@ -163,7 +211,7 @@ class DBQuery(UserDict):
             SELECT table_name
             FROM information_schema.tables
             WHERE information_schema.tables.table_name = {TABLE}
-        ''').format(TABLE=psycopg.sql.Literal(f'ais_{month}_static'))
+        ''').format(TABLE=psycopg.sql.Literal(f'ais_global_static'))
         cur.execute(static_qry)
         count_static = cur.fetchall()
 
@@ -177,14 +225,14 @@ class DBQuery(UserDict):
             SELECT table_name
             FROM information_schema.tables
             WHERE table_name = {TABLE}
-        ''').format(TABLE=psycopg.sql.Literal(f'static_{month}_aggregate')))
+        ''').format(TABLE=psycopg.sql.Literal(f'static_global_aggregate')))
         res = cur.fetchall()
 
         if len(res) == 0 or reaggregate_static:
             if verbose:
-                print(f'building static index for month {month}...',
+                print(f'building global static index...',
                       flush=True)
-            self.dbconn.aggregate_static_msgs([month], verbose)
+            self.dbconn.aggregate_static_msgs(['global'], verbose)
 
         # check if dynamic tables exist
         cur.execute(
@@ -192,7 +240,7 @@ class DBQuery(UserDict):
             SELECT table_name
             FROM information_schema.tables
             WHERE table_name = {TABLE}
-        ''').format(TABLE=psycopg.sql.Literal(f'ais_{month}_dynamic')))
+        ''').format(TABLE=psycopg.sql.Literal(f'ais_global_dynamic')))
 
         if len(cur.fetchall()) == 0:  # pragma: no cover
             # if isinstance(self.dbconn, ConnectionType.SQLITE.value):

@@ -262,6 +262,8 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
         )
     ]
 
+    print("MONTHS = ", months)
+
     if verbose:
         print("creating tables...")
 
@@ -269,26 +271,43 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     # and rebuild them after inserting
     if isinstance(dbconn, PostgresDBConn):
         if timescaledb:
-            with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
-                create_dynamic_table_stmt = f.read()
-            with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
-                create_static_table_stmt = f.read()
+            # Check if global hypertables already exist
+            cur = dbconn.cursor()
+            cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_dynamic')")
+            global_dynamic_exists = cur.fetchone()['exists']
+
+            cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_static')")
+            global_static_exists = cur.fetchone()['exists']
+
+            if global_dynamic_exists and global_static_exists:
+                print("Tables already exists! skipping the table creation logic!")
+                create_dynamic_table_stmt = None
+                create_static_table_stmt = None
+            else:
+                with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
+                    create_dynamic_table_stmt = f.read()
+                with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
+                    create_static_table_stmt = f.read()
+            
         else:
             with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
                 create_dynamic_table_stmt = f.read()
             with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
                 create_static_table_stmt = f.read()
-        for month in months:
-            dbconn.execute(create_dynamic_table_stmt.format(month))
-            dbconn.execute(create_static_table_stmt.format(month))
-            if not raw_insertion:
-                dbconn.drop_indexes(month, verbose, timescaledb)
+        
+        if create_dynamic_table_stmt and create_static_table_stmt:
+            for month in months:
+                dbconn.execute(create_dynamic_table_stmt)
+                dbconn.execute(create_static_table_stmt)
+                if not raw_insertion:
+                    dbconn.drop_indexes(month, verbose, timescaledb)
 
         dbconn.commit()
         completed_files = decoder(dbpath="",
                                   psql_conn_string=dbconn.connection_string, files=raw_files,
                                   source=source, verbose=verbose, workers=workers,
                                   type_preference=type_preference, allow_swap=False)
+        print("completed")
 
     elif isinstance(dbconn, SQLiteDBConn):
         with open(os.path.join(sqlpath, "createtable_dynamic_clustered.sql"), "r") as f:

@@ -228,31 +228,93 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
     '''
 
+    # def _set_db_daterange(self):
+
+    #     dynamic_tables_qry = psycopg.sql.SQL(
+    #         "select table_name from information_schema.tables "
+    #         r"where table_name LIKE 'ais\_______\_dynamic' ORDER BY table_name"
+    #     )
+    #     cur = self.cursor()
+    #     cur.execute(dynamic_tables_qry)
+    #     dynamic_tables = cur.fetchall()
+
+    #     if dynamic_tables != []:
+    #         db_months = sorted([
+    #             table['table_name'].split('_')[1] for table in dynamic_tables
+    #         ])
+    #         self.db_daterange = {
+    #             'start':
+    #                 datetime(int(db_months[0][:4]), int(db_months[0][4:]),
+    #                          1).date(),
+    #             'end':
+    #                 datetime((y := int(db_months[-1][:4])),
+    #                          (m := int(db_months[-1][4:])),
+    #                          monthrange(y, m)[1]).date(),
+    #         }
+    #     else:
+    #         self.db_daterange = {}
+
     def _set_db_daterange(self):
+        """
+        Sets the date range of available AIS data in the database.
 
-        dynamic_tables_qry = psycopg.sql.SQL(
-            "select table_name from information_schema.tables "
-            r"where table_name LIKE 'ais\_______\_dynamic' ORDER BY table_name"
-        )
-        cur = self.cursor()
-        cur.execute(dynamic_tables_qry)
-        dynamic_tables = cur.fetchall()
+        This function checks the 'ais_global_dynamic' and 'ais_global_static' tables
+        (in that order) to determine the minimum and maximum UNIX timestamps stored 
+        in the 'time' column. It converts those timestamps to UTC date objects and 
+        stores them in the `self.db_daterange` dictionary with keys 'start' and 'end'.
 
-        if dynamic_tables != []:
-            db_months = sorted([
-                table['table_name'].split('_')[1] for table in dynamic_tables
-            ])
+        If neither table exists or contains valid timestamp data, 
+        `self.db_daterange` is set to an empty dictionary.
+
+        Tables are queried only if they exist (checked via information_schema),
+        and safe rollback is performed in case of query errors.
+
+        Example output:
             self.db_daterange = {
-                'start':
-                    datetime(int(db_months[0][:4]), int(db_months[0][4:]),
-                             1).date(),
-                'end':
-                    datetime((y := int(db_months[-1][:4])),
-                             (m := int(db_months[-1][4:])),
-                             monthrange(y, m)[1]).date(),
+                "start": datetime.date(2024, 11, 1),
+                "end": datetime.date(2024, 11, 30)
             }
-        else:
-            self.db_daterange = {}
+        """
+        cur = self.cursor()
+        tables = ["ais_global_dynamic", "ais_global_static"]
+
+        for table in tables:
+            try:
+                # Check if the table exists
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public' AND table_name = %s
+                    );
+                """, [table])
+                exists = cur.fetchone()['exists']
+
+                if not exists:
+                    print(f"Skipping table {table}: does not exist")
+                    continue
+
+                # Safe to query now
+                cur.execute(f"SELECT MIN(time), MAX(time) FROM {table}")
+                result = cur.fetchone()
+
+                if result and result['min'] is not None and result['max'] is not None:
+                    min_ts, max_ts = result['min'], result['max']
+                    self.db_daterange = {
+                        'start': datetime.utcfromtimestamp(int(min_ts)).date(),
+                        'end': datetime.utcfromtimestamp(int(max_ts)).date()
+                    }
+                    print(f"Date range set using table: {table}")
+                    return
+                else:
+                    print(f"No timestamp data found in {table}")
+
+            except Exception as e:
+                print(f"Error processing table {table}: {e}")
+                self.conn.rollback()  # rollback aborted transaction
+
+        print("No valid global tables with timestamp found.")
+        self.db_daterange = {}
+
 
     def __enter__(self):
         self.conn.__enter__()
@@ -333,6 +395,8 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         cur.execute(coarsetype_qry)
         coarsetype_exists = cur.fetchone()
 
+        print(coarsetype_exists)
+
         if not coarsetype_exists:
             self._create_table_coarsetype()
 
@@ -343,31 +407,56 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         with self.cursor() as cur:
             cur.execute(sql, args)
 
-    def drop_indexes(self, month, verbose=True, timescaledb=False):
+    # def drop_indexes(self, month, verbose=True, timescaledb=False):
+    #     if verbose:
+    #         print(f'dropping indexes of {month}...')
+    #     dbconn = self.conn
+    #     if timescaledb:
+    #         dbconn.execute(f"DROP INDEX IF EXISTS ais_{month}_dynamic_mmsi_time_idx;")
+    #         dbconn.execute(f"DROP INDEX IF EXISTS ais_{month}_dynamic_time_idx;")
+    #     else:
+    #         for idx_name in ("mmsi", "time", "longitude", "latitude"):
+    #             dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name};")
+
+    def drop_indexes(self, verbose=True, timescaledb=False):
         if verbose:
-            print(f'dropping indexes of {month}...')
+            print(f'dropping indexes of ais_global_dynamic...')
         dbconn = self.conn
         if timescaledb:
-            dbconn.execute(f"DROP INDEX IF EXISTS ais_{month}_dynamic_mmsi_time_idx;")
-            dbconn.execute(f"DROP INDEX IF EXISTS ais_{month}_dynamic_time_idx;")
+            dbconn.execute(f"DROP INDEX IF EXISTS ais_global_dynamic_mmsi_time_idx;")
+            dbconn.execute(f"DROP INDEX IF EXISTS ais_global_dynamic_time_idx;")
         else:
             for idx_name in ("mmsi", "time", "longitude", "latitude"):
-                dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name};")
+                dbconn.execute(f"DROP INDEX IF EXISTS idx_ais_global_dynamic_{idx_name};")
 
 
-    def rebuild_indexes(self, month, verbose=True, timescaledb=False):
+    # def rebuild_indexes(self, month, verbose=True, timescaledb=False):
+    #     if verbose:
+    #         print(f'indexing {month}...')
+    #     dbconn = self.conn
+    #     if timescaledb:
+    #         dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_{month}_dynamic_mmsi_time_idx"
+    #                        f" ON ais_{month}_dynamic (mmsi, time);")
+    #         dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_{month}_dynamic_time_idx"
+    #                        f" ON ais_{month}_dynamic (time);")
+    #     else:
+    #         for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
+    #             dbconn.execute(
+    #                 f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} ON ais_{month}_dynamic ({idx_name});")
+
+    def rebuild_indexes(self, verbose=True, timescaledb=False):
         if verbose:
-            print(f'indexing {month}...')
+            print(f'indexing ais_global_dynamic...')
         dbconn = self.conn
         if timescaledb:
-            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_{month}_dynamic_mmsi_time_idx"
-                           f" ON ais_{month}_dynamic (mmsi, time);")
-            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_{month}_dynamic_time_idx"
-                           f" ON ais_{month}_dynamic (time);")
+            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_global_dynamic_mmsi_time_idx"
+                           f"ON ais_global_dynamic (mmsi, time);")
+            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_global_dynamic_time_idx"
+                           f"ON ais_global_dynamic (time);")
         else:
             for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
                 dbconn.execute(
-                    f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} ON ais_{month}_dynamic ({idx_name});")
+                    f"CREATE INDEX IF NOT EXISTS idx_ais_global_dynamic_{idx_name} ON ais_global_dynamic ({idx_name});")
 
         # dbconn.execute(
         #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_mmsi '
@@ -419,19 +508,36 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         # if verbose:
         #     print(f'done clustering: {month}')
 
-    def deduplicate_dynamic_msgs(self, month: str, verbose=True):
+    # OLD CODE 
+    # def deduplicate_dynamic_msgs(self, month: str, verbose=True):
+    #     dbconn = self.conn
+    #     dbconn.execute(f'''
+    #         DELETE FROM ais_{month}_dynamic WHERE ctid IN
+    #             (SELECT ctid FROM
+    #                 (SELECT *, ctid, row_number() OVER
+    #                     (PARTITION BY mmsi, time, source ORDER BY ctid)
+    #                 FROM ais_{month}_dynamic ) AS duplicates_{month}
+    #             WHERE row_number > 1)
+    #         ''')
+    #     dbconn.commit()
+    #     if verbose:
+    #         print(f'done deduplicating: {month}')
+
+    # REFACTORED TO USE GLOBAL TABLE
+    def deduplicate_dynamic_msgs(self, verbose=True):
         dbconn = self.conn
-        dbconn.execute(f'''
-            DELETE FROM ais_{month}_dynamic WHERE ctid IN
-                (SELECT ctid FROM
-                    (SELECT *, ctid, row_number() OVER
-                        (PARTITION BY mmsi, time, source ORDER BY ctid)
-                    FROM ais_{month}_dynamic ) AS duplicates_{month}
-                WHERE row_number > 1)
+        dbconn.execute('''
+            DELETE FROM ais_global_dynamic WHERE ctid IN (
+                SELECT ctid FROM (
+                    SELECT *, row_number() OVER (PARTITION BY mmsi, time, source ORDER BY ctid)
+                    FROM ais_global_dynamic
+                ) AS duplicates
+                WHERE row_number > 1
+            )
             ''')
         dbconn.commit()
         if verbose:
-            print(f'done deduplicating: {month}')
+            print(f'done deduplicating ais_global_dynamic')
 
     def aggregate_static_msgs(self, months_str: list, verbose: bool = True):
         ''' collect an aggregate of static vessel reports for each unique MMSI
@@ -525,8 +631,9 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
             self.commit()
 
+DBConn = PostgresDBConn
 
 class ConnectionType(Enum):
     ''' database connection types enum. used for static type hints '''
-    SQLITE = SQLiteDBConn
+    # SQLITE = SQLiteDBConn
     POSTGRES = PostgresDBConn
