@@ -539,7 +539,7 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         if verbose:
             print(f'done deduplicating ais_global_dynamic')
 
-    def aggregate_static_msgs(self, months_str: list, verbose: bool = True):
+    def aggregate_static_msgs(self, verbose: bool = True):
         ''' collect an aggregate of static vessel reports for each unique MMSI
             identifier. The most frequently repeated values for each MMSI will
             be kept when multiple different reports appear for the same MMSI
@@ -555,81 +555,71 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
         cur = self.cursor()
 
-        for month in months_str:
-            # check for monthly tables in dbfiles containing static reports
-            cur.execute('SELECT table_name FROM information_schema.tables '
-                        f'WHERE table_name = \'ais_{month}_static\'')
-            static_tables = cur.fetchall()
-            if static_tables == []:
-                continue
+        if verbose:
+            print('aggregating static reports into static_global_aggregate...')
+        cur.execute(f'SELECT DISTINCT mmsi FROM ais_global_static')
+        mmsi_res = cur.fetchall()
+        if mmsi_res == []:
+            mmsis = np.array([], dtype=int)
+        else:
+            mmsis = np.array(sorted([r['mmsi'] for r in mmsi_res]),
+                                dtype=int).flatten()
 
-            if verbose:
-                print('aggregating static reports into '
-                      f'static_{month}_aggregate...')
-            cur.execute(f'SELECT DISTINCT s.mmsi FROM ais_{month}_static AS s')
-            mmsi_res = cur.fetchall()
-            if mmsi_res == []:
-                mmsis = np.array([], dtype=int)
-            else:
-                mmsis = np.array(sorted([r['mmsi'] for r in mmsi_res]),
-                                 dtype=int).flatten()
+        cur.execute(
+            psycopg.sql.SQL(
+                f'DROP TABLE IF EXISTS static_global_aggregate'))
 
-            cur.execute(
-                psycopg.sql.SQL(
-                    f'DROP TABLE IF EXISTS static_{month}_aggregate'))
+        sql_select = psycopg.sql.SQL(f'''
+            SELECT
+            s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type, s.call_sign,
+            s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.draught, s.destination,
+            s.eta_month, s.eta_day, s.eta_hour, s.eta_minute
+            FROM ais_global_static AS s WHERE s.mmsi = %s
+        ''')
 
-            sql_select = psycopg.sql.SQL(f'''
-              SELECT
-                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type, s.call_sign,
-                s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.draught, s.destination,
-                s.eta_month, s.eta_day, s.eta_hour, s.eta_minute
-              FROM ais_{month}_static AS s WHERE s.mmsi = %s
-            ''')
+        agg_rows = []
+        for mmsi in mmsis:
+            _ = cur.execute(sql_select, (str(mmsi),))
+            cur_mmsi = [tuple(i.values()) for i in cur.fetchall()]
+            cols = np.array(cur_mmsi, dtype=object).T
+            assert len(cols) > 0
 
-            agg_rows = []
-            for mmsi in mmsis:
-                _ = cur.execute(sql_select, (str(mmsi),))
-                cur_mmsi = [tuple(i.values()) for i in cur.fetchall()]
-                cols = np.array(cur_mmsi, dtype=object).T
-                assert len(cols) > 0
+            filtercols = np.array(
+                [
+                    np.array(list(filter(None, col)), dtype=object)
+                    for col in cols
+                ],
+                dtype=object,
+            )
 
-                filtercols = np.array(
-                    [
-                        np.array(list(filter(None, col)), dtype=object)
-                        for col in cols
-                    ],
-                    dtype=object,
-                )
+            paddedcols = np.array(
+                [col if len(col) > 0 else [None] for col in filtercols],
+                dtype=object,
+            )
 
-                paddedcols = np.array(
-                    [col if len(col) > 0 else [None] for col in filtercols],
-                    dtype=object,
-                )
+            aggregated = [
+                Counter(col).most_common(1)[0][0] for col in paddedcols
+            ]
 
-                aggregated = [
-                    Counter(col).most_common(1)[0][0] for col in paddedcols
-                ]
+            agg_rows.append(aggregated)
 
-                agg_rows.append(aggregated)
+        cur.execute(sql_aggregate)
 
-            cur.execute(sql_aggregate.format(month))
+        if len(agg_rows) == 0:
+            warnings.warn('no rows to aggregate! table: static_global_aggregate')
+            return
 
-            if len(agg_rows) == 0:
-                warnings.warn('no rows to aggregate! '
-                              f'table: static_{month}_aggregate')
-                return
+        skip_nommsi = np.array(agg_rows, dtype=object)
+        assert len(skip_nommsi.shape) == 2
+        skip_nommsi = skip_nommsi[skip_nommsi[:, 0] != None]
+        assert len(skip_nommsi) > 1
+        insert_vals = ','.join(['%s' for _ in range(skip_nommsi.shape[1])])
+        insert_stmt = psycopg.sql.SQL(
+            f'INSERT INTO static_global_aggregate '
+            f'VALUES ({insert_vals})')
+        cur.executemany(insert_stmt, map(tuple, skip_nommsi))
 
-            skip_nommsi = np.array(agg_rows, dtype=object)
-            assert len(skip_nommsi.shape) == 2
-            skip_nommsi = skip_nommsi[skip_nommsi[:, 0] != None]
-            assert len(skip_nommsi) > 1
-            insert_vals = ','.join(['%s' for _ in range(skip_nommsi.shape[1])])
-            insert_stmt = psycopg.sql.SQL(
-                f'INSERT INTO static_{month}_aggregate '
-                f'VALUES ({insert_vals})')
-            cur.executemany(insert_stmt, map(tuple, skip_nommsi))
-
-            self.commit()
+        self.commit()
 
 DBConn = PostgresDBConn
 
