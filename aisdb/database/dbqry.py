@@ -112,7 +112,9 @@ class DBQuery(UserDict):
         if self.data['start'] >= self.data['end']:
             raise ValueError('Start must occur before end')
         assert isinstance(self.data['start'], (datetime, date))
-        self.data.update({'months': sqlfcn_callbacks.dt2monthstr(**self.data)})
+
+        if isinstance(self.dbconn, SQLiteDBConn):
+            self.data.update({'months': sqlfcn_callbacks.dt2monthstr(**self.data)})
 
     def _build_tables_sqlite(self,
                              cur: sqlite3.Cursor,
@@ -263,20 +265,35 @@ class DBQuery(UserDict):
         vinfo = VesselInfo(trafficDBpath)
 
         print('retrieving vessel info ', end='', flush=True)
-        for month in self.data['months']:
-            # check unique mmsis
+        if isinstance(self.dbconn, SQLiteDBConn):
+            for month in self.data['months']:
+                # check unique mmsis
+                sql = (
+                    'SELECT DISTINCT(mmsi) '
+                    f'FROM ais_{month}_dynamic AS d WHERE '
+                    f'{sqlfcn_callbacks.in_validmmsi_bbox(alias="d", **boundary)}')
+                mmsis = self.dbconn.execute(sql).fetchall()
+                print('.', end='', flush=True)  # first dot
+
+                # retrieve vessel metadata
+                if len(mmsis) > 0:
+                    vinfo.vessel_info_callback(mmsis=np.array(mmsis),
+                                            retry_404=retry_404,
+                                            infotxt=f'{month} ')
+
+        elif isinstance(self.dbconn, PostgresDBConn):
             sql = (
                 'SELECT DISTINCT(mmsi) '
-                f'FROM ais_{month}_dynamic AS d WHERE '
+                f'FROM ais_global_dynamic AS d WHERE '
                 f'{sqlfcn_callbacks.in_validmmsi_bbox(alias="d", **boundary)}')
             mmsis = self.dbconn.execute(sql).fetchall()
-            print('.', end='', flush=True)  # first dot
+            print('.', end='', flush=True)
 
-            # retrieve vessel metadata
             if len(mmsis) > 0:
                 vinfo.vessel_info_callback(mmsis=np.array(mmsis),
-                                           retry_404=retry_404,
-                                           infotxt=f'{month} ')
+                                        retry_404=retry_404,
+                                        infotxt='global ')
+
 
     def gen_qry(self,
                 fcn=sqlfcn.crawl_dynamic,
@@ -323,26 +340,20 @@ class DBQuery(UserDict):
         assert isinstance(db_rng['end'], date)
 
         cur = self.dbconn.cursor()
-        for month in self.data['months']:
+
+        if isinstance(self.dbconn, SQLiteDBConn):
+            for month in self.data['months']:
             month_date = datetime(int(month[:4]), int(month[4:]), 1)
             qry_start = self["start"] - timedelta(days=self["start"].day)
-
             if not (qry_start <= month_date <= self['end']):
-                raise ValueError(f'{month_date} not in data range '
-                                 f'({qry_start}->{self["end"]})')
+                raise ValueError(f'{month_date} not in data range ({qry_start}->{self["end"]})')
+            self._build_tables_sqlite(cur, month, rng_string, reaggregate_static, verbose)
+        
+        elif isinstance(self.dbconn, PostgresDBConn):
+            self._build_tables_postgres(cur, rng_string, reaggregate_static, verbose)
 
-            rng_string = f'{db_rng["start"].year}-{db_rng["start"].month:02d}-{db_rng["start"].day:02d}'
-            rng_string += ' -> '
-            rng_string += f'{db_rng["end"].year}-{db_rng["end"].month:02d}-{db_rng["end"].day:02d}'
-
-            if isinstance(self.dbconn, SQLiteDBConn):
-                self._build_tables_sqlite(cur, month, rng_string,
-                                          reaggregate_static, verbose)
-            elif isinstance(self.dbconn, PostgresDBConn):
-                self._build_tables_postgres(cur, month, rng_string,
-                                            reaggregate_static, verbose)
-            else:
-                assert False
+        else:
+            raise TypeError("Unsupported database connection type")
 
         qry = fcn(**self.data)
 
