@@ -341,13 +341,14 @@ class DBQuery(UserDict):
 
         cur = self.dbconn.cursor()
 
+        rng_string = f'{db_rng["start"].year}-{db_rng["start"].month:02d}-{db_rng["start"].day:02d} -> {db_rng["end"].year}-{db_rng["end"].month:02d}-{db_rng["end"].day:02d}'
         if isinstance(self.dbconn, SQLiteDBConn):
             for month in self.data['months']:
-            month_date = datetime(int(month[:4]), int(month[4:]), 1)
-            qry_start = self["start"] - timedelta(days=self["start"].day)
-            if not (qry_start <= month_date <= self['end']):
-                raise ValueError(f'{month_date} not in data range ({qry_start}->{self["end"]})')
-            self._build_tables_sqlite(cur, month, rng_string, reaggregate_static, verbose)
+                month_date = datetime(int(month[:4]), int(month[4:]), 1)
+                qry_start = self["start"] - timedelta(days=self["start"].day)
+                if not (qry_start <= month_date <= self['end']):
+                    raise ValueError(f'{month_date} not in data range ({qry_start}->{self["end"]})')
+                self._build_tables_sqlite(cur, month, rng_string, reaggregate_static, verbose)
         
         elif isinstance(self.dbconn, PostgresDBConn):
             self._build_tables_postgres(cur, rng_string, reaggregate_static, verbose)
@@ -355,7 +356,9 @@ class DBQuery(UserDict):
         else:
             raise TypeError("Unsupported database connection type")
 
-        qry = fcn(**self.data)
+        # Passing the database type to the sql function
+        dbtype = 'postgresql' if isinstance(self.dbconn, PostgresDBConn) else 'sqlite'
+        qry = fcn(dbtype=dbtype, **self.data)
 
         if 'limit' in self.data.keys():
             qry += f'\nLIMIT {self.data["limit"]}'

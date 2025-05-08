@@ -3,63 +3,77 @@ import os
 
 from aisdb import sqlpath
 
-with open(os.path.join(sqlpath, 'cte_dynamic_clusteredidx.sql'), 'r') as f:
-    sql_dynamic = f.read()
+# with open(os.path.join(sqlpath, 'cte_dynamic_clusteredidx.sql'), 'r') as f:
+#     sql_dynamic = f.read()
 
-with open(os.path.join(sqlpath, 'cte_static_aggregate.sql'), 'r') as f:
-    sql_static = f.read()
+# with open(os.path.join(sqlpath, 'cte_static_aggregate.sql'), 'r') as f:
+#     sql_static = f.read()
 
-with open(os.path.join(sqlpath, 'select_join_dynamic_static_clusteredidx.sql'),
-          'r') as f:
-    sql_leftjoin = f.read()
+# with open(os.path.join(sqlpath, 'select_join_dynamic_static_clusteredidx.sql'),
+#           'r') as f:
+#     sql_leftjoin = f.read()
 
-with open(os.path.join(sqlpath, 'cte_aliases.sql'), 'r') as f:
-    sql_aliases = f.read()
+# with open(os.path.join(sqlpath, 'cte_aliases.sql'), 'r') as f:
+#     sql_aliases = f.read()
+
+def load_sql(name: str, dbtype: str = 'sqlite') -> str:
+    """Load the correct SQL template based on dbtype (sqlite or postgresql)."""
+    suffix = '_global' if dbtype == 'postgresql' else ''
+    path = os.path.join(sqlpath, f'{name}{suffix}.sql')
+    with open(path, 'r') as f:
+        return f.read()
 
 
-def _dynamic(*, month, callback, **kwargs):
+def _dynamic(*, month, callback, dbtype, **kwargs):
     ''' SQL common table expression for selecting from dynamic tables '''
-    args = [month for _ in range(len(sql_dynamic.split('{}')) - 1)]
-    sql = sql_dynamic.format(*args)
-    sql += callback(month=month, alias='d', **kwargs)
+    sql_template = load_sql('cte_dynamic_clusteredidx', dbtype)
+    args = [month] * sql_template.count('{}')
+    sql = sql_template.format(*args)
+    sql += callback(month=month if dbtype == 'sqlite' else None, alias='d', **kwargs)
     return sql
 
 
-def _static(*, month='197001', **_):
-    ''' SQL common table expression for selecting from static tables '''
-    args = [month for _ in range(len(sql_static.split('{}')) - 1)]
-    return sql_static.format(*args)
+def _static(*, month='197001', dbtype='sqlite', **_):
+    """CTE for static tables."""
+    sql_template = load_sql('cte_static_aggregate', dbtype)
+    args = [month] * sql_template.count('{}')
+    return sql_template.format(*args)
 
 
-def _leftjoin(month='197001'):
+def _leftjoin(*, month='197001', dbtype='sqlite'):
     ''' SQL select statement using common table expressions.
         Joins columns from dynamic, static, and coarsetype_ref tables.
     '''
-    args = [month for _ in range(len(sql_leftjoin.split('{}')) - 1)]
-    return sql_leftjoin.format(*args)
+    sql_template = load_sql('select_join_dynamic_static_clusteredidx', dbtype)
+    args = [month] * sql_template.count('{}')
+    return sql_template.format(*args)
 
 
-def _aliases(*, month, callback, kwargs):
+def _aliases(*, month, callback, kwargs, dbtype='sqlite'):
     ''' declare common table expression aliases '''
-    args = (month, _dynamic(month=month, callback=callback,
-                            **kwargs), month, _static(month=month))
-    return sql_aliases.format(*args)
+    dyn_sql = _dynamic(month=month, callback=callback, dbtype=dbtype, **kwargs)
+    stat_sql = _static(month=month, dbtype=dbtype)
+    sql_template = load_sql('cte_aliases', dbtype)
+    return sql_template.format(month, dyn_sql, month, stat_sql)
 
-
-def crawl_dynamic(*, months, callback, **kwargs):
+def crawl_dynamic(*, months, callback, dbtype='sqlite', **kwargs):
     ''' iterate over position reports tables to create SQL query spanning
         desired time range
 
         this function should be passed as a callback to DBQuery.gen_qry(),
         and should not be called directly
     '''
-    sql_dynamic = '\nUNION\n'.join([
-        _dynamic(month=month, callback=callback, **kwargs) for month in months
-    ]) + '\nORDER BY 1,2'
-    return sql_dynamic
+    if dbtype=='postgresql':
+        sql = _dynamic(month='global', callback=callback, dbtype=dbtype, **kwargs)
+        return sql + '\nORDER BY 1,2'
+    else:
+        sql_dynamic = '\nUNION\n'.join([
+            _dynamic(month=month, callback=callback, dbtype=dbtype, **kwargs) for month in months
+        ]) + '\nORDER BY 1,2'
+        return sql_dynamic
 
 
-def crawl_dynamic_static(*, months, callback, **kwargs):
+def crawl_dynamic_static(*, months, callback, dbtype='sqlite', **kwargs):
     ''' iterate over position reports and static messages tables to create SQL
         query spanning desired time range
 
@@ -69,11 +83,17 @@ def crawl_dynamic_static(*, months, callback, **kwargs):
     sqlfile = 'cte_coarsetype.sql'
     with open(os.path.join(sqlpath, sqlfile), 'r') as f:
         sql_coarsetype = f.read()
-    sql_aliases = ''.join([
-        _aliases(month=month, callback=callback, kwargs=kwargs)
-        for month in months
-    ])
-    sql_union = '\nUNION\n'.join([_leftjoin(month=month) for month in months])
-    sql_qry = f'WITH\n{sql_aliases}\n{sql_coarsetype}\n{sql_union}'
-    sql_qry += ' ORDER BY 1,2'
-    return sql_qry
+    
+    if dbtype=='postgresql':
+        sql_alias = _aliases(month='global', callback=callback, kwargs=kwargs, dbtype=dbtype)
+        sql_union = _leftjoin(month='global', dbtype=dbtype)
+        return f'WITH\n{sql_alias}\n{sql_coarsetype}\n{sql_union}\nORDER BY 1,2'
+    else:
+        sql_aliases = ''.join([
+            _aliases(month=month, callback=callback, kwargs=kwargs, dbtype=dbtype)
+            for month in months
+        ])
+        sql_union = '\nUNION\n'.join([_leftjoin(month=month, dbtype=dbtype) for month in months])
+        sql_qry = f'WITH\n{sql_aliases}\n{sql_coarsetype}\n{sql_union}'
+        sql_qry += ' ORDER BY 1,2'
+        return sql_qry
