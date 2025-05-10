@@ -306,7 +306,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
         completed_files = decoder(dbpath="",
                                   psql_conn_string=dbconn.connection_string, files=raw_files,
                                   source=source, verbose=verbose, workers=workers,
-                                  type_preference=type_preference, allow_swap=False, timescaledb=timescaledb)
+                                  type_preference=type_preference, allow_swap=False)
         print("completed")
 
     elif isinstance(dbconn, SQLiteDBConn):
@@ -361,7 +361,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
         dbconn.commit()
 
     if timescaledb:
-        dbconn.aggregate_static_msgs_global(verbose)
+        dbconn.aggregate_static_msgs(verbose)
     else:
         dbconn.aggregate_static_msgs(months, verbose)
 
