@@ -4,6 +4,7 @@ import calendar
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from aisdb.weather.utils import SHORT_NAMES_TO_VARIABLES
+import logging
 
 DEFAULT_PARAMS = {
     "product_type": ["reanalysis"],
@@ -69,6 +70,8 @@ class ClimateDataStore:
             self.client = cdsapi.Client()
         except Exception as e:
             print(f"Error while establishing connection with cdsapi: {e}")
+        
+        self.logger = logging.getLogger("ClimateDataStore")
 
 
     def download_grib_file(self, output_folder):
@@ -88,18 +91,17 @@ class ClimateDataStore:
             current_date = start_date
 
             while current_date <= end_date:
-                month_str = current_date.strftime("%m_%Y")
+                month_str = current_date.strftime("%Y-%m")
 
                 month_start = current_date.replace(day=1)
                 last_day = calendar.monthrange(month_start.year, month_start.month)[1]
-                print(f"Processing {month_start.year}-{month_start.month}: Last day is {last_day}")
+                self.logger.info(f"Processing {month_start.year}-{month_start.month}: Last day is {last_day}")
 
                 month_end = datetime(month_start.year, month_start.month, last_day)
                 if month_end > end_date:
                     month_end = end_date
 
                 days_list = [str(i).zfill(2) for i in range(1, (month_end.day if month_end.month == end_date.month and month_end.year == end_date.year else last_day) + 1)]
-                print(f"Days being requested: {days_list}")
 
                 original_params = self.params_requested.copy()
 
@@ -107,7 +109,7 @@ class ClimateDataStore:
                 self.params_requested["month"] = [month_start.strftime("%m")]
                 self.params_requested["day"] = days_list
 
-                print(f"Final request parameters: {self.params_requested}")
+                self.logger.info(f"Final request parameters: {self.params_requested}")
 
                 try:
                     result = self.client.retrieve(self.dataset, self.params_requested)
@@ -127,7 +129,7 @@ class ClimateDataStore:
                 current_date = month_start + relativedelta(months=1)
 
         except Exception as e:
-            print(f"Error while fetching weather data: {e}")
+            self.logger.error(f"Error while fetching weather data: {e}")
 
     def _get_variable_for_shortName(self, short_names: list) -> list:
         variables = []
