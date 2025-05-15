@@ -10,7 +10,8 @@ class TestWeatherDataStore(unittest.TestCase):
     @patch("xarray.open_dataset")  # Mocking xarray's open_dataset to avoid reading actual files
     @patch("xarray.concat")  # Mocking xarray's concat to avoid actual concatenation
     @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")
-    def test_initialization(self, mock_concat, mock_open_dataset, mock_fast_unzip):
+
+    def test_initialization(self, mock_load_weather_data, mock_concat, mock_open_dataset, mock_fast_unzip):
         # Setup test data
         short_names = ['10u', '10v']
         start = datetime(2023, 1, 1)
@@ -22,7 +23,7 @@ class TestWeatherDataStore(unittest.TestCase):
 
         # Create a mock xarray.Dataset to simulate the expected behavior
         mock_ds = MagicMock(spec=xr.Dataset)
-        
+
         # Mock 'data_vars' to simulate having some variables in the dataset
         mock_ds.data_vars = {'10u': MagicMock(), '10v': MagicMock()}
 
@@ -30,33 +31,33 @@ class TestWeatherDataStore(unittest.TestCase):
         mock_sel = MagicMock()
         mock_sel.values = 5.2  # Simulate returning a value
         mock_ds['10u'].sel.return_value = mock_sel  # Ensure 'sel' method of '10u' returns this mock
-        
+
         # Mock open_dataset to return our mock dataset
         mock_open_dataset.return_value = mock_ds
 
         # Mock concat to return our mock dataset as if it's concatenated from multiple datasets
-        # Ensuring we correctly simulate the typing (T_Dataset)
         mock_concat.return_value = mock_ds
+
+        # Mock the _load_weather_data method to return the mock dataset
+        mock_load_weather_data.return_value = mock_ds
 
         # Create an instance of WeatherDataStore
         store = WeatherDataStore(short_names, start, end, weather_data_path)
 
-        # Test that initialization works
+        # Assertions to verify correct initialization
         self.assertEqual(store.short_names, short_names)
         self.assertEqual(store.start, start)
         self.assertEqual(store.end, end)
         self.assertEqual(store.weather_data_path, weather_data_path)
-        
+
         # Check that weather_ds is a valid xarray Dataset
         self.assertIsInstance(store.weather_ds, xr.Dataset)
-        
-        # Check that the weather dataset is not empty
-        self.assertTrue(len(store.weather_ds.data_vars) > 0)  # The mock object should have data_vars
-        
-        # Assert that xarray.open_dataset was called to load the mock dataset
-        mock_open_dataset.assert_called()
 
-        # Assert that xarray.concat was called to combine the datasets
+        # Check that the weather dataset is not empty
+        self.assertTrue(len(store.weather_ds.data_vars) > 0)
+
+        # Assert that xarray.open_dataset and concat were called
+        mock_open_dataset.assert_called()
         mock_concat.assert_called()
 
     @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")  # Mock the method to avoid loading real data
