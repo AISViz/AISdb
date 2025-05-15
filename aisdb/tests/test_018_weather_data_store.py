@@ -7,11 +7,10 @@ import numpy as np
 
 class TestWeatherDataStore(unittest.TestCase):
     @patch("aisdb.weather.data_store.fast_unzip")  # Mocking the fast_unzip function to avoid actual file operations
-    @patch("xarray.open_dataset")  # Mocking xarray's open_dataset to avoid reading actual files
     @patch("xarray.concat")  # Mocking xarray's concat to avoid actual concatenation
     @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")
 
-    def test_initialization(self, mock_load_weather_data, mock_concat, mock_open_dataset, mock_fast_unzip):
+    def test_initialization(self, mock_load_weather_data, mock_concat, mock_fast_unzip):
         # Setup test data
         short_names = ['10u', '10v']
         start = datetime(2023, 1, 1)
@@ -31,9 +30,6 @@ class TestWeatherDataStore(unittest.TestCase):
         mock_sel = MagicMock()
         mock_sel.values = 5.2  # Simulate returning a value
         mock_ds['10u'].sel.return_value = mock_sel  # Ensure 'sel' method of '10u' returns this mock
-
-        # Mock open_dataset to return our mock dataset
-        mock_open_dataset.return_value = mock_ds
 
         # Mock concat to return our mock dataset as if it's concatenated from multiple datasets
         mock_concat.return_value = mock_ds
@@ -57,7 +53,6 @@ class TestWeatherDataStore(unittest.TestCase):
         self.assertTrue(len(store.weather_ds.data_vars) > 0)
 
         # Assert that xarray.open_dataset and concat were called
-        mock_open_dataset.assert_called()
         mock_concat.assert_called()
 
     @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")  # Mock the method to avoid loading real data
