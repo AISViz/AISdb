@@ -3,12 +3,11 @@ import tempfile
 import types
 import xarray as xr
 import numpy as np
+import os
+import shutil
 from aisdb.database.decoder import fast_unzip
 from aisdb.weather.utils import SHORT_NAMES_TO_VARIABLES
 from aisdb.weather.weather_fetch import ClimateDataStore
-import cdsapi
-import os
-import shutil
 
 
 def dt_to_iso8601(timestamp):
