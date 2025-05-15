@@ -234,7 +234,7 @@ class DBQuery(UserDict):
             if verbose:
                 print(f'building global static index...',
                       flush=True)
-            self.dbconn.aggregate_static_msgs(['global'], verbose)
+            self.dbconn.aggregate_static_msgs(verbose)
 
         # check if dynamic tables exist
         cur.execute(

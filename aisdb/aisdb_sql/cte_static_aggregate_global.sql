@@ -13,4 +13,4 @@ SELECT
     agg.eta_day,
     agg.eta_hour,
     agg.eta_minute
-FROM ais_global_static_aggregate AS agg
+FROM static_global_aggregate AS agg

@@ -54,9 +54,15 @@ def _aliases(*, month, callback, kwargs, dbtype='sqlite'):
     dyn_sql = _dynamic(month=month, callback=callback, dbtype=dbtype, **kwargs)
     stat_sql = _static(month=month, dbtype=dbtype)
     sql_template = load_sql('cte_aliases', dbtype)
-    return sql_template.format(month, dyn_sql, month, stat_sql)
 
-def crawl_dynamic(*, months, callback, dbtype='sqlite', **kwargs):
+    if dbtype == 'postgresql':
+        # Template has only 2 placeholders for SQL fragments
+        return sql_template.format(dyn_sql, stat_sql)
+    else:
+        # Template has 4 placeholders (e.g., dynamic_{}, static_{})
+        return sql_template.format(month, dyn_sql, month, stat_sql)
+
+def crawl_dynamic(*, months=None, callback, dbtype='sqlite', **kwargs):
     ''' iterate over position reports tables to create SQL query spanning
         desired time range
 
@@ -73,7 +79,7 @@ def crawl_dynamic(*, months, callback, dbtype='sqlite', **kwargs):
         return sql_dynamic
 
 
-def crawl_dynamic_static(*, months, callback, dbtype='sqlite', **kwargs):
+def crawl_dynamic_static(*, months=None, callback, dbtype='sqlite', **kwargs):
     ''' iterate over position reports and static messages tables to create SQL
         query spanning desired time range
 
@@ -87,8 +93,11 @@ def crawl_dynamic_static(*, months, callback, dbtype='sqlite', **kwargs):
     if dbtype=='postgresql':
         sql_alias = _aliases(month='global', callback=callback, kwargs=kwargs, dbtype=dbtype)
         sql_union = _leftjoin(month='global', dbtype=dbtype)
-        return f'WITH\n{sql_alias}\n{sql_coarsetype}\n{sql_union}\nORDER BY 1,2'
-    else:
+        return f'WITH\n{sql_alias},\n{sql_coarsetype}\n{sql_union}\nORDER BY 1,2'
+    elif dbtype == 'sqlite':
+        if not months:
+            raise ValueError("'months' must be provided when using SQLite backend.")
+
         sql_aliases = ''.join([
             _aliases(month=month, callback=callback, kwargs=kwargs, dbtype=dbtype)
             for month in months

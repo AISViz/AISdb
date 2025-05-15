@@ -24,5 +24,5 @@ SELECT
     static.eta_minute,
     ref.coarse_type_txt AS ship_type_txt
 FROM ais_global_dynamic AS dynamic
-LEFT JOIN ais_global_static AS static ON d.mmsi = static.mmsi
+LEFT JOIN ais_global_static AS static ON dynamic.mmsi = static.mmsi
 LEFT JOIN ref ON static.ship_type = ref.coarse_type
