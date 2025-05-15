@@ -9,6 +9,7 @@ class TestWeatherDataStore(unittest.TestCase):
     @patch("aisdb.weather.data_store.fast_unzip")  # Mocking the fast_unzip function to avoid actual file operations
     @patch("xarray.open_dataset")  # Mocking xarray's open_dataset to avoid reading actual files
     @patch("xarray.concat")  # Mocking xarray's concat to avoid actual concatenation
+    @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")
     def test_initialization(self, mock_concat, mock_open_dataset, mock_fast_unzip):
         # Setup test data
         short_names = ['10u', '10v']
