@@ -3,19 +3,6 @@ import os
 
 from aisdb import sqlpath
 
-# with open(os.path.join(sqlpath, 'cte_dynamic_clusteredidx.sql'), 'r') as f:
-#     sql_dynamic = f.read()
-
-# with open(os.path.join(sqlpath, 'cte_static_aggregate.sql'), 'r') as f:
-#     sql_static = f.read()
-
-# with open(os.path.join(sqlpath, 'select_join_dynamic_static_clusteredidx.sql'),
-#           'r') as f:
-#     sql_leftjoin = f.read()
-
-# with open(os.path.join(sqlpath, 'cte_aliases.sql'), 'r') as f:
-#     sql_aliases = f.read()
-
 def load_sql(name: str, dbtype: str = 'sqlite') -> str:
     """Load the correct SQL template based on dbtype (sqlite or postgresql)."""
     suffix = '_global' if dbtype == 'postgresql' else ''

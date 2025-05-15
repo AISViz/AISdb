@@ -18,6 +18,7 @@ import psycopg
 from aisdb import sqlite3, sqlpath
 from aisdb.database.create_tables import (
     sql_aggregate,
+    sql_global_aggregate,
     sql_createtable_static,
 )
 
@@ -228,32 +229,6 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
     '''
 
-    # def _set_db_daterange(self):
-
-    #     dynamic_tables_qry = psycopg.sql.SQL(
-    #         "select table_name from information_schema.tables "
-    #         r"where table_name LIKE 'ais\_______\_dynamic' ORDER BY table_name"
-    #     )
-    #     cur = self.cursor()
-    #     cur.execute(dynamic_tables_qry)
-    #     dynamic_tables = cur.fetchall()
-
-    #     if dynamic_tables != []:
-    #         db_months = sorted([
-    #             table['table_name'].split('_')[1] for table in dynamic_tables
-    #         ])
-    #         self.db_daterange = {
-    #             'start':
-    #                 datetime(int(db_months[0][:4]), int(db_months[0][4:]),
-    #                          1).date(),
-    #             'end':
-    #                 datetime((y := int(db_months[-1][:4])),
-    #                          (m := int(db_months[-1][4:])),
-    #                          monthrange(y, m)[1]).date(),
-    #         }
-    #     else:
-    #         self.db_daterange = {}
-
     def _set_db_daterange(self):
         """
         Sets the date range of available AIS data in the database.
@@ -407,17 +382,6 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         with self.cursor() as cur:
             cur.execute(sql, args)
 
-    # def drop_indexes(self, month, verbose=True, timescaledb=False):
-    #     if verbose:
-    #         print(f'dropping indexes of {month}...')
-    #     dbconn = self.conn
-    #     if timescaledb:
-    #         dbconn.execute(f"DROP INDEX IF EXISTS ais_{month}_dynamic_mmsi_time_idx;")
-    #         dbconn.execute(f"DROP INDEX IF EXISTS ais_{month}_dynamic_time_idx;")
-    #     else:
-    #         for idx_name in ("mmsi", "time", "longitude", "latitude"):
-    #             dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name};")
-
     def drop_indexes(self, verbose=True, timescaledb=False):
         if verbose:
             print(f'dropping indexes of ais_global_dynamic...')
@@ -428,21 +392,6 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         else:
             for idx_name in ("mmsi", "time", "longitude", "latitude"):
                 dbconn.execute(f"DROP INDEX IF EXISTS idx_ais_global_dynamic_{idx_name};")
-
-
-    # def rebuild_indexes(self, month, verbose=True, timescaledb=False):
-    #     if verbose:
-    #         print(f'indexing {month}...')
-    #     dbconn = self.conn
-    #     if timescaledb:
-    #         dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_{month}_dynamic_mmsi_time_idx"
-    #                        f" ON ais_{month}_dynamic (mmsi, time);")
-    #         dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_{month}_dynamic_time_idx"
-    #                        f" ON ais_{month}_dynamic (time);")
-    #     else:
-    #         for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
-    #             dbconn.execute(
-    #                 f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} ON ais_{month}_dynamic ({idx_name});")
 
     def rebuild_indexes(self, verbose=True, timescaledb=False):
         if verbose:
@@ -508,22 +457,6 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         # if verbose:
         #     print(f'done clustering: {month}')
 
-    # OLD CODE 
-    # def deduplicate_dynamic_msgs(self, month: str, verbose=True):
-    #     dbconn = self.conn
-    #     dbconn.execute(f'''
-    #         DELETE FROM ais_{month}_dynamic WHERE ctid IN
-    #             (SELECT ctid FROM
-    #                 (SELECT *, ctid, row_number() OVER
-    #                     (PARTITION BY mmsi, time, source ORDER BY ctid)
-    #                 FROM ais_{month}_dynamic ) AS duplicates_{month}
-    #             WHERE row_number > 1)
-    #         ''')
-    #     dbconn.commit()
-    #     if verbose:
-    #         print(f'done deduplicating: {month}')
-
-    # REFACTORED TO USE GLOBAL TABLE
     def deduplicate_dynamic_msgs(self, verbose=True):
         dbconn = self.conn
         dbconn.execute('''
@@ -603,7 +536,7 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
             agg_rows.append(aggregated)
 
-        cur.execute(sql_aggregate)
+        cur.execute(sql_global_aggregate)
 
         if len(agg_rows) == 0:
             warnings.warn('no rows to aggregate! table: static_global_aggregate')
@@ -625,5 +558,5 @@ DBConn = PostgresDBConn
 
 class ConnectionType(Enum):
     ''' database connection types enum. used for static type hints '''
-    # SQLITE = SQLiteDBConn
+    SQLITE = SQLiteDBConn
     POSTGRES = PostgresDBConn
