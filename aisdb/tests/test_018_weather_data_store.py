@@ -7,10 +7,9 @@ import numpy as np
 
 class TestWeatherDataStore(unittest.TestCase):
     @patch("aisdb.weather.data_store.fast_unzip")  # Mocking the fast_unzip function to avoid actual file operations
-    @patch("xarray.concat")  # Mocking xarray's concat to avoid actual concatenation
     @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")
 
-    def test_initialization(self, mock_load_weather_data, mock_concat, mock_fast_unzip):
+    def test_initialization(self, mock_load_weather_data, mock_fast_unzip):
         # Setup test data
         short_names = ['10u', '10v']
         start = datetime(2023, 1, 1)
@@ -31,9 +30,6 @@ class TestWeatherDataStore(unittest.TestCase):
         mock_sel.values = 5.2  # Simulate returning a value
         mock_ds['10u'].sel.return_value = mock_sel  # Ensure 'sel' method of '10u' returns this mock
 
-        # Mock concat to return our mock dataset as if it's concatenated from multiple datasets
-        mock_concat.return_value = mock_ds
-
         # Mock the _load_weather_data method to return the mock dataset
         mock_load_weather_data.return_value = mock_ds
 
@@ -52,8 +48,7 @@ class TestWeatherDataStore(unittest.TestCase):
         # Check that the weather dataset is not empty
         self.assertTrue(len(store.weather_ds.data_vars) > 0)
 
-        # Assert that xarray.open_dataset and concat were called
-        mock_concat.assert_called()
+        mock_load_weather_data.assert_called_once()
 
     @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")  # Mock the method to avoid loading real data
     def test_extract_weather(self, mock_load_weather_data):
