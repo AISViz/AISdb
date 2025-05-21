@@ -8,7 +8,7 @@ from aisdb import (PostgresDBConn, DBQuery, Domain, sqlfcn, sqlfcn_callbacks)
 from aisdb.tests.create_testing_data import sample_gulfstlawrence_bbox
 
 USER = os.environ["pguser"]
-PASSWORD = urllib.parse.quote_plus(os.environ["password"])
+PASSWORD = urllib.parse.quote_plus(os.environ["pgpass"])
 ADDRESS = '127.0.0.1'
 PORT = 5432
 DBNAME = os.environ["dbname"]

@@ -10,7 +10,7 @@ from aisdb.track_gen import TrackGen
 import urllib.parse
 
 USER = os.environ["pguser"]
-PASSWORD = urllib.parse.quote_plus(os.environ["password"])
+PASSWORD = urllib.parse.quote_plus(os.environ["pgpass"])
 ADDRESS = '127.0.0.1'
 PORT = 5432
 DBNAME = os.environ["dbname"]
