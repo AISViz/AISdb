@@ -9,13 +9,8 @@ from aisdb.tests.create_testing_data import (sample_database_file, sample_gulfst
 from aisdb.track_gen import TrackGen
 import urllib.parse
 
-USER = os.environ["pguser"]
-PASSWORD = urllib.parse.quote_plus(os.environ["pgpass"])
-ADDRESS = '127.0.0.1'
-PORT = 5432
-DBNAME = os.environ["dbname"]
-
-conn_information = f"postgresql://{USER}:{PASSWORD}@{ADDRESS}:{PORT}/{DBNAME}"
+conn_information = (f"postgresql://{os.environ['pguser']}:{os.environ['pgpass']}@"
+                    f"{os.environ['pghost']}:5432/{os.environ['pguser']}")
 
 def test_postgres():
     # keyword arguments

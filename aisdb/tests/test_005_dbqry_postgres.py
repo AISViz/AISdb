@@ -7,16 +7,12 @@ import warnings
 from aisdb import (PostgresDBConn, DBQuery, Domain, sqlfcn, sqlfcn_callbacks)
 from aisdb.tests.create_testing_data import sample_gulfstlawrence_bbox
 
-USER = os.environ["pguser"]
-PASSWORD = urllib.parse.quote_plus(os.environ["pgpass"])
-ADDRESS = '127.0.0.1'
-PORT = 5432
-DBNAME = os.environ["dbname"]
 
 # PostgreSQL DB connection string from environment
 def get_pg_conn_string():
     return (
-        f"postgresql://{USER}:{PASSWORD}@{ADDRESS}:{PORT}/{DBNAME}"
+        f"postgresql://{os.environ['pguser']}:{os.environ['pgpass']}@"
+        f"{os.environ['pghost']}:5432/{os.environ['pguser']}"
     )
 
 def test_query_emptytable_postgres():

@@ -4,19 +4,9 @@ import urllib
 from aisdb.database.dbconn import PostgresDBConn
 from aisdb.database.decoder import decode_msgs
 
-# Assumes these are set in your environment
-# pguser, pgpass, pghost
-
-USER = os.environ["pguser"]
-PASSWORD = urllib.parse.quote_plus(os.environ["pgpass"])
-ADDRESS = '127.0.0.1'
-PORT = 5432
-DBNAME = os.environ["dbname"]
-
 def test_decode_1day_postgres():
-    conn_str = (
-        f"postgresql://{USER}:{PASSWORD}@{ADDRESS}:{PORT}/{DBNAME}"
-    )
+    conn_str = (f"postgresql://{os.environ['pguser']}:{os.environ['pgpass']}@"
+                    f"{os.environ['pghost']}:5432/{os.environ['pguser']}")
 
     testing_data_zip = os.path.join(os.path.dirname(__file__), "testdata", "test_data_20211101.nm4.zip")
     testing_data_gz = os.path.join(os.path.dirname(__file__), "testdata", "test_data_20211101.nm4.gz")
