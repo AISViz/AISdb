@@ -554,8 +554,6 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
         self.commit()
 
-DBConn = PostgresDBConn
-
 class ConnectionType(Enum):
     ''' database connection types enum. used for static type hints '''
     SQLITE = SQLiteDBConn

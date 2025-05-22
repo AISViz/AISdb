@@ -329,7 +329,7 @@ class DBQuery(UserDict):
                 f'query time: {delta.total_seconds():.2f}s\nfetching rows...')
         if res == []:
             # raise SyntaxError(f'no results for query!\n{qry}')
-            warnings.warn('No results for query!')
+            warnings.warn('No static data for selected time range!')
 
         while len(res) > 0:
             mmsi_rows += res
