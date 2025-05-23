@@ -103,6 +103,10 @@ jobs:
           $pgDataDir = "D:\a\_temp\pgdata"
           $env:PGPASSWORD="${{ env.pgpass }}"
           $pgConfigPath = "D:/a/_temp/pgdata/postgresql.conf"
+
+          # Add PostgreSQL 17 to PATH to ensure correct pg_config is used
+          $pgBin = "C:\Program Files\PostgreSQL\17\bin"
+          $env:PATH = "$pgBin;$env:PATH"
           
           # Modify postgresql.conf to preload TimescaleDB before installation
           Write-Host "Preload TimescaleDB..."
