@@ -99,6 +99,7 @@ jobs:
           Set-Location -Path $setupDir
 
           # PostgreSQL paths
+          $pgRoot = "C:\Program Files\PostgreSQL\17"
           $pgDataDir = "D:\a\_temp\pgdata"
           $env:PGPASSWORD="${{ env.pgpass }}"
           $pgConfigPath = "D:/a/_temp/pgdata/postgresql.conf"
