@@ -73,6 +73,14 @@ jobs:
           psql -U postgres -c "SELECT version();"
           psql -U postgres -c "SHOW config_file;"
           
+      - name: Install PostgreSQL 17
+        run: |
+          choco install postgresql --version=17.3 -y --force
+          RefreshEnv
+          $env:Path += ";C:\Program Files\PostgreSQL\17\bin"
+          psql --version
+        shell: pwsh
+
       - name: Install TimescaleDB on Windows
         run: |
           # Download the official TimescaleDB installer for PostgreSQL 17.
