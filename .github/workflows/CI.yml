@@ -109,24 +109,19 @@ jobs:
           # PostgreSQL paths
           $pgRoot = "C:\Program Files\PostgreSQL\17"
           $pgDataDir = "D:\a\_temp\pgdata"
-          $env:PGPASSWORD="${{ env.pgpass }}"
-          $pgConfigPath = "D:/a/_temp/pgdata/postgresql.conf"
-
-          # Add PostgreSQL 17 to PATH to ensure correct pg_config is used
-          $pgBin = "C:\Program Files\PostgreSQL\17\bin"
+          $pgConfigPath = "$pgDataDir/postgresql.conf"
+          $pgBin = "$pgRoot\bin"
           $env:PATH = "$pgBin;$env:PATH"
-          
-          # Modify postgresql.conf to preload TimescaleDB before installation
-          Write-Host "Preload TimescaleDB..."
-          (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
-          
-          Write-Host "Restarting PostgreSQL to apply new settings..."
-          pg_ctl -D $pgDataDir restart
-          Start-Sleep -Seconds 5
+          $env:PGPASSWORD="${{ env.pgpass }}"
           
           # Run the installer
           Write-Host "Running setup.exe..."
           Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -WorkingDirectory $setupDir -Wait -NoNewWindow
+
+           # Modify postgresql.conf to preload TimescaleDB before installation
+          Write-Host "Preload TimescaleDB..."
+          (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
+          
           
           # Restart PostgreSQL again to apply TimescaleDB settings
           Write-Host "Restarting PostgreSQL after installation..."
