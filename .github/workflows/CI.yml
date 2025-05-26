@@ -118,9 +118,9 @@ jobs:
           Write-Host "Running setup.exe..."
           Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -WorkingDirectory $setupDir -Wait -NoNewWindow
 
-           # Modify postgresql.conf to preload TimescaleDB before installation
-          Write-Host "Preload TimescaleDB..."
-          (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
+          #  # Modify postgresql.conf to preload TimescaleDB before installation
+          # Write-Host "Preload TimescaleDB..."
+          # (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
           
           
           # Restart PostgreSQL again to apply TimescaleDB settings
