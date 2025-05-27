@@ -108,7 +108,8 @@ jobs:
 
           # PostgreSQL paths
           $pgRoot = "C:\Program Files\PostgreSQL\17"
-          $pgDataDir = "D:\a\_temp\pgdata"
+          # $pgDataDir = "D:\a\_temp\pgdata"
+          $pgDataDir = "C:\Program Files\PostgreSQL\17\data"
           $pgConfigPath = "$pgDataDir/postgresql.conf"
           $pgBin = "$pgRoot\bin"
           $env:PATH = "$pgBin;$env:PATH"
