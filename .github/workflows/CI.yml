@@ -108,26 +108,54 @@ jobs:
 
           # PostgreSQL paths
           $pgRoot = "C:\Program Files\PostgreSQL\17"
-          # $pgDataDir = "D:\a\_temp\pgdata"
-          $pgDataDir = "C:\Program Files\PostgreSQL\17\data"
-          $pgConfigPath = "$pgDataDir/postgresql.conf"
+          $pgDataDir = "D:\a\_temp\pgdata"
+          $pgConfigPath = "$pgDataDir\postgresql.conf"
           $pgBin = "$pgRoot\bin"
           $env:PATH = "$pgBin;$env:PATH"
           $env:PGPASSWORD="${{ env.pgpass }}"
-          
+
           # Run the installer
-          Write-Host "Running setup.exe..."
-          Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -WorkingDirectory $setupDir -Wait -NoNewWindow
+          Write-Host "Running setup.exe in silent mode..."
+          $process = Start-Process -FilePath $setupPath -ArgumentList "/S", "--yes", "--no-tune" -WorkingDirectory $setupDir -Wait -NoNewWindow -PassThru     
+          if ($process.ExitCode -ne 0) {
+            Write-Host "ERROR: TimescaleDB installation failed with exit code: $($process.ExitCode)"
+            exit 1
+          }
+          Write-Host "TimescaleDB installation completed successfully"
+          
+          # # Run the installer
+          # Write-Host "Running setup.exe..."
+          # Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -WorkingDirectory $setupDir -Wait -NoNewWindow
 
           #  # Modify postgresql.conf to preload TimescaleDB before installation
           # Write-Host "Preload TimescaleDB..."
           # (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
-          
+
+          # Modify postgresql.conf to preload TimescaleDB
+          Write-Host "Configuring PostgreSQL to preload TimescaleDB..."
+          if (Test-Path $pgConfigPath) {
+            $configContent = Get-Content $pgConfigPath
+            $newConfigContent = $configContent -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'"
+            
+            # If shared_preload_libraries wasn't found, add it
+            if ($configContent -notmatch "shared_preload_libraries") {
+              $newConfigContent += "`nshared_preload_libraries = 'timescaledb'"
+            }
+            
+            $newConfigContent | Set-Content $pgConfigPath
+            Write-Host "Updated postgresql.conf with TimescaleDB preload configuration"
+          } else {
+            Write-Host "WARNING: postgresql.conf not found at: $pgConfigPath"
+          }
           
           # Restart PostgreSQL again to apply TimescaleDB settings
           Write-Host "Restarting PostgreSQL after installation..."
           pg_ctl -D $pgDataDir restart
-          Start-Sleep -Seconds 5
+          Start-Sleep -Seconds 10
+
+          # Verify PostgreSQL is running and check version
+          Write-Host "Verifying PostgreSQL status..."
+          pg_ctl -D $pgDataDir status
           
           # Enable the TimescaleDB extension in PostgreSQL.
           Write-Host "Configuring PostgreSQL authentication..."
@@ -203,6 +231,7 @@ jobs:
           database: postgres
           postgres-version: "17"
           ssl: false
+          port: 5432
         id: postgres
       
       - name: Test PostgreSQL Connection
