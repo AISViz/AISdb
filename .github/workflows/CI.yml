@@ -38,7 +38,7 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-cargo-
       
-      - uses: ikalnytskyi/action-setup-postgres@v4
+      - uses: ikalnytskyi/action-setup-postgres@v7
         with:
           password: ${{ secrets.PGPASS }}
       
