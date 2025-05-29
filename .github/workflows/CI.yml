@@ -38,9 +38,9 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-cargo-
       
-      # - uses: ikalnytskyi/action-setup-postgres@v7
-      #   with:
-      #     password: ${{ secrets.PGPASS }}
+      - uses: ikalnytskyi/action-setup-postgres@v7
+        with:
+          password: ${{ secrets.PGPASS }}
       
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -65,13 +65,13 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
           
-      - name: Install PostgreSQL 17
-        run: |
-          choco install postgresql --version=17.3 -y --force
-          RefreshEnv
-          $env:Path += ";C:\Program Files\PostgreSQL\17\bin"
-          psql --version
-        shell: pwsh
+      # - name: Install PostgreSQL 17
+      #   run: |
+      #     choco install postgresql --version=17.3 -y --force
+      #     RefreshEnv
+      #     $env:Path += ";C:\Program Files\PostgreSQL\17\bin"
+      #     psql --version
+      #   shell: pwsh
 
       - name: Initialize PostgreSQL Data Directory
         run: |
@@ -163,8 +163,8 @@ jobs:
           pg_ctl -D $pgDataDir status
           
           # Enable the TimescaleDB extension in PostgreSQL.
-          Write-Host "Configuring PostgreSQL authentication..."
-          $env:PGPASSWORD="${{ env.pgpass }}"
+          # Write-Host "Configuring PostgreSQL authentication..."
+          # $env:PGPASSWORD="${{ env.pgpass }}"
           Write-Host "Create TimescaleDB extension for database..."
           psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
         shell: pwsh
