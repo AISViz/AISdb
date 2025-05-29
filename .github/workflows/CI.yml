@@ -73,17 +73,17 @@ jobs:
       #     psql --version
       #   shell: pwsh
 
-      - name: Initialize PostgreSQL Data Directory
+      - name: PostgreSQL Data Directory
         run: |
           # PostgreSQL paths
           $pgRoot = "C:\Program Files\PostgreSQL\17"
           $pgDataDir = "D:\a\_temp\pgdata"
           $pgConfigPath = "$pgDataDir\postgresql.conf"
-          $pgBin = "$pgRoot\bin"
-          $env:PATH = "$pgBin;$env:PATH"
+      #     $pgBin = "$pgRoot\bin"
+      #     $env:PATH = "$pgBin;$env:PATH"
           
-          New-Item -ItemType Directory -Force -Path $pgDataDir
-          & "$pgBin\initdb.exe" -D $pgDataDir --username=postgres --encoding=UTF8 --locale=en_US
+      #     New-Item -ItemType Directory -Force -Path $pgDataDir
+      #     & "$pgBin\initdb.exe" -D $pgDataDir --username=postgres --encoding=UTF8 --locale=en_US
         shell: pwsh
 
 
