@@ -24,9 +24,9 @@ jobs:
     runs-on: windows-latest
     needs: [windows]
     env:
-      pguser: "postgres"
-      pghost: "127.0.0.1"
-      pgpass: ${{ secrets.PGPASS }}
+      PGUSER: ${{ secrets.PGUSER }}
+      PGHOST: "127.0.0.1"
+      PGPASSWORD: ${{ secrets.PGPASS }}
     steps:
       - uses: actions/cache@v3
         with:
@@ -81,7 +81,6 @@ jobs:
           $pgConfigPath = "$pgDataDir\postgresql.conf"
           $pgBin = "$pgRoot\bin"
           $env:PATH = "$pgBin;$env:PATH"
-          $env:PGPASSWORD="${{ env.pgpass }}"
           
           New-Item -ItemType Directory -Force -Path $pgDataDir
           & "$pgBin\initdb.exe" -D $pgDataDir --username=postgres --encoding=UTF8 --locale=en_US
@@ -90,8 +89,6 @@ jobs:
 
       - name: Locate PostgreSQL Installation Paths
         run: |
-          Write-Host "Finding PostgreSQL path..."
-          $env:PGPASSWORD="${{ env.pgpass }}"
           Write-Host "Verifying PostgreSQL connection..."
           psql -U postgres -c "SELECT version();"
           psql -U postgres -c "SHOW config_file;"
