@@ -15,7 +15,6 @@ from dateutil.rrule import rrule, MONTHLY
 
 from aisdb import sqlpath
 from aisdb.database.dbconn import PostgresDBConn
-from aisdb.database.dbconn import SQLiteDBConn
 from aisdb.proc_util import getfiledate
 
 
@@ -32,7 +31,7 @@ class FileChecksums:
         :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.
         :return: None
         """
-        assert isinstance(dbconn, (PostgresDBConn, SQLiteDBConn))
+        assert isinstance(dbconn, (PostgresDBConn))
         self.dbconn = dbconn
         self.checksums_table()
         self.tmp_dir = tempfile.mkdtemp()
@@ -50,21 +49,14 @@ class FileChecksums:
          :return: None
         """
         cur = self.dbconn.cursor()
-        if isinstance(self.dbconn, SQLiteDBConn):
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS
-                hashmap(
-                    hash TEXT PRIMARY KEY,
-                    bytes BLOB
-                )
-                """)
-        elif isinstance(self.dbconn, PostgresDBConn):
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS
-                hashmap(
-                    hash TEXT PRIMARY KEY,
-                    bytes BYTEA
-                );""")
+       
+        
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS
+            hashmap(
+                hash TEXT PRIMARY KEY,
+                bytes BYTEA
+            );""")
 
         cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_map on hashmap(hash)")
         self.dbconn.commit()
@@ -76,15 +68,10 @@ class FileChecksums:
         :param checksum: The checksum to be inserted into the hashmap table.
         :returns: None
         """
-        if isinstance(self.dbconn, SQLiteDBConn):
-            self.dbconn.execute("INSERT OR IGNORE INTO hashmap VALUES (?,?)",
-                                [checksum, pickle.dumps(None)])
-            self.dbconn.commit()
-        elif isinstance(self.dbconn, PostgresDBConn):
-            self.dbconn.execute(
-                "INSERT INTO hashmap VALUES ($1,$2) ON CONFLICT DO NOTHING",
-                [checksum, pickle.dumps(None)])
-            self.dbconn.commit()
+        self.dbconn.execute(
+            "INSERT INTO hashmap VALUES ($1,$2) ON CONFLICT DO NOTHING",
+            [checksum, pickle.dumps(None)])
+        self.dbconn.commit()
 
     def checksum_exists(self, checksum):
         """
@@ -94,10 +81,7 @@ class FileChecksums:
         :return: True if the checksum exists in the database, False otherwise.
         """
         cur = self.dbconn.cursor()
-        if isinstance(self.dbconn, SQLiteDBConn):
-            cur.execute("SELECT * FROM hashmap WHERE hash = ?", [checksum])
-        elif isinstance(self.dbconn, PostgresDBConn):
-            cur.execute("SELECT * FROM hashmap WHERE hash = %s", [checksum])
+        cur.execute("SELECT * FROM hashmap WHERE hash = %s", [checksum])
         res = cur.fetchone()
 
         if res is None or res is False:
@@ -174,7 +158,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     :return: None
     """
     if not isinstance(dbconn,
-                      (SQLiteDBConn, PostgresDBConn)):  # pragma: no cover
+                      (PostgresDBConn)):  # pragma: no cover
         raise ValueError("db argument must be a DBConn database connection. "
                          f"got {dbconn}")
 
@@ -309,22 +293,6 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
                                   type_preference=type_preference, allow_swap=False)
         print("completed")
 
-    elif isinstance(dbconn, SQLiteDBConn):
-        months = [
-        month.strftime("%Y%m") for month in rrule(
-            freq=MONTHLY,
-            dtstart=min(filedates) - timedelta(days=min(filedates).day - 1),
-            until=max(filedates),
-            )
-        ]
-        with open(os.path.join(sqlpath, "createtable_dynamic_clustered.sql"), "r") as f:
-            create_table_stmt = f.read()
-        for month in months:
-            dbconn.execute(create_table_stmt.format(month))
-        completed_files = decoder(dbpath=dbconn.dbpath,
-                                  psql_conn_string="", files=raw_files,
-                                  source=source, verbose=verbose, workers=workers,
-                                  type_preference=type_preference, allow_swap=False)
     else:
         assert False
 
@@ -364,23 +332,5 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
         dbconn.aggregate_static_msgs(verbose)
     else:
         dbconn.aggregate_static_msgs(months, verbose)
-
-    if not raw_insertion:
-        if vacuum is not False:
-            print("finished parsing data\nvacuuming...")
-            if isinstance(dbconn, SQLiteDBConn):
-                if vacuum is True:
-                    dbconn.execute("VACUUM")
-                elif isinstance(vacuum, str):
-                    assert not os.path.isfile(vacuum)
-                    dbconn.execute("VACUUM INTO ?", (vacuum,))
-                else:
-                    raise ValueError(
-                        "vacuum arg must be boolean or filepath string")
-                dbconn.commit()
-            elif isinstance(dbconn, (PostgresDBConn, psycopg.Connection)):
-                pass
-            else:
-                raise RuntimeError
 
     return

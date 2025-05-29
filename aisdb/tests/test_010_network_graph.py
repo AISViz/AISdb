@@ -40,8 +40,7 @@ def test_graph_minimal(tmpdir):
         outputfile = os.path.join(tmpdir, "output.csv")
         print(f"raw count: {len(list(qry.gen_qry()))}")
 
-        graph(qry, outputfile=outputfile, data_dir=data_dir, dbconn=ais_database, domain=domain,
-              trafficDBpath=trafficDBpath)
+        graph(qry, outputfile=outputfile, data_dir=data_dir, dbconn=ais_database, domain=domain)
     ais_database.close()
     if os.path.isfile(outputfile):
         os.remove(outputfile)

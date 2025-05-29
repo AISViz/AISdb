@@ -19,26 +19,26 @@ month = 'global'
 def test_dynamic_postgres(tmpdir):
     dbpath = os.path.join(tmpdir, "test_sqlfcn_dynamic.db")
     callback = sqlfcn_callbacks.in_time_bbox_validmmsi
-    txt = sqlfcn._dynamic(dbpath=dbpath, month=month, callback=callback, dbtype=dbtype, **kwargs)
+    txt = sqlfcn._dynamic(dbpath=dbpath, callback=callback, dbtype=dbtype, **kwargs)
     print("\n--- test_dynamic_postgres ---\n", txt)
 
 def test_static_postgres(tmpdir):
     dbpath = os.path.join(tmpdir, "test_sqlfcn_static.db")
-    txt = sqlfcn._static(dbpath=dbpath, month=month, dbtype=dbtype)
+    txt = sqlfcn._static(dbpath=dbpath, dbtype=dbtype)
     print("\n--- test_static_postgres ---\n", txt)
 
 def test_leftjoin_postgres(tmpdir):
-    txt = sqlfcn._leftjoin(month=month, dbtype=dbtype)
+    txt = sqlfcn._leftjoin(dbtype=dbtype)
     print("\n--- test_leftjoin_postgres ---\n", txt)
 
 
 def test_crawl_postgres(tmpdir):
     dbpath = os.path.join(tmpdir, "test_sqlfcn_crawl.db")
     callback = sqlfcn_callbacks.in_time_bbox_validmmsi
-    txt1 = sqlfcn.crawl_dynamic_static(dbpath=dbpath, months=[month], callback=callback, dbtype=dbtype, **kwargs)
+    txt1 = sqlfcn.crawl_dynamic_static(dbpath=dbpath, callback=callback, dbtype=dbtype, **kwargs)
     print("\n--- crawl_dynamic_static_postgres ---\n", txt1)
 
-    txt2 = sqlfcn.crawl_dynamic(dbpath=dbpath, months=[month], callback=callback, dbtype=dbtype, **kwargs)
+    txt2 = sqlfcn.crawl_dynamic(dbpath=dbpath, callback=callback, dbtype=dbtype, **kwargs)
     print("\n--- crawl_dynamic_postgres ---\n", txt2)
 
 
@@ -73,7 +73,7 @@ def test_all_callbacks_postgres(tmpdir):
             mmsis=[316000000]
         )
         try:
-            txt = sqlfcn.crawl_dynamic_static(dbpath=dbpath, months=[month], callback=cb, dbtype=dbtype, **test_kwargs)
+            txt = sqlfcn.crawl_dynamic_static(dbpath=dbpath, callback=cb, dbtype=dbtype, **test_kwargs)
             print(f"\n--- Callback: {cb.__name__} ---\n{txt}")
         except Exception as e:
             print(f"\n[ERROR] Callback: {cb.__name__} raised {e}")
