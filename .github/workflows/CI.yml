@@ -24,7 +24,7 @@ jobs:
     runs-on: windows-latest
     needs: [windows]
     env:
-      PGUSER: ${{ secrets.PGUSER }}
+      PGUSER: "runneradmin"
       PGHOST: "127.0.0.1"
       PGPASSWORD: ${{ secrets.PGPASS }}
     steps:
