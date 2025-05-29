@@ -64,14 +64,6 @@ jobs:
           cargo install --locked wasm-pack --verbose
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
-
-      - name: Locate PostgreSQL Installation Paths
-        run: |
-          Write-Host "Finding PostgreSQL path..."
-          $env:PGPASSWORD="${{ env.pgpass }}"
-          Write-Host "Verifying PostgreSQL connection..."
-          psql -U postgres -c "SELECT version();"
-          psql -U postgres -c "SHOW config_file;"
           
       - name: Install PostgreSQL 17
         run: |
@@ -94,6 +86,15 @@ jobs:
           New-Item -ItemType Directory -Force -Path $pgDataDir
           & "$pgBin\initdb.exe" -D $pgDataDir --username=postgres --encoding=UTF8 --locale=en_US
         shell: pwsh
+
+
+      - name: Locate PostgreSQL Installation Paths
+        run: |
+          Write-Host "Finding PostgreSQL path..."
+          $env:PGPASSWORD="${{ env.pgpass }}"
+          Write-Host "Verifying PostgreSQL connection..."
+          psql -U postgres -c "SELECT version();"
+          psql -U postgres -c "SHOW config_file;"
 
 
       - name: Install TimescaleDB on Windows
