@@ -167,8 +167,8 @@ jobs:
           pg_ctl -D $pgDataDir status
           
           # Enable the TimescaleDB extension in PostgreSQL.
-          # Write-Host "Configuring PostgreSQL authentication..."
-          # $env:PGPASSWORD="${{ env.pgpass }}"
+          Write-Host "Configuring PostgreSQL authentication..."
+          $env:PGPASSWORD="${{ env.pgpass }}"
           Write-Host "Create TimescaleDB extension for database..."
           psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
         shell: pwsh
