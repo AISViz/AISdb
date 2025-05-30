@@ -24,7 +24,7 @@ jobs:
     runs-on: windows-latest
     needs: [windows]
     env:
-      PGUSER: "runneradmin"
+      PGUSER: "postgres"
       PGHOST: "127.0.0.1"
       PGPASSWORD: ${{ secrets.PGPASS }}
     steps:
@@ -41,6 +41,7 @@ jobs:
       - uses: ikalnytskyi/action-setup-postgres@v7
         with:
           password: ${{ secrets.PGPASS }}
+          username: 'postgres'
       
       - name: Checkout Repository
         uses: actions/checkout@v4
