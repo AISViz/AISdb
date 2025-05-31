@@ -38,9 +38,10 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-cargo-
       
-      - uses: ikalnytskyi/action-setup-postgres@v4
+      - uses: ikalnytskyi/action-setup-postgres@v7
         with:
           password: ${{ secrets.PGPASS }}
+          postgres-version: "17"
       
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -75,55 +76,40 @@ jobs:
           
       - name: Install TimescaleDB on Windows
         run: |
-          # Download the official TimescaleDB installer for PostgreSQL 14.
+          $ErrorActionPreference = "Stop"
+          
+          # Download the official TimescaleDB installer for PostgreSQL 17.
           Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/download/2.20.1/timescaledb-postgresql-17-windows-amd64.zip" -OutFile "timescaledb.zip"
           
-          # Create a dedicated folder for the installer.
+          # Create a dedicated folder for the installer
           New-Item -ItemType Directory -Force -Path "C:\timescaledb"
-          
-          # Extract the ZIP into C:\timescaledb.
           Expand-Archive -Path "timescaledb.zip" -DestinationPath "C:\timescaledb"
-          
-          # Find the setup.exe file in the extracted folder.
+      
+          # Find and run the setup.exe file
           $setupPath = Get-ChildItem -Path "C:\timescaledb" -Recurse -Filter "setup.exe" | Select-Object -First 1 | ForEach-Object { $_.FullName }
           Write-Host "Found setup executable at: $setupPath"
-          
-          # Unblock the setup executable so it can run.
-          Write-Host "Unblocking setup.exe..."
           Unblock-File -Path $setupPath
           Set-ExecutionPolicy Bypass -Scope Process -Force
-          
-          # Setup working directory
-          $setupDir = Split-Path -Path $setupPath
-          Write-Host "Setting working directory to: $setupDir"
-          Set-Location -Path $setupDir
-
-          # PostgreSQL paths
-          $pgDataDir = "D:\a\_temp\pgdata"
+          Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -Wait -NoNewWindow
+      
+          # Get PostgreSQL config file path
           $env:PGPASSWORD="${{ env.pgpass }}"
-          $pgConfigPath = "D:/a/_temp/pgdata/postgresql.conf"
-          
-          # Modify postgresql.conf to preload TimescaleDB before installation
-          Write-Host "Preload TimescaleDB..."
+          $pgConfigPath = psql -U postgres -t -c "SHOW config_file;" | Out-String
+          $pgConfigPath = $pgConfigPath.Trim()
+          Write-Host "PostgreSQL config path: $pgConfigPath"
+      
+          # Enable TimescaleDB in shared_preload_libraries
           (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
-          
-          Write-Host "Restarting PostgreSQL to apply new settings..."
-          pg_ctl -D $pgDataDir restart
+      
+          # Restart PostgreSQL to apply config
+          $pgDataDir = psql -U postgres -t -c "SHOW data_directory;" | Out-String
+          $pgDataDir = $pgDataDir.Trim()
+          Write-Host "PostgreSQL data directory: $pgDataDir"
+          pg_ctl -D "$pgDataDir" restart
           Start-Sleep -Seconds 5
-          
-          # Run the installer
-          Write-Host "Running setup.exe..."
-          Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -WorkingDirectory $setupDir -Wait -NoNewWindow
-          
-          # Restart PostgreSQL again to apply TimescaleDB settings
-          Write-Host "Restarting PostgreSQL after installation..."
-          pg_ctl -D $pgDataDir restart
-          Start-Sleep -Seconds 5
-          
-          # Enable the TimescaleDB extension in PostgreSQL.
-          Write-Host "Configuring PostgreSQL authentication..."
-          $env:PGPASSWORD="${{ env.pgpass }}"
-          Write-Host "Create TimescaleDB extension for database..."
+      
+          # Create TimescaleDB extension
+          Write-Host "Create TimescaleDB extension..."
           psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
         shell: pwsh
 
