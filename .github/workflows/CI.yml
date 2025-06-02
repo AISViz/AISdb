@@ -24,9 +24,12 @@ jobs:
     runs-on: windows-latest
     needs: [windows]
     env:
-      pguser: "postgres"
-      pghost: "127.0.0.1"
-      pgpass: ${{ secrets.PGPASS }}
+      # pguser: "postgres"
+      # pghost: "127.0.0.1"
+      # pgpass: ${{ secrets.PGPASS }}
+      PGUSER: "postgres"
+      PGHOST: "127.0.0.1"
+      PGPASSWORD: ${{ secrets.PGPASS }}
     steps:
       - uses: actions/cache@v3
         with:
@@ -68,7 +71,7 @@ jobs:
       - name: Locate PostgreSQL Installation Paths
         run: |
           Write-Host "Verifying PostgreSQL connection..."
-          $env:PGPASSWORD="${{ env.pgpass }}"
+          $env:PGPASSWORD="${{ env.PGPASSWORD }}"
           psql -U postgres -c "SELECT version();"
           psql -U postgres -c "SHOW config_file;"
 
@@ -141,7 +144,7 @@ jobs:
           
           # Enable the TimescaleDB extension in PostgreSQL.
           Write-Host "Configuring PostgreSQL authentication..."
-          $env:PGPASSWORD="${{ env.pgpass }}"
+          $env:PGPASSWORD="${{ env.PGPASSWORD }}"
           Write-Host "Create TimescaleDB extension for database..."
           psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
         shell: pwsh
