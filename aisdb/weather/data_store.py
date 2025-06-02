@@ -8,6 +8,7 @@ import shutil
 from aisdb.database.decoder import fast_unzip
 from aisdb.weather.utils import SHORT_NAMES_TO_VARIABLES
 from aisdb.weather.weather_fetch import ClimateDataStore
+from collections import defaultdict
 
 
 def dt_to_iso8601(timestamp):
@@ -120,23 +121,23 @@ class WeatherDataStore:
 
             climateDataStore.download_grib_file(output_folder=weather_data_path)
         
-        self.weather_ds = self._load_weather_data()
+        self.weather_ds_map = self._load_weather_data()
            
-    def _load_weather_data(self):
+    def _load_weather_data(self) -> dict:
         """
-        Load and extract weather data from GRIB files for the given date range.
+        Load and extract weather data from GRIB files for the given date range,
+        organized by shortName.
 
         Returns:
-            xarray.Dataset: The concatenated dataset of weather data.
+            dict: A dictionary where each key is a weather shortName and each value
+                is an xarray.Dataset merged across all months for that variable.
         """
+        from collections import defaultdict
 
-        weather_dataset_instances = []
-
-        # Create a temporary directory for extraction
         tmp_dir = tempfile.mkdtemp()
         zipped_grib_files = []
-        grib_file_paths = []
 
+        # Collect zipped files or copy .grib directly
         for month in self.months:
             grib_path = f"{self.weather_data_path}/{month}.grib"
             zip_path = f"{grib_path}.zip"
@@ -151,112 +152,95 @@ class WeatherDataStore:
         if zipped_grib_files:
             fast_unzip(zipped_grib_files, tmp_dir)
 
+        # Group datasets by shortName
+        shortname_to_datasets = defaultdict(list)
+
         for month in self.months:
             grib_file_path = f"{tmp_dir}/{month}.grib"
-            
-            # Load the weather dataset from the extracted GRIB file
-            weather_ds = xr.open_dataset(
-                grib_file_path,
-                engine="cfgrib",
-                backend_kwargs={
-                    'filter_by_keys': {
-                        'shortName': self.short_names,
-                    }
-                }
-            )
 
-            weather_dataset_instances.append(weather_ds)
+            if not os.path.exists(grib_file_path):
+                print(f"Warning: GRIB file not found: {grib_file_path}. Skipping.")
+                continue
 
-        return xr.concat(weather_dataset_instances, dim='time')
+            for short_name in self.short_names:
+                try:
+                    ds = xr.open_dataset(
+                        grib_file_path,
+                        engine="cfgrib",
+                        backend_kwargs={'filter_by_keys': {'shortName': short_name}}
+                    )
+                    shortname_to_datasets[short_name].append(ds)
+                except Exception as e:
+                    print(f"Warning: Failed to load {short_name} from {grib_file_path}: {e}")
 
-    def extract_weather(self, latitude, longitude, time) -> dict:
-        """
-        Extract weather data for a specific latitude, longitude, and timestamp.
+        # Merge across time for each shortName
+        merged_per_shortname = {}
+        for short_name, datasets in shortname_to_datasets.items():
+            try:
+                merged = xr.concat(datasets, dim="time")
+                merged_per_shortname[short_name] = merged
+            except Exception as e:
+                print(f"Warning: Could not merge datasets for {short_name}: {e}")
 
-        Args:
-            latitude (float): Latitude of the point.
-            longitude (float): Longitude of the point.
-            time (int): Timestamp.
 
-        Returns:
-            dict: A dictionary containing the extracted weather data (e.g., {'10u': 5.2, '10v': 3.1}).
+        if merged_per_shortname:
+            return merged_per_shortname
+        else:
+            raise RuntimeError("No weather datasets could be loaded or merged.")
 
-        Example:
-            >>> store.extract_weather(40.7128, -74.0060, 1674963000)
-            {'10u': 5.2, '10v': 3.1}
-            >>> store.extract_weather(40.7128, -74.0060, 2023-05-01T12:00:00)
-            {'10u': 5.2, '10v': 3.1}
-        """
 
-        dt = dt_to_iso8601(time)
-        ds_variables = list(self.weather_ds.data_vars)
-        values = {}
-
-        # Loop through each variable (e.g., wind, wave)
-        for var in ds_variables:
-            values[var] = self.weather_ds[var].sel(latitude=latitude, longitude=longitude, time=dt, method='nearest').values
-
-        return values
-        
     def yield_tracks_with_weather(self, tracks) -> dict:
         """
-        Yields tracks with weather. Takes a generator of track dictionaries, retrieves
-        corresponding weather data from an xarray Dataset, and adds the
-        weather data to each track.
+        Yields tracks with weather by selecting weather variables for each point in the track.
 
         Args:
             tracks: A generator of dictionaries, where each dictionary
-                represents a track and contains 'lon', 'lat', and 'time' keys
-                with lists or numpy arrays of longitudes, latitudes, and
-                timestamps, respectively.
+                represents a track and contains 'lon', 'lat', and 'time' keys.
 
         Yields:
-            tracks: A generator of dictionaries, where each dictionary is a track
-            with an added 'weather_data' key. The 'weather_data' value is
-            a dictionary containing weather variable names.
+            Track dictionaries with added 'weather_data' (a dict of variable → values).
         """
         assert isinstance(tracks, types.GeneratorType)
 
-        for track in tracks:      
+        for track in tracks:
             longitudes = np.array(track['lon'])
             latitudes = np.array(track['lat'])
             timestamps = np.array(track['time'])
-        
-            dt = [dt_to_iso8601(t) for t in timestamps]
-            
-            # Initialize a dictionary to store weather data for each short name (weather variable)
-            weather_data_dict = {short_name: [] for short_name in self.short_names}
-            
-            # Create xarray DataArrays for latitudes, longitudes, and times
-            latitudes_da = xr.DataArray(latitudes, dims="points", name="latitude")
-            longitudes_da = xr.DataArray(longitudes, dims="points", name="longitude")
-            times_da = xr.DataArray(dt, dims="points", name="time")
-            
-            # Use xarray's multi-dimensional selection to get values for each variable
-            for var in self.weather_ds.data_vars:
-                # Extract values using xarray's .sel() for multi-dimensional indexing
-                # We need to ensure that xarray knows the lat, lon, and time coordinates are aligned
-                data = self.weather_ds[var].sel(
-                    latitude=latitudes_da, 
-                    longitude=longitudes_da, 
-                    time=times_da, 
-                    method="nearest"
-                )
-                
-                
-                weather_data_dict[var] = data.values 
-            
-            track["weather_data"] = {**track.get("weather_data", {}), **weather_data_dict}
-                  
-            yield track
 
+            dt = [dt_to_iso8601(t) for t in timestamps]
+
+            # Prepare selection coordinates
+            lat_da = xr.DataArray(latitudes, dims="points", name="latitude")
+            lon_da = xr.DataArray(longitudes, dims="points", name="longitude")
+            time_da = xr.DataArray(dt, dims="points", name="time")
+
+            weather_data_dict = {}
+
+            # Iterate over the shortName → Dataset map
+            for short_name, ds in self.weather_ds_map.items():
+                try:
+                    for var_da in ds.data_vars:
+                        selected = ds[var_da].sel(
+                            latitude=lat_da,
+                            longitude=lon_da,
+                            time=time_da,
+                            method="nearest"
+                        )
+                        weather_data_dict[short_name] = selected.values
+                except Exception as e:
+                    print(f"Warning: Failed to select {short_name} data for track: {e}")
+                    weather_data_dict[short_name] = [np.nan] * len(timestamps)
+
+            track["weather_data"] = weather_data_dict
+            yield track
 
     def close(self):
         """
         Close the weather dataset.
         """
-        self.weather_ds.close()
-    
+        for _, ds in self.weather_ds_map.items():
+            if isinstance(ds, xr.Dataset):
+                ds.close()    
     def _check_available_short_names(self, short_names):        
         for short_name in short_names:
                 value =  SHORT_NAMES_TO_VARIABLES.get(short_name)
