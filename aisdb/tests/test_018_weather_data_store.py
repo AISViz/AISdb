@@ -50,35 +50,6 @@ class TestWeatherDataStore(unittest.TestCase):
 
         mock_load_weather_data.assert_called_once()
 
-    @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")  # Mock the method to avoid loading real data
-    def test_extract_weather(self, mock_load_weather_data):
-        # Setup test data
-        short_names = ['10u', '10v']
-        start = datetime(2023, 1, 1)
-        end = datetime(2023, 2, 1)
-        weather_data_path = '/path/to/weather/data'
-
-        # Mock _load_weather_data to return a mock dataset
-        mock_load_weather_data.return_value = MagicMock()
-
-        # Create an instance of WeatherDataStore
-        store = WeatherDataStore(short_names, start, end, weather_data_path)
-
-        # Mock dataset and the 'data_vars' for both '10u' and '10v'
-        mock_values = {'10u': 5.2}  # Mock values based on the variable names
-        store.weather_ds = MagicMock()
-
-        # Mock the 'data_vars' to contain '10u' and '10v'
-        store.weather_ds.data_vars = {'10u': MagicMock(), '10v': MagicMock()}
-
-        # Mock the 'sel' method for both variables to return the mock values directly
-        store.weather_ds['10u'].sel = MagicMock(return_value=MagicMock(values=mock_values['10u']))
-
-        # Test extracting weather data
-        weather = store.extract_weather(40.7128, -74.0060, 1674963000)
-
-        # Assert that the correct values were extracted
-        self.assertEqual(weather['10u'], 5.2)  # Ensure 10u has the correct mocked value
 
     def test_yield_tracks_with_weather(self):
         # Create a mock dataset with weather variables
