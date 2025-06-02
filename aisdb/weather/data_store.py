@@ -246,7 +246,7 @@ class WeatherDataStore:
                 
                 weather_data_dict[var] = data.values 
             
-            track["weather_data"] = weather_data_dict      
+            track["weather_data"] = {**track.get("weather_data", {}), **weather_data_dict}
                   
             yield track
 
