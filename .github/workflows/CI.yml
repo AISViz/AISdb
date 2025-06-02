@@ -41,7 +41,7 @@ jobs:
       - uses: ikalnytskyi/action-setup-postgres@v7
         with:
           password: ${{ secrets.PGPASS }}
-          postgres-version: "17"
+          postgres-version: "14"
       
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -79,7 +79,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           
           # Download the official TimescaleDB installer for PostgreSQL 17.
-          Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/download/2.20.1/timescaledb-postgresql-17-windows-amd64.zip" -OutFile "timescaledb.zip"
+          Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/download/2.19.2/timescaledb-postgresql-14-windows-amd64.zip" -OutFile "timescaledb.zip"
           
           # Create a dedicated folder for the installer
           New-Item -ItemType Directory -Force -Path "C:\timescaledb"
