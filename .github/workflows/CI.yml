@@ -76,7 +76,7 @@ jobs:
       - name: Install TimescaleDB on Windows
         run: |
           # Download TimescaleDB for PostgreSQL 14 (not 17)
-          Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/download/2.20.0/timescaledb-postgresql-14-windows-amd64.zip" -OutFile "timescaledb.zip"
+          Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/download/2.19.0/timescaledb-postgresql-14-windows-amd64.zip" -OutFile "timescaledb.zip"
 
           # Create a folder for extraction
           New-Item -ItemType Directory -Force -Path "C:\timescaledb"
