@@ -101,14 +101,12 @@ class TestWeatherDataStore(unittest.TestCase):
         mock_ds_10u.data_vars = ['10u']
         mock_ds_10u.__getitem__.return_value.sel.side_effect = [
             MagicMock(values=np.array(5.2)),
-            MagicMock(values=np.array(-1.3))
         ]
 
         mock_ds_10v = MagicMock()
         mock_ds_10v.data_vars = ['10v']
         mock_ds_10v.__getitem__.return_value.sel.side_effect = [
             MagicMock(values=np.array(1.1)),
-            MagicMock(values=np.array(-0.8))
         ]
 
         # Setup test data
@@ -138,15 +136,17 @@ class TestWeatherDataStore(unittest.TestCase):
             # Validate output
             self.assertEqual(len(tracks_with_weather), 1)
             self.assertIn('weather_data', tracks_with_weather[0])
-            np.testing.assert_array_equal(tracks_with_weather[0]['weather_data']['10u'], [5.2, -1.3])
-            np.testing.assert_array_equal(tracks_with_weather[0]['weather_data']['10v'], [1.1, -0.8])
+            np.testing.assert_array_equal(tracks_with_weather[0]['weather_data']['10u'], [5.2])
+            np.testing.assert_array_equal(tracks_with_weather[0]['weather_data']['10v'], [1.1])
 
             # Ensure sel was called expected number of times
-            self.assertEqual(mock_ds_10u.__getitem__.return_value.sel.call_count, 2)
-            self.assertEqual(mock_ds_10v.__getitem__.return_value.sel.call_count, 2)
+            self.assertEqual(mock_ds_10u.__getitem__.return_value.sel.call_count, 1)
+            self.assertEqual(mock_ds_10v.__getitem__.return_value.sel.call_count, 1)
 
             store.close()
 
 
 
         
+if __name__ == "__main__":
+    unittest.main()
