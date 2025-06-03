@@ -98,12 +98,14 @@ class TestWeatherDataStore(unittest.TestCase):
     def test_yield_tracks_with_weather(self):
         # Create mock datasets for '10u' and '10v'
         mock_ds_10u = MagicMock()
+        mock_ds_10u.data_vars = ['10u']
         mock_ds_10u.__getitem__.return_value.sel.side_effect = [
             MagicMock(values=np.array(5.2)),
             MagicMock(values=np.array(-1.3))
         ]
 
         mock_ds_10v = MagicMock()
+        mock_ds_10v.data_vars = ['10v']
         mock_ds_10v.__getitem__.return_value.sel.side_effect = [
             MagicMock(values=np.array(1.1)),
             MagicMock(values=np.array(-0.8))
@@ -115,6 +117,7 @@ class TestWeatherDataStore(unittest.TestCase):
         end = datetime(2023, 2, 1)
         weather_data_path = '/fake/path'
 
+        # Patch _load_weather_data to return a dict of shortnames to mocked datasets
         with patch.object(WeatherDataStore, '_load_weather_data', return_value={
             '10u': mock_ds_10u,
             '10v': mock_ds_10v
@@ -136,11 +139,14 @@ class TestWeatherDataStore(unittest.TestCase):
             self.assertEqual(len(tracks_with_weather), 1)
             self.assertIn('weather_data', tracks_with_weather[0])
             np.testing.assert_array_equal(tracks_with_weather[0]['weather_data']['10u'], [5.2, -1.3])
+            np.testing.assert_array_equal(tracks_with_weather[0]['weather_data']['10v'], [1.1, -0.8])
 
-            # Ensure sel was called on each dataset
+            # Ensure sel was called expected number of times
             self.assertEqual(mock_ds_10u.__getitem__.return_value.sel.call_count, 2)
             self.assertEqual(mock_ds_10v.__getitem__.return_value.sel.call_count, 2)
 
-        store.close()
+            store.close()
+
+
 
         
