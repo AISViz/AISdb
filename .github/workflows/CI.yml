@@ -132,12 +132,11 @@ jobs:
       - name: Run Tests
         run: |
           AISdb\Scripts\activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --ignore=./aisdb/tests/test_001_postgres.py --maxfail=10
+          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
 
       - name: Clean Up
         run: |
           Remove-Item -Recurse -Force AISdb
-
 
   build-and-test-linux:
     runs-on: ubuntu-latest
@@ -187,6 +186,7 @@ jobs:
           database: postgres
           postgres-version: "17"
           ssl: false
+          port: 5432
         id: postgres
       
       - name: Test PostgreSQL Connection
@@ -206,11 +206,6 @@ jobs:
         run: |
           sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17
           echo "TimescaleDB Extension installed"
-
-      # - name: Apply TimescaleDB tuning
-      #   run: |
-      #     sudo timescaledb-tune --pg-config="/home/runner/work/_temp/pgdata/postgresql.conf" --quiet --yes
-      #     echo "TimescaleDB tuning applied"
         
       - name: Enable TimescaleDB in PostgreSQL Config
         run: |
