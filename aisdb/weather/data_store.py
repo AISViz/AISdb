@@ -123,6 +123,40 @@ class WeatherDataStore:
         
         self.weather_ds_map = self._load_weather_data()
            
+    def extract_weather(self, latitude, longitude, time) -> dict:
+        """
+        Extract weather data for a specific latitude, longitude, and timestamp.
+
+        Args:
+            latitude (float): Latitude of the point.
+            longitude (float): Longitude of the point.
+            time (int): Timestamp.
+
+        Returns:
+            dict: A dictionary containing the extracted weather data (e.g., {'10u': 5.2, '10v': 3.1}).
+
+        Example:
+            >>> store.extract_weather(40.7128, -74.0060, 1674963000)
+            {'10u': 5.2, '10v': 3.1}
+            >>> store.extract_weather(40.7128, -74.0060, 2023-05-01T12:00:00)
+            {'10u': 5.2, '10v': 3.1}
+        """
+
+        dt = dt_to_iso8601(time)
+        values = {}
+
+        # Loop through each variable in the weather_ds_map
+        for shortname, ds in self.weather_ds_map.items():
+            values[shortname] = ds[shortname].sel(
+                latitude=latitude,
+                longitude=longitude,
+                time=dt,
+                method='nearest'
+            ).values
+
+        return values
+
+    
     def _load_weather_data(self) -> dict:
         """
         Load and extract weather data from GRIB files for the given date range,
