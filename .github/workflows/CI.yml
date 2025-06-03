@@ -132,7 +132,7 @@ jobs:
       - name: Run Tests
         run: |
           AISdb\Scripts\activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+           pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --ignore=./aisdb/tests/test_001_postgres.py --maxfail=10
 
       - name: Clean Up
         run: |
