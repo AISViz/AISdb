@@ -122,7 +122,7 @@ pub fn sqlite_decodemsgs_ee_csv(
                 own_vessel: true,
                 station: Station::BaseStation,
                 ais_type: AisClass::Unknown,
-                mmsi: row.get(0).unwrap().parse().unwrap(),
+                mmsi: row.get(0).unwrap().parse::<u32>().unwrap_or(0),
                 nav_status: NavigationStatus::NotDefined,
                 rot: row.get(25).unwrap().parse::<f64>().ok(),
                 rot_direction: None,
@@ -155,7 +155,7 @@ pub fn sqlite_decodemsgs_ee_csv(
             let payload = VesselStaticData {
                 own_vessel: true,
                 ais_type: AisClass::Unknown,
-                mmsi: row.get(0).unwrap().parse().unwrap(),
+                mmsi: row.get(0).unwrap().parse::<u32>().unwrap_or(0),
                 ais_version_indicator: row.get(23).unwrap().parse().unwrap_or_default(),
                 imo_number: row.get(15).unwrap().parse().ok(),
                 call_sign: row.get(14).unwrap().parse().ok(),
@@ -287,7 +287,7 @@ pub fn postgres_decodemsgs_ee_csv(
             let payload = VesselStaticData {
                 own_vessel: true,
                 ais_type: AisClass::Unknown,
-                mmsi: row.get(0).unwrap().parse().unwrap(),
+                mmsi: row.get(0).unwrap().parse::<u32>().unwrap_or(0),
                 ais_version_indicator: row.get(23).unwrap().parse().unwrap_or_default(),
                 imo_number: row.get(15).unwrap().parse().ok(),
                 call_sign: row.get(14).unwrap().parse().ok(),
@@ -762,8 +762,8 @@ MMSI,Message_ID,Repeat_indicator,Time,Millisecond,Region,Country,Base_station,On
         let fpath = std::path::PathBuf::from("testdata/testingdata.csv");
 
         let _ = sqlite_decodemsgs_ee_csv(
-            &std::path::Path::new("testdata/test.db").to_path_buf(),
-            &fpath,
+            std::path::Path::new("testdata/test.db").to_path_buf(),
+            fpath,
             "TESTDATA",
             true,
         );

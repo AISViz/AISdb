@@ -472,8 +472,8 @@ pub mod tests {
         let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
         for filepath in fpaths {
             parser = sqlite_decode_insert_msgs(
-                &std::path::Path::new("testdata/test.db").to_path_buf(),
-                &std::path::Path::new(&filepath).to_path_buf(),
+                std::path::Path::new("testdata/test.db").to_path_buf(),
+                std::path::Path::new(&filepath).to_path_buf(),
                 "TESTING",
                 parser,
                 true,

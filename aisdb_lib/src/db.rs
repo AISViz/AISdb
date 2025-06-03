@@ -390,7 +390,8 @@ mod tests {
     #[test]
     fn test_create_statictable() -> SqliteResult<()> {
         let mstr = "00test00";
-        let mut conn = get_db_conn(Path::new(":memory:")).expect("getting db conn");
+        let path = Path::new(":memory:").to_path_buf();
+        let mut conn = get_db_conn(path).expect("getting db conn");
 
         println!("/* creating table */");
         let tx = conn.transaction().expect("begin transaction");
@@ -403,7 +404,8 @@ mod tests {
     #[test]
     fn test_create_dynamictable() -> SqliteResult<()> {
         let mstr = "00test00";
-        let mut conn = get_db_conn(Path::new(":memory:")).expect("getting db conn");
+        let path = Path::new(":memory:").to_path_buf();
+        let mut conn = get_db_conn(path).expect("getting db conn");
 
         println!("/* creating table */");
         let tx = conn.transaction().expect("begin transaction");
