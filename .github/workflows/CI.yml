@@ -38,10 +38,9 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-cargo-
       
-      - uses: ikalnytskyi/action-setup-postgres@v7
+      - uses: ikalnytskyi/action-setup-postgres@v4
         with:
           password: ${{ secrets.PGPASS }}
-          postgres-version: "14"
       
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -76,42 +75,49 @@ jobs:
           
       - name: Install TimescaleDB on Windows
         run: |
-          $ErrorActionPreference = "Stop"
-          
-          # Download the official TimescaleDB installer for PostgreSQL 17.
-          Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/download/2.19.2/timescaledb-postgresql-14-windows-amd64.zip" -OutFile "timescaledb.zip"
-          
-          # Create a dedicated folder for the installer
+          # Download TimescaleDB for PostgreSQL 14 (not 17)
+          Invoke-WebRequest -Uri "https://github.com/timescale/timescaledb/releases/download/2.19.0/timescaledb-postgresql-14-windows-amd64.zip" -OutFile "timescaledb.zip"
+
+          # Create a folder for extraction
           New-Item -ItemType Directory -Force -Path "C:\timescaledb"
           Expand-Archive -Path "timescaledb.zip" -DestinationPath "C:\timescaledb"
-      
-          # Find and run the setup.exe file
+
+          # Locate setup.exe
           $setupPath = Get-ChildItem -Path "C:\timescaledb" -Recurse -Filter "setup.exe" | Select-Object -First 1 | ForEach-Object { $_.FullName }
           Write-Host "Found setup executable at: $setupPath"
+
+          # Unblock and set up environment
           Unblock-File -Path $setupPath
           Set-ExecutionPolicy Bypass -Scope Process -Force
-          Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -Wait -NoNewWindow
-      
-          # Get PostgreSQL config file path
-          $env:PGPASSWORD="${{ env.pgpass }}"
-          $pgConfigPath = psql -U postgres -t -c "SHOW config_file;" | Out-String
-          $pgConfigPath = $pgConfigPath.Trim()
-          Write-Host "PostgreSQL config path: $pgConfigPath"
-      
-          # Enable TimescaleDB in shared_preload_libraries
+          $setupDir = Split-Path -Path $setupPath
+          Set-Location -Path $setupDir
+
+          # Run the installer first (before editing postgresql.conf)
+          Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -WorkingDirectory $setupDir -Wait -NoNewWindow
+
+          # Modify postgresql.conf now that DLLs are installed
+          $pgDataDir = "D:\a\_temp\pgdata"
+          $pgConfigPath = "D:/a/_temp/pgdata/postgresql.conf"
           (Get-Content $pgConfigPath) -replace "^#?\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'" | Set-Content $pgConfigPath
-      
-          # Restart PostgreSQL to apply config
-          $pgDataDir = psql -U postgres -t -c "SHOW data_directory;" | Out-String
-          $pgDataDir = $pgDataDir.Trim()
-          Write-Host "PostgreSQL data directory: $pgDataDir"
-          pg_ctl -D "$pgDataDir" restart
+
+          # Restart PostgreSQL to load TimescaleDB
+          Write-Host "Restarting PostgreSQL after installation..."
+          pg_ctl -D $pgDataDir restart
           Start-Sleep -Seconds 5
-      
-          # Create TimescaleDB extension
-          Write-Host "Create TimescaleDB extension..."
+
+          # Enable extension
+          $env:PGPASSWORD="${{ env.pgpass }}"
           psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
         shell: pwsh
+        # Enable extension
+      - name: Verify TimescaleDB Extension
+        run: |
+          $env:PGPASSWORD="${{ env.pgpass }}"
+          psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+
+          # Verify that the TimescaleDB extension is loaded
+          Write-Host "Verifying TimescaleDB extension is installed..."
+          psql -U postgres -d postgres -c "SELECT * FROM pg_extension WHERE extname = 'timescaledb';"
 
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
