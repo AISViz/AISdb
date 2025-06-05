@@ -6,18 +6,15 @@ from aisdb.tests.create_testing_data import (
     sample_database_file,
     random_polygons_domain,
 )
+from aisdb import PostgresDBConn, DBQuery, sqlfcn_callbacks, track_gen
+
+start = datetime(2023, 12, 1)
+end = datetime(2024, 1, 1)
+
+conn_information = (f"postgresql://{os.environ['pguser']}:{os.environ['pgpass']}@"
+                    f"{os.environ['pghost']}:5432/{os.environ['pguser']}")
 
 domain = random_polygons_domain()
-
-example_dir = 'testdata'
-if not os.path.isdir(example_dir):
-    os.mkdir(example_dir)
-
-dbpath = os.path.join(example_dir, 'example_visualize.db')
-months = sample_database_file(dbpath)
-start = datetime(int(months[0][0:4]), int(months[0][4:6]), 1)
-end = datetime(int(months[1][0:4]), int(months[1][4:6]) + 1, 1)
-
 
 def color_tracks(tracks, color='yellow'):
     ''' set the color of each vessel track using a color name or RGB value '''
@@ -26,18 +23,16 @@ def color_tracks(tracks, color='yellow'):
         yield track
 
 
-with aisdb.SQLiteDBConn(dbpath) as dbconn:
-    qry = aisdb.DBQuery(
+with PostgresDBConn(conn_information) as dbconn:
+    qry = DBQuery(
         dbconn=dbconn,
-        dbpath=dbpath,
         start=start,
         end=end,
-        callback=aisdb.sqlfcn_callbacks.valid_mmsi,
+        callback=sqlfcn_callbacks.valid_mmsi,
     )
     rowgen = qry.gen_qry()
-    tracks = aisdb.track_gen.TrackGen(rowgen, decimate=False)
-    tracks_segment = aisdb.track_gen.split_timedelta(tracks,
-                                                     timedelta(weeks=4))
+    tracks = track_gen.TrackGen(rowgen, decimate=False)
+    tracks_segment = track_gen.split_timedelta(tracks, timedelta(weeks=4))
     tracks_colored = color_tracks(tracks_segment)
 
     if __name__ == '__main__':
