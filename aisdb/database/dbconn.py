@@ -265,7 +265,6 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
                 exists = cur.fetchone()['exists']
 
                 if not exists:
-                    print(f"Skipping table {table}: does not exist")
                     continue
 
                 # Safe to query now
