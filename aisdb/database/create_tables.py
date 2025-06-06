@@ -11,3 +11,6 @@ with open(os.path.join(sqlpath, 'createtable_static.sql'), 'r') as f:
 
 with open(os.path.join(sqlpath, 'createtable_static_aggregate.sql'), 'r') as f:
     sql_aggregate = f.read()
+
+with open(os.path.join(sqlpath, 'createtable_static_global_aggregate.sql'), 'r') as f:
+    sql_global_aggregate = f.read()
