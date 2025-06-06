@@ -212,7 +212,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
         with open(os.path.abspath(item), "rb") as f:
             signature = dbindex.get_md5(item, f)
         if skip_checksum:
-            # ✅ Process all files, still collect checksum for later insertion
+            # Process all files, still collect checksum for later insertion
             zipped_checksums.append(signature)
         else:
             if dbindex.checksum_exists(signature):
@@ -320,7 +320,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
                 completed_files = decoder(dbpath="",
                                         psql_conn_string=dbconn.connection_string, files=raw_files,
                                         source=source, verbose=verbose, workers=workers,
-                                        type_preference=type_preference, allow_swap=False)
+                                        type_preference=type_preference, allow_swap=False, timescale=True)
                 print("completed")
 
             elif isinstance(dbconn, SQLiteDBConn):
