@@ -320,7 +320,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
                 completed_files = decoder(dbpath="",
                                         psql_conn_string=dbconn.connection_string, files=raw_files,
                                         source=source, verbose=verbose, workers=workers,
-                                        type_preference=type_preference, allow_swap=False, timescale=True)
+                                        type_preference=type_preference, allow_swap=False)
                 print("completed")
 
             elif isinstance(dbconn, SQLiteDBConn):
