@@ -10,7 +10,7 @@ dependencies = [
     "MarkupSafe", "flask", "packaging", "pillow", "requests", "selenium", "shapely",
     "python-dateutil", "orjson", "websockets", "beautifulsoup4", "pyproj", "py7zr",
     "toml", "tqdm", "numpy", "webdriver-manager", "psycopg", "psycopg[binary]", "scipy",
-    "geopandas", "xarray", "cfgrib", "h3", "matplotlib",
+    "geopandas", "xarray", "cfgrib", "h3", "matplotlib", "cdsapi",
 ]
 zip-safe = false
 version = "1.8.0-alpha"
