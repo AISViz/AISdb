@@ -7,7 +7,6 @@ from aisdb import (DBConn, DBQuery, Domain, PostgresDBConn, sqlfcn, sqlfcn_callb
 from aisdb.database.decoder import decode_msgs
 from aisdb.tests.create_testing_data import (sample_database_file, sample_gulfstlawrence_bbox, )
 from aisdb.track_gen import TrackGen
-import urllib.parse
 
 conn_information = (f"postgresql://{os.environ['pguser']}:{os.environ['pgpass']}@"
                     f"{os.environ['pghost']}:5432/{os.environ['pguser']}")

@@ -272,19 +272,6 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
                             dbconn.commit()
                         else:
                             print("Tables already exist! Skipping creation.")
-                        
-                    else:
-                        with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
-                            create_dynamic_table_stmt = f.read()
-                        with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
-                            create_static_table_stmt = f.read()
-
-                        for month in months:
-                            dbconn.execute(create_dynamic_table_stmt)
-                            dbconn.execute(create_static_table_stmt)
-                            if not raw_insertion:
-                                dbconn.drop_indexes(month, verbose, timescaledb)
-                        dbconn.commit()
                     
                     completed_files = decoder(dbpath="",
                                             psql_conn_string=dbconn.connection_string, files=raw_files,
@@ -334,17 +321,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
                 if not raw_insertion:
                     if vacuum is not False:
                         print("finished parsing data\nvacuuming...")
-                        if isinstance(dbconn, SQLiteDBConn):
-                            if vacuum is True:
-                                dbconn.execute("VACUUM")
-                            elif isinstance(vacuum, str):
-                                assert not os.path.isfile(vacuum)
-                                dbconn.execute("VACUUM INTO ?", (vacuum,))
-                            else:
-                                raise ValueError(
-                                    "vacuum arg must be boolean or filepath string")
-                            dbconn.commit()
-                        elif isinstance(dbconn, PostgresDBConn):
+                        if isinstance(dbconn, PostgresDBConn):
                             pass
                         else:
                             raise RuntimeError("Unsupported DB connection type.")
@@ -432,19 +409,6 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
                         dbconn.commit()
                     else:
                         print("Tables already exist! Skipping creation.")
-                    
-                else:
-                    with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
-                        create_dynamic_table_stmt = f.read()
-                    with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
-                        create_static_table_stmt = f.read()
-
-                    for month in months:
-                        dbconn.execute(create_dynamic_table_stmt)
-                        dbconn.execute(create_static_table_stmt)
-                        if not raw_insertion:
-                            dbconn.drop_indexes(month, verbose, timescaledb)
-                    dbconn.commit()
                 
                 completed_files = decoder(dbpath="",
                                         psql_conn_string=dbconn.connection_string, files=raw_files,
@@ -494,17 +458,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
             if not raw_insertion:
                 if vacuum is not False:
                     print("finished parsing data\nvacuuming...")
-                    if isinstance(dbconn, SQLiteDBConn):
-                        if vacuum is True:
-                            dbconn.execute("VACUUM")
-                        elif isinstance(vacuum, str):
-                            assert not os.path.isfile(vacuum)
-                            dbconn.execute("VACUUM INTO ?", (vacuum,))
-                        else:
-                            raise ValueError(
-                                "vacuum arg must be boolean or filepath string")
-                        dbconn.commit()
-                    elif isinstance(dbconn, PostgresDBConn):
+                    if isinstance(dbconn, PostgresDBConn):
                         pass
                     else:
                         raise RuntimeError("Unsupported DB connection type.")
