@@ -22,13 +22,13 @@ class FileChecksums:
     """
     Initializes a FileChecksums object with a specified database connection.
 
-    :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.
+    :param dbconn: A required parameter of type PostgresDBConn that represents the database connection.
     :return: None
     """
 
     def __init__(self, *, dbconn):
         """
-        :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.
+        :param dbconn: A required parameter of type PostgresDBConn that represents the database connection.
         :return: None
         """
         assert isinstance(dbconn, (PostgresDBConn))
@@ -43,7 +43,7 @@ class FileChecksums:
         Creates a checksums table in the database if it doesn't exist.
 
         This method creates a table named 'hashmap' in the database, if it doesn't already exist.
-        The table contains two columns: 'hash' of type TEXT and 'bytes' of type BLOB for SQLiteDBConn *, or BYTEA for PostgresDBConn.
+        The table contains two columns: 'hash' of type TEXT and 'bytes' of type BYTEA for PostgresDBConn.
 
          :param self: an instance of the current object.
          :return: None

@@ -1,8 +1,3 @@
-''' SQLite Database connection
-
-    Also see: https://docs.python.org/3/library/sqlite3.html#connection-objects
-'''
-
 import ipaddress
 import os
 import re

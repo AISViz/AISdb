@@ -69,7 +69,7 @@ class DBQuery(UserDict):
     #        dbpaths (list)
     #            optionally pass a list of filepaths instead of a single dbpath
 
-    def __init__(self, *, dbconn, **kwargs):
+    def __init__(self, *, dbconn, dbpath=None, dbpaths=[], **kwargs):
         assert isinstance(
             dbconn,
             (PostgresDBConn)), 'Invalid database connection'
