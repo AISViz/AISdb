@@ -132,7 +132,7 @@ jobs:
       - name: Run Tests
         run: |
           AISdb\Scripts\activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+          pytest -s ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
 
       - name: Clean Up
         run: |
@@ -240,7 +240,7 @@ jobs:
       - name: Run Tests
         run: |
           source ./AISdb/bin/activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+          pytest -s ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
       
       - name: Clean Up
         run: |
@@ -353,7 +353,7 @@ jobs:
       - name: Run Tests
         run: |
           source ./AISdb/bin/activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+          pytest -s ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
 
       - name: Clean Up
         run: |
