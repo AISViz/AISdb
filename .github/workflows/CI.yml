@@ -129,6 +129,9 @@ jobs:
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
 
+      - name: Create testdata directory
+        run: mkdir -p ./AISdb/testdata
+        
       - name: Run Tests
         run: |
           AISdb\Scripts\activate
@@ -232,6 +235,9 @@ jobs:
           python -m pip install maturin
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+
+      - name: Create testdata directory
+        run: mkdir -p ./AISdb/testdata
 
       - name: Run Tests
         run: |
@@ -345,6 +351,9 @@ jobs:
           python -m pip install maturin
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+
+      - name: Create testdata directory
+        run: mkdir -p ./AISdb/testdata
 
       - name: Run Tests
         run: |
