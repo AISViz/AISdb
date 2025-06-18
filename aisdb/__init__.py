@@ -9,21 +9,13 @@ with open(
                      'pyproject.toml'), 'r') as tomlfile:
     __version__ = toml.load(tomlfile).get('project').get('version')
 
-import sqlite3
-
-if (sqlite3.sqlite_version_info[0] < 3
-        or (sqlite3.sqlite_version_info[0] <= 3
-            and sqlite3.sqlite_version_info[1] < 8)):
-    warnings.warn(
-        f"An outdated version of SQLite was found ({sqlite3.sqlite_version})")
-
 sqlpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aisdb_sql'))
 
 import aisdb.web_interface
 
 from .database.decoder import decode_msgs
 
-from .database.dbconn import DBConn, SQLiteDBConn, PostgresDBConn
+from .database.dbconn import DBConn, PostgresDBConn
 
 from .database.dbqry import DBQuery
 

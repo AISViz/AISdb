@@ -1,8 +1,6 @@
 ''' class to convert a dictionary of input parameters into SQL code, and
     generate queries
 '''
-
-import sqlite3
 import warnings
 from collections import UserDict
 from datetime import datetime, timedelta, date
@@ -12,8 +10,7 @@ import numpy as np
 import psycopg
 
 from aisdb.database import sqlfcn, sqlfcn_callbacks
-from aisdb.database.create_tables import sql_createtable_dynamic
-from aisdb.database.dbconn import PostgresDBConn, SQLiteDBConn
+from aisdb.database.dbconn import PostgresDBConn
 from aisdb.webdata.marinetraffic import VesselInfo
 
 
@@ -75,7 +72,7 @@ class DBQuery(UserDict):
     def __init__(self, *, dbconn, dbpath=None, dbpaths=[], **kwargs):
         assert isinstance(
             dbconn,
-            (SQLiteDBConn, PostgresDBConn)), 'Invalid database connection'
+            (PostgresDBConn)), 'Invalid database connection'
         '''
         if isinstance(dbconn, SQLiteDBConn):
             if dbpaths == [] and dbpath is None:
@@ -112,48 +109,9 @@ class DBQuery(UserDict):
         if self.data['start'] >= self.data['end']:
             raise ValueError('Start must occur before end')
         assert isinstance(self.data['start'], (datetime, date))
-        self.data.update({'months': sqlfcn_callbacks.dt2monthstr(**self.data)})
-
-    def _build_tables_sqlite(self,
-                             cur: sqlite3.Cursor,
-                             month: str,
-                             rng_string: str,
-                             reaggregate_static: bool = False,
-                             verbose: bool = False):
-        # check if static tables exist
-        cur.execute(
-            'SELECT * FROM sqlite_master '
-            'WHERE type="table" AND name=?', [f'ais_{month}_static'])
-        if len(cur.fetchall()) == 0:
-            # sqlite_createtable_staticreport(self.dbconn, month)
-            warnings.warn(f'No results found in ais_{month}_static')
-
-        # check if aggregate tables exist
-        cur.execute(('SELECT * FROM sqlite_master '
-                     'WHERE type="table" and name=?'),
-                    [f'static_{month}_aggregate'])
-        res = cur.fetchall()
-
-        if len(res) == 0 or reaggregate_static:
-            if verbose:
-                print(f'building static index for month {month}...',
-                      flush=True)
-            self.dbconn.aggregate_static_msgs([month], verbose)
-
-        # check if dynamic tables exist
-        cur.execute(
-            'SELECT * FROM sqlite_master WHERE '
-            'type="table" and name=?', [f'ais_{month}_dynamic'])
-        if len(cur.fetchall()) == 0:
-            if isinstance(self.dbconn, SQLiteDBConn):
-                self.dbconn.execute(sql_createtable_dynamic.format(month))
-
-            warnings.warn('No data for selected time range! '
-                          f'{rng_string}')
 
     def _build_tables_postgres(self,
                                cur: psycopg.Cursor,
-                               month: str,
                                rng_string: str,
                                reaggregate_static: bool = False,
                                verbose: bool = False):
@@ -163,7 +121,7 @@ class DBQuery(UserDict):
             SELECT table_name
             FROM information_schema.tables
             WHERE information_schema.tables.table_name = {TABLE}
-        ''').format(TABLE=psycopg.sql.Literal(f'ais_{month}_static'))
+        ''').format(TABLE=psycopg.sql.Literal(f'ais_global_static'))
         cur.execute(static_qry)
         count_static = cur.fetchall()
 
@@ -177,14 +135,14 @@ class DBQuery(UserDict):
             SELECT table_name
             FROM information_schema.tables
             WHERE table_name = {TABLE}
-        ''').format(TABLE=psycopg.sql.Literal(f'static_{month}_aggregate')))
+        ''').format(TABLE=psycopg.sql.Literal(f'static_global_aggregate')))
         res = cur.fetchall()
 
         if len(res) == 0 or reaggregate_static:
             if verbose:
-                print(f'building static index for month {month}...',
+                print(f'building global static index...',
                       flush=True)
-            self.dbconn.aggregate_static_msgs([month], verbose)
+            self.dbconn.aggregate_static_msgs(verbose)
 
         # check if dynamic tables exist
         cur.execute(
@@ -192,7 +150,7 @@ class DBQuery(UserDict):
             SELECT table_name
             FROM information_schema.tables
             WHERE table_name = {TABLE}
-        ''').format(TABLE=psycopg.sql.Literal(f'ais_{month}_dynamic')))
+        ''').format(TABLE=psycopg.sql.Literal(f'ais_global_dynamic')))
 
         if len(cur.fetchall()) == 0:  # pragma: no cover
             # if isinstance(self.dbconn, ConnectionType.SQLITE.value):
@@ -215,20 +173,19 @@ class DBQuery(UserDict):
         vinfo = VesselInfo(trafficDBpath)
 
         print('retrieving vessel info ', end='', flush=True)
-        for month in self.data['months']:
-            # check unique mmsis
-            sql = (
-                'SELECT DISTINCT(mmsi) '
-                f'FROM ais_{month}_dynamic AS d WHERE '
-                f'{sqlfcn_callbacks.in_validmmsi_bbox(alias="d", **boundary)}')
-            mmsis = self.dbconn.execute(sql).fetchall()
-            print('.', end='', flush=True)  # first dot
 
-            # retrieve vessel metadata
-            if len(mmsis) > 0:
-                vinfo.vessel_info_callback(mmsis=np.array(mmsis),
-                                           retry_404=retry_404,
-                                           infotxt=f'{month} ')
+        sql = (
+            'SELECT DISTINCT(mmsi) '
+            f'FROM ais_global_dynamic AS d WHERE '
+            f'{sqlfcn_callbacks.in_validmmsi_bbox(alias="d", **boundary)}')
+        mmsis = self.dbconn.execute(sql).fetchall()
+        print('.', end='', flush=True)
+
+        if len(mmsis) > 0:
+            vinfo.vessel_info_callback(mmsis=np.array(mmsis),
+                                    retry_404=retry_404,
+                                    infotxt='global ')
+
 
     def gen_qry(self,
                 fcn=sqlfcn.crawl_dynamic,
@@ -275,28 +232,17 @@ class DBQuery(UserDict):
         assert isinstance(db_rng['end'], date)
 
         cur = self.dbconn.cursor()
-        for month in self.data['months']:
-            month_date = datetime(int(month[:4]), int(month[4:]), 1)
-            qry_start = self["start"] - timedelta(days=self["start"].day)
 
-            if not (qry_start <= month_date <= self['end']):
-                raise ValueError(f'{month_date} not in data range '
-                                 f'({qry_start}->{self["end"]})')
+        rng_string = f'{db_rng["start"].year}-{db_rng["start"].month:02d}-{db_rng["start"].day:02d} -> {db_rng["end"].year}-{db_rng["end"].month:02d}-{db_rng["end"].day:02d}'
+        
+        if isinstance(self.dbconn, PostgresDBConn):
+            self._build_tables_postgres(cur, rng_string, reaggregate_static, verbose)
+        else:
+            raise TypeError("Unsupported database connection type")
 
-            rng_string = f'{db_rng["start"].year}-{db_rng["start"].month:02d}-{db_rng["start"].day:02d}'
-            rng_string += ' -> '
-            rng_string += f'{db_rng["end"].year}-{db_rng["end"].month:02d}-{db_rng["end"].day:02d}'
-
-            if isinstance(self.dbconn, SQLiteDBConn):
-                self._build_tables_sqlite(cur, month, rng_string,
-                                          reaggregate_static, verbose)
-            elif isinstance(self.dbconn, PostgresDBConn):
-                self._build_tables_postgres(cur, month, rng_string,
-                                            reaggregate_static, verbose)
-            else:
-                assert False
-
-        qry = fcn(**self.data)
+        # Passing the database type to the sql function
+        dbtype = 'postgresql'
+        qry = fcn(dbtype=dbtype, **self.data)
 
         if 'limit' in self.data.keys():
             qry += f'\nLIMIT {self.data["limit"]}'
@@ -316,7 +262,7 @@ class DBQuery(UserDict):
                 f'query time: {delta.total_seconds():.2f}s\nfetching rows...')
         if res == []:
             # raise SyntaxError(f'no results for query!\n{qry}')
-            warnings.warn('No results for query!')
+            warnings.warn('No static data for selected time range!')
 
         while len(res) > 0:
             mmsi_rows += res

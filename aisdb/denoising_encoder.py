@@ -179,33 +179,13 @@ def encode_greatcircledistance(
 
         >>> import os
         >>> from datetime import datetime, timedelta
-        >>> from aisdb import SQLiteDBConn, DBQuery, TrackGen
+        >>> from aisdb import DBQuery, TrackGen
         >>> from aisdb import decode_msgs, encode_greatcircledistance, sqlfcn_callbacks
 
         >>> # create example database file
         >>> dbpath = 'encoder_test.db'
         >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
         ...              'aisdb/tests/testdata/test_data_20211101.nm4']
-
-        >>> with SQLiteDBConn(dbpath) as dbconn:
-        ...     decode_msgs(filepaths=filepaths, dbconn=dbconn,
-        ...                 source='TESTING', verbose=False)
-
-        >>> with SQLiteDBConn(dbpath) as dbconn:
-        ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
-        ...             dbconn=dbconn,
-        ...             start=datetime(2021, 7, 1),
-        ...             end=datetime(2021, 7, 7))
-        ...     tracks = TrackGen(q.gen_qry(), decimate=True)
-        ...     for track in encode_greatcircledistance(
-        ...             tracks,
-        ...             distance_threshold=250000,  # metres
-        ...             speed_threshold=50,         # knots
-        ...             minscore=0,
-        ...         ):
-        ...         print(track['mmsi'])
-        ...         print(track['lon'], track['lat'])
-        ...         break
 
     '''
     '''
