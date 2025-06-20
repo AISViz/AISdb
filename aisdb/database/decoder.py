@@ -35,7 +35,11 @@ class FileChecksums:
         assert isinstance(dbconn, (PostgresDBConn, SQLiteDBConn))
         self.dbconn = dbconn
         self.checksums_table()
-        self.tmp_dir = tempfile.mkdtemp()
+        
+        # Ensure /tmp/aisdb exists with correct permissions
+        os.makedirs("/tmp/aisdb", exist_ok=True)
+
+        self.tmp_dir = tempfile.mkdtemp(dir="/tmp/aisdb")
         if not os.path.isdir(self.tmp_dir):
             os.mkdir(self.tmp_dir)
 
@@ -155,6 +159,133 @@ def fast_unzip(zip_filenames, dirname):
     for file in zip_filenames:
         fcn(file)
 
+def process_raw_files(dbconn, dbindex, raw_files, source, timescaledb, raw_insertion, vacuum, verbose, workers, type_preference, not_zipped, unzipped, not_zipped_checksums, unzipped_checksums, skip_checksum):
+    if not raw_files:
+        if verbose:
+            print("All files returned an existing checksum. Cleaning temporary data...")
+        for tmpfile in unzipped:
+            os.remove(tmpfile)
+        return []
+
+    if verbose:
+        print("checking file dates...")
+    filedates = [getfiledate(f, source) for f in raw_files]
+
+    if not timescaledb:
+        months = [
+            month.strftime("%Y%m") for month in rrule(
+                freq=MONTHLY,
+                dtstart=min(filedates) - timedelta(days=min(filedates).day - 1),
+                until=max(filedates),
+            )
+        ]
+        if verbose:
+            print("MONTHS = ", months)
+    else:
+        months = []
+
+    if verbose:
+        print("creating tables...")
+
+    if isinstance(dbconn, PostgresDBConn):
+        if timescaledb:
+            cur = dbconn.cursor()
+            cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_dynamic')")
+            global_dynamic_exists = cur.fetchone()['exists']
+
+            cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_static')")
+            global_static_exists = cur.fetchone()['exists']
+
+            if not (global_dynamic_exists and global_static_exists):
+                with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
+                    create_dynamic_table_stmt = f.read()
+                with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
+                    create_static_table_stmt = f.read()
+                dbconn.execute(create_dynamic_table_stmt)
+                dbconn.execute(create_static_table_stmt)
+                dbconn.commit()
+            else:
+                print("Tables already exist! Skipping creation.")
+        else:
+            with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
+                create_dynamic_table_stmt = f.read()
+            with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
+                create_static_table_stmt = f.read()
+
+            for month in months:
+                dbconn.execute(create_dynamic_table_stmt)
+                dbconn.execute(create_static_table_stmt)
+                if not raw_insertion:
+                    dbconn.drop_indexes(month, verbose, timescaledb)
+            dbconn.commit()
+
+        completed_files = decoder(dbpath="",
+                                  psql_conn_string=dbconn.connection_string,
+                                  files=raw_files,
+                                  source=source, verbose=verbose,
+                                  workers=workers, type_preference=type_preference, allow_swap=False)
+
+    elif isinstance(dbconn, SQLiteDBConn):
+        with open(os.path.join(sqlpath, "createtable_dynamic_clustered.sql"), "r") as f:
+            create_table_stmt = f.read()
+        for month in months:
+            dbconn.execute(create_table_stmt.format(month))
+        completed_files = decoder(dbpath=dbconn.dbpath,
+                                  psql_conn_string="",
+                                  files=raw_files,
+                                  source=source, verbose=verbose,
+                                  workers=workers, type_preference=type_preference, allow_swap=False)
+    else:
+        raise ValueError("Unsupported DB connection")
+
+    if verbose and not skip_checksum:
+        print("saving checksums...")
+
+    for filename, signature in zip(not_zipped + unzipped, not_zipped_checksums + unzipped_checksums):
+        if filename in completed_files:
+            dbindex.insert_checksum(signature)
+        else:
+            if verbose:
+                print(f"error processing {filename}, skipping checksum...")
+
+    dbindex.dbconn.commit()
+
+    if verbose:
+        print("cleaning temporary data...")
+    try:
+        for tmpfile in unzipped:
+            os.remove(tmpfile)
+        print(f"Cleaning temp dir: {dbindex.tmp_dir}")
+        shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
+    except Exception as e:
+        print(f"Error cleaning temporary files: {e}")
+
+    if isinstance(dbconn, PostgresDBConn):
+        if not raw_insertion and not timescaledb:
+            for month in months:
+                dbconn.rebuild_indexes(month, verbose, timescaledb)
+                dbconn.execute("ANALYZE")
+        dbconn.commit()
+
+    if timescaledb:
+        dbconn.aggregate_static_msgs(verbose)
+    else:
+        dbconn.aggregate_static_msgs(months, verbose)
+
+    if not raw_insertion and vacuum:
+        print("finished parsing data\nvacuuming...")
+        if isinstance(dbconn, SQLiteDBConn):
+            if vacuum is True:
+                dbconn.execute("VACUUM")
+            elif isinstance(vacuum, str):
+                assert not os.path.isfile(vacuum)
+                dbconn.execute("VACUUM INTO ?", (vacuum,))
+            else:
+                raise ValueError("vacuum arg must be boolean or filepath string")
+            dbconn.commit()
+
+    return completed_files
+
 
 def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
                 workers=4, type_preference="all", raw_insertion=True, verbose=True, timescaledb=False):
@@ -224,345 +355,63 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
             else:
                 zipped_checksums.append(signature)
     
-    #Processing files which are not in zip or gz format. For example: it will work for files of csv format
-    unzipped=[]
-    if not_zipped:
-        for not_zip_file in not_zipped:
-            shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
-            os.makedirs(dbindex.tmp_dir, exist_ok=True)
+    # Process not zipped files
+    for not_zip_file, checksum in zip(not_zipped, not_zipped_checksums if not skip_checksum else [None]*len(not_zipped)):
+        print(f"Cleaning temp dir: {dbindex.tmp_dir}")
+        shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
+        os.makedirs(dbindex.tmp_dir, exist_ok=True)
 
-            try:
+        try:
+            current_not_zipped = [not_zip_file]
+            current_not_zipped_checksums = [checksum] if not skip_checksum else []
 
-                raw_files = not_zipped + unzipped
-                print("not zipped",not_zipped)
-                print("un zipped", unzipped)
-                print(raw_files)
+            raw_files = current_not_zipped  # not_zipped + unzipped no longer needed
 
-                # raw_files
-                if not raw_files:
-                    print("All files returned an existing checksum.",
-                        "Cleaning temporary data...")
-                    for tmpfile in unzipped:
-                        os.remove(tmpfile)
-                    return
+            completed_files = process_raw_files(
+                dbconn, dbindex, raw_files, source, timescaledb, raw_insertion,
+                vacuum, verbose, workers, type_preference,
+                current_not_zipped, [],  # nothing unzipped here
+                current_not_zipped_checksums, [],  # only not_zipped checksums
+                skip_checksum
+            )
+        except Exception as e:
+            print(f"Failed to process {not_zip_file}: {e}")
+            continue
 
-                assert skip_checksum or len(not_zipped) == len(not_zipped_checksums)
-                assert skip_checksum or len(zipped) == len(zipped_checksums)
-                assert skip_checksum or len(unzipped) == len(unzipped_checksums)
-
-                if verbose:
-                    print("checking file dates...")
-                filedates = [getfiledate(f, source) for f in raw_files]
-
-                if not timescaledb:
-                    months = [
-                        month.strftime("%Y%m") for month in rrule(
-                            freq=MONTHLY,
-                            dtstart=min(filedates) - (timedelta(days=min(filedates).day - 1)),
-                            until=max(filedates),
-                        )
-                    ]
-                    print("MONTHS = ", months)
-
-                if verbose:
-                    print("creating tables...")
-
-                # drop constraints and indexes to speed up insert,
-                # and rebuild them after inserting
-                if isinstance(dbconn, PostgresDBConn):
-                    if timescaledb:
-                        # Check if global hypertables already exist
-                        cur = dbconn.cursor()
-                        cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_dynamic')")
-                        global_dynamic_exists = cur.fetchone()['exists']
-
-                        cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_static')")
-                        global_static_exists = cur.fetchone()['exists']
-
-                        if not (global_dynamic_exists and global_static_exists):
-                            with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
-                                create_dynamic_table_stmt = f.read()
-                            with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
-                                create_static_table_stmt = f.read()
-                            dbconn.execute(create_dynamic_table_stmt)
-                            dbconn.execute(create_static_table_stmt)
-                            dbconn.commit()
-                        else:
-                            print("Tables already exist! Skipping creation.")
-                        
-                    else:
-                        with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
-                            create_dynamic_table_stmt = f.read()
-                        with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
-                            create_static_table_stmt = f.read()
-
-                        for month in months:
-                            dbconn.execute(create_dynamic_table_stmt)
-                            dbconn.execute(create_static_table_stmt)
-                            if not raw_insertion:
-                                dbconn.drop_indexes(month, verbose, timescaledb)
-                        dbconn.commit()
-                    
-                    completed_files = decoder(dbpath="",
-                                            psql_conn_string=dbconn.connection_string, files=raw_files,
-                                            source=source, verbose=verbose, workers=workers,
-                                            type_preference=type_preference, allow_swap=False)
-                    print("completed")
-
-                elif isinstance(dbconn, SQLiteDBConn):
-                    months = [
-                    month.strftime("%Y%m") for month in rrule(
-                        freq=MONTHLY,
-                        dtstart=min(filedates) - timedelta(days=min(filedates).day - 1),
-                        until=max(filedates),
-                        )
-                    ]
-                    with open(os.path.join(sqlpath, "createtable_dynamic_clustered.sql"), "r") as f:
-                        create_table_stmt = f.read()
-                    for month in months:
-                        dbconn.execute(create_table_stmt.format(month))
-                    completed_files = decoder(dbpath=dbconn.dbpath,
-                                            psql_conn_string="", files=raw_files,
-                                            source=source, verbose=verbose, workers=workers,
-                                            type_preference=type_preference, allow_swap=False)
-                else:
-                    assert False
-
-                if verbose and not skip_checksum:
-                    print("saving checksums...")
-
-                for filename, signature in zip(not_zipped + unzipped,
-                                            not_zipped_checksums + unzipped_checksums):
-                    if filename in completed_files:
-                        dbindex.insert_checksum(signature)
-                    else:
-                        if verbose:
-                            print(f"error processing {filename}, skipping checksum...")
-
-                dbindex.dbconn.commit()
-
-                if verbose:
-                    print("cleaning temporary data...")
-                try:
-                    for tmpfile in unzipped:
-                        os.remove(tmpfile)
-                    shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
-                except Exception as e:
-                    print(f"Error cleaning temporary files: {e}")
-                # for tmpfile in unzipped:
-                #     os.remove(tmpfile)
-                # os.removedirs(dbindex.tmp_dir)
-
-                if isinstance(dbconn, PostgresDBConn):
-                    if not raw_insertion and not timescaledb:
-                        for month in months:
-                            dbconn.rebuild_indexes(month, verbose, timescaledb)
-                            dbconn.execute("ANALYZE")
-                    dbconn.commit()
-
-                if timescaledb:
-                    dbconn.aggregate_static_msgs(verbose)
-                else:
-                    dbconn.aggregate_static_msgs(months, verbose)
-
-                if not raw_insertion:
-                    if vacuum is not False:
-                        print("finished parsing data\nvacuuming...")
-                        if isinstance(dbconn, SQLiteDBConn):
-                            if vacuum is True:
-                                dbconn.execute("VACUUM")
-                            elif isinstance(vacuum, str):
-                                assert not os.path.isfile(vacuum)
-                                dbconn.execute("VACUUM INTO ?", (vacuum,))
-                            else:
-                                raise ValueError(
-                                    "vacuum arg must be boolean or filepath string")
-                            dbconn.commit()
-                        elif isinstance(dbconn, (PostgresDBConn, psycopg.Connection)):
-                            pass
-                        else:
-                            raise RuntimeError
-                unzipped = []
-            except Exception as e:
-                print(f"Failed to process {not_zip_file}: {e}")
-                continue           
-
-
-    #Processing files which are in zip format
+    
+    # Process zipped files
     for zip_file, checksum in zip(zipped, zipped_checksums):
         print(f"\nProcessing zip file: {zip_file}")
-        # Clean temporary directory before each unzip
+        print(f"Cleaning temp dir: {dbindex.tmp_dir}")
         shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
         os.makedirs(dbindex.tmp_dir, exist_ok=True)
 
         try:
             _fast_unzip(zip_file, dbindex.tmp_dir)
-            extracted_files = sorted([
+
+            # Only use current extracted files
+            current_unzipped = sorted([
                 os.path.join(dbindex.tmp_dir, f)
                 for f in os.listdir(dbindex.tmp_dir)
             ])
+
+            current_unzipped_checksums = []
+
             if not skip_checksum:
-                
-                for item in extracted_files:
+                for item in current_unzipped:
                     with open(os.path.abspath(item), "rb") as f:
                         signature = dbindex.get_md5(item, f)
-                    unzipped_checksums.append(signature)
-            unzipped.extend(extracted_files)
-        
+                    current_unzipped_checksums.append(signature)
 
+            raw_files = not_zipped + current_unzipped
 
-            raw_files = not_zipped + unzipped
-            print("not zipped",not_zipped)
-            print("un zipped", unzipped)
-            print(raw_files)
+            completed_files = process_raw_files(
+                dbconn, dbindex, raw_files, source, timescaledb,
+                raw_insertion, vacuum, verbose, workers, type_preference,
+                not_zipped, current_unzipped, not_zipped_checksums, current_unzipped_checksums,
+                skip_checksum
+            )
 
-            # raw_files
-            if not raw_files:
-                print("All files returned an existing checksum.",
-                    "Cleaning temporary data...")
-                for tmpfile in unzipped:
-                    os.remove(tmpfile)
-                return
-
-            assert skip_checksum or len(not_zipped) == len(not_zipped_checksums)
-            assert skip_checksum or len(zipped) == len(zipped_checksums)
-            assert skip_checksum or len(unzipped) == len(unzipped_checksums)
-
-            if verbose:
-                print("checking file dates...")
-            filedates = [getfiledate(f, source) for f in raw_files]
-
-            if not timescaledb:
-                months = [
-                    month.strftime("%Y%m") for month in rrule(
-                        freq=MONTHLY,
-                        dtstart=min(filedates) - (timedelta(days=min(filedates).day - 1)),
-                        until=max(filedates),
-                    )
-                ]
-                print("MONTHS = ", months)
-
-            if verbose:
-                print("creating tables...")
-
-            # drop constraints and indexes to speed up insert,
-            # and rebuild them after inserting
-            if isinstance(dbconn, PostgresDBConn):
-                if timescaledb:
-                    # Check if global hypertables already exist
-                    cur = dbconn.cursor()
-                    cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_dynamic')")
-                    global_dynamic_exists = cur.fetchone()['exists']
-
-                    cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_static')")
-                    global_static_exists = cur.fetchone()['exists']
-
-                    if not (global_dynamic_exists and global_static_exists):
-                        with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
-                            create_dynamic_table_stmt = f.read()
-                        with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
-                            create_static_table_stmt = f.read()
-                        dbconn.execute(create_dynamic_table_stmt)
-                        dbconn.execute(create_static_table_stmt)
-                        dbconn.commit()
-                    else:
-                        print("Tables already exist! Skipping creation.")
-                    
-                else:
-                    with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
-                        create_dynamic_table_stmt = f.read()
-                    with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
-                        create_static_table_stmt = f.read()
-
-                    for month in months:
-                        dbconn.execute(create_dynamic_table_stmt)
-                        dbconn.execute(create_static_table_stmt)
-                        if not raw_insertion:
-                            dbconn.drop_indexes(month, verbose, timescaledb)
-                    dbconn.commit()
-                
-                completed_files = decoder(dbpath="",
-                                        psql_conn_string=dbconn.connection_string, files=raw_files,
-                                        source=source, verbose=verbose, workers=workers,
-                                        type_preference=type_preference, allow_swap=False)
-                print("completed")
-
-            elif isinstance(dbconn, SQLiteDBConn):
-                months = [
-                month.strftime("%Y%m") for month in rrule(
-                    freq=MONTHLY,
-                    dtstart=min(filedates) - timedelta(days=min(filedates).day - 1),
-                    until=max(filedates),
-                    )
-                ]
-                with open(os.path.join(sqlpath, "createtable_dynamic_clustered.sql"), "r") as f:
-                    create_table_stmt = f.read()
-                for month in months:
-                    dbconn.execute(create_table_stmt.format(month))
-                completed_files = decoder(dbpath=dbconn.dbpath,
-                                        psql_conn_string="", files=raw_files,
-                                        source=source, verbose=verbose, workers=workers,
-                                        type_preference=type_preference, allow_swap=False)
-            else:
-                assert False
-
-            if verbose and not skip_checksum:
-                print("saving checksums...")
-
-            for filename, signature in zip(not_zipped + unzipped,
-                                        not_zipped_checksums + unzipped_checksums):
-                if filename in completed_files:
-                    dbindex.insert_checksum(signature)
-                else:
-                    if verbose:
-                        print(f"error processing {filename}, skipping checksum...")
-
-            dbindex.dbconn.commit()
-
-            if verbose:
-                print("cleaning temporary data...")
-            try:
-                for tmpfile in unzipped:
-                    os.remove(tmpfile)
-                shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
-            except Exception as e:
-                print(f"Error cleaning temporary files: {e}")
-            # for tmpfile in unzipped:
-            #     os.remove(tmpfile)
-            # os.removedirs(dbindex.tmp_dir)
-
-            if isinstance(dbconn, PostgresDBConn):
-                if not raw_insertion and not timescaledb:
-                    for month in months:
-                        dbconn.rebuild_indexes(month, verbose, timescaledb)
-                        dbconn.execute("ANALYZE")
-                dbconn.commit()
-
-            if timescaledb:
-                dbconn.aggregate_static_msgs(verbose)
-            else:
-                dbconn.aggregate_static_msgs(months, verbose)
-
-            if not raw_insertion:
-                if vacuum is not False:
-                    print("finished parsing data\nvacuuming...")
-                    if isinstance(dbconn, SQLiteDBConn):
-                        if vacuum is True:
-                            dbconn.execute("VACUUM")
-                        elif isinstance(vacuum, str):
-                            assert not os.path.isfile(vacuum)
-                            dbconn.execute("VACUUM INTO ?", (vacuum,))
-                        else:
-                            raise ValueError(
-                                "vacuum arg must be boolean or filepath string")
-                        dbconn.commit()
-                    elif isinstance(dbconn, (PostgresDBConn, psycopg.Connection)):
-                        pass
-                    else:
-                        raise RuntimeError
-            unzipped = []
         except Exception as e:
             print(f"Failed to process {zip_file}: {e}")
             continue
-
-    return
