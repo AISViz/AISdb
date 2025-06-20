@@ -57,7 +57,7 @@ def interp_time(tracks, step=timedelta(minutes=10)):
     for track in tracks:
         if track['time'].size <= 1:
             # yield track
-            warnings.warn('cannot interpolate track of length 1, skipping...')
+            # warnings.warn('cannot interpolate track of length 1, skipping...')
             continue
 
         intervals = np.arange(
@@ -129,7 +129,7 @@ def geo_interp_time(tracks, step=timedelta(minutes=10), original_crs=4269):
     for track in tracks:
         if track['time'].size <= 1:
             # yield track
-            warnings.warn('cannot interpolate track of length 1, skipping...')
+            # warnings.warn('cannot interpolate track of length 1, skipping...')
             continue
 
         intervals = np.arange(

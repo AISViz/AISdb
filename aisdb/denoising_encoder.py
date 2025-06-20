@@ -277,7 +277,7 @@ class InlandDenoising:
         """
         Filter points that fall in land but not in water features.
         """
-        print("Processing trajectories...")
+        # print("Processing trajectories...")
         for i, traj in enumerate(tracks):
             # Create points for batch processing
             try:

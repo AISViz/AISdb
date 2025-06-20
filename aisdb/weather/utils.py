@@ -53,6 +53,7 @@ SHORT_NAMES_TO_VARIABLES = {'100u': '100m_u_component_of_wind', '100v': '100m_v_
                'dwi': 'ocean_surface_stress_equivalent_10m_neutral_wind_direction', 'wind': 'ocean_surface_stress_equivalent_10m_neutral_wind_speed', 
                'o3': 'ozone_mass_mixing_ratio', 'pp1d': 'peak_wave_period', 'tmax': 'period_corresponding_to_maximum_individual_wave_height', 
                'pev': 'potential_evaporation', 'pv': 'potential_vorticity', 'ptype': 'precipitation_type', 'ro': 'runoff', 'siconc': 'sea_ice_cover', 
+               'ci': 'sea_ice_area_fraction', # Added 'ci'
                'sst': 'sea_surface_temperature', 'swh': 'significant_height_of_combined_wind_waves_and_swell', 'shts': 'significant_height_of_total_swell', 
                'shww': 'significant_height_of_wind_waves', 'swh1': 'significant_wave_height_of_first_swell_partition', 
                'swh2': 'significant_wave_height_of_second_swell_partition', 'swh3': 'significant_wave_height_of_third_swell_partition', 
