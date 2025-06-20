@@ -189,7 +189,7 @@ class WeatherDataStore:
         cache_key = "-".join(cache_filename_parts)
         # Cache filename versioning can be useful if data processing logic changes
         self.cache_file_path = os.path.join(self.cache_dir,
-                                            f"ds_map_cache_v3_{hashlib.md5(cache_key.encode()).hexdigest()}.pkl")
+                                            f"ds_map_cache_{hashlib.md5(cache_key.encode()).hexdigest()}.pkl")
 
         if download_from_cds:
             self._download_data_from_cds(**kwargs)
