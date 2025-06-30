@@ -9,6 +9,8 @@ from datetime import timedelta
 from functools import partial
 from hashlib import md5
 
+from itertools import islice
+
 import psycopg
 from aisdb.aisdb import decoder
 from dateutil.rrule import rrule, MONTHLY
@@ -380,38 +382,99 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
 
     
     # Process zipped files
-    for zip_file, checksum in zip(zipped, zipped_checksums):
-        print(f"\nProcessing zip file: {zip_file}")
-        print(f"Cleaning temp dir: {dbindex.tmp_dir}")
+    
+
+    def batched(iterable, n):
+        """Batch data into lists of length n."""
+        it = iter(iterable)
+        while True:
+            batch = list(islice(it, n))
+            if not batch:
+                break
+            yield batch
+
+    for zip_batch in batched(list(zip(zipped, zipped_checksums)), 6):
+        print(f"\nProcessing zip batch: {[zf for zf, _ in zip_batch]}")
         shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
         os.makedirs(dbindex.tmp_dir, exist_ok=True)
 
+        current_unzipped = []
+        current_unzipped_checksums = []
+
+        for zip_file, checksum in zip_batch:
+            try:
+                _fast_unzip(zip_file, dbindex.tmp_dir)
+            except Exception as e:
+                print(f"Failed to unzip {zip_file}: {e}")
+                continue
+
+        # collect all .csv files just unzipped
+        current_unzipped = sorted([
+            os.path.join(dbindex.tmp_dir, f)
+            for f in os.listdir(dbindex.tmp_dir)
+            if f.endswith(".csv")
+        ])
+
+        # calculate checksums if needed
+        if not skip_checksum:
+            for item in current_unzipped:
+                with open(os.path.abspath(item), "rb") as f:
+                    signature = dbindex.get_md5(item, f)
+                current_unzipped_checksums.append(signature)
+
+        raw_files = not_zipped + current_unzipped
+
         try:
-            _fast_unzip(zip_file, dbindex.tmp_dir)
-
-            # Only use current extracted files
-            current_unzipped = sorted([
-                os.path.join(dbindex.tmp_dir, f)
-                for f in os.listdir(dbindex.tmp_dir)
-            ])
-
-            current_unzipped_checksums = []
-
-            if not skip_checksum:
-                for item in current_unzipped:
-                    with open(os.path.abspath(item), "rb") as f:
-                        signature = dbindex.get_md5(item, f)
-                    current_unzipped_checksums.append(signature)
-
-            raw_files = not_zipped + current_unzipped
-
             completed_files = process_raw_files(
                 dbconn, dbindex, raw_files, source, timescaledb,
                 raw_insertion, vacuum, verbose, workers, type_preference,
-                not_zipped, current_unzipped, not_zipped_checksums, current_unzipped_checksums,
+                not_zipped, current_unzipped,
+                not_zipped_checksums, current_unzipped_checksums,
                 skip_checksum
             )
-
         except Exception as e:
-            print(f"Failed to process {zip_file}: {e}")
+            print(f"Failed to process batch {[zf for zf, _ in zip_batch]}: {e}")
             continue
+
+        # Clean temp dir after batch
+        shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
+
+
+
+
+
+    # for zip_file, checksum in zip(zipped, zipped_checksums):
+    #     print(f"\nProcessing zip file: {zip_file}")
+    #     print(f"Cleaning temp dir: {dbindex.tmp_dir}")
+    #     shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
+    #     os.makedirs(dbindex.tmp_dir, exist_ok=True)
+
+    #     try:
+    #         _fast_unzip(zip_file, dbindex.tmp_dir)
+
+    #         # Only use current extracted files
+    #         current_unzipped = sorted([
+    #             os.path.join(dbindex.tmp_dir, f)
+    #             for f in os.listdir(dbindex.tmp_dir)
+    #         ])
+
+    #         current_unzipped_checksums = []
+
+    #         if not skip_checksum:
+    #             for item in current_unzipped:
+    #                 with open(os.path.abspath(item), "rb") as f:
+    #                     signature = dbindex.get_md5(item, f)
+    #                 current_unzipped_checksums.append(signature)
+
+    #         raw_files = not_zipped + current_unzipped
+
+    #         completed_files = process_raw_files(
+    #             dbconn, dbindex, raw_files, source, timescaledb,
+    #             raw_insertion, vacuum, verbose, workers, type_preference,
+    #             not_zipped, current_unzipped, not_zipped_checksums, current_unzipped_checksums,
+    #             skip_checksum
+    #         )
+
+    #     except Exception as e:
+    #         print(f"Failed to process {zip_file}: {e}")
+    #         continue
