@@ -393,7 +393,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
                 break
             yield batch
 
-    for zip_batch in batched(list(zip(zipped, zipped_checksums)), 6):
+    for zip_batch in batched(list(zip(zipped, zipped_checksums)), workers):
         print(f"\nProcessing zip batch: {[zf for zf, _ in zip_batch]}")
         shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
         os.makedirs(dbindex.tmp_dir, exist_ok=True)
@@ -438,43 +438,3 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
 
         # Clean temp dir after batch
         shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
-
-
-
-
-
-    # for zip_file, checksum in zip(zipped, zipped_checksums):
-    #     print(f"\nProcessing zip file: {zip_file}")
-    #     print(f"Cleaning temp dir: {dbindex.tmp_dir}")
-    #     shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
-    #     os.makedirs(dbindex.tmp_dir, exist_ok=True)
-
-    #     try:
-    #         _fast_unzip(zip_file, dbindex.tmp_dir)
-
-    #         # Only use current extracted files
-    #         current_unzipped = sorted([
-    #             os.path.join(dbindex.tmp_dir, f)
-    #             for f in os.listdir(dbindex.tmp_dir)
-    #         ])
-
-    #         current_unzipped_checksums = []
-
-    #         if not skip_checksum:
-    #             for item in current_unzipped:
-    #                 with open(os.path.abspath(item), "rb") as f:
-    #                     signature = dbindex.get_md5(item, f)
-    #                 current_unzipped_checksums.append(signature)
-
-    #         raw_files = not_zipped + current_unzipped
-
-    #         completed_files = process_raw_files(
-    #             dbconn, dbindex, raw_files, source, timescaledb,
-    #             raw_insertion, vacuum, verbose, workers, type_preference,
-    #             not_zipped, current_unzipped, not_zipped_checksums, current_unzipped_checksums,
-    #             skip_checksum
-    #         )
-
-    #     except Exception as e:
-    #         print(f"Failed to process {zip_file}: {e}")
-    #         continue
