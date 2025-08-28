@@ -9,15 +9,12 @@ from datetime import timedelta
 from functools import partial
 from hashlib import md5
 
-from itertools import islice
-
 import psycopg
 from aisdb.aisdb import decoder
 from dateutil.rrule import rrule, MONTHLY
 
 from aisdb import sqlpath
 from aisdb.database.dbconn import PostgresDBConn
-from aisdb.database.dbconn import SQLiteDBConn
 from aisdb.proc_util import getfiledate
 
 
@@ -25,23 +22,21 @@ class FileChecksums:
     """
     Initializes a FileChecksums object with a specified database connection.
 
-    :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.
+    :param dbconn: A required parameter of type PostgresDBConn that represents the database connection.
     :return: None
     """
 
     def __init__(self, *, dbconn):
         """
-        :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.
+        :param dbconn: A required parameter of type PostgresDBConn that represents the database connection.
         :return: None
         """
-        assert isinstance(dbconn, (PostgresDBConn, SQLiteDBConn))
+        assert isinstance(dbconn, (PostgresDBConn))
         self.dbconn = dbconn
         self.checksums_table()
         
-        # Ensure /tmp/aisdb exists with correct permissions
-        os.makedirs("/tmp/aisdb", exist_ok=True)
+        self.tmp_dir = tempfile.mkdtemp()
 
-        self.tmp_dir = tempfile.mkdtemp(dir="/tmp/aisdb")
         if not os.path.isdir(self.tmp_dir):
             os.mkdir(self.tmp_dir)
 
@@ -50,21 +45,13 @@ class FileChecksums:
         Creates a checksums table in the database if it doesn't exist.
 
         This method creates a table named 'hashmap' in the database, if it doesn't already exist.
-        The table contains two columns: 'hash' of type TEXT and 'bytes' of type BLOB for SQLiteDBConn *, or BYTEA for PostgresDBConn.
+        The table contains two columns: 'hash' of type TEXT and 'bytes' of type BYTEA for PostgresDBConn.
 
          :param self: an instance of the current object.
          :return: None
         """
         cur = self.dbconn.cursor()
-        if isinstance(self.dbconn, SQLiteDBConn):
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS
-                hashmap(
-                    hash TEXT PRIMARY KEY,
-                    bytes BLOB
-                )
-                """)
-        elif isinstance(self.dbconn, PostgresDBConn):
+        if isinstance(self.dbconn, PostgresDBConn):
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS
                 hashmap(
@@ -82,11 +69,7 @@ class FileChecksums:
         :param checksum: The checksum to be inserted into the hashmap table.
         :returns: None
         """
-        if isinstance(self.dbconn, SQLiteDBConn):
-            self.dbconn.execute("INSERT OR IGNORE INTO hashmap VALUES (?,?)",
-                                [checksum, pickle.dumps(None)])
-            self.dbconn.commit()
-        elif isinstance(self.dbconn, PostgresDBConn):
+        if isinstance(self.dbconn, PostgresDBConn):
             self.dbconn.execute(
                 "INSERT INTO hashmap VALUES ($1,$2) ON CONFLICT DO NOTHING",
                 [checksum, pickle.dumps(None)])
@@ -100,9 +83,7 @@ class FileChecksums:
         :return: True if the checksum exists in the database, False otherwise.
         """
         cur = self.dbconn.cursor()
-        if isinstance(self.dbconn, SQLiteDBConn):
-            cur.execute("SELECT * FROM hashmap WHERE hash = ?", [checksum])
-        elif isinstance(self.dbconn, PostgresDBConn):
+        if isinstance(self.dbconn, PostgresDBConn):
             cur.execute("SELECT * FROM hashmap WHERE hash = %s", [checksum])
         res = cur.fetchone()
 
@@ -226,17 +207,6 @@ def process_raw_files(dbconn, dbindex, raw_files, source, timescaledb, raw_inser
                                   files=raw_files,
                                   source=source, verbose=verbose,
                                   workers=workers, type_preference=type_preference, allow_swap=False)
-
-    elif isinstance(dbconn, SQLiteDBConn):
-        with open(os.path.join(sqlpath, "createtable_dynamic_clustered.sql"), "r") as f:
-            create_table_stmt = f.read()
-        for month in months:
-            dbconn.execute(create_table_stmt.format(month))
-        completed_files = decoder(dbpath=dbconn.dbpath,
-                                  psql_conn_string="",
-                                  files=raw_files,
-                                  source=source, verbose=verbose,
-                                  workers=workers, type_preference=type_preference, allow_swap=False)
     else:
         raise ValueError("Unsupported DB connection")
 
@@ -306,8 +276,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     :param timescaledb: whether to insert data to a database with timescale extension (default is False)
     :return: None
     """
-    if not isinstance(dbconn,
-                      (SQLiteDBConn, PostgresDBConn)):  # pragma: no cover
+    if not isinstance(dbconn,PostgresDBConn):  # pragma: no cover
         raise ValueError("db argument must be a DBConn database connection. "
                          f"got {dbconn}")
 
