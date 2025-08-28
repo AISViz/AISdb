@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS ais_global_dynamic
     maneuver      BOOLEAN,
     utc_second    INTEGER,
     source        TEXT NOT NULL,
+    geom          GEOMETRY(POINT, 4326),
     PRIMARY KEY (mmsi, time, latitude, longitude)
 );
 
@@ -27,3 +28,6 @@ ALTER TABLE ais_global_dynamic SET (
     timescaledb.compress_orderby = 'time ASC, latitude ASC, longitude ASC',
     timescaledb.compress_segmentby = 'mmsi'
 );
+
+CREATE INDEX idx_ais_global_dynamic_geom ON ais_global_dynamic USING GIST (geom);
+CREATE INDEX idx_ais_global_dynamic_time ON ais_global_dynamic (time);

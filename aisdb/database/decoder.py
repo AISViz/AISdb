@@ -267,7 +267,7 @@ def process_raw_files(dbconn, dbindex, raw_files, source, timescaledb, raw_inser
             for month in months:
                 dbconn.rebuild_indexes(month, verbose, timescaledb)
                 dbconn.execute("ANALYZE")
-        dbconn.commit()
+        dbconn.commit()     
 
     if timescaledb:
         dbconn.aggregate_static_msgs(verbose)
