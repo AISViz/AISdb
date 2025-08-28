@@ -3,9 +3,10 @@ import os
 import numpy as np
 from shapely.geometry import Polygon
 
-from aisdb import decode_msgs, DBConn
 from aisdb.database.create_tables import (sql_createtable_dynamic, sql_createtable_static, )
 from aisdb.gis import Domain
+from aisdb.database.dbconn import PostgresDBConn
+from aisdb.database.decoder import decode_msgs
 
 
 def sample_dynamictable_insertdata(*, dbconn):
@@ -53,16 +54,26 @@ def random_polygons_domain(count=10):
         range(count)])
 
 
-def sample_database_file(dbpath):
-    """ test data for date 2021-11-01 """
-    assert os.path.isdir(os.path.join(os.path.dirname(__file__), "testdata"))
-    datapath_csv = os.path.join(os.path.dirname(__file__), "testdata", "test_data_20210701.csv")
-    # no static data in nm4
-    datapath_nm4 = os.path.join(os.path.dirname(__file__), "testdata", "test_data_20211101.nm4")
+def sample_database_file(postgres_conn_string):
+    """Insert test data into PostgreSQL TimescaleDB."""
+    testdata_dir = os.path.join(os.path.dirname(__file__), "testdata")
+    datapath_csv = os.path.join(testdata_dir, "test_data_20210701.csv")
+    datapath_nm4 = os.path.join(testdata_dir, "test_data_20211101.nm4")
+
     months = ["202107", "202111"]
-    with DBConn(dbpath) as dbconn:
-        decode_msgs(dbconn=dbconn, filepaths=[datapath_csv, datapath_nm4], source="TESTING", vacuum=False,
-            skip_checksum=True, )
+
+    with PostgresDBConn(postgres_conn_string) as dbconn:
+        decode_msgs(
+            dbconn=dbconn,
+            filepaths=[datapath_csv, datapath_nm4],
+            source="TESTING",
+            vacuum=False,
+            skip_checksum=True,
+            raw_insertion=True,
+            timescaledb=True,
+            verbose=True
+        )
         dbconn.aggregate_static_msgs(months)
         dbconn.commit()
+
     return months

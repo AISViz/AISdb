@@ -17,6 +17,7 @@ def test_fetch_bathygrid():
     print(f"ENV: {os.getenv('AISDBDATADIR')=}")
     print(f"checking bathymetry rasters: {data_dir=}")
     bathy = Gebco(data_dir=data_dir)
+    print(bathy)
     assert bathy
 
 
