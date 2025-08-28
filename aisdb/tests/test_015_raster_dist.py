@@ -6,6 +6,11 @@ from aisdb.webdata.shore_dist import ShoreDist, PortDist, CoastDist
 
 y1, x1 = 48.271185186388735, -61.10595523571155
 
+testdir = os.environ.get("AISDBTESTDIR",
+                         os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "testdata", ), )
+if not os.path.isdir(testdir):
+    os.mkdir(testdir)
+
 data_dir = os.environ.get("AISDBDATADIR",
                           os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "testdata", ), )
 
