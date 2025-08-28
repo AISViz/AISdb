@@ -8,7 +8,7 @@ from copy import deepcopy
 from datetime import timedelta
 from functools import partial
 from hashlib import md5
-
+from itertools import islice
 import psycopg
 from aisdb.aisdb import decoder
 from dateutil.rrule import rrule, MONTHLY
