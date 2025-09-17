@@ -80,3 +80,5 @@ LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO')
 logging.basicConfig(format='%(message)s',
                     level=LOGLEVEL,
                     datefmt='%Y-%m-%d %I:%M:%S')
+
+from .ports.api import WorldPortIndexClient
