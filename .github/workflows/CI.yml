@@ -1,7 +1,13 @@
 name: Pipeline
 
 on:
-  push
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,25 +36,15 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-cargo-
 
-      # Start Postgres via the action so we can use its outputs consistently
-      - name: Setup PostgreSQL (Windows)
+      # Start Postgres via the action and use its outputs consistently
+      - uses: ikalnytskyi/action-setup-postgres@v7
         id: postgres
-        uses: ikalnytskyi/action-setup-postgres@v7
         with:
           username: postgres
           password: ${{ env.PGPASSWORD }}
           database: postgres
-          # Use a runner-provided version; detect below to pick TimescaleDB zip
           postgres-version: "17"
           ssl: false
-
-      - name: Verify connection and inspect config/data dirs
-        shell: pwsh
-        run: |
-          $uri = "${{ steps.postgres.outputs.connection-uri }}"
-          psql $uri -c "SELECT version();"
-          psql $uri -c "SHOW config_file;"
-          psql $uri -c "SHOW data_directory;"
 
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -74,44 +70,52 @@ jobs:
           cargo install --locked wasm-bindgen-cli --verbose
           cargo install --locked wasm-opt --verbose
 
-      - name: Install TimescaleDB matching Postgres major (Windows)
+      - name: Locate PostgreSQL Installation Paths
         shell: pwsh
         run: |
           $uri = "${{ steps.postgres.outputs.connection-uri }}"
-          $pg_version = psql $uri -Atc "SHOW server_version_num;"  # e.g., 170002
-          $pg_major = [int]([math]::Floor([int]$pg_version / 10000)) # 17
-          Write-Host "Detected PG major: $pg_major"
+          Write-Host "Verifying PostgreSQL connection via URI and service..."
+          psql $uri -c "SELECT version();"
+          psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
+          psql $uri -c "SHOW config_file;"
+          psql $uri -c "SHOW data_directory;"
 
-          # Map major to TimescaleDB Windows artifact name; adjust if names change
+      - name: Install TimescaleDB on Windows
+        shell: pwsh
+        run: |
+          # Determine the running Postgres major and download the matching TimescaleDB build
+          $uri = "${{ steps.postgres.outputs.connection-uri }}"
+          $sv = psql $uri -Atc "SHOW server_version_num;"
+          if (-not $sv) { throw "Unable to detect server_version_num" }
+          $pg_major = [int]([math]::Floor([int]$sv / 10000))
+          Write-Host "Detected PostgreSQL major: $pg_major"
+
           switch ($pg_major) {
             17 { $ts_ver = "2.15.2"; $zip = "timescaledb-postgresql-17-windows-amd64.zip" }
             16 { $ts_ver = "2.15.2"; $zip = "timescaledb-postgresql-16-windows-amd64.zip" }
             15 { $ts_ver = "2.15.2"; $zip = "timescaledb-postgresql-15-windows-amd64.zip" }
             14 { $ts_ver = "2.15.2"; $zip = "timescaledb-postgresql-14-windows-amd64.zip" }
-            default { throw "Unsupported Postgres major $pg_major on runner" }
+            default { throw "Unsupported Postgres major $pg_major" }
           }
 
           $url = "https://github.com/timescale/timescaledb/releases/download/$ts_ver/$zip"
-          Write-Host "Downloading TimescaleDB from $url"
+          Write-Host "Downloading TimescaleDB: $url"
           Invoke-WebRequest -Uri $url -OutFile "timescaledb.zip"
 
           New-Item -ItemType Directory -Force -Path "C:\timescaledb" | Out-Null
           Expand-Archive -Path "timescaledb.zip" -DestinationPath "C:\timescaledb" -Force
 
-          $setupPath = Get-ChildItem -Path "C:\timescaledb" -Recurse -Filter "setup.exe" | Select-Object -First 1 | ForEach-Object { $_.FullName }
+          $setupPath = Get-ChildItem -Path "C:\timescaledb" -Recurse -Filter "setup.exe" | Select-Object -First 1 | % { $_.FullName }
           if (-not $setupPath) { throw "TimescaleDB setup.exe not found" }
           Unblock-File -Path $setupPath
-
-          # Run installer silently; it will prompt to configure postgresql.conf, but we'll edit exact file ourselves next
           Start-Process -FilePath $setupPath -ArgumentList "/S --yes" -Wait -NoNewWindow
 
-          # Get the exact active config and data directory from the running instance driven by the action
+          # Edit the exact active postgresql.conf and restart the same instance
           $config_path = psql $uri -Atc "SHOW config_file;"
-          $data_dir = psql $uri -Atc "SHOW data_directory;"
+          $data_dir    = psql $uri -Atc "SHOW data_directory;"
           Write-Host "Active config_file: $config_path"
           Write-Host "Active data_directory: $data_dir"
 
-          # Ensure shared_preload_libraries has timescaledb
           $conf = Get-Content -Raw $config_path
           if ($conf -match "^\s*shared_preload_libraries\s*=") {
             $conf = $conf -replace "(?m)^\s*shared_preload_libraries\s*=.*", "shared_preload_libraries = 'timescaledb'"
@@ -120,11 +124,10 @@ jobs:
           }
           Set-Content -Path $config_path -Value $conf -Encoding UTF8
 
-          # Restart the same instance the action started by using its data directory
           pg_ctl -D "$data_dir" restart
           Start-Sleep -Seconds 5
 
-          # Validate preload took before creating the extension
+          # Validate preload then create extension
           psql $uri -c "SHOW shared_preload_libraries;"
           psql $uri -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
 
@@ -198,50 +201,56 @@ jobs:
 
       - name: Setup PostgreSQL 17
         uses: ikalnytskyi/action-setup-postgres@v7
-        id: postgres
         with:
           username: ${{ env.POSTGRES_USER }}
-          password: ${{ env.POSTGRES_PASSWORD }}
+          password:  ${{ env.POSTGRES_PASSWORD }}
           database: postgres
           postgres-version: "17"
           ssl: false
+        id: postgres
 
-      - name: Test PostgreSQL Connection and locate config
+      - name: Test PostgreSQL Connection
         run: |
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SELECT 1"
           psql service=${{ steps.postgres.outputs.service-name }} -c "SELECT 1"
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SHOW config_file;"
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SHOW data_directory;"
+          psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
 
-      - name: Add TimescaleDB apt repo
+      - name: Add TimescaleDB Package
         run: |
           echo "deb https://packagecloud.io/timescale/timescaledb/ubuntu/ $(lsb_release -c -s) main" | sudo tee /etc/apt/sources.list.d/timescaledb.list
           wget --quiet -O - https://packagecloud.io/timescale/timescaledb/gpgkey | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/timescaledb.gpg
           sudo apt-get update -y
 
-      - name: Install TimescaleDB for PG17
+      - name: Install and Configure TimescaleDB Extension
         run: |
           sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17
-          echo "TimescaleDB installed for PG17"
+          echo "TimescaleDB Extension installed"
 
-      - name: Enable TimescaleDB in the exact config
+      # - name: Apply TimescaleDB tuning
+      #   run: |
+      #     sudo timescaledb-tune --pg-config="/home/runner/work/_temp/pgdata/postgresql.conf" --quiet --yes
+      #     echo "TimescaleDB tuning applied"
+
+      - name: Enable TimescaleDB in PostgreSQL Config
         run: |
           CONFIG_PATH=$(psql ${{ steps.postgres.outputs.connection-uri }} -Atc "SHOW config_file;")
           echo "Editing $CONFIG_PATH"
           sudo sed -i "s/^[#\s]*shared_preload_libraries\s*=.*/shared_preload_libraries = 'timescaledb'/" "$CONFIG_PATH" \
             || echo "shared_preload_libraries = 'timescaledb'" | sudo tee -a "$CONFIG_PATH" > /dev/null
-          echo "TimescaleDB preloaded in $CONFIG_PATH"
 
-      - name: Restart the same instance
+      - name: Restart PostgreSQL using
         run: |
           DATA_DIR=$(psql ${{ steps.postgres.outputs.connection-uri }} -Atc "SHOW data_directory;")
           pg_ctl restart --pgdata="$DATA_DIR"
           sleep 5
 
-      - name: Validate preload and create extension
+      - name: Create TimescaleDB Extension
         run: |
           psql ${{ steps.postgres.outputs.connection-uri }} -c "SHOW shared_preload_libraries;"
           psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+          echo "TimescaleDB Extension created."
 
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
@@ -316,7 +325,7 @@ jobs:
           cargo install --locked wasm-opt --verbose
           wasm-pack --version
 
-      # Start Postgres via the action to standardize config/ports
+      # Start Postgres via action to standardize ports/config
       - name: Setup PostgreSQL 17 (macOS)
         id: postgres
         uses: ikalnytskyi/action-setup-postgres@v7
@@ -327,20 +336,20 @@ jobs:
           postgres-version: "17"
           ssl: false
 
-      - name: Install TimescaleDB (macOS)
+      - name: Install TimescaleDB
         run: |
           brew tap timescale/tap
           brew install timescaledb
           echo "TimescaleDB installed"
 
-      - name: Enable TimescaleDB in the exact config
+      - name: Enable TimescaleDB in PostgreSQL Config
         run: |
           CONFIG_PATH=$(psql ${{ steps.postgres.outputs.connection-uri }} -Atc "SHOW config_file;")
           echo "Editing $CONFIG_PATH"
           sed -i.bak "s/^[#[:space:]]*shared_preload_libraries\s*=.*/shared_preload_libraries = 'timescaledb'/" "$CONFIG_PATH" \
             || echo "shared_preload_libraries = 'timescaledb'" >> "$CONFIG_PATH"
 
-      - name: Restart the same instance
+      - name: Restart PostgreSQL using
         run: |
           DATA_DIR=$(psql ${{ steps.postgres.outputs.connection-uri }} -Atc "SHOW data_directory;")
           pg_ctl restart --pgdata="$DATA_DIR"
@@ -386,14 +395,14 @@ jobs:
       - name: Install dependencies
         run: |
           if command -v yum &> /dev/null; then
-              sudo yum update -y && sudo yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang gcc-multilib
-              if [[ ! -d "/usr/lib64" ]]; then
-                sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
-              fi
-              echo "finished yum install"
+                sudo yum update -y && sudo yum install -y perl-core openssl openssl-devel pkgconfig libatomic clang gcc-multilib 
+                if [[ ! -d "/usr/lib64" ]]; then
+                    sudo ln -s /usr/lib/libatomic.so.1 /usr/lib/libatomic.so
+                fi
+                echo "finished yum install"
             else
-              sudo apt update -y && sudo apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang gcc-multilib
-              echo "finished apt install"
+                sudo apt update -y && sudo apt-get install -y libssl-dev openssl pkg-config zlib1g-dev clang gcc-multilib  
+                echo "finished apt install"
             fi
 
       - name: Cache Rust toolchain
@@ -407,7 +416,7 @@ jobs:
       - name: Install Rust Target for wasm
         run: |
           rustup target add wasm32-unknown-unknown
-
+          
       - name: install wasm-pack
         run: |
           cargo install --locked wasm-pack --verbose
@@ -420,13 +429,132 @@ jobs:
         with:
           target: ${{ matrix.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
-
+          sccache: 'true'      
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
+          name: wheels-linux-${{ matrix.target }}
+          path: dist
+
+      - name: Clean Up
+        run: |
+          rm -rf AISdb
+          rm -rf ~/.cargo
+                
+  windows:
+    runs-on: windows-latest
+    needs: [sdist]
+    strategy:
+      matrix:
+        target: [ x64, x86 ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          architecture: ${{ matrix.target }}
+          cache: 'pip'
+      - name: Cache Rust toolchain
+        uses: actions/cache@v3
+        with:
+          path: C:\Users\runneradmin\.cargo
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+      - name: Install wasm-pack
+        run: |
+          cargo install --locked wasm-pack --verbose
+          cargo install --locked wasm-bindgen-cli --verbose
+          cargo install --locked wasm-opt --verbose
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-${{ matrix.target }}
+          path: dist
+      - name: Clean Up
+        run: |
+          Remove-Item -Recurse -Force AISdb
+          Remove-Item -Recurse -Force C:\Users\runneradmin\.cargo\*
+
+  macos:
+    runs-on: macos-latest
+    needs: [sdist]
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.13
+    strategy:
+      matrix:
+        target: [ x86_64, aarch64 ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      - name: Cache Rust toolchain
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+      - name: Install LLVM and Configure clang
+        run: |
+          brew install llvm
+          export PATH="$(brew --prefix llvm)/bin:$PATH"
+          export CC="$(brew --prefix llvm)/bin/clang --target=wasm32-unknown-unknown"
+          echo "export PATH=$PATH" >> $GITHUB_ENV
+          echo "CC=$CC" >> $GITHUB_ENV
+      - name: Install zlib and Ensure pkg-config is Correctly Configured
+        run: |
+          brew install zlib
+          export PKG_CONFIG_PATH=$(brew --prefix zlib)/lib/pkgconfig
+          echo "export PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+      - name: Install Rust Target for wasm
+        run: |
+          rustup target add wasm32-unknown-unknown        
+      - name: Install wasm-pack
+        run: |
+          cargo install --locked wasm-pack --verbose
+          cargo install --locked wasm-bindgen-cli --verbose
+          cargo install --locked wasm-opt --verbose
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.target }}
+          path: dist
+      - name: Clean Up
+        run: |
+          rm -rf AISdb
+          rm -rf ~/.cargo
+
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
           name: wheels
-          
+          path: dist
+
+
   # release:
   #   name: Release
   #   runs-on: ubuntu-latest
@@ -444,6 +572,7 @@ jobs:
   #         command: upload
   #         args: --non-interactive --skip-existing *
 
+
   # publish-docs:
   #   runs-on: ubuntu-latest
   #   needs: [release]
@@ -457,26 +586,28 @@ jobs:
   #       with:
   #         python-version: '3.10'
 
+
   #     - name: Install dependencies
   #       run: |
   #         python -m pip install --upgrade pip || exit 1
   #         python -m pip install aisdb || exit 1
   #         python -m pip install sphinx sphinx-rtd-theme matplotlib joblib || exit 1
-            
+          
   #     - name: Build docs
   #       run: |
   #         sphinx-apidoc --separate --force --implicit-namespaces --module-first -o docs/source/api aisdb aisdb/tests/*
   #         python -m sphinx -a -j auto -b=html docs/source docs/dist_sphinx
 
+
   #     - name: Upload Pages artifact
   #       uses: actions/upload-pages-artifact@v2
   #       with:
   #         path: docs/dist_sphinx
-        
+      
   #     - name: Deploy to GitHub Pages
   #       id: deployment
   #       uses: actions/deploy-pages@v2
-        
+      
   #     - name: Clean Up
   #       run: |
   #         rm -rf gh-pages
