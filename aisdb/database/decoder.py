@@ -244,7 +244,6 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
               "Cleaning temporary data...")
         for tmpfile in unzipped:
             os.remove(tmpfile)
-        os.removedirs(dbindex.tmp_dir)
         return
 
     assert skip_checksum or len(not_zipped) == len(not_zipped_checksums)
@@ -254,13 +253,16 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     if verbose:
         print("checking file dates...")
     filedates = [getfiledate(f, source) for f in raw_files]
-    months = [
-        month.strftime("%Y%m") for month in rrule(
-            freq=MONTHLY,
-            dtstart=min(filedates) - (timedelta(days=min(filedates).day - 1)),
-            until=max(filedates),
-        )
-    ]
+
+    if not timescaledb:
+        months = [
+            month.strftime("%Y%m") for month in rrule(
+                freq=MONTHLY,
+                dtstart=min(filedates) - (timedelta(days=min(filedates).day - 1)),
+                until=max(filedates),
+            )
+        ]
+        print("MONTHS = ", months)
 
     if verbose:
         print("creating tables...")
@@ -269,28 +271,52 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     # and rebuild them after inserting
     if isinstance(dbconn, PostgresDBConn):
         if timescaledb:
-            with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
-                create_dynamic_table_stmt = f.read()
-            with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
-                create_static_table_stmt = f.read()
+            # Check if global hypertables already exist
+            cur = dbconn.cursor()
+            cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_dynamic')")
+            global_dynamic_exists = cur.fetchone()['exists']
+
+            cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_static')")
+            global_static_exists = cur.fetchone()['exists']
+
+            if not (global_dynamic_exists and global_static_exists):
+                with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
+                    create_dynamic_table_stmt = f.read()
+                with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
+                    create_static_table_stmt = f.read()
+                dbconn.execute(create_dynamic_table_stmt)
+                dbconn.execute(create_static_table_stmt)
+                dbconn.commit()
+            else:
+                print("Tables already exist! Skipping creation.")
+            
         else:
             with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
                 create_dynamic_table_stmt = f.read()
             with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
                 create_static_table_stmt = f.read()
-        for month in months:
-            dbconn.execute(create_dynamic_table_stmt.format(month))
-            dbconn.execute(create_static_table_stmt.format(month))
-            if not raw_insertion:
-                dbconn.drop_indexes(month, verbose, timescaledb)
 
-        dbconn.commit()
+            for month in months:
+                dbconn.execute(create_dynamic_table_stmt)
+                dbconn.execute(create_static_table_stmt)
+                if not raw_insertion:
+                    dbconn.drop_indexes(month, verbose, timescaledb)
+            dbconn.commit()
+        
         completed_files = decoder(dbpath="",
                                   psql_conn_string=dbconn.connection_string, files=raw_files,
                                   source=source, verbose=verbose, workers=workers,
                                   type_preference=type_preference, allow_swap=False)
+        print("completed")
 
     elif isinstance(dbconn, SQLiteDBConn):
+        months = [
+        month.strftime("%Y%m") for month in rrule(
+            freq=MONTHLY,
+            dtstart=min(filedates) - timedelta(days=min(filedates).day - 1),
+            until=max(filedates),
+            )
+        ]
         with open(os.path.join(sqlpath, "createtable_dynamic_clustered.sql"), "r") as f:
             create_table_stmt = f.read()
         for month in months:
@@ -328,13 +354,16 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     # os.removedirs(dbindex.tmp_dir)
 
     if isinstance(dbconn, PostgresDBConn):
-        if not raw_insertion:
+        if not raw_insertion and not timescaledb:
             for month in months:
                 dbconn.rebuild_indexes(month, verbose, timescaledb)
                 dbconn.execute("ANALYZE")
         dbconn.commit()
 
-    dbconn.aggregate_static_msgs(months, verbose)
+    if timescaledb:
+        dbconn.aggregate_static_msgs(verbose)
+    else:
+        dbconn.aggregate_static_msgs(months, verbose)
 
     if not raw_insertion:
         if vacuum is not False:
