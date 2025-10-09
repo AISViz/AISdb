@@ -3,8 +3,7 @@ import os
 from aisdb.aisdb import receiver as _receiver
 
 
-def start_receiver(sqlite_dbpath=os.path.abspath("./ais_rx.db"),
-                   postgres_connection_string=None,
+def start_receiver(postgres_connection_string=None,
                    connect_addr="aisdb.meridian.cs.dal.ca:9920",
                    tcp_listen_addr=None,
                    udp_listen_addr=None,
@@ -20,8 +19,6 @@ def start_receiver(sqlite_dbpath=os.path.abspath("./ais_rx.db"),
 
 
         args:
-            sqlite_dbpath (Option<str>)
-                If given, raw messages will be parsed and stored in an SQLite database at this location
             postgres_connection_string (Option<String>)
                 Postgres database connection string
             connect_addr (Option<str>)
@@ -43,8 +40,7 @@ def start_receiver(sqlite_dbpath=os.path.abspath("./ais_rx.db"),
                 If True, raw input will be copied to stdout
     '''
 
-    _receiver(sqlite_dbpath,
-              postgres_connection_string,
+    _receiver(postgres_connection_string,
               connect_addr,
               tcp_listen_addr,
               udp_listen_addr,

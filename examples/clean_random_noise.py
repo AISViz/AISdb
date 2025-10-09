@@ -6,12 +6,16 @@ from aisdb.tests.test_09_marinetraffic import testdir
 from dotenv import load_dotenv
 
 import aisdb
-from aisdb import DBQuery, DBConn
+from aisdb.database.dbconn import PostgresDBConn
 from aisdb.gis import Domain
+from aisdb import DBQuery
 
 load_dotenv()
 
-dbpath = os.environ.get('EXAMPLE_NOISE_DB', 'AIS.sqlitedb')
+pg_conn_string = (
+    f"postgresql://{os.environ['pguser']}:{os.environ['pgpass']}@"
+    f"{os.environ['pghost']}:5432/{os.environ['pguser']}"
+)
 
 trafficDBpath = os.path.join(testdir, 'marinetraffic_test.db')
 # trafficDBpath = os.environ.get('AISDBMARINETRAFFIC', 'marinetraffic.db')
@@ -40,12 +44,11 @@ def random_noise(tracks, boundary=default_boundary):
         yield track
 
 
-with DBConn(dbpath) as dbconn:
+with PostgresDBConn(pg_conn_string) as dbconn:
     vinfoDB = aisdb.webdata.marinetraffic.VesselInfo(trafficDBpath).trafficDB
 
     qry = DBQuery(
         dbconn=dbconn,
-        dbpath=dbpath,
         start=start,
         end=end,
         callback=aisdb.database.sqlfcn_callbacks.in_bbox_time_validmmsi,

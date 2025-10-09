@@ -1,6 +1,5 @@
 ''' generation, segmentation, and filtering of vessel trajectories '''
 
-import sqlite3
 import types
 import warnings
 from datetime import timedelta
@@ -112,24 +111,12 @@ def TrackGen(rowgen: iter, decimate: False) -> dict:
         >>> import os
         >>> import numpy as np
         >>> from datetime import datetime
-        >>> from aisdb import SQLiteDBConn, DBQuery, TrackGen, decode_msgs
+        >>> from aisdb import DBQuery, TrackGen, decode_msgs
         >>> from aisdb.database import sqlfcn_callbacks
         >>> # create example database file
         >>> dbpath = 'track_gen_test.db'
         >>> filepaths = ['aisdb/tests/testdata/test_data_20210701.csv',
         ...              'aisdb/tests/testdata/test_data_20211101.nm4']
-        >>> with SQLiteDBConn(dbpath) as dbconn:
-        ...     decode_msgs(filepaths, dbconn=dbconn, source='TESTING', verbose=False)
-        ...     q = DBQuery(callback=sqlfcn_callbacks.in_timerange_validmmsi,
-        ...                 dbconn=dbconn,
-        ...                 start=datetime(2021, 7, 1),
-        ...                 end=datetime(2021, 7, 7))
-        ...     rowgen = q.gen_qry()
-        ...     for track in TrackGen(rowgen, decimate=True):
-        ...         result = (track['mmsi'], track['lon'], track['lat'], track['time'])
-        ...         assert result == (204242000, np.array([-8.931666], dtype=np.float32),
-        ...                           np.array([41.45], dtype=np.float32), np.array([1625176725], dtype=np.uint32))
-        ...         break
 
     '''
     '''
@@ -143,7 +130,7 @@ def TrackGen(rowgen: iter, decimate: False) -> dict:
             return dict()
             # raise EmptyRowsException('rows cannot be empty')
         assert isinstance(
-            rows[0], (sqlite3.Row, dict)), f'unknown row type: {type(rows[0])}'
+            rows[0], dict), f'unknown row type: {type(rows[0])}'
         if firstrow:
             keys = set(rows[0].keys())
             static = keys.intersection(set(staticcols))

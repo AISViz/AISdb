@@ -1,8 +1,3 @@
-''' SQLite Database connection
-
-    Also see: https://docs.python.org/3/library/sqlite3.html#connection-objects
-'''
-
 import ipaddress
 import os
 import re
@@ -15,10 +10,9 @@ from enum import Enum
 import numpy as np
 import psycopg
 
-from aisdb import sqlite3, sqlpath
+from aisdb import sqlpath
 from aisdb.database.create_tables import (
-    sql_aggregate,
-    sql_createtable_static,
+    sql_global_aggregate
 )
 
 with open(os.path.join(sqlpath, 'coarsetype.sql'), 'r') as f:
@@ -40,160 +34,6 @@ class _DBConn():
             self.execute(stmt)
         self.commit()
         # cur.close()
-
-
-class SQLiteDBConn(_DBConn, sqlite3.Connection):
-    ''' SQLite3 database connection object
-
-        attributes:
-            dbpath (str)
-                database filepath
-            db_daterange (dict)
-                temporal range of monthly database tables. keys are DB file
-                names
-    '''
-
-    def __init__(self, dbpath):
-        super().__init__(
-            dbpath,
-            timeout=5,
-            detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
-        )
-        self.dbpath = dbpath
-        self.row_factory = sqlite3.Row
-        coarsetype_exists_qry = (
-            'SELECT * FROM sqlite_master '
-            r'WHERE type="table" AND name LIKE "coarsetype_ref" ')
-        cur = self.cursor()
-        cur.execute(coarsetype_exists_qry)
-        if len(cur.fetchall()) == 0:
-            self._create_table_coarsetype()
-        self._set_db_daterange()
-
-    def _set_db_daterange(self):
-        # query the temporal range of monthly database tables
-        # results will be stored as a dictionary attribute db_daterange
-        sql_qry = ('SELECT * FROM sqlite_master '
-                   r'WHERE type="table" AND name LIKE "ais_%_dynamic" ')
-        cur = self.cursor()
-        cur.execute(sql_qry)
-        dynamic_tables = cur.fetchall()
-        if dynamic_tables != []:
-            db_months = sorted(
-                [table['name'].split('_')[1] for table in dynamic_tables])
-            self.db_daterange = {
-                'start':
-                    datetime(int(db_months[0][:4]), int(db_months[0][4:]),
-                             1).date(),
-                'end':
-                    datetime((y := int(db_months[-1][:4])),
-                             (m := int(db_months[-1][4:])),
-                             monthrange(y, m)[1]).date(),
-            }
-        else:
-            self.db_daterange = {}
-        cur.close()
-
-    def aggregate_static_msgs(self, months_str: list, verbose: bool = True):
-        ''' collect an aggregate of static vessel reports for each unique MMSI
-            identifier. The most frequently repeated values for each MMSI will
-            be kept when multiple different reports appear for the same MMSI
-
-            this function should be called every time data is added to the database
-
-            args:
-                dbconn (:class:`aisdb.database.dbconn.SQLiteDBConn`)
-                    database connection object
-                months_str (list)
-                    list of strings with format: YYYYmm
-                verbose (bool)
-                    logs messages to stdout
-        '''
-
-        assert hasattr(self, 'dbpath')
-        assert not hasattr(self, 'dbpaths')
-
-        cur = self.cursor()
-
-        for month in months_str:
-            # check for monthly tables in dbfiles containing static reports
-            cur.execute(
-                'SELECT name FROM sqlite_master '
-                'WHERE type="table" AND name=?', [f'ais_{month}_static'])
-            if cur.fetchall() == []:
-                continue
-
-            cur.execute(sql_createtable_static.format(month))
-
-            if verbose:
-                print('aggregating static reports into '
-                      f'static_{month}_aggregate...')
-            cur.execute('SELECT DISTINCT s.mmsi FROM '
-                        f'ais_{month}_static AS s')
-            mmsis = np.array(cur.fetchall(), dtype=int).flatten()
-
-            cur.execute('DROP TABLE IF EXISTS '
-                        f'static_{month}_aggregate')
-
-            sql_select = '''
-              SELECT
-                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type, s.call_sign,
-                s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.draught, s.destination,
-                s.eta_month, s.eta_day, s.eta_hour, s.eta_minute
-              FROM ais_{}_static AS s WHERE s.mmsi = ?
-            '''.format(month)
-
-            agg_rows = []
-            for mmsi in mmsis:
-                _ = cur.execute(sql_select, (str(mmsi),))
-                cur_mmsi = cur.fetchall()
-
-                cols = np.array(cur_mmsi, dtype=object).T
-                assert len(cols) > 0
-
-                filtercols = np.array(
-                    [
-                        np.array(list(filter(None, col)), dtype=object)
-                        for col in cols
-                    ],
-                    dtype=object,
-                )
-
-                paddedcols = np.array(
-                    [col if len(col) > 0 else [None] for col in filtercols],
-                    dtype=object,
-                )
-
-                aggregated = [
-                    Counter(col).most_common(1)[0][0] for col in paddedcols
-                ]
-
-                agg_rows.append(aggregated)
-
-            cur.execute(
-                sql_aggregate.format(month).replace(
-                    f'static_{month}_aggregate', f'static_{month}_aggregate'))
-
-            if len(agg_rows) == 0:
-                warnings.warn('no rows to aggregate! '
-                              f'table: static_{month}_aggregate')
-                continue
-
-            skip_nommsi = np.array(agg_rows, dtype=object)
-            assert len(skip_nommsi.shape) == 2
-            skip_nommsi = skip_nommsi[skip_nommsi[:, 0] != None]
-            assert len(skip_nommsi) >= 1
-            cur.executemany((
-                f'INSERT INTO static_{month}_aggregate '
-                f"VALUES ({','.join(['?' for _ in range(skip_nommsi.shape[1])])}) "
-            ), skip_nommsi)
-
-            self.commit()
-
-
-# default to local SQLite database
-DBConn = SQLiteDBConn
-
 
 class PostgresDBConn(_DBConn, psycopg.Connection):
     ''' This feature requires optional dependency psycopg for interfacing
@@ -229,30 +69,66 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
     '''
 
     def _set_db_daterange(self):
+        """
+        Sets the date range of available AIS data in the database.
 
-        dynamic_tables_qry = psycopg.sql.SQL(
-            "select table_name from information_schema.tables "
-            r"where table_name LIKE 'ais\_______\_dynamic' ORDER BY table_name"
-        )
-        cur = self.cursor()
-        cur.execute(dynamic_tables_qry)
-        dynamic_tables = cur.fetchall()
+        This function checks the 'ais_global_dynamic' and 'ais_global_static' tables
+        (in that order) to determine the minimum and maximum UNIX timestamps stored 
+        in the 'time' column. It converts those timestamps to UTC date objects and 
+        stores them in the `self.db_daterange` dictionary with keys 'start' and 'end'.
 
-        if dynamic_tables != []:
-            db_months = sorted([
-                table['table_name'].split('_')[1] for table in dynamic_tables
-            ])
+        If neither table exists or contains valid timestamp data, 
+        `self.db_daterange` is set to an empty dictionary.
+
+        Tables are queried only if they exist (checked via information_schema),
+        and safe rollback is performed in case of query errors.
+
+        Example output:
             self.db_daterange = {
-                'start':
-                    datetime(int(db_months[0][:4]), int(db_months[0][4:]),
-                             1).date(),
-                'end':
-                    datetime((y := int(db_months[-1][:4])),
-                             (m := int(db_months[-1][4:])),
-                             monthrange(y, m)[1]).date(),
+                "start": datetime.date(2024, 11, 1),
+                "end": datetime.date(2024, 11, 30)
             }
-        else:
-            self.db_daterange = {}
+        """
+        cur = self.cursor()
+        tables = ["ais_global_dynamic", "ais_global_static"]
+
+        for table in tables:
+            try:
+                # Check if the table exists
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public' AND table_name = %s
+                    );
+                """, [table])
+                exists = cur.fetchone()['exists']
+
+                if not exists:
+                    print(f"Skipping table {table}: does not exist")
+                    continue
+
+                # Safe to query now
+                cur.execute(f"SELECT MIN(time), MAX(time) FROM {table}")
+                result = cur.fetchone()
+
+                if result and result['min'] is not None and result['max'] is not None:
+                    min_ts, max_ts = result['min'], result['max']
+                    self.db_daterange = {
+                        'start': datetime.utcfromtimestamp(int(min_ts)).date(),
+                        'end': datetime.utcfromtimestamp(int(max_ts)).date()
+                    }
+                    print(f"Date range set using table: {table}")
+                    return
+                else:
+                    print(f"No timestamp data found in {table}")
+
+            except Exception as e:
+                print(f"Error processing table {table}: {e}")
+                self.conn.rollback()  # rollback aborted transaction
+
+        print("No valid global tables with timestamp found.")
+        self.db_daterange = {}
+
 
     def __enter__(self):
         self.conn.__enter__()
@@ -333,6 +209,8 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         cur.execute(coarsetype_qry)
         coarsetype_exists = cur.fetchone()
 
+        print(coarsetype_exists)
+
         if not coarsetype_exists:
             self._create_table_coarsetype()
 
@@ -343,31 +221,30 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         with self.cursor() as cur:
             cur.execute(sql, args)
 
-    def drop_indexes(self, month, verbose=True, timescaledb=False):
+    def drop_indexes(self, verbose=True, timescaledb=False):
         if verbose:
-            print(f'dropping indexes of {month}...')
+            print(f'dropping indexes of ais_global_dynamic...')
         dbconn = self.conn
         if timescaledb:
-            dbconn.execute(f"DROP INDEX IF EXISTS ais_{month}_dynamic_mmsi_time_idx;")
-            dbconn.execute(f"DROP INDEX IF EXISTS ais_{month}_dynamic_time_idx;")
+            dbconn.execute(f"DROP INDEX IF EXISTS ais_global_dynamic_mmsi_time_idx;")
+            dbconn.execute(f"DROP INDEX IF EXISTS ais_global_dynamic_time_idx;")
         else:
             for idx_name in ("mmsi", "time", "longitude", "latitude"):
-                dbconn.execute(f"DROP INDEX idx_{month}_dynamic_{idx_name};")
+                dbconn.execute(f"DROP INDEX IF EXISTS idx_ais_global_dynamic_{idx_name};")
 
-
-    def rebuild_indexes(self, month, verbose=True, timescaledb=False):
+    def rebuild_indexes(self, verbose=True, timescaledb=False):
         if verbose:
-            print(f'indexing {month}...')
+            print(f'indexing ais_global_dynamic...')
         dbconn = self.conn
         if timescaledb:
-            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_{month}_dynamic_mmsi_time_idx"
-                           f" ON ais_{month}_dynamic (mmsi, time);")
-            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_{month}_dynamic_time_idx"
-                           f" ON ais_{month}_dynamic (time);")
+            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_global_dynamic_mmsi_time_idx"
+                           f"ON ais_global_dynamic (mmsi, time);")
+            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_global_dynamic_time_idx"
+                           f"ON ais_global_dynamic (time);")
         else:
             for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
                 dbconn.execute(
-                    f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_{idx_name} ON ais_{month}_dynamic ({idx_name});")
+                    f"CREATE INDEX IF NOT EXISTS idx_ais_global_dynamic_{idx_name} ON ais_global_dynamic ({idx_name});")
 
         # dbconn.execute(
         #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_mmsi '
@@ -419,21 +296,22 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         # if verbose:
         #     print(f'done clustering: {month}')
 
-    def deduplicate_dynamic_msgs(self, month: str, verbose=True):
+    def deduplicate_dynamic_msgs(self, verbose=True):
         dbconn = self.conn
-        dbconn.execute(f'''
-            DELETE FROM ais_{month}_dynamic WHERE ctid IN
-                (SELECT ctid FROM
-                    (SELECT *, ctid, row_number() OVER
-                        (PARTITION BY mmsi, time, source ORDER BY ctid)
-                    FROM ais_{month}_dynamic ) AS duplicates_{month}
-                WHERE row_number > 1)
+        dbconn.execute('''
+            DELETE FROM ais_global_dynamic WHERE ctid IN (
+                SELECT ctid FROM (
+                    SELECT *, row_number() OVER (PARTITION BY mmsi, time, source ORDER BY ctid)
+                    FROM ais_global_dynamic
+                ) AS duplicates
+                WHERE row_number > 1
+            )
             ''')
         dbconn.commit()
         if verbose:
-            print(f'done deduplicating: {month}')
+            print(f'done deduplicating ais_global_dynamic')
 
-    def aggregate_static_msgs(self, months_str: list, verbose: bool = True):
+    def aggregate_static_msgs(self, verbose: bool = True):
         ''' collect an aggregate of static vessel reports for each unique MMSI
             identifier. The most frequently repeated values for each MMSI will
             be kept when multiple different reports appear for the same MMSI
@@ -449,84 +327,74 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
 
         cur = self.cursor()
 
-        for month in months_str:
-            # check for monthly tables in dbfiles containing static reports
-            cur.execute('SELECT table_name FROM information_schema.tables '
-                        f'WHERE table_name = \'ais_{month}_static\'')
-            static_tables = cur.fetchall()
-            if static_tables == []:
-                continue
+        if verbose:
+            print('aggregating static reports into static_global_aggregate...')
+        cur.execute(f'SELECT DISTINCT mmsi FROM ais_global_static')
+        mmsi_res = cur.fetchall()
+        if mmsi_res == []:
+            mmsis = np.array([], dtype=int)
+        else:
+            mmsis = np.array(sorted([r['mmsi'] for r in mmsi_res]),
+                                dtype=int).flatten()
 
-            if verbose:
-                print('aggregating static reports into '
-                      f'static_{month}_aggregate...')
-            cur.execute(f'SELECT DISTINCT s.mmsi FROM ais_{month}_static AS s')
-            mmsi_res = cur.fetchall()
-            if mmsi_res == []:
-                mmsis = np.array([], dtype=int)
-            else:
-                mmsis = np.array(sorted([r['mmsi'] for r in mmsi_res]),
-                                 dtype=int).flatten()
+        cur.execute(
+            psycopg.sql.SQL(
+                f'DROP TABLE IF EXISTS static_global_aggregate'))
 
-            cur.execute(
-                psycopg.sql.SQL(
-                    f'DROP TABLE IF EXISTS static_{month}_aggregate'))
+        sql_select = psycopg.sql.SQL(f'''
+            SELECT
+            s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type, s.call_sign,
+            s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.draught, s.destination,
+            s.eta_month, s.eta_day, s.eta_hour, s.eta_minute
+            FROM ais_global_static AS s WHERE s.mmsi = %s
+        ''')
 
-            sql_select = psycopg.sql.SQL(f'''
-              SELECT
-                s.mmsi, s.imo, TRIM(vessel_name) as vessel_name, s.ship_type, s.call_sign,
-                s.dim_bow, s.dim_stern, s.dim_port, s.dim_star, s.draught, s.destination,
-                s.eta_month, s.eta_day, s.eta_hour, s.eta_minute
-              FROM ais_{month}_static AS s WHERE s.mmsi = %s
-            ''')
+        agg_rows = []
+        for mmsi in mmsis:
+            _ = cur.execute(sql_select, (str(mmsi),))
+            cur_mmsi = [tuple(i.values()) for i in cur.fetchall()]
+            cols = np.array(cur_mmsi, dtype=object).T
+            assert len(cols) > 0
 
-            agg_rows = []
-            for mmsi in mmsis:
-                _ = cur.execute(sql_select, (str(mmsi),))
-                cur_mmsi = [tuple(i.values()) for i in cur.fetchall()]
-                cols = np.array(cur_mmsi, dtype=object).T
-                assert len(cols) > 0
+            filtercols = np.array(
+                [
+                    np.array(list(filter(None, col)), dtype=object)
+                    for col in cols
+                ],
+                dtype=object,
+            )
 
-                filtercols = np.array(
-                    [
-                        np.array(list(filter(None, col)), dtype=object)
-                        for col in cols
-                    ],
-                    dtype=object,
-                )
+            paddedcols = np.array(
+                [col if len(col) > 0 else [None] for col in filtercols],
+                dtype=object,
+            )
 
-                paddedcols = np.array(
-                    [col if len(col) > 0 else [None] for col in filtercols],
-                    dtype=object,
-                )
+            aggregated = [
+                Counter(col).most_common(1)[0][0] for col in paddedcols
+            ]
 
-                aggregated = [
-                    Counter(col).most_common(1)[0][0] for col in paddedcols
-                ]
+            agg_rows.append(aggregated)
 
-                agg_rows.append(aggregated)
+        cur.execute(sql_global_aggregate)
 
-            cur.execute(sql_aggregate.format(month))
+        if len(agg_rows) == 0:
+            warnings.warn('no rows to aggregate! table: static_global_aggregate')
+            return
 
-            if len(agg_rows) == 0:
-                warnings.warn('no rows to aggregate! '
-                              f'table: static_{month}_aggregate')
-                return
+        skip_nommsi = np.array(agg_rows, dtype=object)
+        assert len(skip_nommsi.shape) == 2
+        skip_nommsi = skip_nommsi[skip_nommsi[:, 0] != None]
+        assert len(skip_nommsi) > 1
+        insert_vals = ','.join(['%s' for _ in range(skip_nommsi.shape[1])])
+        insert_stmt = psycopg.sql.SQL(
+            f'INSERT INTO static_global_aggregate '
+            f'VALUES ({insert_vals})')
+        cur.executemany(insert_stmt, map(tuple, skip_nommsi))
 
-            skip_nommsi = np.array(agg_rows, dtype=object)
-            assert len(skip_nommsi.shape) == 2
-            skip_nommsi = skip_nommsi[skip_nommsi[:, 0] != None]
-            assert len(skip_nommsi) > 1
-            insert_vals = ','.join(['%s' for _ in range(skip_nommsi.shape[1])])
-            insert_stmt = psycopg.sql.SQL(
-                f'INSERT INTO static_{month}_aggregate '
-                f'VALUES ({insert_vals})')
-            cur.executemany(insert_stmt, map(tuple, skip_nommsi))
+        self.commit()
 
-            self.commit()
-
+DBConn = PostgresDBConn
 
 class ConnectionType(Enum):
     ''' database connection types enum. used for static type hints '''
-    SQLITE = SQLiteDBConn
     POSTGRES = PostgresDBConn

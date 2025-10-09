@@ -166,7 +166,8 @@ pub fn postgres_insert_static(
     mstr: &str,
     source: &str,
 ) -> Result<(), postgres::Error> {
-    let sql = sql_from_file("insert_static.sql").replace("{}", mstr);
+    // let sql = sql_from_file("new_insert_static.sql").replace("{}", mstr);
+    let sql = sql_from_file("new_insert_static.sql");
 
     let stmt = tx.prepare(&sql)?;
     for msg in msgs {
@@ -257,7 +258,8 @@ pub fn postgres_insert_dynamic(
     mstr: &str,
     source: &str,
 ) -> Result<(), postgres::Error> {
-    let sql = sql_from_file("insert_dynamic_clusteredidx.sql").replace("{}", mstr);
+    // let sql = sql_from_file("new_insert_dynamic_clusteredidx.sql").replace("{}", mstr);
+    let sql = sql_from_file("new_insert_dynamic_clusteredidx.sql");
 
     let stmt = tx.prepare(&sql)?;
 
@@ -307,9 +309,10 @@ pub fn postgres_prepare_tx_dynamic(
     source: &str,
     positions: Vec<VesselData>,
 ) -> Result<(), postgres::Error> {
-    let mstr = epoch_2_dt(*positions[positions.len() - 1].epoch.as_ref().unwrap() as i64)
-        .format("%Y%m")
-        .to_string();
+    // let mstr = epoch_2_dt(*positions[positions.len() - 1].epoch.as_ref().unwrap() as i64)
+    //     .format("%Y%m")
+    //     .to_string();
+    let mstr = "global".to_string();
     let mut t = c.transaction()?;
     //postgres_createtable_dynamicreport(&mut t, &mstr)?;
     postgres_insert_dynamic(&mut t, positions, &mstr, source)?;
@@ -340,14 +343,15 @@ pub fn postgres_prepare_tx_static(
     source: &str,
     stat_msgs: Vec<VesselData>,
 ) -> Result<(), postgres::Error> {
-    let mstr = epoch_2_dt(
-        *stat_msgs[stat_msgs.len() - 1]
-            .epoch
-            .as_ref()
-            .expect("get epoch") as i64,
-    )
-    .format("%Y%m")
-    .to_string();
+    // let mstr = epoch_2_dt(
+    //     *stat_msgs[stat_msgs.len() - 1]
+    //         .epoch
+    //         .as_ref()
+    //         .expect("get epoch") as i64,
+    // )
+    // .format("%Y%m")
+    // .to_string();
+    let mstr = "global".to_string();
     let mut t = c.transaction()?;
     //postgres_createtable_staticreport(&mut t, &mstr)?;
     postgres_insert_static(&mut t, stat_msgs, &mstr, source)?;
