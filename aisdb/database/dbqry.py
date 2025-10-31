@@ -177,7 +177,7 @@ class DBQuery(UserDict):
         sql = (
             'SELECT DISTINCT(mmsi) '
             f'FROM ais_global_dynamic AS d WHERE '
-            f'{sqlfcn_callbacks.in_validmmsi_bbox(alias="d", **boundary)}')
+            f'{sqlfcn_callbacks.in_validmmsi_bbox_geom(alias="d", **boundary)}')
         mmsis = self.dbconn.execute(sql).fetchall()
         print('.', end='', flush=True)
 

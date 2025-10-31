@@ -51,7 +51,7 @@ with PostgresDBConn(pg_conn_string) as dbconn:
         dbconn=dbconn,
         start=start,
         end=end,
-        callback=aisdb.database.sqlfcn_callbacks.in_bbox_time_validmmsi,
+        callback=aisdb.database.sqlfcn_callbacks.in_bbox_time_validmmsi_geom,
         **domain.boundary,
     )
 

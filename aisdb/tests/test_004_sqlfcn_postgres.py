@@ -18,7 +18,7 @@ month = 'global'
 
 def test_dynamic_postgres(tmpdir):
     dbpath = os.path.join(tmpdir, "test_sqlfcn_dynamic.db")
-    callback = sqlfcn_callbacks.in_time_bbox_validmmsi
+    callback = sqlfcn_callbacks.in_time_bbox_validmmsi_geom
     txt = sqlfcn._dynamic(dbpath=dbpath, callback=callback, dbtype=dbtype, **kwargs)
     print("\n--- test_dynamic_postgres ---\n", txt)
 
@@ -34,7 +34,7 @@ def test_leftjoin_postgres(tmpdir):
 
 def test_crawl_postgres(tmpdir):
     dbpath = os.path.join(tmpdir, "test_sqlfcn_crawl.db")
-    callback = sqlfcn_callbacks.in_time_bbox_validmmsi
+    callback = sqlfcn_callbacks.in_time_bbox_validmmsi_geom
     txt1 = sqlfcn.crawl_dynamic_static(dbpath=dbpath, callback=callback, dbtype=dbtype, **kwargs)
     print("\n--- crawl_dynamic_static_postgres ---\n", txt1)
 
@@ -45,13 +45,13 @@ def test_crawl_postgres(tmpdir):
 def test_all_callbacks_postgres(tmpdir):
     dbpath = os.path.join(tmpdir, "test_sqlfcn_callbacks.db")
     callbacks = [
-        sqlfcn_callbacks.in_bbox,
-        sqlfcn_callbacks.in_bbox_time,
-        sqlfcn_callbacks.in_bbox_time_validmmsi,
-        sqlfcn_callbacks.in_time_bbox,
-        sqlfcn_callbacks.in_time_bbox_hasmmsi,
-        sqlfcn_callbacks.in_time_bbox_inmmsi,
-        sqlfcn_callbacks.in_time_bbox_validmmsi,
+        sqlfcn_callbacks.in_bbox_geom,
+        sqlfcn_callbacks.in_bbox_time_geom,
+        sqlfcn_callbacks.in_bbox_time_validmmsi_geom,
+        sqlfcn_callbacks.in_time_bbox_geom,
+        sqlfcn_callbacks.in_time_bbox_hasmmsi_geom,
+        sqlfcn_callbacks.in_time_bbox_inmmsi_geom,
+        sqlfcn_callbacks.in_time_bbox_validmmsi_geom,
         sqlfcn_callbacks.in_time_mmsi,
         sqlfcn_callbacks.in_timerange,
         sqlfcn_callbacks.in_timerange_hasmmsi,

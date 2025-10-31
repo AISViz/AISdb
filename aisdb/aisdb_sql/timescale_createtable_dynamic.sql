@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS ais_global_dynamic
     maneuver      BOOLEAN,
     utc_second    INTEGER,
     source        TEXT NOT NULL,
-    geom          GEOMETRY(POINT, 4326),
+    geom          GEOMETRY(POINT, 4326)
+                  GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)) STORED,
     PRIMARY KEY (mmsi, time, latitude, longitude)
 );
 

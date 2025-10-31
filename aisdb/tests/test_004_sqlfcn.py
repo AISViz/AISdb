@@ -40,7 +40,7 @@ def test_crawl(tmpdir):
 def test_callbacks(tmpdir):
     dbpath = os.path.join(tmpdir, "test_sqlfcn_callbacks.db")
     callback = sqlfcn_callbacks.in_time_bbox_validmmsi
-    for callback in [sqlfcn_callbacks.in_bbox, sqlfcn_callbacks.in_bbox_time, sqlfcn_callbacks.in_bbox_time_validmmsi,
+    for callback in [sqlfcn_callbacks.in_bbox_geom, sqlfcn_callbacks.in_bbox_time, sqlfcn_callbacks.in_bbox_time_validmmsi,
         sqlfcn_callbacks.in_time_bbox, sqlfcn_callbacks.in_time_bbox_hasmmsi, sqlfcn_callbacks.in_time_bbox_inmmsi,
         sqlfcn_callbacks.in_time_bbox_validmmsi, sqlfcn_callbacks.in_time_mmsi, sqlfcn_callbacks.in_timerange,
         sqlfcn_callbacks.in_timerange_hasmmsi, sqlfcn_callbacks.in_timerange_inmmsi,

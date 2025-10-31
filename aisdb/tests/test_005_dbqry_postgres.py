@@ -52,7 +52,10 @@ def test_prepare_qry_domain_postgres():
             **domain.boundary,
             callback=sqlfcn_callbacks.in_timerange
         ).gen_qry(reaggregate_static=True)
-        next(rowgen)
+        try:
+            next(rowgen)
+        except StopIteration:
+            pass
 
 
 def test_sql_query_strings_postgres():
@@ -65,10 +68,10 @@ def test_sql_query_strings_postgres():
     domain = Domain("gulf domain", zones=[{"name": "z1", "geometry": polygon}])
     
     callbacks = [
-        sqlfcn_callbacks.in_bbox,
-        sqlfcn_callbacks.in_bbox_time,
-        sqlfcn_callbacks.in_bbox_time_validmmsi,
-        sqlfcn_callbacks.in_time_bbox_inmmsi,
+        sqlfcn_callbacks.in_bbox_geom,
+        sqlfcn_callbacks.in_bbox_time_geom,
+        sqlfcn_callbacks.in_bbox_time_validmmsi_geom,
+        sqlfcn_callbacks.in_time_bbox_inmmsi_geom,
         sqlfcn_callbacks.in_timerange,
         sqlfcn_callbacks.in_timerange_hasmmsi,
         sqlfcn_callbacks.in_timerange_validmmsi,

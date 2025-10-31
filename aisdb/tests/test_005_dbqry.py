@@ -57,10 +57,10 @@ def test_sql_query_strings():
 
     with PostgresDBConn(POSTGRES_CONN_STRING) as aisdatabase:
         for callback in [
-            sqlfcn_callbacks.in_bbox,
-            sqlfcn_callbacks.in_bbox_time,
-            sqlfcn_callbacks.in_bbox_time_validmmsi,
-            sqlfcn_callbacks.in_time_bbox_inmmsi,
+            sqlfcn_callbacks.in_bbox_geom,
+            sqlfcn_callbacks.in_bbox_time_geom,
+            sqlfcn_callbacks.in_bbox_time_validmmsi_geom,
+            sqlfcn_callbacks.in_time_bbox_inmmsi_geom,
             sqlfcn_callbacks.in_timerange,
             sqlfcn_callbacks.in_timerange_hasmmsi,
             sqlfcn_callbacks.in_timerange_validmmsi,
