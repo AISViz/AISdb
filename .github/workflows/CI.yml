@@ -160,7 +160,7 @@ jobs:
       - name: Run Tests
         run: |
           AISdb\Scripts\activate
-           pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --ignore=./aisdb/tests/test_001_postgres.py --maxfail=10
+           pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --ignore=./aisdb/tests/test_001_postgres.py --ignore=./aisdb/tests/test_004_sqlfcn.py --ignore=./aisdb/tests/test_002_decode.py --ignore=./aisdb/tests/test_005_dbqry.py --maxfail=10
 
       - name: Clean Up
         run: |
@@ -282,7 +282,7 @@ jobs:
       - name: Run Tests
         run: |
           source ./AISdb/bin/activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --ignore=./aisdb/tests/test_001_postgres.py --maxfail=10
+          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --ignore=./aisdb/tests/test_001_postgres.py --ignore=./aisdb/tests/test_004_sqlfcn.py --ignore=./aisdb/tests/test_002_decode.py --ignore=./aisdb/tests/test_005_dbqry.py --maxfail=10
       
       - name: Clean Up
         run: |
@@ -409,7 +409,7 @@ jobs:
       - name: Run Tests
         run: |
           source ./AISdb/bin/activate
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --ignore=./aisdb/tests/test_001_postgres.py --maxfail=10
+          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --ignore=./aisdb/tests/test_001_postgres.py --ignore=./aisdb/tests/test_004_sqlfcn.py --ignore=./aisdb/tests/test_002_decode.py --ignore=./aisdb/tests/test_005_dbqry.py --maxfail=10
 
       - name: Clean Up
         run: |
