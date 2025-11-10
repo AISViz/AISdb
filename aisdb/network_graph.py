@@ -16,7 +16,7 @@ import numpy as np
 
 import aisdb
 from aisdb.database import sqlfcn
-from aisdb.database.dbconn import SQLiteDBConn, ConnectionType
+from aisdb.database.dbconn import ConnectionType
 from aisdb.denoising_encoder import encode_greatcircledistance
 from aisdb.gis import (
     delta_knots,
@@ -285,7 +285,6 @@ def graph(
         domain,
         dbconn: ConnectionType,
         data_dir: str,
-        trafficDBpath: str or None,  # none if using PostgresDBConn
         maxdelta: timedelta = timedelta(weeks=1),
         speed_threshold: float = 50,
         distance_threshold: float = 200000,
@@ -358,7 +357,7 @@ def graph(
         >>> import os
         >>> import shapely
         >>> from datetime import datetime
-        >>> from aisdb import SQLiteDBConn, DBQuery, Domain, graph, decode_msgs
+        >>> from aisdb import DBQuery, Domain, graph, decode_msgs
         >>> from aisdb.database.sqlfcn_callbacks import in_bbox_time
 
         >>> # create example database file
@@ -396,8 +395,7 @@ def graph(
         ...           outputfile=os.path.join('testdata', 'test_graph.csv'),
         ...           dbconn=dbconn,
         ...           domain=domain,
-        ...           data_dir=data_dir,
-        ...           trafficDBpath=trafficDBpath)
+        ...           data_dir=data_dir)
 
         Afterwards, delete the example database file
 
@@ -413,17 +411,9 @@ def graph(
     assert isinstance(qry, aisdb.database.dbqry.DBQuery), \
         f'Not a DBQuery object! Got {qry}'
 
-    if not isinstance(dbconn, (
-            ConnectionType.SQLITE.value,
-            ConnectionType.POSTGRES.value,
-    )):
-        raise ValueError("Invalid dbconn connection type")
-    if isinstance(dbconn, ConnectionType.SQLITE.value):
-        assert trafficDBpath is not None
-        assert isinstance(trafficDBpath, str)
-        vinfoDB = VesselInfo(trafficDBpath).trafficDB
-    else:
-        vinfoDB = dbconn
+    if not isinstance(dbconn, ConnectionType.POSTGRES.value):
+        raise ValueError("Only PostgresDBConn is supported")
+    vinfoDB = dbconn
 
     rowgen = qry.gen_qry(fcn=qryfcn, verbose=verbose)
     tracks = TrackGen(rowgen, decimate)

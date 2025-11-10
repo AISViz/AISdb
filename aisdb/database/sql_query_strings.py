@@ -146,3 +146,49 @@ def valid_mmsi(*, alias='m123', **_):
     '''
     return f'''{alias}.mmsi >= 201000000 AND
     {alias}.mmsi < 776000000 '''
+
+# NEW helper that uses the geom GiST index (Postgres only)
+def in_bbox_geom(*, alias, xmin, xmax, ymin, ymax, **_):
+    ''' 
+    PostGIS-optimized SQL callback using GIST spatial index for bounding box queries.
+    This is the PREFERRED method when geom column exists with GIST index.
+    
+    args:
+        alias (string): table alias in SQL query
+        xmin (float): minimum longitude
+        xmax (float): maximum longitude
+        ymin (float): minimum latitude
+        ymax (float): maximum latitude
+    
+    returns:
+        SQL code (string) using PostGIS spatial operators
+    '''
+    # Validate coordinates
+    if not -180 <= xmin <= 180:
+        warnings.warn(f'xmin out of bounds: {xmin}')
+        xmin = shiftcoord([xmin])[0]
+    if not -180 <= xmax <= 180:
+        warnings.warn(f'xmax out of bounds: {xmax}')
+        xmax = shiftcoord([xmax])[0]
+    if not -90 <= ymin <= 90:
+        warnings.warn(f'ymin out of bounds: {ymin}')
+    if not -90 <= ymax <= 90:
+        warnings.warn(f'ymax out of bounds: {ymax}')
+    
+    assert ymin < ymax, f'Invalid latitude range: {ymin=} {ymax=}'
+    assert xmin < xmax, f'Invalid longitude range: {xmin=} {xmax=}'
+    
+    # Use PostGIS bounding box operator && with ST_MakeEnvelope
+    # This leverages the GIST index on the geom column for fast spatial queries
+    # xmin/xmax = lon, ymin/ymax = lat; SRID 4326
+    return f"{alias}.geom && ST_MakeEnvelope({xmin}, {ymin}, {xmax}, {ymax}, 4326)"
+
+def in_polygon_geom(*, alias, polygon_wkt, srid=4326, **_):
+    """
+    polygon_wkt: 'POLYGON((lon lat, ...))' in WKT, srid default 4326.
+    Uses && for fast reject + ST_Intersects for correctness.
+    """
+    return (
+        f"""{alias}.geom && ST_GeomFromText('{polygon_wkt}', {srid}) AND """
+        f"""ST_Intersects({alias}.geom, ST_GeomFromText('{polygon_wkt}', {srid}))"""
+    )
