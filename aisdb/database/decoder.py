@@ -263,7 +263,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     ]
 
     if verbose:
-        print("creating tables...")
+        print("creating tables....")
 
     # drop constraints and indexes to speed up insert,
     # and rebuild them after inserting
