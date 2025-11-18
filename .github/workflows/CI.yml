@@ -40,6 +40,7 @@ jobs:
       
       - uses: ikalnytskyi/action-setup-postgres@v4
         with:
+          version: 14
           password: ${{ secrets.PGPASS }}
       
       - name: Checkout Repository
