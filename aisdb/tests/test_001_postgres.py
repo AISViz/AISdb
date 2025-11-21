@@ -1,4 +1,4 @@
-import os
+import os, sys, pytest
 from datetime import datetime, timedelta
 
 from shapely.geometry import Polygon
@@ -40,6 +40,7 @@ def test_create_from_CSV_postgres(tmpdir):
         )
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="TimescaleDB is not supported on Windows")
 def test_create_from_CSV_postgres_timescaledb(tmpdir):
     testingdata_csv = os.path.join(os.path.dirname(__file__), "testdata", "test_data_20210701.csv")
     with PostgresDBConn(conn_information) as dbconn:
