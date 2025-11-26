@@ -199,6 +199,7 @@ jobs:
 
       - name: Run Tests
         run: |
+          sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
           source ./AISdb/bin/activate
           pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10 -s -vv -rF
       
