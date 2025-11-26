@@ -123,7 +123,7 @@ jobs:
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
           python -m venv AISdb
-          AISdb\Scripts\Activate.ps1
+          . AISdb\Scripts\Activate.ps1
           python -m pip install --upgrade pip
           python -m pip install xarray
           python -m pip install maturin
@@ -132,7 +132,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          AISdb\Scripts\activate
+          . AISdb\Scripts\Activate.ps1
           pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
 
       - name: Clean Up
