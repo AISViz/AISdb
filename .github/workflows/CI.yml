@@ -197,6 +197,17 @@ jobs:
           python -m pip install maturin
           maturin develop --release --extras=test,docs
           python -m pip install --upgrade pytest pytest-dotenv pytest-cov furl hypothesis trustme astor pyopenssl isort pydirectory
+
+      - name: Pre-download Data to Bypass Server Firewall
+        run: |
+          sudo apt-get install -y aria2
+          mkdir -p aisdb/testdata
+          BATHY_URL="http://bigdata5.research.cs.dal.ca/raster-bathy.7z" 
+          SHAPE_URL="http://bigdata5.research.cs.dal.ca/geo_land_water_NorthAmerica.7z"
+          
+          aria2c -x 16 -s 16 -d aisdb/testdata -o raster-bathy.7z "$BATHY_URL"
+          aria2c -x 16 -s 16 -d aisdb/testdata -o geo_land_water_NorthAmerica.7z "$SHAPE_URL"
+
           
       - name: Run Tests
         run: |
