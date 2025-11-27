@@ -2,6 +2,7 @@
 
 import os
 import warnings
+import subprocess
 from functools import reduce
 
 import numpy as np
@@ -46,6 +47,9 @@ class Gebco():
     def fetch_bathymetry_grid(self):  # pragma: no cover
         """ download geotiff zip archive and extract it """
 
+        if any(f.endswith('.tif') and 'gebco_2022' in f for f in os.listdir(self.data_dir)):
+            return  # bathymetry data already present
+
         zipf = os.path.join(self.data_dir, "raster-bathy.7z")
         try:
             if not os.path.isfile(zipf):
@@ -57,15 +61,31 @@ class Gebco():
                             for chunk in payload.iter_content(chunk_size=8192):
                                 _ = t.update(f.write(chunk))
 
+                # with py7zr.SevenZipFile(zipf, mode='r') as zip_ref:
+                #     members = list(
+                #         fpath for fpath in set(zip_ref.getnames()) - set(
+                #             sorted(os.listdir(self.data_dir))) if '.tif' in fpath)
+                #     print('Extracting bathymetric data...')
+                #     zip_ref.extract(targets=members, path=self.data_dir)
+                # 3. EXTRACT (Optimized)
+            print('Extracting bathymetric data...')
+            # Try using system 7z first (Faster, Safer for CI)
+            try:
+                subprocess.run(['7z', 'x', zipf, f'-o{self.data_dir}', '-y'], check=True)
+            except (FileNotFoundError, subprocess.CalledProcessError):
+                # Fallback to py7zr if '7z' command is missing (e.g., on Windows dev machine)
+                print("System 7z not found, falling back to py7zr (slower)...")
                 with py7zr.SevenZipFile(zipf, mode='r') as zip_ref:
-                    members = list(
-                        fpath for fpath in set(zip_ref.getnames()) - set(
-                            sorted(os.listdir(self.data_dir))) if '.tif' in fpath)
-                    print('Extracting bathymetric data...')
-                    zip_ref.extract(targets=members, path=self.data_dir)
+                    zip_ref.extractall(path=self.data_dir)
+
         except (Exception, KeyboardInterrupt) as err:
             os.remove(os.path.join(self.data_dir, "raster-bathy.7z"))
             raise err
+        
+        print(f"Removing {zipf} to save space...")
+        if os.path.exists(zipf):
+            os.remove(zipf)
+
         return
 
     def _load_raster(self, key):
