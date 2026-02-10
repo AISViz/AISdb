@@ -31,4 +31,4 @@ ALTER TABLE ais_global_dynamic SET (
 );
 
 CREATE INDEX idx_ais_global_dynamic_geom ON ais_global_dynamic USING GIST (geom);
-CREATE INDEX idx_ais_global_dynamic_time ON ais_global_dynamic (time);
+CREATE INDEX idx_ais_global_dynamic_time ON ais_global_dynamic USING BRIN (time);
