@@ -4,42 +4,30 @@ from aisdb.weather.data_store import WeatherDataStore
 from unittest.mock import patch, MagicMock
 import xarray as xr
 import numpy as np
+import os
 
 class TestWeatherDataStore(unittest.TestCase):
-    @patch("aisdb.weather.data_store.fast_unzip")  # Mocking the fast_unzip function to avoid actual file operations
     @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")
-
-    def test_initialization(self, mock_load_weather_data, mock_fast_unzip):
-        # Setup test data
+    @patch("aisdb.weather.data_store.fast_unzip") # Order of patch matters for arg order
+    def test_initialization(self, mock_fast_unzip, mock_load_weather_data, tmp_path):
         short_names = ['10u', '10v']
         start = datetime(2023, 1, 1)
         end = datetime(2023, 2, 1)
-        weather_data_path = '/path/to/weather/data'
+        weather_data_path = tmp_path / "weather_data" 
 
-        # Mock fast_unzip to avoid actual unzipping
         mock_fast_unzip.return_value = None
 
-        # Create mock datasets for each shortname
         mock_ds_10u = MagicMock(spec=xr.Dataset)
         mock_ds_10v = MagicMock(spec=xr.Dataset)
-
-        # Compose the dict that WeatherDataStore expects
-        mock_weather_map = {
-            '10u': mock_ds_10u,
-            '10v': mock_ds_10v
-        }
-
-        # Mock the _load_weather_data method to return the dict
+        mock_weather_map = {'10u': mock_ds_10u, '10v': mock_ds_10v}
         mock_load_weather_data.return_value = mock_weather_map
 
-        # Create the WeatherDataStore instance
-        store = WeatherDataStore(short_names, start, end, weather_data_path)
+        store = WeatherDataStore(short_names, start, end, str(weather_data_path)) 
 
-        # Assertions
         self.assertEqual(store.short_names, short_names)
         self.assertEqual(store.start, start)
         self.assertEqual(store.end, end)
-        self.assertEqual(store.weather_data_path, weather_data_path)
+        self.assertEqual(store.weather_data_path, str(weather_data_path)) 
 
         self.assertIsInstance(store.weather_ds_map, dict)
         self.assertIn('10u', store.weather_ds_map)
@@ -50,103 +38,98 @@ class TestWeatherDataStore(unittest.TestCase):
         mock_load_weather_data.assert_called_once()
 
 
-    @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")  # Mock the method to avoid loading real data
-    def test_extract_weather(self, mock_load_weather_data):
-        # Setup test data
+    @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")
+    def test_extract_weather(self, mock_load_weather_data, tmp_path="."):
         short_names = ['10u', '10v']
         start = datetime(2023, 1, 1)
         end = datetime(2023, 2, 1)
-        weather_data_path = '/path/to/weather/data'
+        weather_data_path = tmp_path / "weather_data"
 
-        # Create mock variable datasets for 10u and 10v
-        mock_10u_var = MagicMock()
-        mock_10u_var.sel.return_value.values = 5.2
+        mock_ds_init = MagicMock(spec=xr.Dataset)
+        mock_load_weather_data.return_value = {'10u': mock_ds_init, '10v': mock_ds_init}
 
-        mock_10u_ds = { '10u': mock_10u_var }
+        store = WeatherDataStore(short_names, start, end, str(weather_data_path))
 
-        mock_10v_var = MagicMock()
-        mock_10v_var.sel.return_value.values = 3.1
+        mock_ds_10u_instance = MagicMock(spec=xr.Dataset)
+        mock_data_array_10u = MagicMock(spec=xr.DataArray)
+        mock_data_array_10u.sel.return_value.item.return_value = 5.2
+        # Mock the __getitem__ to return the DataArray mock when ds['10u'] is called
+        mock_ds_10u_instance.__getitem__.return_value = mock_data_array_10u
+        # Ensure the time index is considered unique by the code in extract_weather
+        mock_ds_10u_instance.indexes = {'time': MagicMock(is_unique=True)}
+        
+        mock_ds_10v_instance = MagicMock(spec=xr.Dataset)
+        mock_data_array_10v = MagicMock(spec=xr.DataArray)
+        mock_data_array_10v.sel.return_value.item.return_value = 3.1
+        mock_ds_10v_instance.__getitem__.return_value = mock_data_array_10v
+        mock_ds_10v_instance.indexes = {'time': MagicMock(is_unique=True)}
 
-        mock_10v_ds = { '10v': mock_10v_var }
+        store.weather_ds_map = {'10u': mock_ds_10u_instance, '10v': mock_ds_10v_instance}
 
-        # Simulate the weather_ds_map with each shortname pointing to its own dataset
-        mock_weather_ds_map = {
-            '10u': mock_10u_ds,
-            '10v': mock_10v_ds,
-        }
 
-        # Patch _load_weather_data to return our mocked weather_ds_map
-        mock_load_weather_data.return_value = mock_weather_ds_map
-
-        # Create an instance of WeatherDataStore
-        store = WeatherDataStore(short_names, start, end, weather_data_path)
-
-        # Inject a mock method since extract_weather uses ds[shortname].sel(...)
-        for shortname in short_names:
-            ds_mock = MagicMock()
-            ds_mock.__getitem__.return_value.sel.return_value.values = 5.2 if shortname == '10u' else 3.1
-            store.weather_ds_map[shortname] = ds_mock
-
-        # Test extracting weather data
         weather = store.extract_weather(40.7128, -74.0060, 1674963000)
 
-        # Assert that the correct values were extracted
         self.assertEqual(weather['10u'], 5.2)
         self.assertEqual(weather['10v'], 3.1)
 
 
-    def test_yield_tracks_with_weather(self):
-        # Create mock datasets for '10u' and '10v'
-        mock_ds_10u = MagicMock()
-        mock_ds_10u.data_vars = ['10u']
-        mock_ds_10u.__getitem__.return_value.sel.side_effect = [
-            MagicMock(values=np.array(5.2)),
-        ]
-
-        mock_ds_10v = MagicMock()
-        mock_ds_10v.data_vars = ['10v']
-        mock_ds_10v.__getitem__.return_value.sel.side_effect = [
-            MagicMock(values=np.array(1.1)),
-        ]
-
-        # Setup test data
+    @patch("aisdb.weather.data_store.WeatherDataStore._load_weather_data")
+    def test_yield_tracks_with_weather(self, mock_load_weather_data, tmp_path):
         short_names = ['10u', '10v']
         start = datetime(2023, 1, 1)
         end = datetime(2023, 2, 1)
-        weather_data_path = '/fake/path'
+        weather_data_path = tmp_path / "fake_weather_data"
 
-        # Patch _load_weather_data to return a dict of shortnames to mocked datasets
-        with patch.object(WeatherDataStore, '_load_weather_data', return_value={
-            '10u': mock_ds_10u,
-            '10v': mock_ds_10v
-        }):
-            store = WeatherDataStore(short_names, start, end, weather_data_path)
-
-            # Create a sample track generator
-            def track_generator():
-                yield {
-                    'lon': [10.0, 20.0],
-                    'lat': [30.0, 40.0],
-                    'time': [1672531200, 1675123200]  # UNIX timestamps
-                }
-
-            # Call method under test
-            tracks_with_weather = list(store.yield_tracks_with_weather(track_generator()))
-
-            # Validate output
-            self.assertEqual(len(tracks_with_weather), 1)
-            self.assertIn('weather_data', tracks_with_weather[0])
-            np.testing.assert_array_equal(tracks_with_weather[0]['weather_data']['10u'], [5.2])
-            np.testing.assert_array_equal(tracks_with_weather[0]['weather_data']['10v'], [1.1])
-
-            # Ensure sel was called expected number of times
-            self.assertEqual(mock_ds_10u.__getitem__.return_value.sel.call_count, 1)
-            self.assertEqual(mock_ds_10v.__getitem__.return_value.sel.call_count, 1)
-
-            store.close()
+        mock_ds_init_u = MagicMock(spec=xr.Dataset)
+        mock_ds_init_v = MagicMock(spec=xr.Dataset)
+        mock_load_weather_data.return_value={ '10u': mock_ds_init_u, '10v': mock_ds_init_v }
+        
+        store = WeatherDataStore(short_names, start, end, str(weather_data_path), use_cache=False)
+        
+        mock_ds_10u_sel_result = MagicMock(spec=xr.DataArray)
+        mock_ds_10u_sel_result.values = np.array([5.2, 5.3]) 
+        mock_ds_10u_var = MagicMock(spec=xr.DataArray)
+        mock_ds_10u_var.sel.return_value = mock_ds_10u_sel_result
+        
+        mock_ds_10u_for_yield = MagicMock(spec=xr.Dataset)
+        mock_ds_10u_for_yield.__contains__.side_effect = lambda key: key == '10u'
+        mock_ds_10u_for_yield.__getitem__.return_value = mock_ds_10u_var
+        mock_ds_10u_for_yield.indexes = {'time': MagicMock(is_unique=True)}
 
 
+        mock_ds_10v_sel_result = MagicMock(spec=xr.DataArray)
+        mock_ds_10v_sel_result.values = np.array([1.1, 1.2])
+        mock_ds_10v_var = MagicMock(spec=xr.DataArray)
+        mock_ds_10v_var.sel.return_value = mock_ds_10v_sel_result
 
+        mock_ds_10v_for_yield = MagicMock(spec=xr.Dataset)
+        mock_ds_10v_for_yield.__contains__.side_effect = lambda key: key == '10v'
+        mock_ds_10v_for_yield.__getitem__.return_value = mock_ds_10v_var
+        mock_ds_10v_for_yield.indexes = {'time': MagicMock(is_unique=True)}
+        
+        store.weather_ds_map = {
+            '10u': mock_ds_10u_for_yield,
+            '10v': mock_ds_10v_for_yield
+        }
+        
+        def track_generator():
+            yield {
+                'lon': np.array([10.0, 20.0]),
+                'lat': np.array([30.0, 40.0]),
+                'time': np.array([1672531200, 1675123200]) 
+            }
+
+        tracks_with_weather = list(store.yield_tracks_with_weather(track_generator()))
+
+        self.assertEqual(len(tracks_with_weather), 1)
+        self.assertIn('weather_data', tracks_with_weather[0])
+        np.testing.assert_array_equal(tracks_with_weather[0]['weather_data']['10u'], [5.2, 5.3])
+        np.testing.assert_array_equal(tracks_with_weather[0]['weather_data']['10v'], [1.1, 1.2])
+
+        self.assertEqual(mock_ds_10u_var.sel.call_count, 1)
+        self.assertEqual(mock_ds_10v_var.sel.call_count, 1)
+
+        store.close()
         
 if __name__ == "__main__":
     unittest.main()
