@@ -7,6 +7,15 @@ use include_dir::{include_dir, Dir};
 #[cfg(feature = "postgres")]
 pub use postgres::{Client as PGClient, NoTls, Transaction as PGTransaction};
 
+#[cfg(feature = "postgres")]
+use std::sync::Mutex;
+
+#[cfg(feature = "postgres")]
+lazy_static::lazy_static! {
+    /// Cache do schema: armazena se a tabela tem coluna 'rot'
+    static ref SCHEMA_CACHE: Mutex<std::collections::HashMap<String, bool>> = Mutex::new(std::collections::HashMap::new());
+}
+
 #[cfg(feature = "sqlite")]
 pub use rusqlite::{
     params, Connection as SqliteConnection, OpenFlags, Result as SqliteResult,
@@ -251,6 +260,52 @@ pub fn sqlite_insert_dynamic(
 }
 
 #[cfg(feature = "postgres")]
+/// Detecta conjunto de colunas disponíveis na tabela
+fn detect_table_schema(tx: &mut PGTransaction) -> Result<String, postgres::Error> {
+    let cache_key = "ais_global_dynamic.schema_version".to_string();
+    
+    // Verifica cache primeiro
+    {
+        let cache = SCHEMA_CACHE.lock().unwrap();
+        if let Some(&has_col) = cache.get(&cache_key) {
+            return Ok(if has_col { "full" } else { "minimal" }.to_string());
+        }
+    }
+    
+    // Query para verificar colunas específicas
+    let query = "
+        SELECT 
+            EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'ais_global_dynamic' AND column_name = 'rot') as has_rot,
+            EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'ais_global_dynamic' AND column_name = 'maneuver') as has_maneuver,
+            EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'ais_global_dynamic' AND column_name = 'utc_second') as has_utc,
+            EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'ais_global_dynamic' AND column_name = 'source') as has_source
+    ";
+    
+    let row = tx.query_one(query, &[])?;
+    let has_rot: bool = row.get(0);
+    let has_maneuver: bool = row.get(1);
+    let has_utc: bool = row.get(2);
+    let has_source: bool = row.get(3);
+    
+    // Determina versão do schema
+    let schema_version = if has_rot && has_maneuver && has_utc && has_source {
+        "full"        // Schema completo com todas colunas
+    } else if !has_rot && has_maneuver && has_utc && has_source {
+        "norot"       // Schema sem rot
+    } else {
+        "minimal"     // Schema básico (11 colunas)
+    };
+    
+    // Atualiza cache
+    {
+        let mut cache = SCHEMA_CACHE.lock().unwrap();
+        cache.insert(cache_key, schema_version == "full");
+    }
+    
+    Ok(schema_version.to_string())
+}
+
+#[cfg(feature = "postgres")]
 /// insert position reports into database
 pub fn postgres_insert_dynamic(
     tx: &mut PGTransaction,
@@ -258,29 +313,76 @@ pub fn postgres_insert_dynamic(
     mstr: &str,
     source: &str,
 ) -> Result<(), postgres::Error> {
-    // let sql = sql_from_file("new_insert_dynamic_clusteredidx.sql").replace("{}", mstr);
-    let sql = sql_from_file("new_insert_dynamic_clusteredidx.sql");
+    // Detecta schema da tabela
+    let schema_version = detect_table_schema(tx)?;
+    
+    // Escolhe SQL baseado no schema
+    let sql = match schema_version.as_str() {
+        "full" => sql_from_file("new_insert_dynamic_clusteredidx.sql"),
+        "norot" => sql_from_file("new_insert_dynamic_norot.sql"),
+        _ => sql_from_file("new_insert_dynamic_minimal.sql"),
+    };
 
     let stmt = tx.prepare(&sql)?;
 
     for msg in msgs {
         let (p, e) = msg.dynamicdata();
-        let _ = tx.execute(
-            &stmt,
-            &[
-                &(p.mmsi as i32),
-                &(e as i32),
-                &(p.longitude.unwrap_or_default() as f32),
-                &(p.latitude.unwrap_or_default() as f32),
-                &(p.rot.unwrap_or_default() as f32),
-                &(p.sog_knots.unwrap_or_default() as f32),
-                &(p.cog.unwrap_or_default() as f32),
-                &(p.heading_true.unwrap_or_default() as f32),
-                &p.special_manoeuvre.unwrap_or_default(),
-                &(p.timestamp_seconds as i32),
-                &source,
-            ],
-        )?;
+        
+        match schema_version.as_str() {
+            "full" => {
+                // INSERT completo com todas colunas
+                let _ = tx.execute(
+                    &stmt,
+                    &[
+                        &(p.mmsi as i32),
+                        &(e as i32),
+                        &(p.longitude.unwrap_or_default() as f32),
+                        &(p.latitude.unwrap_or_default() as f32),
+                        &(p.rot.unwrap_or_default() as f32),
+                        &(p.sog_knots.unwrap_or_default() as f32),
+                        &(p.cog.unwrap_or_default() as f32),
+                        &(p.heading_true.unwrap_or_default() as f32),
+                        &p.special_manoeuvre.unwrap_or_default(),
+                        &(p.timestamp_seconds as i32),
+                        &source,
+                    ],
+                )?;
+            },
+            "norot" => {
+                // INSERT sem rot
+                let _ = tx.execute(
+                    &stmt,
+                    &[
+                        &(p.mmsi as i32),
+                        &(e as i32),
+                        &(p.longitude.unwrap_or_default() as f32),
+                        &(p.latitude.unwrap_or_default() as f32),
+                        &(p.sog_knots.unwrap_or_default() as f32),
+                        &(p.cog.unwrap_or_default() as f32),
+                        &(p.heading_true.unwrap_or_default() as f32),
+                        &p.special_manoeuvre.unwrap_or_default(),
+                        &(p.timestamp_seconds as i32),
+                        &source,
+                    ],
+                )?;
+            },
+            _ => {
+                // INSERT mínimo (apenas colunas básicas)
+                // Usa f64 para colunas NUMERIC do Postgres
+                let _ = tx.execute(
+                    &stmt,
+                    &[
+                        &(p.mmsi as i32),
+                        &(e as i64),
+                        &(p.longitude.unwrap_or_default() as f64),
+                        &(p.latitude.unwrap_or_default() as f64),
+                        &(p.sog_knots.unwrap_or_default() as f64),
+                        &(p.cog.unwrap_or_default() as f64),
+                        &(p.heading_true.unwrap_or_default() as i32),
+                    ],
+                )?;
+            }
+        }
     }
 
     Ok(())

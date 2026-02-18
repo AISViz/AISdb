@@ -24,6 +24,11 @@ postgres = [ "dep:postgres",]
 geo = "0.26"
 geo-types = "*"
 include_dir = "0.7.2"
+md5 = "0.7"
+flate2 = "1.0"
+zip = "0.6"
+tempfile = "3.8"
+lazy_static = "1.4"
 
 [dependencies.postgres]
 version = "0.19"
