@@ -78,6 +78,15 @@ jobs:
           Write-Host "Verifying PostgreSQL connection..."
           psql -U postgres -c "SELECT version();"
           psql -U postgres -c "SHOW config_file;"
+
+      - name: Install PostGIS and TimescaleDB Extensions
+        run: |
+          $env:PGPASSWORD="${{ env.pgpass }}"
+          Write-Host "Creating PostGIS extension..."
+          psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          Write-Host "Creating TimescaleDB extension..."
+          psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+          Write-Host "Extensions created successfully."
           
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
@@ -164,8 +173,8 @@ jobs:
       
       - name: Install and Configure TimescaleDB Extension
         run: |
-          sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17
-          echo "TimescaleDB Extension installed"
+          sudo apt-get install -y timescaledb-2-postgresql-17 postgresql-client-17 postgresql-17-postgis-3
+          echo "TimescaleDB and PostGIS Extensions installed"
 
       # - name: Apply TimescaleDB tuning
       #   run: |
@@ -185,8 +194,9 @@ jobs:
     
       - name: Create TimescaleDB Extension
         run: |
+          sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS postgis;"
           sudo -u postgres psql ${{ steps.postgres.outputs.connection-uri }} -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
-          echo "TimescaleDB Extension created."
+          echo "PostGIS and TimescaleDB Extensions created."
           
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
@@ -398,6 +408,11 @@ jobs:
         run: |
           psql postgres -c "CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD '${{ env.POSTGRES_PASSWORD }}';"
 
+      - name: Install PostGIS
+        run: |
+          brew install postgis
+          brew cleanup
+
       - name: Install TimescaleDB
         run: |
           brew tap timescale/tap
@@ -420,6 +435,7 @@ jobs:
           
           brew services restart postgresql@17
           sleep 5
+          psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS postgis;"
           psql -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
 
       - name: Create Python Virtual Environment and Install Dependencies
