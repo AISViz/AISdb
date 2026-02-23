@@ -12,6 +12,7 @@ from aisdb.database.sql_query_strings import (
     in_mmsi,
     in_timerange,
     valid_mmsi,
+    in_bbox as in_bbox_plain,
     in_bbox_geom
 )
 
@@ -30,6 +31,24 @@ in_timerange_inmmsi = lambda **kwargs: f'''\
 in_timerange_validmmsi = lambda **kwargs: f'''\
     {in_timerange(**kwargs)} AND
     {valid_mmsi(**kwargs)}'''
+
+in_bbox = lambda **kwargs: f'''\
+    {in_bbox_plain(**kwargs)}'''
+in_bbox_time = lambda **kwargs: f'''\
+    {in_bbox_plain(**kwargs)} AND
+    {in_timerange(**kwargs)} '''
+in_bbox_time_validmmsi = lambda **kwargs: f'''\
+    {in_bbox_plain(**kwargs)} AND
+    {in_timerange(**kwargs)} AND
+    {valid_mmsi(**kwargs)} '''
+in_time_bbox_inmmsi = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND
+    {in_bbox_plain(**kwargs)} AND
+    {in_mmsi(**kwargs)} '''
+in_time_bbox_validmmsi = lambda **kwargs: f'''\
+    {in_timerange(**kwargs)} AND
+    {in_bbox_plain(**kwargs)} AND
+    {valid_mmsi(**kwargs)} '''
 
 in_bbox_time_geom = lambda **kwargs: f'''\
     {in_bbox_geom(**kwargs)} AND

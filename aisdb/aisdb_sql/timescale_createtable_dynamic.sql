@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS ais_global_dynamic
+CREATE TABLE IF NOT EXISTS ais_{0}_dynamic
 (
     mmsi          INTEGER NOT NULL,
     time          INTEGER NOT NULL,
@@ -17,18 +17,19 @@ CREATE TABLE IF NOT EXISTS ais_global_dynamic
 );
 
 SELECT create_hypertable(
-    'ais_global_dynamic',
+    'ais_{0}_dynamic',
     'time',
     partitioning_column => 'mmsi',
     number_partitions => 4,
-    chunk_time_interval => 604800
+    chunk_time_interval => 604800,
+    if_not_exists => TRUE
 );
 
-ALTER TABLE ais_global_dynamic SET (
+ALTER TABLE ais_{0}_dynamic SET (
     timescaledb.compress = false,
     timescaledb.compress_orderby = 'time ASC, latitude ASC, longitude ASC',
     timescaledb.compress_segmentby = 'mmsi'
 );
 
-CREATE INDEX idx_ais_global_dynamic_geom ON ais_global_dynamic USING GIST (geom);
-CREATE INDEX idx_ais_global_dynamic_time ON ais_global_dynamic USING BRIN (time);
+CREATE INDEX idx_ais_{0}_dynamic_geom ON ais_{0}_dynamic USING GIST (geom);
+CREATE INDEX idx_ais_{0}_dynamic_time ON ais_{0}_dynamic USING BRIN (time);

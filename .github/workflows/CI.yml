@@ -38,11 +38,6 @@ jobs:
             ${{ runner.os }}-pip-
             ${{ runner.os }}-cargo-
       
-      - uses: ikalnytskyi/action-setup-postgres@v4
-        with:
-          # postgres-version: "14"
-          password: ${{ secrets.PGPASS }}
-      
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -71,22 +66,20 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Locate PostgreSQL Installation Paths
+      - name: Start PostgreSQL (TimescaleDB + PostGIS)
         run: |
-          Write-Host "Finding PostgreSQL path..."
-          $env:PGPASSWORD="${{ env.pgpass }}"
-          Write-Host "Verifying PostgreSQL connection..."
-          psql -U postgres -c "SELECT version();"
-          psql -U postgres -c "SHOW config_file;"
+          docker run --name aisdb-pg -e POSTGRES_PASSWORD=${{ env.pgpass }} -e POSTGRES_USER=${{ env.pguser }} -p 5432:5432 -d timescale/timescaledb-postgis:latest-pg17
 
-      - name: Install PostGIS and TimescaleDB Extensions
-        run: |
-          $env:PGPASSWORD="${{ env.pgpass }}"
-          Write-Host "Creating PostGIS extension..."
-          psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS postgis;"
-          Write-Host "Creating TimescaleDB extension..."
-          psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
-          Write-Host "Extensions created successfully."
+          $ready = $false
+          for ($i = 0; $i -lt 30; $i++) {
+            docker exec aisdb-pg pg_isready -U $env:pguser -d postgres
+            if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+            Start-Sleep -Seconds 2
+          }
+          if (-not $ready) { throw "PostgreSQL did not become ready in time" }
+
+          docker exec aisdb-pg psql -U $env:pguser -d postgres -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          docker exec aisdb-pg psql -U $env:pguser -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
           
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
@@ -106,6 +99,7 @@ jobs:
       - name: Clean Up
         run: |
           Remove-Item -Recurse -Force AISdb
+          docker rm -f aisdb-pg
 
 
   build-and-test-linux:

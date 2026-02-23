@@ -158,41 +158,30 @@ def process_raw_files(dbconn, dbindex, raw_files, source, timescaledb, raw_inser
         print("checking file dates...")
     filedates = [getfiledate(f, source) for f in raw_files]
 
-    if not timescaledb:
-        months = [
-            month.strftime("%Y%m") for month in rrule(
-                freq=MONTHLY,
-                dtstart=min(filedates) - timedelta(days=min(filedates).day - 1),
-                until=max(filedates),
-            )
-        ]
-        if verbose:
-            print("MONTHS = ", months)
-    else:
-        months = []
+    months = [
+        month.strftime("%Y%m") for month in rrule(
+            freq=MONTHLY,
+            dtstart=min(filedates) - timedelta(days=min(filedates).day - 1),
+            until=max(filedates),
+        )
+    ]
+    if verbose:
+        print("MONTHS = ", months)
 
     if verbose:
         print("creating tables...")
 
     if isinstance(dbconn, PostgresDBConn):
         if timescaledb:
-            cur = dbconn.cursor()
-            cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_dynamic')")
-            global_dynamic_exists = cur.fetchone()['exists']
+            with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
+                create_dynamic_table_stmt = f.read()
+            with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
+                create_static_table_stmt = f.read()
 
-            cur.execute("SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'ais_global_static')")
-            global_static_exists = cur.fetchone()['exists']
-
-            if not (global_dynamic_exists and global_static_exists):
-                with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
-                    create_dynamic_table_stmt = f.read()
-                with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
-                    create_static_table_stmt = f.read()
-                dbconn.execute(create_dynamic_table_stmt)
-                dbconn.execute(create_static_table_stmt)
-                dbconn.commit()
-            else:
-                print("Tables already exist! Skipping creation.")
+            for month in months:
+                dbconn.execute(create_dynamic_table_stmt.format(month))
+                dbconn.execute(create_static_table_stmt.format(month))
+            dbconn.commit()
         else:
             with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
                 create_dynamic_table_stmt = f.read()
@@ -200,8 +189,8 @@ def process_raw_files(dbconn, dbindex, raw_files, source, timescaledb, raw_inser
                 create_static_table_stmt = f.read()
 
             for month in months:
-                dbconn.execute(create_dynamic_table_stmt)
-                dbconn.execute(create_static_table_stmt)
+                dbconn.execute(create_dynamic_table_stmt.format(month))
+                dbconn.execute(create_static_table_stmt.format(month))
                 if not raw_insertion:
                     dbconn.drop_indexes(month, verbose, timescaledb)
             dbconn.commit()
