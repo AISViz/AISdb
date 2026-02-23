@@ -9,7 +9,7 @@ homepage = "https://aisviz.cs.dal.ca/"
 repository = "https://github.com/AISViz/AISdb"
 tutorials = "https://aisviz.gitbook.io/tutorials/"
 documentation = "https://aisviz.gitbook.io/documentation/"
-license-file = "../LICENSE"
+license-file = "LICENSE"
 
 [lib]
 
