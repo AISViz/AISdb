@@ -30,7 +30,7 @@ def test_create_from_CSV_postgres(tmpdir):
             "SELECT table_name FROM information_schema.tables "
             "WHERE table_schema = 'public' ORDER BY table_name;")
         tables = [row["table_name"] for row in cur.fetchall()]
-        assert "ais_202107_dynamic" in tables
+        assert "ais_global_dynamic" in tables
         cur.execute(
             """
             DROP TABLE IF EXISTS ais_202107_dynamic CASCADE;
@@ -57,7 +57,7 @@ def test_create_from_CSV_postgres_timescaledb(tmpdir):
         cur.execute("""
             SELECT indexname, indexdef 
             FROM pg_indexes 
-            WHERE tablename = 'ais_202107_dynamic';
+            WHERE tablename = 'ais_global_dynamic';
         """)
         indexes = cur.fetchall()
         print(indexes)

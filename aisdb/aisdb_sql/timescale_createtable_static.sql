@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS ais_global_static
 (
-    mmsi           INTEGER NOT NULL,
-    time           INTEGER NOT NULL,
+    mmsi           BIGINT NOT NULL,
+    time           BIGINT NOT NULL,
     vessel_name    TEXT,
     ship_type      INTEGER,
     call_sign      TEXT,

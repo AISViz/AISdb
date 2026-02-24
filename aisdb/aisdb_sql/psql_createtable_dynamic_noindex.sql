@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS ais_{0}_dynamic (
-    mmsi INTEGER NOT NULL,
-    time INTEGER NOT NULL,
+    mmsi BIGINT NOT NULL,
+    time BIGINT NOT NULL,
     longitude REAL NOT NULL,
     latitude REAL NOT NULL,
     rot REAL,

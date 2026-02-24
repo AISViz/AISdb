@@ -73,7 +73,7 @@ def sample_database_file(postgres_conn_string):
             timescaledb=True,
             verbose=True
         )
-        dbconn.aggregate_static_msgs(months)
+        dbconn.aggregate_static_msgs(verbose=True)
         dbconn.commit()
 
     return months

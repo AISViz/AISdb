@@ -66,19 +66,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Start PostgreSQL with PostGIS
+      - name: Skip DB setup on Windows
         run: |
-          docker run --name aisdb-pg -e POSTGRES_PASSWORD=${{ env.pgpass }} -e POSTGRES_USER=${{ env.pguser }} -p 5432:5432 -d postgis/postgis:17-3.5
-
-          $ready = $false
-          for ($i = 0; $i -lt 30; $i++) {
-            docker exec aisdb-pg pg_isready -U $env:pguser -d postgres
-            if ($LASTEXITCODE -eq 0) { $ready = $true; break }
-            Start-Sleep -Seconds 2
-          }
-          if (-not $ready) { throw "PostgreSQL did not become ready in time" }
-
-          docker exec aisdb-pg psql -U $env:pguser -d postgres -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          echo "Skipping PostgreSQL/PostGIS setup on Windows (Docker images are Linux-only)."
           
       - name: Create Python Virtual Environment and Install Dependencies
         run: |
@@ -93,7 +83,19 @@ jobs:
       - name: Run Tests
         run: |
           . AISdb\Scripts\Activate.ps1
-          pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+          pytest ./aisdb/tests/ \
+            --ignore=./aisdb/tests/test_001_postgres.py \
+            --ignore=./aisdb/tests/test_001_postgres_global.py \
+            --ignore=./aisdb/tests/test_002_decode.py \
+            --ignore=./aisdb/tests/test_002_decode_global.py \
+            --ignore=./aisdb/tests/test_005_dbqry.py \
+            --ignore=./aisdb/tests/test_005_dbqry_postgres.py \
+            --ignore=./aisdb/tests/test_007_trackgen.py \
+            --ignore=./aisdb/tests/test_008_interp.py \
+            --ignore=./aisdb/tests/test_011_ui.py \
+            --ignore=./aisdb/tests/test_013_proc_util.py \
+            --ignore=./aisdb/tests/test_014_marinetraffic.py \
+            --maxfail=10
 
       - name: Clean Up
         run: |

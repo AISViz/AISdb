@@ -220,30 +220,62 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         with self.cursor() as cur:
             cur.execute(sql, args)
 
-    def drop_indexes(self, verbose=True, timescaledb=False):
-        if verbose:
-            print(f'dropping indexes of ais_global_dynamic...')
+    def drop_indexes(self, month=None, verbose=True, timescaledb=False):
         dbconn = self.conn
-        if timescaledb:
-            dbconn.execute(f"DROP INDEX IF EXISTS ais_global_dynamic_mmsi_time_idx;")
-            dbconn.execute(f"DROP INDEX IF EXISTS ais_global_dynamic_time_idx;")
-        else:
+        if timescaledb or month is None:
+            if verbose:
+                print('dropping indexes of ais_global_dynamic...')
+            dbconn.execute('DROP INDEX IF EXISTS ais_global_dynamic_mmsi_time_idx;')
+            dbconn.execute('DROP INDEX IF EXISTS ais_global_dynamic_time_idx;')
             for idx_name in ("mmsi", "time", "longitude", "latitude"):
                 dbconn.execute(f"DROP INDEX IF EXISTS idx_ais_global_dynamic_{idx_name};")
+            return
 
-    def rebuild_indexes(self, verbose=True, timescaledb=False):
         if verbose:
-            print(f'indexing ais_global_dynamic...')
+            print(f'dropping indexes of ais_{month}_dynamic...')
+        dbconn.execute(f"DROP INDEX IF EXISTS idx_ais_{month}_dynamic_pkkey;")
+        dbconn.execute(f"DROP INDEX IF EXISTS idx_{month}_dynamic_longitude;")
+        dbconn.execute(f"DROP INDEX IF EXISTS idx_{month}_dynamic_latitude;")
+        dbconn.execute(f"DROP INDEX IF EXISTS idx_{month}_dynamic_time;")
+        dbconn.execute(f"DROP INDEX IF EXISTS idx_{month}_dynamic_mmsi;")
+
+    def rebuild_indexes(self, month=None, verbose=True, timescaledb=False):
         dbconn = self.conn
-        if timescaledb:
-            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_global_dynamic_mmsi_time_idx"
-                           f"ON ais_global_dynamic (mmsi, time);")
-            dbconn.execute(f"CREATE INDEX IF NOT EXISTS ais_global_dynamic_time_idx"
-                           f"ON ais_global_dynamic (time);")
-        else:
+        if timescaledb or month is None:
+            if verbose:
+                print('indexing ais_global_dynamic...')
+            dbconn.execute(
+                "CREATE INDEX IF NOT EXISTS ais_global_dynamic_mmsi_time_idx"
+                " ON ais_global_dynamic (mmsi, time);"
+            )
+            dbconn.execute(
+                "CREATE INDEX IF NOT EXISTS ais_global_dynamic_time_idx"
+                " ON ais_global_dynamic (time);"
+            )
             for idx_name in ('mmsi', 'time', 'longitude', 'latitude'):
                 dbconn.execute(
                     f"CREATE INDEX IF NOT EXISTS idx_ais_global_dynamic_{idx_name} ON ais_global_dynamic ({idx_name});")
+            dbconn.commit()
+            return
+
+        if verbose:
+            print(f'indexing ais_{month}_dynamic...')
+        dbconn.execute(
+            f"CREATE UNIQUE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_pkkey "
+            f"ON ais_{month}_dynamic (mmsi, time, longitude, latitude);"
+        )
+        dbconn.execute(
+            f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_longitude ON ais_{month}_dynamic (longitude);"
+        )
+        dbconn.execute(
+            f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_latitude ON ais_{month}_dynamic (latitude);"
+        )
+        dbconn.execute(
+            f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_time ON ais_{month}_dynamic (time);"
+        )
+        dbconn.execute(
+            f"CREATE INDEX IF NOT EXISTS idx_{month}_dynamic_mmsi ON ais_{month}_dynamic (mmsi);"
+        )
 
         # dbconn.execute(
         #     f'CREATE INDEX IF NOT EXISTS idx_ais_{month}_dynamic_mmsi '
@@ -295,22 +327,37 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
         # if verbose:
         #     print(f'done clustering: {month}')
 
-    def deduplicate_dynamic_msgs(self, verbose=True):
+    def deduplicate_dynamic_msgs(self, month=None, verbose=True, timescaledb=False):
         dbconn = self.conn
-        dbconn.execute('''
-            DELETE FROM ais_global_dynamic WHERE ctid IN (
+        if timescaledb or month is None:
+            dbconn.execute('''
+                DELETE FROM ais_global_dynamic WHERE ctid IN (
+                    SELECT ctid FROM (
+                        SELECT *, row_number() OVER (PARTITION BY mmsi, time, source ORDER BY ctid)
+                        FROM ais_global_dynamic
+                    ) AS duplicates
+                    WHERE row_number > 1
+                )
+                ''')
+            dbconn.commit()
+            if verbose:
+                print('done deduplicating ais_global_dynamic')
+            return
+
+        dbconn.execute(f'''
+            DELETE FROM ais_{month}_dynamic WHERE ctid IN (
                 SELECT ctid FROM (
                     SELECT *, row_number() OVER (PARTITION BY mmsi, time, source ORDER BY ctid)
-                    FROM ais_global_dynamic
-                ) AS duplicates
+                    FROM ais_{month}_dynamic
+                ) AS duplicates_{month}
                 WHERE row_number > 1
             )
             ''')
         dbconn.commit()
         if verbose:
-            print(f'done deduplicating ais_global_dynamic')
+            print(f'done deduplicating ais_{month}_dynamic')
 
-    def aggregate_static_msgs(self, verbose: bool = True):
+    def aggregate_static_msgs(self, months=None, verbose: bool = True, **_):
         ''' collect an aggregate of static vessel reports for each unique MMSI
             identifier. The most frequently repeated values for each MMSI will
             be kept when multiple different reports appear for the same MMSI
@@ -318,11 +365,15 @@ class PostgresDBConn(_DBConn, psycopg.Connection):
             this function should be called every time data is added to the database
 
             args:
-                months_str (list)
-                    list of strings with format: YYYYmm
+                months (list|None)
+                    unused for global aggregate (kept for compatibility)
                 verbose (bool)
                     logs messages to stdout
         '''
+
+        if isinstance(months, bool) and verbose is True:
+            verbose = months
+            months = None
 
         cur = self.cursor()
 
