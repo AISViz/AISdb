@@ -66,9 +66,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Start PostgreSQL (TimescaleDB + PostGIS)
+      - name: Start PostgreSQL with PostGIS
         run: |
-          docker run --name aisdb-pg -e POSTGRES_PASSWORD=${{ env.pgpass }} -e POSTGRES_USER=${{ env.pguser }} -p 5432:5432 -d timescale/timescaledb-ha:pg17
+          docker run --name aisdb-pg -e POSTGRES_PASSWORD=${{ env.pgpass }} -e POSTGRES_USER=${{ env.pguser }} -p 5432:5432 -d postgis/postgis:17-3.5
 
           $ready = $false
           for ($i = 0; $i -lt 30; $i++) {
@@ -79,7 +79,6 @@ jobs:
           if (-not $ready) { throw "PostgreSQL did not become ready in time" }
 
           docker exec aisdb-pg psql -U $env:pguser -d postgres -c "CREATE EXTENSION IF NOT EXISTS postgis;"
-          docker exec aisdb-pg psql -U $env:pguser -d postgres -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
           
       - name: Create Python Virtual Environment and Install Dependencies
         run: |

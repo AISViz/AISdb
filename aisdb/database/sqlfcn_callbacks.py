@@ -56,7 +56,9 @@ in_bbox_time_geom = lambda **kwargs: f'''\
 in_bbox_time_validmmsi_geom = lambda **kwargs: f'''\
     {in_bbox_geom(**kwargs)} AND
     {in_timerange(**kwargs)} AND
-    {valid_mmsi(**kwargs)} '''in_time_bbox = lambda **kwargs: f'''
+    {valid_mmsi(**kwargs)} '''
+
+in_time_bbox = lambda **kwargs: f'''
     {in_timerange(**kwargs)} AND
     {in_bbox_plain(**kwargs)} '''
 in_time_bbox_hasmmsi = lambda **kwargs: f'''
