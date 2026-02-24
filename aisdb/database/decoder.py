@@ -178,9 +178,10 @@ def process_raw_files(dbconn, dbindex, raw_files, source, timescaledb, raw_inser
             with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
                 create_static_table_stmt = f.read()
 
-            for month in months:
-                dbconn.execute(create_dynamic_table_stmt.format(month))
-                dbconn.execute(create_static_table_stmt.format(month))
+            dbconn.execute(create_dynamic_table_stmt)
+            dbconn.execute(create_static_table_stmt)
+            if not raw_insertion:
+                dbconn.drop_indexes(verbose=verbose, timescaledb=timescaledb)
             dbconn.commit()
         else:
             with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
@@ -191,8 +192,6 @@ def process_raw_files(dbconn, dbindex, raw_files, source, timescaledb, raw_inser
             for month in months:
                 dbconn.execute(create_dynamic_table_stmt.format(month))
                 dbconn.execute(create_static_table_stmt.format(month))
-                if not raw_insertion:
-                    dbconn.drop_indexes(month, verbose, timescaledb)
             dbconn.commit()
 
         completed_files = decoder(dbpath="",
@@ -226,14 +225,13 @@ def process_raw_files(dbconn, dbindex, raw_files, source, timescaledb, raw_inser
         print(f"Error cleaning temporary files: {e}")
 
     if isinstance(dbconn, PostgresDBConn):
-        if not raw_insertion and not timescaledb:
-            for month in months:
-                dbconn.rebuild_indexes(month, verbose, timescaledb)
-                dbconn.execute("ANALYZE")
+        if not raw_insertion and timescaledb:
+            dbconn.rebuild_indexes(verbose=verbose, timescaledb=timescaledb)
+            dbconn.execute("ANALYZE")
         dbconn.commit()     
 
     if timescaledb:
-        dbconn.aggregate_static_msgs(verbose)
+        dbconn.aggregate_static_msgs(verbose=verbose)
     else:
         dbconn.aggregate_static_msgs(months, verbose)
 

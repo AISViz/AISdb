@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS ais_{0}_static
+CREATE TABLE IF NOT EXISTS ais_global_static
 (
     mmsi           INTEGER NOT NULL,
     time           INTEGER NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS ais_{0}_static
 );
 
 SELECT create_hypertable(
-    'ais_{0}_static',
+    'ais_global_static',
     'time',
     partitioning_column => 'mmsi',
     number_partitions => 4,
@@ -31,7 +31,7 @@ SELECT create_hypertable(
     if_not_exists => TRUE
 );
 
-ALTER TABLE ais_{0}_static SET (
+ALTER TABLE ais_global_static SET (
     timescaledb.compress = false,
     timescaledb.compress_orderby = 'time ASC',
     timescaledb.compress_segmentby = 'mmsi'

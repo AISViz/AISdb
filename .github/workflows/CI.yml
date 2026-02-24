@@ -68,7 +68,7 @@ jobs:
 
       - name: Start PostgreSQL (TimescaleDB + PostGIS)
         run: |
-          docker run --name aisdb-pg -e POSTGRES_PASSWORD=${{ env.pgpass }} -e POSTGRES_USER=${{ env.pguser }} -p 5432:5432 -d timescale/timescaledb-postgis:latest-pg17
+          docker run --name aisdb-pg -e POSTGRES_PASSWORD=${{ env.pgpass }} -e POSTGRES_USER=${{ env.pguser }} -p 5432:5432 -d timescale/timescaledb-ha:pg17
 
           $ready = $false
           for ($i = 0; $i -lt 30; $i++) {
