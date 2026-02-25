@@ -172,6 +172,33 @@ def process_raw_files(dbconn, dbindex, raw_files, source, timescaledb, raw_inser
         print("creating tables...")
 
     if isinstance(dbconn, PostgresDBConn):
+        # Ensure global tables exist
+        global_dynamic_table = """
+        CREATE TABLE IF NOT EXISTS ais_global_dynamic (
+            id SERIAL PRIMARY KEY,
+            mmsi BIGINT NOT NULL,
+            timestamp TIMESTAMPTZ NOT NULL,
+            data JSONB
+        );
+        """
+
+        global_static_table = """
+        CREATE TABLE IF NOT EXISTS ais_global_static (
+            id SERIAL PRIMARY KEY,
+            mmsi BIGINT NOT NULL,
+            timestamp TIMESTAMPTZ NOT NULL,
+            data JSONB
+        );
+        """
+
+        dbconn.execute(global_dynamic_table)
+        dbconn.execute(global_static_table)
+        dbconn.commit()
+
+        # Normalize parameter types
+        raw_files = [str(f) for f in raw_files]  # Ensure file paths are strings
+        type_preference = [int(tp) for tp in type_preference]  # Ensure types are integers
+
         if timescaledb:
             with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
                 create_dynamic_table_stmt = f.read()

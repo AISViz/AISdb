@@ -101,7 +101,8 @@ def test_sql_query_strings_postgres(tmpdir):
             sqlfcn_callbacks.in_timerange_validmmsi, ]:
             rowgen = DBQuery(dbconn=aisdatabase, start=start, end=end, **domain.boundary, callback=callback,
                 mmsi=316000000, mmsis=[316000000, 316000001], ).gen_qry(fcn=sqlfcn.crawl_dynamic_static)
-            next(rowgen)
+            row = next(rowgen, None)
+            assert row is not None, "Expected at least one row from query; database may be empty or ingest failed."
         aisdatabase.rebuild_indexes(months[0], verbose=False)
         aisdatabase.deduplicate_dynamic_msgs(months[0], verbose=True)
         aisdatabase.deduplicate_dynamic_msgs(months[0], verbose=False)
