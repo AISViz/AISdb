@@ -1,11 +1,13 @@
-name: Pipeline
+# Updated CI workflow to match commit 839ec1903c038afd228e8adbc22d88de78f5c27f
 
 on:
   push:
     branches:
       - master
+      - aisdb_lightning
     tags:
       - '*'
+
   pull_request:
   workflow_dispatch:
 
