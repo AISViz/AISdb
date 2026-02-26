@@ -7,8 +7,6 @@ on:
       - aisdb_lightning
     tags:
       - '*'
-
-  pull_request:
   workflow_dispatch:
 
 permissions:
