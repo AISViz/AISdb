@@ -17,6 +17,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // download web assets from gitlab CD artifacts
     // if OFFLINE_BUILD is not set, it is expected that artifacts will be passed from previous job
 
+    // Skip wasm/web build for backend-only development (e.g. Windows dev, CI without Node)
+    if std::env::var("SKIP_WASM_BUILD").is_ok() {
+        eprintln!("SKIP_WASM_BUILD set — skipping wasm-pack and web asset build.");
+        return Ok(());
+    }
+
     // use current directory as root directory for all commands
     let rootdir = std::env::current_dir().unwrap();
     eprintln!("Root directory: {:?}", rootdir);
@@ -27,7 +33,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::fs::create_dir_all(pkg_path).unwrap();
     }
 
-    let wasm_pack_path = Command::new("which")
+    #[cfg(target_os = "windows")]
+    let which_cmd = "where";
+    #[cfg(not(target_os = "windows"))]
+    let which_cmd = "which";
+
+    let wasm_pack_path = Command::new(which_cmd)
         .arg("wasm-pack")
         .output()?;
 
