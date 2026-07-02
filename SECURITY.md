@@ -4,10 +4,11 @@
 
 AISdb is committed to maintaining the security of our software and promptly addressing security vulnerabilities. The following table provides an overview of the versions of AISdb currently receiving security updates:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| > 1.7.0 | :white_check_mark: |
-| < 1.7.1 | :x:                |
+| Version  | Supported          |
+| -------- | ------------------ |
+| 1.8.x    | :white_check_mark: |
+| >= 1.7.1 | :white_check_mark: |
+| < 1.7.1  | :x:                |
 
 ## Reporting a Vulnerability
 

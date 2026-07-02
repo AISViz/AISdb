@@ -1,14 +1,14 @@
 [package]
 name = "client"
-version = "1.7.0"
+version = "1.8.0-alpha"
 edition = "2021"
-authors = [ "MERIDIAN // Matt Smith matthew.smith@dal.ca",]
-readme = "../../readme.rst"
+authors = [ "AISViz Maintainers // aisviz@dal.ca",]
+readme = "../README.md"
 description = "AIS Database and Processing Utils - Web Client WASM functions"
-homepage = "https://aisdb.meridian.cs.dal.ca/"
-documentation = "https://aisdb.meridian.cs.dal.ca/doc/readme.html"
-repository = "https://git-dev.cs.dal.ca/meridian/aisdb"
-license-file = "../../license.txt"
+homepage = "https://aisviz.cs.dal.ca/"
+documentation = "https://aisviz.gitbook.io/documentation/"
+repository = "https://github.com/AISViz/AISdb"
+license-file = "../LICENSE"
 
 [lib]
 crate-type = [ "cdylib",]

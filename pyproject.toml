@@ -14,7 +14,7 @@ dependencies = [
 ]
 zip-safe = false
 version = "1.8.0-alpha"
-readme = "README"
+readme = "README.md"
 description = "Smart AIS data storage and integration"
 classifiers = [
     "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9",
@@ -27,7 +27,7 @@ classifiers = [
 
 [[project.authors]]
 email = "aisviz@dal.ca"
-name = "AISViz Mantainers"
+name = "AISViz Maintainers"
 
 [project.license]
 file = "LICENSE"
@@ -52,7 +52,6 @@ include = [
     "aisdb_web/dist_map/index.html", "aisdb_web/dist_map_bingmaps/assets/*", "aisdb_web/dist_map_bingmaps/favicon.png"
 ]
 bindings = "pyo3"
-compatability = "manylinux2014"
 
 [tool.pytest.ini_options]
 testpaths = ["aisdb/tests"]

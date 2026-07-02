@@ -2,6 +2,23 @@
 Changelog
 =========
 
+v1.8.0-alpha
+------------
+
+released 2025-03-15. migrate the database backend and CI pipelines to
+TimescaleDB on PostgreSQL 17, parse ETA fields from Spire CSV sources,
+reduce memory usage when processing NOAA CSV files, replace deprecated
+epoch handling with datetime, and publish API docs via GitHub Actions
+
+
+v1.7.1
+------
+
+released 2024-03-09. move the web interface to the separate aisdb-web
+repository, apply dependency security updates, and repair the CI
+workflows
+
+
 v1.7.0
 ------
 

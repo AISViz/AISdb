@@ -41,7 +41,7 @@ dependencies = [
 
 [[package]]
 name = "aisdb-lib"
-version = "1.7.0"
+version = "1.8.0-alpha"
 dependencies = [
  "chrono",
  "csv",
@@ -55,7 +55,7 @@ dependencies = [
 
 [[package]]
 name = "aisdb-receiver"
-version = "0.0.1"
+version = "1.8.0-alpha"
 dependencies = [
  "aisdb-lib",
  "mproxy-client",

@@ -41,7 +41,7 @@ dependencies = [
 
 [[package]]
 name = "aisdb-db-server"
-version = "0.1.0"
+version = "1.8.0-alpha"
 dependencies = [
  "aisdb-lib",
  "chrono",
@@ -57,7 +57,7 @@ dependencies = [
 
 [[package]]
 name = "aisdb-lib"
-version = "1.7.0"
+version = "1.8.0-alpha"
 dependencies = [
  "chrono",
  "csv",

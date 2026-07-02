@@ -1,7 +1,14 @@
 [package]
 name = "aisdb-db-server"
-version = "0.1.0"
+version = "1.8.0-alpha"
 edition = "2021"
+authors = [ "AISViz Maintainers // aisviz@dal.ca",]
+readme = "../README.md"
+description = "AIS Database and Processing Utils - Database Server"
+homepage = "https://aisviz.cs.dal.ca/"
+documentation = "https://aisviz.gitbook.io/documentation/"
+repository = "https://github.com/AISViz/AISdb"
+license-file = "../LICENSE"
 
 [lib]
 name = 'aisdb_db_server'
@@ -10,9 +17,6 @@ path = 'src/lib.rs'
 [[bin]]
 name = 'aisdb-db-server'
 path = 'src/main.rs'
-
-[toolchain]
-channel = "nightly"
 
 [dependencies]
 aisdb-lib = {path = "../aisdb_lib", features=["postgres"]}
