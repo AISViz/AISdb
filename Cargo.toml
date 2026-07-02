@@ -9,14 +9,14 @@ crate-type = [ "cdylib", "rlib", ]
 path = "src/lib.rs"
 
 [dependencies]
-geo = "0.26"
+geo = "0.29"
 geo-types = "0.7"
-nmea-parser = "0.10"
-sysinfo = "0.29"
+nmea-parser = "0.11"
+sysinfo = "0.33"
 
 [build-dependencies]
-wasm-opt = "0.112"
-wasm-pack = "0.13"
+wasm-opt = "0.116"
+wasm-pack = "0.15"
 
 [dependencies.futures]
 version = "0.3"
@@ -30,5 +30,5 @@ features = [ "sqlite", "postgres",]
 path = "receiver"
 
 [dependencies.pyo3]
-version = "0.18.3"
+version = "0.25.1"
 features = [ "extension-module", "generate-import-lib",]
