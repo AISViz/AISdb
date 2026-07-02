@@ -30,5 +30,5 @@ features = [ "sqlite", "postgres",]
 path = "receiver"
 
 [dependencies.pyo3]
-version = "0.18.3"
+version = "0.25.1"
 features = [ "extension-module", "generate-import-lib",]
