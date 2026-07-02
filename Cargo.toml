@@ -2,6 +2,7 @@
 name = "aisdb"
 edition = "2021"
 version = "1.8.0-alpha"
+authors = [ "AISViz Maintainers // aisviz@dal.ca",]
 include = [
     "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map_bingmaps/index.html", "aisdb_web/dist_map_bingmaps/favicon.svg",
     "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml",
