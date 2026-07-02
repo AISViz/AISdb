@@ -443,7 +443,7 @@ fn handle_websocket_client(
                     //#[cfg(debug_assertions)]
                     //println!("RX: {}", String::from_utf8_lossy(&buf[0..count_input]));
                     if let Err(e) = websocket.send(Message::Text(
-                        String::from_utf8(buf[0..count_input].to_vec()).unwrap(),
+                        String::from_utf8(buf[0..count_input].to_vec()).unwrap().into(),
                     )) {
                         eprintln!("dropping client: {} {}", remote_addr, e);
                         return;

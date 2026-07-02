@@ -12,7 +12,8 @@ use geo::{point, HaversineDistance, SimplifyVwIdx};
 use geo_types::{Coord, LineString};
 use nmea_parser::NmeaParser;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
-use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, PyErr, PyResult, Python};
+use pyo3::types::{PyModule, PyModuleMethods};
+use pyo3::{pyfunction, pymodule, wrap_pyfunction, Bound, PyErr, PyResult, Python};
 use sysinfo::{RefreshKind, System, SystemExt};
 
 use aisdb_lib::csvreader::{
@@ -90,7 +91,6 @@ fn haversine_impl(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 ///     None
 ///
 #[pyfunction]
-#[pyo3(text_signature = "(dbpath, psql_conn_string, files, source, verbose)")]
 #[allow(clippy::too_many_arguments)]
 pub fn decoder(
     dbpath: PathBuf,
@@ -570,6 +570,20 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> PyResult<Vec<
 ///         If True, raw input will be copied to stdout
 #[pyfunction]
 #[allow(clippy::too_many_arguments)]
+#[pyo3(signature = (
+    sqlite_dbpath=None,
+    postgres_connection_string=None,
+    tcp_connect_addr=None,
+    tcp_listen_addr=None,
+    udp_listen_addr=None,
+    multicast_addr_parsed=None,
+    multicast_addr_raw=None,
+    tcp_output_addr=None,
+    udp_output_addr=None,
+    dynamic_msg_bufsize=None,
+    static_msg_bufsize=None,
+    tee=None,
+))]
 pub fn receiver(
     sqlite_dbpath: Option<String>,
     postgres_connection_string: Option<String>,
@@ -610,13 +624,12 @@ pub fn receiver(
 
 /// Functions imported from Rust
 #[pymodule]
-#[allow(unused_variables)]
-pub fn aisdb(py: Python, module: &PyModule) -> PyResult<()> {
-    module.add_wrapped(wrap_pyfunction!(decoder))?;
-    module.add_wrapped(wrap_pyfunction!(binarysearch_vector))?;
-    module.add_wrapped(wrap_pyfunction!(encoder_score_fcn))?;
-    module.add_wrapped(wrap_pyfunction!(haversine))?;
-    module.add_wrapped(wrap_pyfunction!(receiver))?;
-    module.add_wrapped(wrap_pyfunction!(simplify_linestring_idx))?;
+pub fn aisdb(module: &Bound<'_, PyModule>) -> PyResult<()> {
+    module.add_function(wrap_pyfunction!(decoder, module)?)?;
+    module.add_function(wrap_pyfunction!(binarysearch_vector, module)?)?;
+    module.add_function(wrap_pyfunction!(encoder_score_fcn, module)?)?;
+    module.add_function(wrap_pyfunction!(haversine, module)?)?;
+    module.add_function(wrap_pyfunction!(receiver, module)?)?;
+    module.add_function(wrap_pyfunction!(simplify_linestring_idx, module)?)?;
     Ok(())
 }
