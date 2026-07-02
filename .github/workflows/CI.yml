@@ -291,6 +291,7 @@ jobs:
       - name: Install TimescaleDB
         run: |
           brew tap timescale/tap
+          brew trust timescale/tap
           brew install timescaledb
           timescaledb-tune --quiet --yes
           brew services restart postgresql@17
