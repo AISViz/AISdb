@@ -4,5 +4,5 @@
   "main": "docserver.js", 
   "type": "module", 
   "author": "MERIDIAN / Matt Smith", 
-  "dependencies": {"express": ">=4.18.1"}
+  "dependencies": {"express": ">=4.22.0"}
 }
