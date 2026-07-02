@@ -629,7 +629,7 @@ pub fn handle_client(
                     websocket.send(Message::binary(zone.to_string()))?;
                 }
                 websocket.send(Message::Binary(
-                    "{\"msgtype\":\"doneZones\"}".as_bytes().to_vec(),
+                    "{\"msgtype\":\"doneZones\"}".as_bytes().to_vec().into(),
                 ))?;
             }
 
