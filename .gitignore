@@ -58,7 +58,6 @@ docs/dist_sphinx
 docs/html
 docs/source/api
 docs/source/changelog.rst
-docs/source/readme.rst
 info.sh
 prof
 profile

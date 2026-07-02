@@ -14,7 +14,7 @@ dependencies = [
 ]
 zip-safe = false
 version = "1.8.0-alpha"
-readme = "README"
+readme = "README.md"
 description = "Smart AIS data storage and integration"
 classifiers = [
     "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9",
