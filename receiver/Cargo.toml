@@ -1,9 +1,9 @@
 [package]
 name = "aisdb-receiver"
-version = "0.0.1"
+version = "1.8.0-alpha"
 edition = "2021"
-authors = [ "[AISViz] Making vessels tracking data available to everyone // aisviz@dal.ca", ]
-readme = "../readme.rst"
+authors = [ "AISViz Maintainers // aisviz@dal.ca",]
+readme = "../README.md"
 description = "AISDB Receiver"
 homepage = "https://aisviz.cs.dal.ca/"
 repository = "https://github.com/AISViz/AISdb"
