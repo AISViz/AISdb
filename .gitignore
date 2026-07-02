@@ -46,6 +46,8 @@ aisdb.egg-info
 aisdb/tests/test_zones/East_Coast_EEZ_Zones_4_25_22
 aisdb_lib/testdata
 aisdb_web/dist_cargodoc
+aisdb_web/map/pkg/
+dist/
 aisdb_web/dist_jsdoc
 aisdb_web/dist_map
 aisdb_web/dist_map_bingmaps
@@ -68,3 +70,4 @@ testinput
 !aisdb/tests/testdata/
 build.sh
 install-rust.sh
+uv.lock

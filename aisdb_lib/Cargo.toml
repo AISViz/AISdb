@@ -9,7 +9,6 @@ readme = "../README.md"
 description = "AIS Database and Processing Utils"
 homepage = "https://aisviz.cs.dal.ca/"
 repository = "https://github.com/AISViz/AISdb"
-tutorials = "https://aisviz.gitbook.io/tutorials/"
 documentation = "https://aisviz.gitbook.io/documentation/"
 license-file = "../LICENSE"
 
@@ -22,7 +21,7 @@ postgres = [ "dep:postgres",]
 
 [dependencies]
 geo = "0.26"
-geo-types = "*"
+geo-types = "0.7"
 include_dir = "0.7.2"
 
 [dependencies.postgres]
@@ -30,7 +29,7 @@ version = "0.19"
 optional = true
 
 [dependencies.chrono]
-version = "0.4.21"
+version = "0.4"
 
 [dependencies.csv]
 version = "1.1"

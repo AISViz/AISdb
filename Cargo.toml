@@ -3,12 +3,6 @@ name = "aisdb"
 edition = "2021"
 version = "1.8.0-alpha"
 authors = [ "AISViz Maintainers // aisviz@dal.ca",]
-include = [
-    "aisdb_web/dist_map/assets/*", "aisdb_web/dist_map_bingmaps/index.html", "aisdb_web/dist_map_bingmaps/favicon.svg",
-    "aisdb/*.py", "aisdb/aisdb_sql", "aisdb/database/*.py", "aisdb/webdata/*.py", "/src", "pyproject.toml",
-    "aisdb_web/dist_map/index.html", "aisdb_web/dist_map/favicon.svg", "aisdb_web/dist_map/favicon.png",
-    "aisdb_web/dist_map_bingmaps/favicon.png", "aisdb_web/dist_map_bingmaps/assets/*",
-]
 
 [lib]
 crate-type = [ "cdylib", "rlib", ]
@@ -16,14 +10,13 @@ path = "src/lib.rs"
 
 [dependencies]
 geo = "0.26"
-geo-types = "*"
+geo-types = "0.7"
 nmea-parser = "0.10"
 sysinfo = "0.29"
 
 [build-dependencies]
 wasm-opt = "0.112"
 wasm-pack = "0.13"
-reqwest = "0.11"
 
 [dependencies.futures]
 version = "0.3"

@@ -1,30 +1,25 @@
-#![feature(generators, generator_trait)]
-
 use std::net::TcpListener;
-pub use std::ops::{Generator, GeneratorState, IndexMut};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::thread::spawn;
 
-use aisdb_db_server::aisdb_db_server::handle_client;
+use aisdb_db_server::handle_client;
 use aisdb_lib::db::{get_postgresdb_conn, sql_from_file};
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     // database connection config
-    let pghost = std::env::var("PGHOST").unwrap_or("[fc00::9]".to_string());
-    let pguser = std::env::var("PGUSER").unwrap_or("postgres".to_string());
-    let pgport = std::env::var("PGPORT").unwrap_or("5432".to_string());
+    let pghost = std::env::var("PGHOST").unwrap_or_else(|_| "[fc00::9]".to_string());
+    let pguser = std::env::var("PGUSER").unwrap_or_else(|_| "postgres".to_string());
+    let pgport = std::env::var("PGPORT").unwrap_or_else(|_| "5432".to_string());
 
     // read the database password from secret file
-    let default_pgpassfile = Path::join(
-        std::env::home_dir()
-            .expect("Could not get home directory for .pgpass file")
-            .as_path(),
-        &Path::new(".pgpass"),
-    )
-    .to_str()
-    .unwrap()
-    .to_string();
-    let pgpassfile = std::env::var("PGPASSFILE").unwrap_or(default_pgpassfile);
+    let pgpassfile = std::env::var("PGPASSFILE").unwrap_or_else(|_| {
+        let home = std::env::var_os("HOME")
+            .expect("HOME is not set; provide PGPASSFILE for the .pgpass location");
+        PathBuf::from(home)
+            .join(".pgpass")
+            .to_string_lossy()
+            .into_owned()
+    });
     let mut pgpass = std::fs::read_to_string(Path::new(&pgpassfile))
         .unwrap_or_else(|e| panic!("Reading {}: {}", pgpassfile, e));
     if pgpass.ends_with('\n') {
@@ -43,8 +38,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // server config
-    let allow_clients = std::env::var("AISDBHOSTALLOW").unwrap_or("[::]".to_string());
-    let listen_port = std::env::var("AISDBPORT").unwrap_or("9924".to_string());
+    let allow_clients = std::env::var("AISDBHOSTALLOW").unwrap_or_else(|_| "[::]".to_string());
+    let listen_port = std::env::var("AISDBPORT").unwrap_or_else(|_| "9924".to_string());
     let tcp_listen_address = format!("{}:{}", allow_clients, listen_port);
     let listener = TcpListener::bind(tcp_listen_address.clone())
         .unwrap_or_else(|_| panic!("Binding address {}", tcp_listen_address));
@@ -65,9 +60,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(client) => {
                 let conn_str = postgres_connection_string.clone();
                 spawn(move || {
-                    let mut pg = get_postgresdb_conn(&conn_str).unwrap();
-                    let handle = handle_client(client, &mut pg);
-                    match handle {
+                    let mut pg = get_postgresdb_conn(&conn_str).expect("connecting to postgres");
+                    match handle_client(client, &mut pg) {
                         Err(e) => {
                             eprintln!("error processing client request: {}", e)
                         }

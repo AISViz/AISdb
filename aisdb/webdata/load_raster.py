@@ -2,30 +2,29 @@ import os
 
 import numpy as np
 from PIL import Image
+
 from aisdb.aisdb import binarysearch_vector
 
 Image.MAX_IMAGE_PIXELS = 650000000  # suppress DecompressionBombError warning
 
 
-class _RasterFile_generic():
-
+class _RasterFile_generic:
     def __enter__(self):
-        assert hasattr(self, 'img')
+        assert hasattr(self, "img")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        ''' close raster files upon exit from context '''
+        """close raster files upon exit from context"""
         self.img.close()
 
     def merge_tracks(self, tracks, new_track_key: str):
         for track in tracks:
-            track['dynamic'] = set(track['dynamic']).union(set([new_track_key]))
+            track["dynamic"] = set(track["dynamic"]).union(set([new_track_key]))
             track[new_track_key] = self._track_coordinate_values(track)
             yield track
 
 
 class RasterFile(_RasterFile_generic):
-
     def _get_img_grids(self, im):
         if 33922 in im.tag.tagdata.keys():
             # GDAL tags
@@ -38,11 +37,12 @@ class RasterFile(_RasterFile_generic):
         elif 34264 in im.tag.tagdata.keys():  # pragma: no cover
             # NASA JPL tags
             dx, _, _, x, _, dy, _, y, _, _, dz, z, _, _, _, _ = im.tag_v2[
-                34264]  # ModelTransformationTag
+                34264
+            ]  # ModelTransformationTag
             lat = np.arange(y + dy, y + (dy * im.size[1]) + dy, dy)
 
         else:
-            raise ValueError('error: unknown metadata tag encoding')
+            raise ValueError("error: unknown metadata tag encoding")
 
         lon = np.arange(x + dx, x + (dx * im.size[0]) + dx, dx)
 
@@ -50,19 +50,30 @@ class RasterFile(_RasterFile_generic):
 
     def __init__(self, imgpath):
         self.imgpath = imgpath
-        assert not hasattr(self, 'img')
-        assert os.path.isfile(
-            self.imgpath), f'raster file {self.imgpath} not found!'
+        assert not hasattr(self, "img")
+        assert os.path.isfile(self.imgpath), f"raster file {self.imgpath} not found!"
         self.img = Image.open(self.imgpath)
         self.xy = self._get_img_grids(self.img)
 
     def _get_coordinate_values(self, track, rng=None):
-        idx_lons = np.array(binarysearch_vector(self.xy[0], track['lon'][:] if rng is None else track['lon'][rng]))
-        idx_lats = np.array(binarysearch_vector(self.xy[1], track['lat'][:] if rng is None else track['lon'][rng]))
-        return np.array(list(map(
-            self.img.getpixel,
-            zip(idx_lons, idx_lats),
-        )))
+        idx_lons = np.array(
+            binarysearch_vector(
+                self.xy[0], track["lon"][:] if rng is None else track["lon"][rng]
+            )
+        )
+        idx_lats = np.array(
+            binarysearch_vector(
+                self.xy[1], track["lat"][:] if rng is None else track["lat"][rng]
+            )
+        )
+        return np.array(
+            list(
+                map(
+                    self.img.getpixel,
+                    zip(idx_lons, idx_lats),
+                )
+            )
+        )
 
     def _track_coordinate_values(self, track, *, rng: range = None):
         return self._get_coordinate_values(track, rng=rng)

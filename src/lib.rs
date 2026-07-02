@@ -1,7 +1,8 @@
 //! Rust exports for python API
 use std::cmp::{max, min};
 use std::fs::metadata;
-use std::path::PathBuf;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 use std::thread::{available_parallelism, sleep};
 use std::time::Duration;
@@ -10,10 +11,14 @@ use futures::executor::ThreadPool;
 use geo::{point, HaversineDistance, SimplifyVwIdx};
 use geo_types::{Coord, LineString};
 use nmea_parser::NmeaParser;
-use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, PyResult, Python};
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::{pyfunction, pymodule, types::PyModule, wrap_pyfunction, PyErr, PyResult, Python};
 use sysinfo::{RefreshKind, System, SystemExt};
 
-use aisdb_lib::csvreader::{postgres_decodemsgs_ee_csv, sqlite_decodemsgs_ee_csv, postgres_decodemsgs_noaa_csv, sqlite_decodemsgs_noaa_csv};
+use aisdb_lib::csvreader::{
+    postgres_decodemsgs_ee_csv, postgres_decodemsgs_noaa_csv, sqlite_decodemsgs_ee_csv,
+    sqlite_decodemsgs_noaa_csv,
+};
 use aisdb_lib::decode::{postgres_decode_insert_msgs, sqlite_decode_insert_msgs};
 use aisdb_receiver::{start_receiver, ReceiverArgs};
 
@@ -23,6 +28,21 @@ macro_rules! zip {
         $x.iter().zip(
             zip!($($y), +))
         )
+}
+
+fn panic_to_pyerr(payload: Box<dyn std::any::Any + Send>) -> PyErr {
+    let msg = if let Some(s) = payload.downcast_ref::<&str>() {
+        (*s).to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "panic in aisdb native extension".to_string()
+    };
+    PyRuntimeError::new_err(msg)
+}
+
+fn catch_ffi_panic<T>(body: impl FnOnce() -> PyResult<T>) -> PyResult<T> {
+    catch_unwind(AssertUnwindSafe(body)).unwrap_or_else(|payload| Err(panic_to_pyerr(payload)))
 }
 
 /// fast great circle distance
@@ -41,7 +61,11 @@ macro_rules! zip {
 ///     distance in metres (float64)
 ///
 #[pyfunction]
-pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
+pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> PyResult<f64> {
+    catch_ffi_panic(|| Ok(haversine_impl(x1, y1, x2, y2)))
+}
+
+fn haversine_impl(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
     let p1 = point!(x: x1, y: y1);
     let p2 = point!(x: x2, y: y2);
     p1.haversine_distance(&p2)
@@ -67,6 +91,7 @@ pub fn haversine(x1: f64, y1: f64, x2: f64, y2: f64) -> f64 {
 ///
 #[pyfunction]
 #[pyo3(text_signature = "(dbpath, psql_conn_string, files, source, verbose)")]
+#[allow(clippy::too_many_arguments)]
 pub fn decoder(
     dbpath: PathBuf,
     psql_conn_string: String,
@@ -77,44 +102,89 @@ pub fn decoder(
     allow_swap: bool,
     type_preference: String,
     py: Python,
-) -> Vec<PathBuf> {
-    // tuples containing (dbpath, filepath)
+) -> PyResult<Vec<PathBuf>> {
+    catch_ffi_panic(|| {
+        decoder_impl(
+            dbpath,
+            psql_conn_string,
+            files,
+            source,
+            verbose,
+            workers,
+            allow_swap,
+            type_preference,
+            py,
+        )
+    })
+}
+
+fn known_file_extension(file: &Path) -> bool {
+    matches!(
+        file.extension().and_then(std::ffi::OsStr::to_str),
+        Some("nm4" | "NM4" | "nmea" | "NMEA" | "rx" | "RX" | "txt" | "TXT" | "csv" | "CSV")
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn decoder_impl(
+    dbpath: PathBuf,
+    psql_conn_string: String,
+    files: Vec<PathBuf>,
+    source: String,
+    verbose: bool,
+    workers: u64,
+    allow_swap: bool,
+    type_preference: String,
+    py: Python,
+) -> PyResult<Vec<PathBuf>> {
+    if files.is_empty() {
+        return Err(PyValueError::new_err("no input files given to decoder"));
+    }
+    if let Some(unknown) = files.iter().find(|f| !known_file_extension(f)) {
+        return Err(PyValueError::new_err(format!(
+            "unknown file type: {}",
+            unknown.display()
+        )));
+    }
+
     let mut path_arr: Vec<(PathBuf, PathBuf)> = Vec::new();
     for file in &files {
         path_arr.push((dbpath.clone(), file.to_path_buf()));
     }
 
-    // check average file size for memory allocations and multiply by 2
     let mut bytesize: u64 = 0;
     for file in &files {
-        bytesize += metadata(file).expect("getting file size").len();
+        bytesize += metadata(file)
+            .map_err(|e| PyValueError::new_err(format!("reading {}: {}", file.display(), e)))?
+            .len();
     }
     bytesize /= files.len() as u64;
     bytesize *= 2;
+    bytesize = bytesize.max(1);
 
-    // keep track of memory use before spawning new parallel workers
     let mut sys = System::new_with_specifics(RefreshKind::new().with_memory());
     sys.refresh_memory();
 
-    let worker_count;
-
-    if workers > 0 {
-        worker_count = workers;
+    let worker_count = if workers > 0 {
+        workers
     } else {
-        worker_count = min(
+        min(
             min(
-                max(2, (sys.available_memory() - bytesize) / bytesize),
+                max(
+                    2,
+                    sys.available_memory().saturating_sub(bytesize) / bytesize,
+                ),
                 min(32, available_parallelism().expect("CPU count").get() as u64),
             ),
             files.len() as u64,
-        );
-    }
+        )
+    };
 
     let pool = ThreadPool::builder()
         .pool_size(worker_count as usize)
         .name_prefix("aisdb-decode-")
         .create()
-        .expect("creating pool");
+        .map_err(|e| PyRuntimeError::new_err(format!("creating worker pool: {}", e)))?;
 
     // when each worker is done they will send "true" to the receiver
     let (sender, receiver) = channel::<Result<PathBuf, PathBuf>>();
@@ -132,7 +202,6 @@ pub fn decoder(
         }
     }
 
-    // count workers in progress
     let mut in_process: u64 = 0;
 
     println!(
@@ -143,28 +212,23 @@ pub fn decoder(
         worker_count
     );
 
-    // check file extensions and begin decode
     let mut parser = NmeaParser::new();
     for (d, f) in path_arr.iter() {
         let f = f.clone();
         let source = source.clone();
         let psql_conn_string = psql_conn_string.clone();
 
-        py.check_signals().expect("checking signals");
+        py.check_signals()?;
         sleep(System::MINIMUM_CPU_UPDATE_INTERVAL);
         sys.refresh_memory();
 
         if !allow_swap {
-            // wait until the system has some available memory
-            while (in_process * bytesize > sys.total_memory() - bytesize
+            while (in_process * bytesize > sys.total_memory().saturating_sub(bytesize)
                 || sys.available_memory() < bytesize)
                 && in_process != 0
             {
                 sleep(System::MINIMUM_CPU_UPDATE_INTERVAL + Duration::from_millis(50));
-                // check if keyboardinterrupt was sent
-                py.check_signals()
-                    .expect("Decoder interrupted while spawning workers");
-                // check if worker completed a file
+                py.check_signals()?;
                 match receiver.try_recv() {
                     Ok(r) => {
                         update_done_files(&mut completed, &mut errored, r);
@@ -182,7 +246,10 @@ pub fn decoder(
             println!("processing {}", f.display());
         }
 
-        let extension = f.extension().and_then(std::ffi::OsStr::to_str).map(String::from);
+        let extension = f
+            .extension()
+            .and_then(std::ffi::OsStr::to_str)
+            .map(String::from);
         let process_file = match (extension.as_deref(), type_preference.as_str()) {
             (Some(ext), "csv") if ext.eq_ignore_ascii_case("csv") => true,
             (Some(ext), "other") if !ext.eq_ignore_ascii_case("csv") => true,
@@ -195,7 +262,7 @@ pub fn decoder(
                 Some("nm4") | Some("NM4") | Some("nmea") | Some("NMEA") | Some("rx")
                 | Some("txt") | Some("RX") | Some("TXT") => {
                     if !process_file {
-                        if !dbpath.to_str().unwrap().is_empty() {
+                        if !dbpath.as_os_str().is_empty() {
                             parser = sqlite_decode_insert_msgs(
                                 d.to_path_buf(),
                                 f.clone(),
@@ -203,7 +270,9 @@ pub fn decoder(
                                 parser,
                                 verbose,
                             )
-                            .expect("decoding NM4");
+                            .map_err(|e| {
+                                PyRuntimeError::new_err(format!("decoding {}: {}", f.display(), e))
+                            })?;
                             update_done_files(&mut completed, &mut errored, Ok(f.clone()));
                         }
                         if !psql_conn_string.is_empty() {
@@ -233,12 +302,15 @@ pub fn decoder(
                     }
                 }
                 Some("csv") | Some("CSV") => {
-                    if dbpath != PathBuf::from("") {
+                    if !dbpath.as_os_str().is_empty() {
                         if source.to_lowercase().contains("noaa") {
-                            sqlite_decodemsgs_noaa_csv(d.to_path_buf(), f.clone(), &source, verbose).expect("decoding CSV");
+                            sqlite_decodemsgs_noaa_csv(d.to_path_buf(), f.clone(), &source, verbose)
                         } else {
-                            sqlite_decodemsgs_ee_csv(d.to_path_buf(), f.clone(), &source, verbose).expect("decoding CSV");
+                            sqlite_decodemsgs_ee_csv(d.to_path_buf(), f.clone(), &source, verbose)
                         }
+                        .map_err(|e| {
+                            PyRuntimeError::new_err(format!("decoding {}: {}", f.display(), e))
+                        })?;
                         update_done_files(&mut completed, &mut errored, Ok(f.clone()));
                     }
                     if !psql_conn_string.is_empty() {
@@ -301,11 +373,17 @@ pub fn decoder(
                     }
                 }
                 _ => {
-                    panic!("unknown file type! {:?}", &f);
+                    return Err(PyValueError::new_err(format!(
+                        "unknown file type: {}",
+                        f.display()
+                    )));
                 }
             },
             _ => {
-                panic!("unknown file type! {:?}", &f);
+                return Err(PyValueError::new_err(format!(
+                    "unknown file type: {}",
+                    f.display()
+                )));
             }
         }
     }
@@ -332,7 +410,7 @@ pub fn decoder(
         }
     }
 
-    completed
+    Ok(completed)
 }
 
 /// linear curve decimation using visvalingam-whyatt algorithm.
@@ -351,12 +429,14 @@ pub fn decoder(
 ///         Array of indices along (x,y)
 ///
 #[pyfunction]
-pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<usize> {
-    let coords = zip!(&x, &y)
-        .map(|(xx, yy)| Coord { x: *xx, y: *yy })
-        .collect();
-    let line = LineString(coords).simplify_vw_idx(&precision);
-    line.into_iter().collect::<Vec<usize>>()
+pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> PyResult<Vec<usize>> {
+    catch_ffi_panic(move || {
+        let coords = zip!(&x, &y)
+            .map(|(xx, yy)| Coord { x: *xx, y: *yy })
+            .collect();
+        let line = LineString(coords).simplify_vw_idx(&precision);
+        Ok(line.into_iter().collect::<Vec<usize>>())
+    })
 }
 
 /// This function is used internally by :func:`aisdb.denoising_encoder.encode_score`.
@@ -391,6 +471,7 @@ pub fn simplify_linestring_idx(x: Vec<f32>, y: Vec<f32>, precision: f32) -> Vec<
 /// returns:
 ///     score (float: f64)
 #[pyfunction]
+#[allow(clippy::too_many_arguments)]
 pub fn encoder_score_fcn(
     x1: f64,
     y1: f64,
@@ -400,22 +481,19 @@ pub fn encoder_score_fcn(
     t2: i32,
     speed_thresh: f64,
     dist_thresh: f64,
-) -> f64 {
-    // great circle distance between coordinate pairs (meters)
-    let mut dm = haversine(x1, y1, x2, y2);
-    if dm < 1.0 {
-        dm = 1.0;
-    }
-    // elapsed time (seconds)
-    let dt = max(t2 - t1, 10) as f64;
-    // computed speed (knots)
-    let ds = (dm / dt) * 1.9438444924406;
+) -> PyResult<f64> {
+    catch_ffi_panic(|| {
+        // distance in meters, elapsed time in seconds, speed in knots
+        let dm = haversine_impl(x1, y1, x2, y2).max(1.0);
+        let dt = max(t2.saturating_sub(t1), 10) as f64;
+        let ds = (dm / dt) * 1.9438444924406;
 
-    if ds < speed_thresh && dm < dist_thresh * 2.0 {
-        dist_thresh / ds
-    } else {
-        -1.0
-    }
+        if ds < speed_thresh && dm < dist_thresh * 2.0 {
+            Ok(dist_thresh / ds)
+        } else {
+            Ok(-1.0)
+        }
+    })
 }
 
 /// Vectorized implementation of binary search for fast array indexing.
@@ -433,38 +511,31 @@ pub fn encoder_score_fcn(
 ///     indexes (Vec<i32>)
 ///
 #[pyfunction]
-pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
-    let descending;
-    if arr[0] > arr[arr.len() - 1] {
-        descending = true;
-        arr.reverse();
-    } else {
-        descending = false;
-    }
+pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> PyResult<Vec<i32>> {
+    catch_ffi_panic(move || {
+        if arr.is_empty() {
+            return Ok(vec![-1; search.len()]);
+        }
+        let descending = arr[0] > arr[arr.len() - 1];
+        if descending {
+            arr.reverse();
+        }
 
-    search
-        .into_iter()
-        .map(|s| arr.binary_search_by(|v| v.partial_cmp(&s).expect("Couldn't compare values")))
-        .map(|idx| match idx {
-            Ok(i) => i as i32,
-            Err(i) => {
-                if (i as i32) < 0 {
-                    0
-                } else if i >= (arr.len()) {
-                    (arr.len() - 1) as i32
+        Ok(search
+            .into_iter()
+            .map(|s| match arr.binary_search_by(|v| v.total_cmp(&s)) {
+                Ok(i) => i,
+                Err(i) => i.min(arr.len() - 1),
+            })
+            .map(|idx| {
+                if descending {
+                    (arr.len() - 1 - idx) as i32
                 } else {
-                    i as i32
+                    idx as i32
                 }
-            }
-        })
-        .map(|idx| {
-            if !descending {
-                idx
-            } else {
-                (arr.len() - 1) as i32 - idx
-            }
-        })
-        .collect::<Vec<i32>>()
+            })
+            .collect::<Vec<i32>>())
+    })
 }
 
 /// Receive raw AIS data from an upstream UDP data source, parse the data into
@@ -498,6 +569,7 @@ pub fn binarysearch_vector(mut arr: Vec<f64>, search: Vec<f64>) -> Vec<i32> {
 ///     tee (bool)
 ///         If True, raw input will be copied to stdout
 #[pyfunction]
+#[allow(clippy::too_many_arguments)]
 pub fn receiver(
     sqlite_dbpath: Option<String>,
     postgres_connection_string: Option<String>,
@@ -512,31 +584,28 @@ pub fn receiver(
     static_msg_bufsize: Option<usize>,
     tee: Option<bool>,
     py: Python<'_>,
-) {
-    let threads = start_receiver(ReceiverArgs {
-        sqlite_dbpath: sqlite_dbpath.map(PathBuf::from),
-        postgres_connection_string,
-        tcp_connect_addr,
-        tcp_listen_addr,
-        udp_listen_addr,
-        multicast_addr_parsed,
-        multicast_addr_rawdata: multicast_addr_raw,
-        tcp_output_addr,
-        udp_output_addr,
-        dynamic_msg_bufsize,
-        static_msg_bufsize,
-        tee,
-    });
-    while threads
-        .iter()
-        .map(|t| t.is_finished())
-        .filter(|b| !(*b))
-        .count()
-        > 0
-    {
-        py.check_signals().expect("Receiver interrupted");
-        sleep(Duration::from_millis(500));
-    }
+) -> PyResult<()> {
+    catch_ffi_panic(|| {
+        let threads = start_receiver(ReceiverArgs {
+            sqlite_dbpath: sqlite_dbpath.map(PathBuf::from),
+            postgres_connection_string,
+            tcp_connect_addr,
+            tcp_listen_addr,
+            udp_listen_addr,
+            multicast_addr_parsed,
+            multicast_addr_rawdata: multicast_addr_raw,
+            tcp_output_addr,
+            udp_output_addr,
+            dynamic_msg_bufsize,
+            static_msg_bufsize,
+            tee,
+        });
+        while threads.iter().any(|t| !t.is_finished()) {
+            py.check_signals()?;
+            sleep(Duration::from_millis(500));
+        }
+        Ok(())
+    })
 }
 
 /// Functions imported from Rust

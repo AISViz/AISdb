@@ -1,10 +1,10 @@
 use std::ffi::OsStr;
-use std::io::{stdout, BufWriter, Write};
+use std::io::{stdout, BufWriter, ErrorKind, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream, UdpSocket};
 use std::path::PathBuf;
 use std::process::exit;
 use std::thread::{spawn, Builder, JoinHandle};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use aisdb_lib::db::{
     get_db_conn, get_postgresdb_conn, postgres_prepare_tx_dynamic, postgres_prepare_tx_static,
@@ -69,12 +69,6 @@ impl From<VesselPositionPing> for VesselPing {
     }
 }
 
-impl From<VesselPing> for VesselData {
-    fn from(p: VesselPing) -> Self {
-        p.into()
-    }
-}
-
 fn epoch_time() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -101,7 +95,6 @@ pub struct ReceiverArgs {
 fn parse_args() -> Result<ReceiverArgs, pico_args::Error> {
     let mut pargs = Arguments::from_env();
     if pargs.contains(["-h", "--help"]) || pargs.clone().finish().is_empty() {
-        //print!("{}", HELP);
         exit(0);
     }
     fn parse_path(s: &OsStr) -> Result<PathBuf, &'static str> {
@@ -216,8 +209,7 @@ fn serialize_static_buffer(
     sqlite_dbconn: &mut Option<SqliteConnection>,
     postgres_dbconn: &mut Option<PGClient>,
     static_msgs: Vec<VesselData>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    //#[cfg(debug_assertions)]
+) {
     println!("Inserting {} static messages ...", static_msgs.len());
     if let Some(ref mut conn) = sqlite_dbconn {
         if let Err(e) = sqlite_prepare_tx_static(conn, "rx", static_msgs.to_vec()) {
@@ -229,14 +221,13 @@ fn serialize_static_buffer(
             eprintln!("Error inserting vessel static data: {}", e);
         }
     }
-    Ok(())
 }
 
 fn serialize_dynamic_buffer(
     sqlite_dbconn: &mut Option<SqliteConnection>,
     postgres_dbconn: &mut Option<PGClient>,
     dynamic_msgs: Vec<VesselData>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) {
     println!("Inserting {} dynamic messages ...", dynamic_msgs.len());
     if let Some(ref mut conn) = sqlite_dbconn {
         if let Err(e) = sqlite_prepare_tx_dynamic(conn, "rx", dynamic_msgs.to_vec()) {
@@ -248,7 +239,20 @@ fn serialize_dynamic_buffer(
             eprintln!("Error inserting vessel dynamic data: {}", e);
         }
     }
-    Ok(())
+}
+
+fn flush_message_buffers(
+    sqlite_dbconn: &mut Option<SqliteConnection>,
+    postgres_dbconn: &mut Option<PGClient>,
+    dynamic_msgs: &mut Vec<VesselData>,
+    static_msgs: &mut Vec<VesselData>,
+) {
+    if !dynamic_msgs.is_empty() {
+        serialize_dynamic_buffer(sqlite_dbconn, postgres_dbconn, std::mem::take(dynamic_msgs));
+    }
+    if !static_msgs.is_empty() {
+        serialize_static_buffer(sqlite_dbconn, postgres_dbconn, std::mem::take(static_msgs));
+    }
 }
 
 /// Spawn decoder thread. Accepts input from a UDP socket.
@@ -300,6 +304,7 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
         .map(|s| get_postgresdb_conn(s).expect("getting postgres db connection"));
     let max_dynamic = args.dynamic_msg_bufsize.unwrap_or(256);
     let max_static = args.static_msg_bufsize.unwrap_or(32);
+    let flush_interval = Duration::from_secs(10);
 
     Builder::new()
         .name(format!("{:#?}", listen_socket))
@@ -312,6 +317,10 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
             );
 
             listen_socket.set_broadcast(true).unwrap();
+            listen_socket
+                .set_read_timeout(Some(flush_interval))
+                .unwrap();
+            let mut last_flush = Instant::now();
             loop {
                 #[cfg(debug_assertions)]
                 println!(
@@ -319,18 +328,17 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
                     dynamic_msgs.len(),
                     static_msgs.len()
                 );
-                if dynamic_msgs.len() >= max_dynamic {
-                    serialize_dynamic_buffer(
+                if dynamic_msgs.len() >= max_dynamic
+                    || static_msgs.len() >= max_static
+                    || last_flush.elapsed() >= flush_interval
+                {
+                    flush_message_buffers(
                         &mut sqlite_dbconn,
                         &mut postgres_dbconn,
-                        dynamic_msgs,
-                    )
-                    .unwrap();
-                    dynamic_msgs = vec![];
-                } else if static_msgs.len() >= max_static {
-                    serialize_static_buffer(&mut sqlite_dbconn, &mut postgres_dbconn, static_msgs)
-                        .unwrap();
-                    static_msgs = vec![];
+                        &mut dynamic_msgs,
+                        &mut static_msgs,
+                    );
+                    last_flush = Instant::now();
                 }
 
                 // forward raw + parsed downstream via UDP channels
@@ -385,13 +393,20 @@ fn decode_multicast(args: ReceiverArgs) -> JoinHandle<()> {
                             output_buffer.flush().unwrap();
                         }
                     }
+                    Err(err)
+                        if matches!(err.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut) => {}
                     Err(err) => {
                         eprintln!("decode_multicast: got an error: {}", err);
-                        #[cfg(debug_assertions)]
-                        panic!("decode_multicast: got an error: {}", err);
+                        break;
                     }
                 }
             }
+            flush_message_buffers(
+                &mut sqlite_dbconn,
+                &mut postgres_dbconn,
+                &mut dynamic_msgs,
+                &mut static_msgs,
+            );
         })
         .unwrap()
 }
