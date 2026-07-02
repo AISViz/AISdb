@@ -52,7 +52,6 @@ include = [
     "aisdb_web/dist_map/index.html", "aisdb_web/dist_map_bingmaps/assets/*", "aisdb_web/dist_map_bingmaps/favicon.png"
 ]
 bindings = "pyo3"
-compatibility = "manylinux2014"
 
 [tool.pytest.ini_options]
 testpaths = ["aisdb/tests"]
