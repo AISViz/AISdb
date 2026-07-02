@@ -49,18 +49,6 @@ pub fn get_db_conn(path: std::path::PathBuf) -> SqliteResult<SqliteConnection> {
     if vnum[0] < 3 || vnum[0] == 3 && (vnum[1] < 8 || (vnum[1] == 8 && vnum[2] < 2)) {
         panic!("SQLite3 version is too low! Need version 3.8.2 or higher");
     }
-    /*
-    let res: String = conn
-        .prepare("PRAGMA journal_mode")?
-        .query([])?
-        .next()?
-        .unwrap()
-        .get(0)?;
-    if res != "wal" {
-        conn.execute_batch("PRAGMA journal_mode=WAL;")
-            .unwrap_or_else(|_| panic!("setting PRAGMAS for {:?}", path.to_str()));
-    }
-    */
 
     Ok(conn)
 }
@@ -83,19 +71,7 @@ pub fn sqlite_createtable_dynamicreport(
     let sql = sql_from_file("createtable_dynamic_clustered.sql").replace("{}", mstr);
     Ok(tx
         .execute(&sql, [])
-        .unwrap_or_else(|e| panic!("creating dynamic table\n{}\n{}", sql, e))
-        .try_into()
-        .unwrap())
-}
-
-#[cfg(feature = "postgres")]
-/// create position reports table
-pub fn postgres_createtable_dynamicreport(
-    tx: &mut PGTransaction,
-    mstr: &str,
-) -> Result<u64, postgres::Error> {
-    let sql = sql_from_file("psql_createtable_dynamic_noindex.sql").replace("{}", mstr);
-    tx.execute(&sql, &[])
+        .unwrap_or_else(|e| panic!("creating dynamic table\n{}\n{}", sql, e)))
 }
 
 #[cfg(feature = "sqlite")]
@@ -106,16 +82,6 @@ pub fn sqlite_createtable_staticreport(
 ) -> SqliteResult<usize, rusqlite::Error> {
     let sql = sql_from_file("createtable_static.sql").replace("{}", mstr);
     Ok(tx.execute(&sql, []).expect("creating static table"))
-}
-
-#[cfg(feature = "postgres")]
-/// create SQLite table for monthly static vessel reports
-pub fn postgres_createtable_staticreport(
-    tx: &mut PGTransaction,
-    mstr: &str,
-) -> Result<u64, postgres::Error> {
-    let sql = sql_from_file("createtable_static.sql").replace("{}", mstr);
-    tx.execute(&sql, &[])
 }
 
 #[cfg(feature = "sqlite")]
@@ -177,7 +143,7 @@ pub fn postgres_insert_static(
             &stmt,
             &[
                 &(p.mmsi as i32),
-                &(e as i32),
+                &e,
                 &p.name.unwrap_or_default(),
                 &(p.ship_type as i32),
                 &p.call_sign.unwrap_or_default(),
@@ -267,7 +233,7 @@ pub fn postgres_insert_dynamic(
             &stmt,
             &[
                 &(p.mmsi as i32),
-                &(e as i32),
+                &e,
                 &(p.longitude.unwrap_or_default() as f32),
                 &(p.latitude.unwrap_or_default() as f32),
                 &(p.rot.unwrap_or_default() as f32),
@@ -311,7 +277,6 @@ pub fn postgres_prepare_tx_dynamic(
         .format("%Y%m")
         .to_string();
     let mut t = c.transaction()?;
-    //postgres_createtable_dynamicreport(&mut t, &mstr)?;
     postgres_insert_dynamic(&mut t, positions, &mstr, source)?;
     t.commit()
 }
@@ -349,35 +314,9 @@ pub fn postgres_prepare_tx_static(
     .format("%Y%m")
     .to_string();
     let mut t = c.transaction()?;
-    //postgres_createtable_staticreport(&mut t, &mstr)?;
     postgres_insert_static(&mut t, stat_msgs, &mstr, source)?;
     t.commit()
 }
-
-/*
-#[cfg(feature = "sqlite")]
-/// rtree index alternative to ais_month_dynamic clustered index.
-/// faster read performance at the cost of up to 10x slower write and more disk space
-/// currently not used
-pub fn sqlite_create_rtree(
-tx: &SqliteTransaction,
-//tx: &dyn DatabaseTransaction<Transaction>,
-mstr: &str,
-) -> SqliteResult<usize, rusqlite::Error> {
-//) -> Result<usize, Box<dyn std::error::Error>> {
-// create rtree index as virtual table
-let sql1 = sql_from_file("createtable_dynamic_rtree.sql").replace("{}", mstr);
-tx.execute(&sql1, []).expect("creating rtree table");
-
-// populate rtree index automatically in the future
-let sql2 = sql_from_file("createtrigger_dynamic_rtreeidx.sql").replace("{}", mstr);
-tx.execute(&sql2, []).expect("creating rtree trigger");
-
-// populate rtree index manually from existing
-let sql3 = sql_from_file("insert_dynamic_rtreeidx.sql").replace("{}", mstr);
-Ok(tx.execute(&sql3, []).expect("inserting into rtree"))
-}
-*/
 
 /* --------------------------------------------------------------------------------------------- */
 
@@ -390,7 +329,7 @@ mod tests {
     #[test]
     fn test_create_statictable() -> SqliteResult<()> {
         let mstr = "00test00";
-        let mut conn = get_db_conn(Path::new(":memory:")).expect("getting db conn");
+        let mut conn = get_db_conn(Path::new(":memory:").to_path_buf()).expect("getting db conn");
 
         println!("/* creating table */");
         let tx = conn.transaction().expect("begin transaction");
@@ -403,7 +342,7 @@ mod tests {
     #[test]
     fn test_create_dynamictable() -> SqliteResult<()> {
         let mstr = "00test00";
-        let mut conn = get_db_conn(Path::new(":memory:")).expect("getting db conn");
+        let mut conn = get_db_conn(Path::new(":memory:").to_path_buf()).expect("getting db conn");
 
         println!("/* creating table */");
         let tx = conn.transaction().expect("begin transaction");

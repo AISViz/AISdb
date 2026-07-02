@@ -1,37 +1,31 @@
 import gzip
 import os
 import pickle
+import shutil
 import tempfile
 import zipfile
-import shutil
 from copy import deepcopy
 from datetime import timedelta
 from functools import partial
 from hashlib import md5
 
 import psycopg
-from aisdb.aisdb import decoder
-from dateutil.rrule import rrule, MONTHLY
+from dateutil.rrule import MONTHLY, rrule
 
 from aisdb import sqlpath
-from aisdb.database.dbconn import PostgresDBConn
-from aisdb.database.dbconn import SQLiteDBConn
+from aisdb.aisdb import decoder
+from aisdb.database.dbconn import PostgresDBConn, SQLiteDBConn
 from aisdb.proc_util import getfiledate
 
 
 class FileChecksums:
     """
-    Initializes a FileChecksums object with a specified database connection.
+    Tracks file checksums in the database to skip already-ingested files.
 
-    :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.
-    :return: None
+    :param dbconn: A PostgresDBConn or SQLiteDBConn database connection.
     """
 
     def __init__(self, *, dbconn):
-        """
-        :param dbconn: A required parameter of type PostgresDBConn or SQLiteDBConn that represents the database connection.
-        :return: None
-        """
         assert isinstance(dbconn, (PostgresDBConn, SQLiteDBConn))
         self.dbconn = dbconn
         self.checksums_table()
@@ -77,13 +71,16 @@ class FileChecksums:
         :returns: None
         """
         if isinstance(self.dbconn, SQLiteDBConn):
-            self.dbconn.execute("INSERT OR IGNORE INTO hashmap VALUES (?,?)",
-                                [checksum, pickle.dumps(None)])
+            self.dbconn.execute(
+                "INSERT OR IGNORE INTO hashmap VALUES (?,?)",
+                [checksum, pickle.dumps(None)],
+            )
             self.dbconn.commit()
         elif isinstance(self.dbconn, PostgresDBConn):
             self.dbconn.execute(
                 "INSERT INTO hashmap VALUES ($1,$2) ON CONFLICT DO NOTHING",
-                [checksum, pickle.dumps(None)])
+                [checksum, pickle.dumps(None)],
+            )
             self.dbconn.commit()
 
     def checksum_exists(self, checksum):
@@ -133,8 +130,8 @@ def _fast_unzip(zipf, dirname):
             members = list(contents - exists)
             try:
                 zip_ref.extractall(path=dirname, members=members)
-            except zipfile.BadZipFile as e:
-                print("Bad file found!")
+            except zipfile.BadZipFile:
+                print(f"Bad zip file, skipping extraction: {zipf}")
     elif zipf.lower()[-3:] == ".gz":
         unzip_file = os.path.join(dirname, zipf.rsplit(os.path.sep, 1)[-1][:-3])
         with gzip.open(zipf, "rb") as f1, open(unzip_file, "wb") as f2:
@@ -156,8 +153,18 @@ def fast_unzip(zip_filenames, dirname):
         fcn(file)
 
 
-def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
-                workers=4, type_preference="all", raw_insertion=True, verbose=True, timescaledb=False):
+def decode_msgs(
+    filepaths,
+    dbconn,
+    source,
+    vacuum=False,
+    skip_checksum=True,
+    workers=4,
+    type_preference="all",
+    raw_insertion=True,
+    verbose=True,
+    timescaledb=False,
+):
     """
     Decode messages from filepaths and insert them into a database.
 
@@ -173,10 +180,10 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     :param timescaledb: whether to insert data to a database with timescale extension (default is False)
     :return: None
     """
-    if not isinstance(dbconn,
-                      (SQLiteDBConn, PostgresDBConn)):  # pragma: no cover
-        raise ValueError("db argument must be a DBConn database connection. "
-                         f"got {dbconn}")
+    if not isinstance(dbconn, (SQLiteDBConn, PostgresDBConn)):  # pragma: no cover
+        raise ValueError(
+            f"db argument must be a DBConn database connection. got {dbconn}"
+        )
 
     if len(filepaths) == 0:  # pragma: no cover
         raise ValueError("must supply atleast one filepath.")
@@ -184,7 +191,9 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     dbindex = FileChecksums(dbconn=dbconn)
 
     # handle zipfiles
-    zipped = {f for f in filepaths if f.lower()[-4:] == ".zip" or f.lower()[-3:] == ".gz"}
+    zipped = {
+        f for f in filepaths if f.lower()[-4:] == ".zip" or f.lower()[-3:] == ".gz"
+    }
     not_zipped = sorted(list(set(filepaths) - set(zipped)))
 
     not_zipped_checksums = []
@@ -223,10 +232,9 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
 
     if zipped:
         fast_unzip(zipped, dbindex.tmp_dir)
-        unzipped = sorted([
-            os.path.join(dbindex.tmp_dir, f)
-            for f in os.listdir(dbindex.tmp_dir)
-        ])
+        unzipped = sorted(
+            [os.path.join(dbindex.tmp_dir, f) for f in os.listdir(dbindex.tmp_dir)]
+        )
         assert unzipped
         if not skip_checksum:
             for item in unzipped:
@@ -240,8 +248,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
 
     # raw_files
     if not raw_files:
-        print("All files returned an existing checksum.",
-              "Cleaning temporary data...")
+        print("All files returned an existing checksum.", "Cleaning temporary data...")
         for tmpfile in unzipped:
             os.remove(tmpfile)
         os.removedirs(dbindex.tmp_dir)
@@ -255,7 +262,8 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
         print("checking file dates...")
     filedates = [getfiledate(f, source) for f in raw_files]
     months = [
-        month.strftime("%Y%m") for month in rrule(
+        month.strftime("%Y%m")
+        for month in rrule(
             freq=MONTHLY,
             dtstart=min(filedates) - (timedelta(days=min(filedates).day - 1)),
             until=max(filedates),
@@ -269,12 +277,18 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
     # and rebuild them after inserting
     if isinstance(dbconn, PostgresDBConn):
         if timescaledb:
-            with open(os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r") as f:
+            with open(
+                os.path.join(sqlpath, "timescale_createtable_dynamic.sql"), "r"
+            ) as f:
                 create_dynamic_table_stmt = f.read()
-            with open(os.path.join(sqlpath, "timescale_createtable_static.sql"), "r") as f:
+            with open(
+                os.path.join(sqlpath, "timescale_createtable_static.sql"), "r"
+            ) as f:
                 create_static_table_stmt = f.read()
         else:
-            with open(os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r") as f:
+            with open(
+                os.path.join(sqlpath, "psql_createtable_dynamic_noindex.sql"), "r"
+            ) as f:
                 create_dynamic_table_stmt = f.read()
             with open(os.path.join(sqlpath, "psql_createtable_static.sql"), "r") as f:
                 create_static_table_stmt = f.read()
@@ -285,28 +299,41 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
                 dbconn.drop_indexes(month, verbose, timescaledb)
 
         dbconn.commit()
-        completed_files = decoder(dbpath="",
-                                  psql_conn_string=dbconn.connection_string, files=raw_files,
-                                  source=source, verbose=verbose, workers=workers,
-                                  type_preference=type_preference, allow_swap=False)
+        completed_files = decoder(
+            dbpath="",
+            psql_conn_string=dbconn.connection_string,
+            files=raw_files,
+            source=source,
+            verbose=verbose,
+            workers=workers,
+            type_preference=type_preference,
+            allow_swap=False,
+        )
 
     elif isinstance(dbconn, SQLiteDBConn):
         with open(os.path.join(sqlpath, "createtable_dynamic_clustered.sql"), "r") as f:
             create_table_stmt = f.read()
         for month in months:
             dbconn.execute(create_table_stmt.format(month))
-        completed_files = decoder(dbpath=dbconn.dbpath,
-                                  psql_conn_string="", files=raw_files,
-                                  source=source, verbose=verbose, workers=workers,
-                                  type_preference=type_preference, allow_swap=False)
+        completed_files = decoder(
+            dbpath=dbconn.dbpath,
+            psql_conn_string="",
+            files=raw_files,
+            source=source,
+            verbose=verbose,
+            workers=workers,
+            type_preference=type_preference,
+            allow_swap=False,
+        )
     else:
         assert False
 
     if verbose and not skip_checksum:
         print("saving checksums...")
 
-    for filename, signature in zip(not_zipped + unzipped,
-                                   not_zipped_checksums + unzipped_checksums):
+    for filename, signature in zip(
+        not_zipped + unzipped, not_zipped_checksums + unzipped_checksums
+    ):
         if filename in completed_files:
             dbindex.insert_checksum(signature)
         else:
@@ -321,11 +348,8 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
         for tmpfile in unzipped:
             os.remove(tmpfile)
         shutil.rmtree(dbindex.tmp_dir, ignore_errors=True)
-    except Exception as e:
-        print(f"Error cleaning temporary files: {e}")
-    # for tmpfile in unzipped:
-    #     os.remove(tmpfile)
-    # os.removedirs(dbindex.tmp_dir)
+    except OSError as err:
+        print(f"Error cleaning temporary files: {err}")
 
     if isinstance(dbconn, PostgresDBConn):
         if not raw_insertion:
@@ -346,8 +370,7 @@ def decode_msgs(filepaths, dbconn, source, vacuum=False, skip_checksum=True,
                     assert not os.path.isfile(vacuum)
                     dbconn.execute("VACUUM INTO ?", (vacuum,))
                 else:
-                    raise ValueError(
-                        "vacuum arg must be boolean or filepath string")
+                    raise ValueError("vacuum arg must be boolean or filepath string")
                 dbconn.commit()
             elif isinstance(dbconn, (PostgresDBConn, psycopg.Connection)):
                 pass

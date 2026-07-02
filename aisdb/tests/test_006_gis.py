@@ -1,20 +1,40 @@
 import os
 import zipfile
 
+import geopandas as gpd
 import numpy as np
-from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon, Polygon
 
-from aisdb.gis import (Domain, DomainFromPoints, DomainFromTxts, distance3D, shiftcoord, )
+from aisdb.gis import (
+    Domain,
+    DomainFromPoints,
+    DomainFromTxts,
+    distance3D,
+    shiftcoord,
+)
 from aisdb.tests.create_testing_data import random_polygons_domain
 from aisdb.tests.create_testing_data import sample_gulfstlawrence_bbox
 
 
 def test_invalid_domain():
     try:
-        Domain("errordomain",
-               [{"name": "outofbounds0", "geometry": Polygon(zip([-200, -170, -170, -200, -200], [90, 90, 0, 0, 90]))},
-                   {"name": "outofbounds1",
-                       "geometry": Polygon(zip([200, 170, 170, 200, 200], [-90, -90, 0, 0, -90]))}])
+        Domain(
+            "errordomain",
+            [
+                {
+                    "name": "outofbounds0",
+                    "geometry": Polygon(
+                        zip([-200, -170, -170, -200, -200], [90, 90, 0, 0, 90])
+                    ),
+                },
+                {
+                    "name": "outofbounds1",
+                    "geometry": Polygon(
+                        zip([200, 170, 170, 200, 200], [-90, -90, 0, 0, -90])
+                    ),
+                },
+            ],
+        )
     except ValueError:
         return
     except Exception as e:
@@ -34,7 +54,9 @@ def test_domain():
         print(poly.geom_type, end="|")
     print()
 
-    zoneID = domain.point_in_polygon(zone["geometry"].centroid.x, zone["geometry"].centroid.y)
+    zoneID = domain.point_in_polygon(
+        zone["geometry"].centroid.x, zone["geometry"].centroid.y
+    )
     print(f"{zoneID = }")
 
     print(f"{domain.minX=}\n{domain.maxX=}\n{domain.minY=}\n{domain.maxY=}")
@@ -86,3 +108,53 @@ def test_distance3D():
     x2, y2 = -40, 50
     depth_metres = -500
     dist = distance3D(x1, y1, x2, y2, depth_metres)
+
+
+def _sample_multipolygon():
+    p1 = Polygon([(-64, 45), (-64, 46), (-63, 46), (-63, 45), (-64, 45)])
+    p2 = Polygon([(-62, 44), (-62, 45), (-61, 45), (-61, 44), (-62, 44)])
+    return MultiPolygon([p1, p2])
+
+
+def test_domain_multipolygon_zone():
+    mp = _sample_multipolygon()
+    domain = Domain("multidomain", zones=[{"name": "mz", "geometry": mp}])
+    assert set(domain.zones.keys()) == {"mz_0", "mz_1"}
+    assert domain.minX == -64
+    assert domain.maxX == -61
+    assert domain.minY == 44
+    assert domain.maxY == 46
+    assert domain.point_in_polygon(-63.5, 45.5) == "mz_0"
+    assert domain.point_in_polygon(-61.5, 44.5) == "mz_1"
+
+
+def test_domain_from_geodataframe():
+    mp = _sample_multipolygon()
+    single = Polygon([(-60, 43), (-60, 44), (-59, 44), (-59, 43), (-60, 43)])
+    gdf = gpd.GeoDataFrame(
+        {"zone_name": ["multi", "single"]}, geometry=[mp, single], crs="EPSG:4326"
+    )
+    domain = Domain.from_geodataframe(gdf, name_column="zone_name", name="gdfdomain")
+    assert domain.name == "gdfdomain"
+    assert set(domain.zones.keys()) == {"multi_0", "multi_1", "single"}
+
+
+def test_domain_from_geodataframe_reprojects():
+    single = Polygon([(-60, 43), (-60, 44), (-59, 44), (-59, 43), (-60, 43)])
+    gdf = gpd.GeoDataFrame(
+        {"zone_name": ["single"]}, geometry=[single], crs="EPSG:4326"
+    )
+    gdf_mercator = gdf.to_crs(epsg=3857)
+    domain = Domain.from_geodataframe(gdf_mercator, name_column="zone_name")
+    assert set(domain.zones.keys()) == {"single"}
+    assert abs(domain.minX - -60) < 1e-6
+    assert abs(domain.maxX - -59) < 1e-6
+    assert abs(domain.minY - 43) < 1e-6
+    assert abs(domain.maxY - 44) < 1e-6
+
+
+def test_domain_from_geodataframe_default_names():
+    mp = _sample_multipolygon()
+    gdf = gpd.GeoDataFrame(geometry=[mp], crs="EPSG:4326")
+    domain = Domain.from_geodataframe(gdf)
+    assert set(domain.zones.keys()) == {"zone_0_0", "zone_0_1"}

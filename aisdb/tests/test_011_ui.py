@@ -5,8 +5,11 @@ from shapely.geometry import Polygon
 
 import aisdb
 from aisdb import SQLiteDBConn, Domain, DBQuery, sqlfcn_callbacks
-from aisdb.tests.create_testing_data import (sample_database_file, sample_gulfstlawrence_bbox, )
-from aisdb.web_interface import serialize_zone_json, serialize_track_json
+from aisdb.tests.create_testing_data import (
+    sample_database_file,
+    sample_gulfstlawrence_bbox,
+)
+from aisdb.web_interface import client_url, serialize_zone_json, serialize_track_json
 
 
 def _add_track_color(tracks):
@@ -31,8 +34,13 @@ def test_ui_serialize(tmpdir):
     assert isinstance(zone_bytes, bytes)
 
     with SQLiteDBConn(testdbpath) as dbconn:
-        rowgen = DBQuery(dbconn=dbconn, start=start, end=end, **domain.boundary,
-                         callback=sqlfcn_callbacks.in_timerange, ).gen_qry(reaggregate_static=True)
+        rowgen = DBQuery(
+            dbconn=dbconn,
+            start=start,
+            end=end,
+            **domain.boundary,
+            callback=sqlfcn_callbacks.in_timerange,
+        ).gen_qry(reaggregate_static=True)
         tracks = aisdb.TrackGen(rowgen, decimate=True)
         tracks = _add_track_color(tracks)
         tracks = list(tracks)
@@ -41,3 +49,20 @@ def test_ui_serialize(tmpdir):
             assert isinstance(serialize_track_json(track)[0], bytes)
             # visualize(tracks, visualearth=True, open_browser=False)
             # visualize(tracks, visualearth=False, open_browser=False)
+
+
+def test_client_url_defaults():
+    assert client_url() == "http://localhost:3000/index.html?python=1&z=2"
+
+
+def test_client_url_visualearth():
+    assert (
+        client_url(visualearth=True) == "http://localhost:3000/index.html?python=2&z=2"
+    )
+
+
+def test_client_url_custom_host_and_port():
+    url = client_url(host="0.0.0.0", http_port=8080)
+    assert url == "http://0.0.0.0:8080/index.html?python=1&z=2"
+    url = client_url(host="example.com", http_port=8443, visualearth=True)
+    assert url == "http://example.com:8443/index.html?python=2&z=2"

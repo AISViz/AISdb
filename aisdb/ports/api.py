@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 
+
 class WorldPortIndexClient:
     """
     A client to query the World Port Index (WPI) FeatureServer
@@ -19,7 +20,9 @@ class WorldPortIndexClient:
             f"LONGITUDE >= {lon_min} AND LONGITUDE <= {lon_max}"
         )
 
-    def fetch_ports(self, lat_min, lat_max, lon_min, lon_max, save=False, out_path=None):
+    def fetch_ports(
+        self, lat_min, lat_max, lon_min, lon_max, save=False, out_path=None
+    ):
         """
         Fetches ports within the given bounding box.
 
@@ -33,11 +36,7 @@ class WorldPortIndexClient:
             pd.DataFrame of port records
         """
         where = self._build_where_clause(lat_min, lat_max, lon_min, lon_max)
-        params = {
-            "where": where,
-            "outFields": "*",
-            "f": "geojson"
-        }
+        params = {"where": where, "outFields": "*", "f": "geojson"}
 
         print(f"Querying WPI with bounds: {where}")
         response = requests.get(self.base_url, params=params)
@@ -49,7 +48,7 @@ class WorldPortIndexClient:
             {
                 **f["properties"],
                 "LAT": f["geometry"]["coordinates"][1],
-                "LON": f["geometry"]["coordinates"][0]
+                "LON": f["geometry"]["coordinates"][0],
             }
             for f in features
         ]
@@ -61,12 +60,11 @@ class WorldPortIndexClient:
             if not out_path:
                 raise ValueError("You must specify out_path when save=True")
             df.to_csv(out_path, index=False)
-            print(f"💾 Saved to {out_path}")
+            print(f"Saved to {out_path}")
 
         return df
 
-
-    def filter_by_cargo_depth(self, df, valid_depths=('A', 'B', 'C', 'D', 'E', 'F')):
+    def filter_by_cargo_depth(self, df, valid_depths=("A", "B", "C", "D", "E", "F")):
         """
         Filters DataFrame to only include ports with valid cargo depth codes.
 

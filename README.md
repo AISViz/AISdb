@@ -1,6 +1,6 @@
 # AISdb
 
-AISdb is an open-source database system for storing, retrieving, analyzing, and visualizing Automatic Identification System (AIS) data. It serves the data needs of the maritime domain, supporting research, development, and operational safety with a Python interface backed by a Rust core and SQLite or PostgreSQL/TimescaleDB storage.
+AISdb is an open-source database system for storing, retrieving, analyzing, and visualizing Automatic Identification System (AIS) data. It serves the data needs of the maritime domain, supporting research, development, and operational safety with a Python interface backed by a Rust core and SQLite or PostgreSQL/TimescaleDB storage. AISdb is developed and maintained by the [MAPS Lab](https://mapslab.tech/) at Dalhousie University, continuing work that began under the [MERIDIAN](https://meridian.cs.dal.ca) initiative.
 
 ## Features
 
@@ -68,10 +68,23 @@ maturin develop --release --extras=test,docs  # Build AISdb package
 Run the test suite with pytest.
 
 ```sh
-pytest ./aisdb/tests/ --ignore=./aisdb/tests/test_014_marinetraffic.py --maxfail=10
+pytest ./aisdb/tests/ --maxfail=10
 ```
 
-Continuous integration builds wheels for Linux, macOS, and Windows and runs the full test suite, including the PostgreSQL and TimescaleDB paths, on every push and pull request.
+The Rust engine has its own gates, run from the `aisdb_lib` directory with `cargo fmt --check`, `cargo clippy --features sqlite,postgres`, and `cargo test --features sqlite,postgres`. Continuous integration builds wheels for Linux, macOS, and Windows, verifies they install cleanly with uv, and runs the full test suite, including the PostgreSQL and TimescaleDB paths, on every push and pull request.
+
+## Services
+
+Beyond the Python package, the repository contains the deployable pieces of a self-hosted AISdb stack, each in its own top-level folder.
+
+- `receiver/` decodes live NMEA streams from an antenna or aggregator feed, persists them locally, and rebroadcasts to downstream clients
+- `database_server/` serves vectorized vessel tracks from PostgreSQL over a WebSocket API
+- `aisdb_web/` is the JavaScript and WebAssembly map front end bundled into the Python wheel
+- `client_webassembly/` compiles the in-browser geometry processing used by the map
+
+## Raster data
+
+Bathymetry, distance-to-shore, and distance-to-port rasters used by `aisdb.webdata` are downloaded on first use from the [data release](https://github.com/AISViz/AISdb/releases/tag/data-v1) of this repository.
 
 ## Documentation
 

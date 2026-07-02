@@ -1,13 +1,11 @@
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
-use std::convert::From;
 use std::io::Write;
 use std::net::TcpStream;
-pub use std::ops::{Generator, GeneratorState, IndexMut};
-use std::pin::Pin;
 
 use aisdb_lib::db::sql_from_file;
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use geo::SimplifyVwIdx;
@@ -85,9 +83,7 @@ impl TrackData {
     fn as_float(&self) -> f64 {
         match self {
             TrackData::F(f) => *f,
-            _ => {
-                panic!()
-            }
+            other => panic!("expected float track data, got {:?}", other),
         }
     }
 }
@@ -123,41 +119,15 @@ impl Default for Track {
     }
 }
 
-pub struct GeneratorIteratorAdapter<G>(Pin<Box<G>>);
-impl<G> GeneratorIteratorAdapter<G>
-where
-    G: Generator<Return = ()>,
-{
-    fn new(gen: G) -> Self {
-        Self(Box::pin(gen))
-    }
-}
-
-impl<G> Iterator for GeneratorIteratorAdapter<G>
-where
-    G: Generator<Return = ()>,
-{
-    type Item = G::Yield;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.0.as_mut().resume(()) {
-            GeneratorState::Yielded(x) => Some(x),
-            GeneratorState::Complete(_) => None,
-        }
-    }
-}
-
-fn parse_utctime(timestamp: i32) -> Result<DateTime<Utc>, chrono::format::ParseError> {
-    Ok(DateTime::from_utc(
-        NaiveDateTime::from_timestamp_opt(timestamp as i64, 0).expect("parsing epoch time"),
-        Utc,
-    ))
+fn parse_utctime(timestamp: i32) -> Result<DateTime<Utc>, Box<dyn std::error::Error>> {
+    DateTime::from_timestamp(timestamp as i64, 0)
+        .ok_or_else(|| format!("invalid epoch timestamp: {}", timestamp).into())
 }
 
 /// Parses a client request for track vectors, and returns parameters for database query
 fn parse_request(req: Request) -> Result<QueryTracks, Box<dyn std::error::Error>> {
-    let start = parse_utctime(req.start.unwrap()).expect("parsing start time");
-    let end = parse_utctime(req.end.unwrap()).expect("parsing end time");
+    let start = parse_utctime(req.start.ok_or("missing start time")?)?;
+    let end = parse_utctime(req.end.ok_or("missing end time")?)?;
 
     let mut cursor = start;
     let mut month_strings: Vec<String> = vec![];
@@ -176,7 +146,7 @@ fn parse_request(req: Request) -> Result<QueryTracks, Box<dyn std::error::Error>
         start: start.timestamp() as i32,
         end: end.timestamp() as i32,
         month_strings,
-        area: req.area.expect("retrieving query boundary args"),
+        area: req.area.ok_or("missing query boundary args")?,
     };
     if qry.start >= qry.end {
         Err("invalid time range".into())
@@ -189,101 +159,91 @@ fn parse_request(req: Request) -> Result<QueryTracks, Box<dyn std::error::Error>
     }
 }
 
-/// Generates vessel track vectors from the result of a database query portal
-pub fn track_generator(
-    portal: Portal,
-    mut tx: Transaction<'_>,
-) -> impl Generator<Yield = Track, Return = ()> + '_ {
-    let mut count = 0;
-    move || {
-        let mut current_track = Track::new();
-        let mut current_mmsi = 0;
-
-        // iterate through rows fetching 50k at a time
-        let chunksize = 50000;
-        let mut rows: VecDeque<Row> = VecDeque::from(tx.query_portal(&portal, chunksize).unwrap());
-        assert!(!rows.is_empty());
-        while !rows.is_empty() {
-            // iterate through rows, appending the results to current_track,
-            // continue iterating until the mmsi changes.
-            // this code relies on the assumption that query results are sorted by ID and time
-            while !rows.is_empty() {
-                let r: Row = rows.pop_front().unwrap();
-                let thismmsi: i32 = r.get("mmsi");
-                if current_mmsi == 0 {
-                    #[cfg(debug_assertions)]
-                    assert!(current_track
-                        .vectors
-                        .get("time")
-                        .expect("get time")
-                        .is_empty());
-                    current_mmsi = thismmsi;
-                } else if thismmsi != current_mmsi {
-                    current_mmsi = r.get("mmsi");
-                    yield current_track;
-                    count += 1;
-                    current_track = Track::new();
-                } else {
-                    for col in r.columns().iter().map(|r| r.name().to_string()) {
-                        match col.as_str() {
-                            // static integers
-                            "mmsi" | "imo" | "dim_bow" | "dim_star" | "dim_stern" | "dim_port"
-                            | "ship_type" | "gross_tonnage" | "summer_dwt" | "year_built" => {
-                                if !current_track.meta.contains_key(&col) {
-                                    let value: Option<i32> = r.get(col.as_str());
-                                    if let Some(val) = value {
-                                        current_track
-                                            .meta
-                                            .insert(col.to_string(), format!("{}", val));
-                                    } else {
-                                        current_track.meta.insert(col.to_string(), "".to_string());
-                                    }
-                                }
-                            }
-
-                            // static strings
-                            "vessel_name"
-                            | "vessel_name2"
-                            | "ship_type_txt"
-                            | "vesseltype_generic"
-                            | "vesseltype_detailed"
-                            | "length_breadth" => {
-                                let value: Option<String> = r.get(col.as_str());
-                                if let Some(val) = value {
-                                    current_track.meta.insert(col.to_string(), val);
-                                } else {
-                                    current_track.meta.insert(col.to_string(), "".to_string());
-                                }
-                            }
-
-                            // dynamic integers
-                            "time" => {
-                                let v = TrackData::I(r.get(col.as_str()));
-                                current_track.vectors.get_mut(&col).unwrap().push(v);
-                                debug_assert!(!current_track.vectors.get(&col).unwrap().is_empty())
-                            }
-
-                            // dynamic floats
-                            "longitude" | "latitude" | "cog" | "sog" => {
-                                let f: f32 = r.get(col.as_str());
-                                let v = TrackData::F(f as f64);
-                                current_track.vectors.get_mut(&col).unwrap().push(v);
-                            }
-                            _other => {
-                                panic!("unhandled track vector: {}", _other)
-                            }
-                        }
-                    }
+fn append_row(track: &mut Track, r: &Row) -> Result<(), Box<dyn std::error::Error>> {
+    for col in r.columns().iter().map(|c| c.name().to_string()) {
+        match col.as_str() {
+            // static integers
+            "mmsi" | "imo" | "dim_bow" | "dim_star" | "dim_stern" | "dim_port" | "ship_type"
+            | "gross_tonnage" | "summer_dwt" | "year_built" => {
+                if let Entry::Vacant(entry) = track.meta.entry(col.clone()) {
+                    let value: Option<i32> = r.try_get(col.as_str())?;
+                    entry.insert(value.map(|v| v.to_string()).unwrap_or_default());
                 }
             }
-            rows = VecDeque::from(tx.query_portal(&portal, chunksize).unwrap());
+
+            // static strings
+            "vessel_name"
+            | "vessel_name2"
+            | "ship_type_txt"
+            | "vesseltype_generic"
+            | "vesseltype_detailed"
+            | "length_breadth" => {
+                let value: Option<String> = r.try_get(col.as_str())?;
+                track.meta.insert(col, value.unwrap_or_default());
+            }
+
+            // dynamic integers
+            "time" => {
+                let v = TrackData::I(r.try_get(col.as_str())?);
+                track
+                    .vectors
+                    .get_mut(&col)
+                    .ok_or("missing time vector")?
+                    .push(v);
+            }
+
+            // dynamic floats
+            "longitude" | "latitude" | "cog" | "sog" => {
+                let f: f32 = r.try_get(col.as_str())?;
+                track
+                    .vectors
+                    .get_mut(&col)
+                    .ok_or("missing vector column")?
+                    .push(TrackData::F(f as f64));
+            }
+            other => return Err(format!("unhandled track vector: {}", other).into()),
         }
-        if !current_track.vectors.get("time").unwrap().is_empty() {
-            yield current_track;
-            count += 1;
-        }
-        println!("yielded {} track vectors", count);
     }
+    Ok(())
+}
+
+/// Collects vessel track vectors from the result of a database query portal.
+/// Relies on the assumption that query results are sorted by ID and time.
+pub fn collect_tracks(
+    portal: Portal,
+    mut tx: Transaction<'_>,
+) -> Result<Vec<Track>, Box<dyn std::error::Error>> {
+    const CHUNKSIZE: i32 = 50000;
+    let mut tracks: Vec<Track> = Vec::new();
+    let mut current_track = Track::new();
+    let mut current_mmsi = 0;
+
+    let mut rows: VecDeque<Row> = VecDeque::from(tx.query_portal(&portal, CHUNKSIZE)?);
+    while !rows.is_empty() {
+        while let Some(r) = rows.pop_front() {
+            let thismmsi: i32 = r.try_get("mmsi")?;
+            if current_mmsi == 0 {
+                current_mmsi = thismmsi;
+            } else if thismmsi != current_mmsi {
+                current_mmsi = thismmsi;
+                tracks.push(current_track);
+                current_track = Track::new();
+            } else {
+                append_row(&mut current_track, &r)?;
+            }
+        }
+        rows = VecDeque::from(tx.query_portal(&portal, CHUNKSIZE)?);
+    }
+    if !current_track
+        .vectors
+        .get("time")
+        .ok_or("missing time vector")?
+        .is_empty()
+    {
+        tracks.push(current_track);
+    }
+    println!("yielded {} track vectors", tracks.len());
+    Ok(tracks)
 }
 
 fn query_validrange(pg: &mut Client) -> Result<(i32, i32), Box<dyn std::error::Error>> {
@@ -293,22 +253,22 @@ fn query_validrange(pg: &mut Client) -> Result<(i32, i32), Box<dyn std::error::E
     sql.push_str(" ORDER BY table_name ASC");
     let tables = pg.query(&sql, &[])?;
     if tables.is_empty() {
-        panic!("Empty database!");
+        return Err("no dynamic tables found in database".into());
     }
-    let start_table: String = tables[0].get(0);
-    let end_table: String = tables[tables.len() - 1].get(0);
+    let start_table: String = tables[0].try_get(0)?;
+    let end_table: String = tables[tables.len() - 1].try_get(0)?;
     let start: i32 = pg
         .query_one(
             &format!("SELECT time FROM {} ORDER BY time ASC LIMIT 1", start_table),
             &[],
         )?
-        .get(0);
+        .try_get(0)?;
     let end: i32 = pg
         .query_one(
             &format!("SELECT time FROM {} ORDER BY time DESC LIMIT 1", end_table),
             &[],
         )?
-        .get(0);
+        .try_get(0)?;
     if start > end {
         Err("Invalid range (start > end)".into())
     } else {
@@ -320,15 +280,9 @@ fn query_metadata(
     pg: &mut Client,
     start: i32,
     end: i32,
-) -> GeneratorIteratorAdapter<impl Generator<Yield = JsValue, Return = ()> + '_> {
-    let start: DateTime<Utc> = DateTime::from_utc(
-        NaiveDateTime::from_timestamp_opt(start.into(), 0).unwrap(),
-        Utc,
-    );
-    let end: DateTime<Utc> = DateTime::from_utc(
-        NaiveDateTime::from_timestamp_opt(end.into(), 0).unwrap(),
-        Utc,
-    );
+) -> Result<Vec<JsValue>, Box<dyn std::error::Error>> {
+    let start = parse_utctime(start)?;
+    let end = parse_utctime(end)?;
     let mut cursor = start;
     let mut month_strings: Vec<String> = vec![];
     while cursor <= end {
@@ -339,71 +293,58 @@ fn query_metadata(
         cursor += chrono::Duration::days(21);
     }
 
-    #[cfg(debug_assertions)]
-    assert!(!month_strings.is_empty());
-
     // perform UNION of data request for each monthly table
     let sql: String = sql_from_file("select_static_join_webdata.sql").to_string();
     let sql_union = month_strings
         .iter()
         .map(|m| sql.replace("{}", m))
         .collect::<Vec<String>>()
-        .join("UNION\n")
-        //+ "\nORDER BY 1"
-        ;
-    let stmt = pg.prepare(&sql_union).unwrap();
-    //let stmt = pg.prepare(&sql).unwrap();
-    let mut tx = pg.transaction().unwrap();
-    let portal = tx.bind(&stmt, &[]).unwrap();
+        .join("UNION\n");
+    let stmt = pg.prepare(&sql_union)?;
+    let mut tx = pg.transaction()?;
+    let portal = tx.bind(&stmt, &[])?;
 
-    let mut c = 0;
-
-    GeneratorIteratorAdapter::new(move || {
-        let chunksize = 2048;
-        let mut rows = tx.query_portal(&portal, chunksize).unwrap();
-        while !rows.is_empty() {
-            for r in rows {
-                c += 1;
-                let mut h: HashMap<String, TrackData> = HashMap::new();
-                h.insert(
-                    "msgtype".to_string(),
-                    TrackData::S("vesselinfo".to_string()),
-                );
-                for col in r.columns() {
-                    match col.name() {
-                        "mmsi" | "imo" | "gross_tonnage" | "summer_dwt" | "year_built" => {
-                            if let Some(v) = r.get::<&str, std::option::Option<i32>>(col.name()) {
-                                h.insert(col.name().to_string(), TrackData::I(v));
-                            }
+    const CHUNKSIZE: i32 = 2048;
+    let mut messages: Vec<JsValue> = Vec::new();
+    let mut rows = tx.query_portal(&portal, CHUNKSIZE)?;
+    while !rows.is_empty() {
+        for r in rows {
+            let mut h: HashMap<String, TrackData> = HashMap::new();
+            h.insert(
+                "msgtype".to_string(),
+                TrackData::S("vesselinfo".to_string()),
+            );
+            for col in r.columns() {
+                match col.name() {
+                    "mmsi" | "imo" | "gross_tonnage" | "summer_dwt" | "year_built" => {
+                        if let Some(v) = r.try_get::<&str, Option<i32>>(col.name())? {
+                            h.insert(col.name().to_string(), TrackData::I(v));
                         }
-                        string_column => {
-                            if let Some(v) = r.get::<&str, std::option::Option<String>>(col.name())
-                            {
-                                h.insert(string_column.to_string(), TrackData::S(v));
-                            }
+                    }
+                    string_column => {
+                        if let Some(v) = r.try_get::<&str, Option<String>>(col.name())? {
+                            h.insert(string_column.to_string(), TrackData::S(v));
                         }
                     }
                 }
-                yield json!(h);
             }
-            rows = tx.query_portal(&portal, chunksize).unwrap();
-            //break;
+            messages.push(json!(h));
         }
-        assert!(tx.query_portal(&portal, chunksize).unwrap().is_empty());
-        println!("sent {} info messages to client", c);
+        rows = tx.query_portal(&portal, CHUNKSIZE)?;
+    }
+    println!("sending {} info messages to client", messages.len());
 
-        let mut done = HashMap::new();
-        done.insert("msgtype".to_string(), "doneMetadata".to_string());
-        yield json!(done)
-    })
+    let mut done = HashMap::new();
+    done.insert("msgtype".to_string(), "doneMetadata".to_string());
+    messages.push(json!(done));
+    Ok(messages)
 }
 
 /// converts a request into SQL query string and list of parameters
 fn query_dynamic_tables(
     req: Request,
     pg: &mut Client,
-) -> GeneratorIteratorAdapter<impl Generator<Yield = Track, Return = ()> + '_> {
-    // SQL code: load dynamic messages from dynamic message tables
+) -> Result<Vec<Track>, Box<dyn std::error::Error>> {
     let mut sql: String = sql_from_file("cte_dynamic_clusteredidx.sql").to_string();
     let mut filter: String = "    d.time >= $1\n    and d.time <= $2".to_string();
     let s: String = "\n    and d.longitude >= $3".to_string()
@@ -413,8 +354,7 @@ fn query_dynamic_tables(
     filter += &s;
     sql.push_str(&filter);
 
-    // parse client request into query parameters
-    let qry = parse_request(req).expect("parsing request params");
+    let qry = parse_request(req)?;
 
     // perform UNION of data request for each monthly table
     let sql_union = qry
@@ -426,25 +366,22 @@ fn query_dynamic_tables(
         + "\n  ORDER BY 1, 2";
     #[cfg(debug_assertions)]
     println!("{}", sql_union);
-    let stmt = pg.prepare(&sql_union).unwrap();
-    let mut tx = pg.transaction().unwrap();
+    let stmt = pg.prepare(&sql_union)?;
+    let mut tx = pg.transaction()?;
     let area = qry.area;
-    let portal = tx
-        .bind(
-            &stmt,
-            &[&qry.start, &qry.end, &area.x0, &area.x1, &area.y0, &area.y1],
-        )
-        .unwrap();
+    let portal = tx.bind(
+        &stmt,
+        &[&qry.start, &qry.end, &area.x0, &area.x1, &area.y0, &area.y1],
+    )?;
 
-    GeneratorIteratorAdapter::new(track_generator(portal, tx))
+    collect_tracks(portal, tx)
 }
 
 /// converts a request into SQL query string and list of parameters
 fn query_merged_tables(
     req: Request,
     pg: &mut Client,
-) -> GeneratorIteratorAdapter<impl Generator<Yield = Track, Return = ()> + '_> {
-    // SQL code: load dynamic messages from dynamic message tables
+) -> Result<Vec<Track>, Box<dyn std::error::Error>> {
     let mut sql_dynamic: String = sql_from_file("cte_dynamic_clusteredidx.sql").to_string();
     let sql_static = sql_from_file("cte_static.sql");
     let sql_coarsetype = sql_from_file("cte_coarsetype.sql");
@@ -456,15 +393,13 @@ fn query_merged_tables(
         + "\n    and d.latitude <= $6";
     filter += &s;
     sql_dynamic.push_str(&filter);
-    //sql_dynamic.push_str("\n  ORDER BY d.mmsi, d.time");
 
     let sql = format!(
         "WITH dynamic_{{}} AS (\n{}\n),\nstatic_{{}} AS ({}),\n{}{} \nORDER BY 1,2",
         sql_dynamic, sql_static, sql_coarsetype, sql_leftjoin
     );
 
-    // parse client request into query parameters
-    let qry = parse_request(req).expect("parsing request params");
+    let qry = parse_request(req)?;
     let area = qry.area;
 
     // perform UNION of data request for each monthly table
@@ -481,124 +416,82 @@ fn query_merged_tables(
         &[&qry.start, &qry.end],
         &[&area.x0, &area.x1, &area.y0, &area.y1]
     );
-    let stmt = pg.prepare(&sql_union).unwrap();
-    let mut tx = pg.transaction().unwrap();
-    let portal = tx
-        .bind(
-            &stmt,
-            &[&qry.start, &qry.end, &area.x0, &area.x1, &area.y0, &area.y1],
-        )
-        .unwrap();
+    let stmt = pg.prepare(&sql_union)?;
+    let mut tx = pg.transaction()?;
+    let portal = tx.bind(
+        &stmt,
+        &[&qry.start, &qry.end, &area.x0, &area.x1, &area.y0, &area.y1],
+    )?;
 
-    GeneratorIteratorAdapter::new(track_generator(portal, tx))
+    collect_tracks(portal, tx)
 }
 
-fn compress_string_zlib(s: String) -> Result<Vec<u8>, std::io::Error> {
-    //let mut e = ZlibEncoder::new(Vec::new(), Compression::Fast);
+pub fn compress_string_zlib(s: String) -> Result<Vec<u8>, std::io::Error> {
     let mut e = GzEncoder::new(Vec::new(), Compression::default());
     e.write_all(s.as_bytes())?;
-    //websocket.write_message(Message::Binary(e.finish()?))?;
-    let compressed = e.finish()?;
-    println!(
-        "compressed length: {} {:?}",
-        compressed.len(),
-        &compressed[..25]
-    );
-
-    use flate2::write::GzDecoder;
-    //use std::io::Read;
-    let mut d = GzDecoder::new(Vec::new());
-    d.write_all(&compressed).unwrap();
-    let decomp = d.finish()?;
-    println!(
-        "decompressed: {} {}",
-        decomp.len(),
-        String::from_utf8_lossy(&decomp)
-    );
-
-    //Ok(s.as_bytes().to_vec())
-    Ok(compressed)
+    e.finish()
 }
 
 /// rounds float values in a track vector to 5 decimal places.
 /// this is used to help with JSON message compression
-fn round_floats(
-    tracks: GeneratorIteratorAdapter<impl Generator<Yield = Track, Return = ()>>,
-    precision: f64,
-) -> GeneratorIteratorAdapter<impl Generator<Yield = Track, Return = ()>> {
+fn round_floats(tracks: Vec<Track>, precision: f64) -> Vec<Track> {
     let multiplier = (1.0 / precision).round();
-    GeneratorIteratorAdapter::new(move || {
-        for mut track in tracks {
+    tracks
+        .into_iter()
+        .map(|mut track| {
             for column_data in track.vectors.values_mut() {
-                if column_data.is_empty() {
-                    #[cfg(debug_assertions)]
-                    eprintln!("warning: empty column in track vector data");
-                    break;
-                }
-                match &column_data[0] {
-                    TrackData::F(_f) => {
-                        let rounded: Vec<TrackData> = column_data
-                            .iter()
-                            .map(|f| TrackData::F((f.as_float() * multiplier).round() / multiplier))
-                            .collect::<Vec<TrackData>>();
-
-                        *column_data = rounded;
-                    }
-
-                    _other => {
-                        continue;
+                let is_float = matches!(column_data.first(), Some(TrackData::F(_)));
+                if is_float {
+                    for v in column_data.iter_mut() {
+                        *v = TrackData::F((v.as_float() * multiplier).round() / multiplier);
                     }
                 }
             }
-            yield track;
-        }
-    })
+            track
+        })
+        .collect()
 }
 
-fn compress_geometry_vectors(
-    tracks: GeneratorIteratorAdapter<impl Generator<Yield = Track, Return = ()>>,
-    precision: f64,
-) -> GeneratorIteratorAdapter<impl Generator<Yield = Track, Return = ()>> {
-    GeneratorIteratorAdapter::new(move || {
-        for track in tracks {
+fn compress_geometry_vectors(tracks: Vec<Track>, precision: f64) -> Vec<Track> {
+    tracks
+        .into_iter()
+        .map(|track| {
             let coords: Vec<Coord> = zip!(
-                track.vectors.get("longitude").unwrap(),
-                track.vectors.get("latitude").unwrap()
+                track.vectors.get("longitude").expect("longitude vector"),
+                track.vectors.get("latitude").expect("latitude vector")
             )
             .map(|(xx, yy)| Coord {
-                x: xx.clone().as_float(),
-                y: yy.clone().as_float(),
+                x: xx.as_float(),
+                y: yy.as_float(),
             })
             .collect();
             let count_orig = coords.len();
 
-            let mut mask: Vec<bool> = Vec::new();
-            let mut idx_deque =
-                VecDeque::from_iter(LineString(coords).simplify_vw_idx(&precision).into_iter());
+            let mut idx_deque = VecDeque::from_iter(LineString(coords).simplify_vw_idx(&precision));
+            let mut mask: Vec<bool> = Vec::with_capacity(count_orig);
             for i in 0..count_orig {
-                if i == idx_deque[0] {
+                if idx_deque.front() == Some(&i) {
                     mask.push(true);
-                    idx_deque.pop_front().unwrap();
+                    idx_deque.pop_front();
                 } else {
                     mask.push(false);
                 }
             }
-            assert!(mask.len() == count_orig);
 
             let mut newtrack = Track::new();
-            newtrack.meta = track.meta.clone();
-            for col in track.vectors.keys() {
-                let f: Vec<TrackData> =
-                    std::iter::zip(track.vectors.get(col).unwrap(), mask.clone())
-                        .filter(|(_v, m)| *m)
-                        .map(|(v, _m)| v.clone())
-                        .collect();
-                newtrack.vectors.insert(col.to_string(), f).unwrap();
+            for (col, values) in &track.vectors {
+                let filtered: Vec<TrackData> = values
+                    .iter()
+                    .zip(mask.iter())
+                    .filter(|(_v, m)| **m)
+                    .map(|(v, _m)| v.clone())
+                    .collect();
+                newtrack.vectors.insert(col.clone(), filtered);
             }
-
-            yield newtrack
-        }
-    })
+            newtrack.meta = track.meta;
+            newtrack
+        })
+        .collect()
 }
 
 /// Prepare client responses containing polygon geometry vectors.
@@ -643,31 +536,27 @@ pub fn handle_client(
     pg: &mut Client,
 ) -> Result<(), Box<dyn std::error::Error>> {
     fn write_response(
-        tracks: GeneratorIteratorAdapter<impl Generator<Yield = Track, Return = ()>>,
+        tracks: Vec<Track>,
         websocket: &mut tungstenite::WebSocket<TcpStream>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut count = 0;
         for track in tracks {
             let response = json!(Response {
                 msgtype: "track_vector".to_string(),
-                x: track.vectors.get("longitude").unwrap(),
-                y: track.vectors.get("latitude").unwrap(),
-                t: track.vectors.get("time").unwrap(),
-                meta: track.meta,
+                x: track.vectors.get("longitude").ok_or("missing longitude")?,
+                y: track.vectors.get("latitude").ok_or("missing latitude")?,
+                t: track.vectors.get("time").ok_or("missing time")?,
+                meta: track.meta.clone(),
             });
-            websocket.write_message(Message::Binary(response.to_string().into()))?;
-            //websocket.write_message(Message::Binary(compress_string_zlib( response.to_string(),)?))?;
+            websocket.send(Message::Binary(response.to_string().into()))?;
             count += 1;
         }
-
-        // websocket.write_pending()?; // flush write buffer
 
         let status_response = format!(
             "{{\"msgtype\":\"done\", \"status\":\"Done. Count: {}\"}}",
             count
         );
-        websocket.write_message(Message::Binary(status_response.into()))?;
-        //websocket.write_message(Message::Binary(compress_string_zlib(status_response)?))?;
+        websocket.send(Message::Binary(status_response.into()))?;
         Ok(())
     }
 
@@ -675,19 +564,18 @@ pub fn handle_client(
     downstream.set_read_timeout(None)?;
     downstream.set_write_timeout(None)?;
 
-    // accept websocket connection from incoming TCP connection
     let remote_hostname = downstream.peer_addr()?;
-    let mut websocket = accept(downstream).expect("accepting websocket connection from client");
+    let mut websocket =
+        accept(downstream).map_err(|e| format!("websocket handshake failed: {}", e))?;
 
     // loop will await client requests and respond accordingly
     loop {
         println!("awaiting message from {} ...", remote_hostname);
 
-        // parse client request
-        let request_data = websocket.read_message()?;
+        let request_data = websocket.read()?;
         match request_data {
             Message::Ping(_) => {
-                websocket.write_message(Message::Pong(vec![0u8]))?;
+                websocket.send(Message::Pong(vec![0u8]))?;
                 continue;
             }
             Message::Close(_) => {
@@ -700,22 +588,19 @@ pub fn handle_client(
         println!("got request from {}: {}", remote_hostname, req_txt);
         let req = from_str::<Request>(req_txt)?;
 
-        // handle response depending on request type
-        let response_result = match req.msgtype.as_str() {
+        match req.msgtype.as_str() {
             "track_vectors" => {
-                let tracks = query_dynamic_tables(req, pg);
-                let compressed = compress_geometry_vectors(tracks, 0.0001);
-                let rounded = round_floats(compressed, 0.0001);
-                write_response(rounded, &mut websocket)?;
-                Ok(())
+                let tracks = query_dynamic_tables(req, pg)?;
+                let tracks = compress_geometry_vectors(tracks, 0.0001);
+                let tracks = round_floats(tracks, 0.0001);
+                write_response(tracks, &mut websocket)?;
             }
 
             "track_vectors_extra" => {
-                let tracks = query_merged_tables(req, pg);
-                let compressed = compress_geometry_vectors(tracks, 0.0001);
-                let rounded = round_floats(compressed, 0.0001);
-                write_response(rounded, &mut websocket)?;
-                Ok(())
+                let tracks = query_merged_tables(req, pg)?;
+                let tracks = compress_geometry_vectors(tracks, 0.0001);
+                let tracks = round_floats(tracks, 0.0001);
+                write_response(tracks, &mut websocket)?;
             }
 
             // Returns the timerange where data exists in the database
@@ -727,36 +612,30 @@ pub fn handle_client(
                     end
                 });
                 println!("sending date range response {}", response);
-                websocket.write_message(Message::Binary(response.to_string().into()))?;
-                Ok(())
+                websocket.send(Message::Binary(response.to_string().into()))?;
             }
 
             "meta" => {
                 let (start, end) = query_validrange(pg)?;
                 println!("sending vessel metadata...");
-                let vinfo = query_metadata(pg, start, end);
-                for obj in vinfo {
-                    websocket.write_message(Message::Binary(obj.to_string().into()))?;
+                for obj in query_metadata(pg, start, end)? {
+                    websocket.send(Message::Binary(obj.to_string().into()))?;
                 }
-                Ok(())
             }
 
             // Draw geojson polygons on client
             "zones" => {
                 for zone in default_zones() {
-                    websocket.write_message(Message::binary(zone.to_string()))?;
+                    websocket.send(Message::binary(zone.to_string()))?;
                 }
-                websocket.write_message(Message::Binary(
+                websocket.send(Message::Binary(
                     "{\"msgtype\":\"doneZones\"}".as_bytes().to_vec(),
                 ))?;
-                Ok(())
             }
 
-            _unknown_query_type => Err("unknown query type"),
-        };
-
-        if let Err(e) = response_result {
-            return Err(e.into());
+            unknown_query_type => {
+                return Err(format!("unknown query type: {}", unknown_query_type).into());
+            }
         }
     }
 }

@@ -1,0 +1,44 @@
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directories:
+      - "/"
+      - "/aisdb_lib"
+      - "/receiver"
+      - "/client_webassembly"
+      - "/database_server"
+    schedule:
+      interval: "weekly"
+    groups:
+      cargo-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directories:
+      - "/aisdb_web"
+      - "/docs"
+    schedule:
+      interval: "weekly"
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions-dependencies:
+        patterns:
+          - "*"

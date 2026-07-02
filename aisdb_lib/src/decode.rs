@@ -58,20 +58,16 @@ impl VesselData {
 /// ("!AIVDM,1,1,,,144fiV0P00WT:`8POChN4?v4281b,0*64", 1635883083)
 /// ```
 pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
-    // Extract meta and payload from the line
     let (meta, payload) = line.as_ref().ok()?.rsplit_once('\\')?;
 
     let mut final_timestamp: Option<u64> = None;
 
-    // Loop through the tags in the `meta` part
     for tag_outer in meta.split(',') {
         for tag in tag_outer.split('*') {
-            // If the tag length is too short or doesn't contain "c:", skip it
             if tag.len() <= 3 || !tag.contains("c:") {
                 continue;
             }
 
-            // Try parsing the timestamp `i` from different parts of the tag
             let mut i: Option<u64> = None;
 
             if let Ok(parsed_i) = tag[2..].parse::<u64>() {
@@ -82,25 +78,19 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
                 i = Some(parsed_i);
             }
 
-            // If we successfully parsed a timestamp, process it
             if let Some(timestamp) = i {
                 let epoch_length = timestamp.to_string().len();
                 let adjusted_timestamp = if epoch_length == 13 {
-                    // Convert milliseconds to seconds
                     timestamp / 1000
                 } else if epoch_length > 13 {
-                    // Adjust to seconds by scaling down
                     let scale = 10u64.pow((epoch_length - 10) as u32);
                     timestamp / scale
                 } else if epoch_length == 10 {
-                    // Already in seconds
                     timestamp
                 } else {
-                    // Invalid epoch length
                     continue;
                 };
 
-                // Store the adjusted timestamp if valid
                 if is_valid_epoch(adjusted_timestamp) {
                     final_timestamp = Some(adjusted_timestamp);
                 }
@@ -108,17 +98,23 @@ pub fn parse_headers(line: Result<String, Error>) -> Option<(String, i32)> {
         }
     }
 
-    // If we have a valid final timestamp, return it along with the payload
-    if let Some(final_ts) = final_timestamp {
-        return Some((payload.to_string(), final_ts.try_into().unwrap()));
+    match final_timestamp {
+        Some(final_ts) => match i32::try_from(final_ts) {
+            Ok(epoch) => Some((payload.to_string(), epoch)),
+            Err(_) => {
+                eprintln!(
+                    "skipping message with out-of-range timestamp {}: {}",
+                    final_ts, payload
+                );
+                None
+            }
+        },
+        None => None,
     }
-
-    None // If no valid timestamp was found, return None
 }
 
-// Helper function to validate that the timestamp is within the valid epoch range
 fn is_valid_epoch(epoch: u64) -> bool {
-    let min_valid_epoch: u64 = 946731600; // Around year 2000
+    let min_valid_epoch: u64 = 946731600;
     let current_time = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
@@ -126,12 +122,9 @@ fn is_valid_epoch(epoch: u64) -> bool {
     epoch >= min_valid_epoch && epoch <= current_time
 }
 
-
 fn extract_epoch_from_nmea_line(line: &str) -> i32 {
-    // Attempt to extract Unix timestamp from additional fields after the checksum
     if let Some(checksum_index) = line.find('*') {
         let after_checksum = &line[checksum_index + 1..];
-        // Split by comma in case there are additional fields
         for field in after_checksum.split(',') {
             if let Ok(epoch) = field.trim().parse::<i32>() {
                 if epoch > 1_000_000_000 {
@@ -140,8 +133,7 @@ fn extract_epoch_from_nmea_line(line: &str) -> i32 {
             }
         }
     }
-    // If no timestamp found, use a default value or handle accordingly
-    0 // Return 0 or current time, but be cautious with defaults
+    0
 }
 
 fn parse_headers_nmea(line: Result<String, Error>) -> Option<(String, i32)> {
@@ -149,8 +141,7 @@ fn parse_headers_nmea(line: Result<String, Error>) -> Option<(String, i32)> {
         Ok(line) => {
             let line = line.trim();
             if line.starts_with('!') {
-                // Attempt to extract the epoch time from the line
-                let epoch = extract_epoch_from_nmea_line(&line);
+                let epoch = extract_epoch_from_nmea_line(line);
                 Some((line.to_string(), epoch))
             } else {
                 None
@@ -159,7 +150,6 @@ fn parse_headers_nmea(line: Result<String, Error>) -> Option<(String, i32)> {
         Err(_) => None,
     }
 }
-
 
 /// workaround for panic from nmea_parser library,
 /// caused by malformed base station timestamps / binary application messages?
@@ -170,11 +160,6 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
     if cols.len() < 6 {
         return Some((msg.to_string(), *epoch));
     }
-//         #[cfg(debug_assertions)]
-//         println!(
-//             "{:?} {:?} {:?} {:?} {:?} {:?}",
-//             cols[0], cols[1], cols[2], cols[3], cols[4], cols[5]
-//         );
     let count = str::parse::<u8>(cols[1]).unwrap_or(1);
     let fragment_no = str::parse::<u8>(cols[2]).unwrap_or(1);
     match (cols[0], count, fragment_no, cols[3], cols[4], cols[5]) {
@@ -184,7 +169,6 @@ pub fn skipmsg(msg: &str, epoch: &i32) -> Option<(String, i32)> {
                     && (f == 1)
                     && (&tx[0..1] == ";" || &tx[0..1] == "I" || &tx[0..1] == "J"))) =>
         {
-//             println!("skipped {:?}", msg);
             None
         }
         _ => Some((msg.to_string(), *epoch)),
@@ -197,9 +181,6 @@ pub fn filter_vesseldata(
     epoch: &i32,
     parser: &mut NmeaParser,
 ) -> Option<(ParsedMessage, i32, bool)> {
-    //     #[cfg(debug_assertions)]
-    //     println!("{:?} {:?}", epoch, sentence);
-
     match parser.parse_sentence(sentence).ok()? {
         ParsedMessage::VesselDynamicData(vdd) => {
             Some((ParsedMessage::VesselDynamicData(vdd), *epoch, true))
@@ -224,54 +205,43 @@ fn validate_file_ext(filename: std::path::PathBuf) -> Result<(), String> {
 
 fn decode_filter_pipe(
     reader: BufReader<File>,
-    mut parser: &mut NmeaParser,
+    parser: &mut NmeaParser,
     file_extension: &str,
 ) -> Vec<(ParsedMessage, i32, bool)> {
     match file_extension {
-        "nm4" => {
-            // Processing for .nm4 files
-            reader
-                .lines()
-                .filter_map(parse_headers)
-//                 .inspect(|parsed| println!("parse_headers output: {:?}", parsed))
-                .filter_map(|(s, e)| skipmsg(&s, &e))
-                .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
-                .collect::<Vec<(ParsedMessage, i32, bool)>>()
-        }
-        "nmea" | "txt" | "rx" => {
-            reader
-                .lines()
-                .filter_map(parse_headers_nmea)
-                .filter_map(|(s, e)| skipmsg(&s, &e))
-                .filter_map(|(s, e)| filter_vesseldata(&s, &e, &mut parser))
-                .collect::<Vec<(ParsedMessage, i32, bool)>>()
-        }
-        _ => {
-            // In case of unsupported file types
-            Vec::new()
-        }
+        "nm4" => reader
+            .lines()
+            .filter_map(parse_headers)
+            .filter_map(|(s, e)| skipmsg(&s, &e))
+            .filter_map(|(s, e)| filter_vesseldata(&s, &e, parser))
+            .collect::<Vec<(ParsedMessage, i32, bool)>>(),
+        "nmea" | "txt" | "rx" => reader
+            .lines()
+            .filter_map(parse_headers_nmea)
+            .filter_map(|(s, e)| skipmsg(&s, &e))
+            .filter_map(|(s, e)| filter_vesseldata(&s, &e, parser))
+            .collect::<Vec<(ParsedMessage, i32, bool)>>(),
+        _ => Vec::new(),
     }
 }
 
-fn print_status_info(
-    filename: std::path::PathBuf,
+pub(crate) fn print_status_info(
+    filename: &Path,
     elapsed: std::time::Duration,
     count: usize,
     verbose: bool,
 ) {
-    let f3 = filename.to_str().unwrap();
-    let f4 = Path::new(f3);
-    let fname = f4.file_name().unwrap().to_str().unwrap();
-    //     let fname = filename
-    //         .to_str()
-    //         .unwrap()
-    //         .rsplit_once(std::path::MAIN_SEPARATOR)
-    //         .unwrap()
-    //         .1;
+    if !verbose {
+        return;
+    }
+    let fname = filename
+        .file_name()
+        .and_then(OsStr::to_str)
+        .unwrap_or_default();
     let fname1 = format!("{:<1$}", fname, 64);
     let elapsed1 = format!(
         "elapsed: {:>1$}s",
-        format!("{:.2 }", elapsed.as_secs_f32()),
+        format!("{:.2}", elapsed.as_secs_f32()),
         7
     );
     let rate1 = format!(
@@ -280,12 +250,10 @@ fn print_status_info(
         8
     );
 
-    if verbose {
-        println!(
-            "{} count:{: >8}    {}    {}",
-            fname1, count, elapsed1, rate1,
-        );
-    }
+    println!(
+        "{} count:{: >8}    {}    {}",
+        fname1, count, elapsed1, rate1,
+    );
 }
 
 #[cfg(feature = "sqlite")]
@@ -300,13 +268,10 @@ pub fn sqlite_decode_insert_msgs(
     verbose: bool,
 ) -> Result<NmeaParser, Box<dyn std::error::Error>> {
     validate_file_ext(filename.clone())?;
-    let mut c = get_db_conn(dbpath).expect("getting db conn");
+    let mut c = get_db_conn(dbpath)?;
 
     let start = Instant::now();
-    let reader = BufReader::new(
-        File::open(&filename)
-            .unwrap_or_else(|_| panic!("Cannot open .nm4 file {}", filename.to_str().unwrap())),
-    );
+    let reader = BufReader::new(File::open(&filename)?);
     let mut stat_msgs = <Vec<VesselData>>::new();
     let mut positions = <Vec<VesselData>>::new();
     let mut count = 0;
@@ -317,7 +282,6 @@ pub fn sqlite_decode_insert_msgs(
         .unwrap_or("")
         .to_lowercase();
 
-    // in 500k batches
     for (payload, epoch, is_dynamic) in decode_filter_pipe(reader, &mut parser, &file_ext) {
         let message = VesselData {
             epoch: Some(epoch),
@@ -337,33 +301,31 @@ pub fn sqlite_decode_insert_msgs(
         }
 
         if positions.len() >= BATCHSIZE {
-            let _d = sqlite_prepare_tx_dynamic(&mut c, source, positions);
+            sqlite_prepare_tx_dynamic(&mut c, source, positions)?;
             positions = vec![];
         };
         if stat_msgs.len() >= BATCHSIZE {
-            let _s = sqlite_prepare_tx_static(&mut c, source, stat_msgs);
+            sqlite_prepare_tx_static(&mut c, source, stat_msgs)?;
             stat_msgs = vec![];
         }
     }
 
-    // insert remaining
     if !positions.is_empty() {
-        let _d = sqlite_prepare_tx_dynamic(&mut c, source, positions);
+        sqlite_prepare_tx_dynamic(&mut c, source, positions)?;
     }
     if !stat_msgs.is_empty() {
-        let _s = sqlite_prepare_tx_static(&mut c, source, stat_msgs);
+        sqlite_prepare_tx_static(&mut c, source, stat_msgs)?;
     }
 
     let elapsed = start.elapsed();
-    print_status_info(filename, elapsed, count, verbose);
+    print_status_info(&filename, elapsed, count, verbose);
 
     Ok(parser)
 }
 
 #[cfg(feature = "postgres")]
 /// open .nm4 file and decode each line, keeping only vessel data.
-/// decoded vessel data will be inserted into the SQLite database
-/// located at dbpath
+/// decoded vessel data will be inserted into the Postgres database
 pub fn postgres_decode_insert_msgs(
     connect_str: &str,
     filename: std::path::PathBuf,
@@ -372,7 +334,7 @@ pub fn postgres_decode_insert_msgs(
     verbose: bool,
 ) -> Result<NmeaParser, Box<dyn std::error::Error>> {
     validate_file_ext(filename.clone())?;
-    let mut c = get_postgresdb_conn(connect_str).expect("getting db conn");
+    let mut c = get_postgresdb_conn(connect_str)?;
 
     let start = Instant::now();
     let reader = BufReader::new(File::open(&filename)?);
@@ -387,7 +349,6 @@ pub fn postgres_decode_insert_msgs(
         .unwrap_or("")
         .to_lowercase();
 
-    // in 500k batches
     for (payload, epoch, is_dynamic) in decode_filter_pipe(reader, &mut parser, &file_ext) {
         let message = VesselData {
             epoch: Some(epoch),
@@ -416,7 +377,6 @@ pub fn postgres_decode_insert_msgs(
         }
     }
 
-    // insert remaining
     if !positions.is_empty() {
         postgres_prepare_tx_dynamic(&mut c, source, positions)?;
     }
@@ -425,7 +385,7 @@ pub fn postgres_decode_insert_msgs(
     }
 
     let elapsed = start.elapsed();
-    print_status_info(filename, elapsed, count, verbose);
+    print_status_info(&filename, elapsed, count, verbose);
 
     Ok(parser)
 }
@@ -464,7 +424,6 @@ pub mod tests {
         assert_eq!(expected, result);
     }
 
-
     #[test]
     pub fn test_decode_insert_msgs() -> Result<(), Error> {
         testingdata().unwrap();
@@ -472,8 +431,8 @@ pub mod tests {
         let fpaths = glob_dir(std::path::PathBuf::from("testdata/"), "nm4").expect("globbing");
         for filepath in fpaths {
             parser = sqlite_decode_insert_msgs(
-                &std::path::Path::new("testdata/test.db").to_path_buf(),
-                &std::path::Path::new(&filepath).to_path_buf(),
+                std::path::Path::new("testdata/test.db").to_path_buf(),
+                std::path::Path::new(&filepath).to_path_buf(),
                 "TESTING",
                 parser,
                 true,

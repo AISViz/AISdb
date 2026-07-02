@@ -1,14 +1,19 @@
 import datetime
-import tempfile
-import types
-import xarray as xr
-import numpy as np
+import logging
 import os
 import shutil
+import tempfile
+import types
+from collections import defaultdict
+
+import numpy as np
+import xarray as xr
+
 from aisdb.database.decoder import fast_unzip
 from aisdb.weather.utils import SHORT_NAMES_TO_VARIABLES
 from aisdb.weather.weather_fetch import ClimateDataStore
-from collections import defaultdict
+
+logger = logging.getLogger(__name__)
 
 
 def dt_to_iso8601(timestamp):
@@ -27,12 +32,12 @@ def dt_to_iso8601(timestamp):
     """
 
     dt = datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
-    iso_format = dt.strftime('%Y-%m-%dT%H:%M:%S.%f') + '000'
+    iso_format = dt.strftime("%Y-%m-%dT%H:%M:%S.%f") + "000"
 
     return iso_format
-    
-    
-def get_monthly_range(start,end) -> list:
+
+
+def get_monthly_range(start, end) -> list:
     """
     Generate a list of month-year strings between two given timestamps.
 
@@ -53,18 +58,27 @@ def get_monthly_range(start,end) -> list:
 
     while current <= end:
         # Format the current date as 'yyyy-mm'
-        months.append(current.strftime('%Y-%m'))
-        
+        months.append(current.strftime("%Y-%m"))
+
         # Move to the next month
         if current.month == 12:
             current = current.replace(year=current.year + 1, month=1)
         else:
             current = current.replace(month=current.month + 1)
-    
+
     return months
 
+
 class WeatherDataStore:
-    def __init__(self,short_names: list, start:datetime.datetime,end: datetime.datetime, weather_data_path: str, download_from_cds: bool = False,**kwargs):
+    def __init__(
+        self,
+        short_names: list,
+        start: datetime.datetime,
+        end: datetime.datetime,
+        weather_data_path: str,
+        download_from_cds: bool = False,
+        **kwargs,
+    ):
         """
         Initialize a WeatherDataStore object to handle weather data extraction.
 
@@ -76,38 +90,36 @@ class WeatherDataStore:
 
         Example:
             >>> store = WeatherDataStore(['10u', '10v'], datetime.datetime(2023, 1, 1), datetime.datetime(2023, 2, 1), '/data/weather')
-        
+
         Note:
             After using this object, make sure to call the `close` method to free resources.
         >>> store.close()
         """
-                
+
         # Validate parameter_names
-        if not isinstance(short_names, list) or not all(isinstance(name, str) for name in short_names):
+        if not isinstance(short_names, list) or not all(
+            isinstance(name, str) for name in short_names
+        ):
             raise ValueError("short_names should be a list of strings.")
-        
-         # validate weather_data_path
-        if weather_data_path =="":
+
+        # validate weather_data_path
+        if weather_data_path == "":
             raise ValueError("WEATHER_DATA_PATH is not specified.")
-        
+
         self.start = start
         self.end = end
-        self.months = get_monthly_range(start, end) 
+        self.months = get_monthly_range(start, end)
 
         self._check_available_short_names(short_names)
-       
+
         self.short_names = short_names
-
-        if weather_data_path =="":
-            raise ValueError("WEATHER_DATA_PATH is not specified. WEATHER_DATA_PATH must be specified for either weather data extraction or to point to location where weather data grib file is placed")
-
         self.weather_data_path = weather_data_path
 
-        if download_from_cds == True:
+        if download_from_cds:
             self.area = kwargs.get("area")
-            if self.area  == None or len(self.area )==0:
-                raise ValueError("""Missing parameter 'area'.""")
-              
+            if self.area is None or len(self.area) == 0:
+                raise ValueError("Missing parameter 'area'.")
+
             user_params = {
                 "short_names": self.short_names,
                 "start_time": self.start,
@@ -115,14 +127,16 @@ class WeatherDataStore:
                 "area": self.area,
             }
 
-            climateDataStore = ClimateDataStore(dataset="reanalysis-era5-single-levels", **user_params)
+            climateDataStore = ClimateDataStore(
+                dataset="reanalysis-era5-single-levels", **user_params
+            )
 
             print(f"Downloading weather data from CDS to: {weather_data_path}")
 
             climateDataStore.download_grib_file(output_folder=weather_data_path)
-        
+
         self.weather_ds_map = self._load_weather_data()
-           
+
     def extract_weather(self, latitude, longitude, time) -> dict:
         """
         Extract weather data for a specific latitude, longitude, and timestamp.
@@ -145,17 +159,14 @@ class WeatherDataStore:
         dt = dt_to_iso8601(time)
         values = {}
 
-        for short_name, ds in self.weather_ds_map.items(): 
+        for short_name, ds in self.weather_ds_map.items():
             for var_da in ds.data_vars:
                 selected = ds[var_da].sel(
-                    latitude=latitude,
-                    longitude=longitude,
-                    time=dt,
-                    method="nearest"
+                    latitude=latitude, longitude=longitude, time=dt, method="nearest"
                 )
                 values[short_name] = selected.values
         return values
-        
+
     def _load_weather_data(self) -> dict:
         """
         Load and extract weather data from GRIB files for the given date range,
@@ -165,8 +176,6 @@ class WeatherDataStore:
             dict: A dictionary where each key is a weather shortName and each value
                 is an xarray.Dataset merged across all months for that variable.
         """
-        from collections import defaultdict
-
         tmp_dir = tempfile.mkdtemp()
         zipped_grib_files = []
 
@@ -180,7 +189,9 @@ class WeatherDataStore:
             elif os.path.exists(grib_path):
                 shutil.copy(grib_path, f"{tmp_dir}/{month}.grib")
             else:
-                raise FileNotFoundError(f"Neither {zip_path} nor {grib_path} found for month: {month}")
+                raise FileNotFoundError(
+                    f"Neither {zip_path} nor {grib_path} found for month: {month}"
+                )
 
         if zipped_grib_files:
             fast_unzip(zipped_grib_files, tmp_dir)
@@ -192,35 +203,43 @@ class WeatherDataStore:
             grib_file_path = f"{tmp_dir}/{month}.grib"
 
             if not os.path.exists(grib_file_path):
-                print(f"Warning: GRIB file not found: {grib_file_path}. Skipping.")
+                logger.warning("GRIB file not found: %s. Skipping.", grib_file_path)
                 continue
 
             for short_name in self.short_names:
+                # cfgrib raises DatasetBuildError (a ValueError subclass) when
+                # the file has no matching variable; OSError covers unreadable
+                # or truncated grib files
                 try:
                     ds = xr.open_dataset(
                         grib_file_path,
                         engine="cfgrib",
-                        backend_kwargs={'filter_by_keys': {'shortName': short_name}}
+                        backend_kwargs={"filter_by_keys": {"shortName": short_name}},
                     )
                     shortname_to_datasets[short_name].append(ds)
-                except Exception as e:
-                    print(f"Warning: Failed to load {short_name} from {grib_file_path}: {e}")
+                except (OSError, ValueError, KeyError) as err:
+                    logger.warning(
+                        "failed to load %s from %s: %s",
+                        short_name,
+                        grib_file_path,
+                        err,
+                    )
 
         # Merge across time for each shortName
         merged_per_shortname = {}
         for short_name, datasets in shortname_to_datasets.items():
             try:
-                merged = xr.concat(datasets, dim="time")
-                merged_per_shortname[short_name] = merged
-            except Exception as e:
-                print(f"Warning: Could not merge datasets for {short_name}: {e}")
-
+                merged_per_shortname[short_name] = xr.concat(datasets, dim="time")
+            except (ValueError, KeyError) as err:
+                logger.error("could not merge datasets for %s: %s", short_name, err)
+                raise RuntimeError(
+                    f"could not merge weather datasets for {short_name}"
+                ) from err
 
         if merged_per_shortname:
             return merged_per_shortname
         else:
             raise RuntimeError("No weather datasets could be loaded or merged.")
-
 
     def yield_tracks_with_weather(self, tracks) -> dict:
         """
@@ -236,9 +255,9 @@ class WeatherDataStore:
         assert isinstance(tracks, types.GeneratorType)
 
         for track in tracks:
-            longitudes = np.array(track['lon'])
-            latitudes = np.array(track['lat'])
-            timestamps = np.array(track['time'])
+            longitudes = np.array(track["lon"])
+            latitudes = np.array(track["lat"])
+            timestamps = np.array(track["time"])
 
             dt = [dt_to_iso8601(t) for t in timestamps]
 
@@ -257,11 +276,13 @@ class WeatherDataStore:
                             latitude=lat_da,
                             longitude=lon_da,
                             time=time_da,
-                            method="nearest"
+                            method="nearest",
                         )
                         weather_data_dict[short_name] = selected.values
-                except Exception as e:
-                    print(f"Warning: Failed to select {short_name} data for track: {e}")
+                except (KeyError, ValueError, IndexError) as err:
+                    logger.warning(
+                        "failed to select %s data for track: %s", short_name, err
+                    )
                     weather_data_dict[short_name] = [np.nan] * len(timestamps)
 
             track["weather_data"] = weather_data_dict
@@ -273,15 +294,10 @@ class WeatherDataStore:
         """
         for _, ds in self.weather_ds_map.items():
             if isinstance(ds, xr.Dataset):
-                ds.close()    
-    def _check_available_short_names(self, short_names):        
-        for short_name in short_names:
-                value =  SHORT_NAMES_TO_VARIABLES.get(short_name)
-                if value is None or value == "":
-                    raise ValueError(f"Invalid shortName: {short_name}.")
+                ds.close()
 
-DEFAULT_PARAMS = {
-    "product_type": ["reanalysis"],
-    "data_format": "grib",
-    "download_format": "unarchived",
-}
+    def _check_available_short_names(self, short_names):
+        for short_name in short_names:
+            value = SHORT_NAMES_TO_VARIABLES.get(short_name)
+            if value is None or value == "":
+                raise ValueError(f"Invalid shortName: {short_name}.")
