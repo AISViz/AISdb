@@ -9,11 +9,16 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
