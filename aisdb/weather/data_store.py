@@ -145,18 +145,17 @@ class WeatherDataStore:
         dt = dt_to_iso8601(time)
         values = {}
 
-        # Loop through each variable in the weather_ds_map
-        for shortname, ds in self.weather_ds_map.items():
-            values[shortname] = ds[shortname].sel(
-                latitude=latitude,
-                longitude=longitude,
-                time=dt,
-                method='nearest'
-            ).values
-
+        for short_name, ds in self.weather_ds_map.items(): 
+            for var_da in ds.data_vars:
+                selected = ds[var_da].sel(
+                    latitude=latitude,
+                    longitude=longitude,
+                    time=dt,
+                    method="nearest"
+                )
+                values[short_name] = selected.values
         return values
-
-    
+        
     def _load_weather_data(self) -> dict:
         """
         Load and extract weather data from GRIB files for the given date range,
