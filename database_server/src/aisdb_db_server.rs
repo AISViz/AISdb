@@ -575,7 +575,7 @@ pub fn handle_client(
         let request_data = websocket.read()?;
         match request_data {
             Message::Ping(_) => {
-                websocket.send(Message::Pong(vec![0u8]))?;
+                websocket.send(Message::Pong(vec![0u8].into()))?;
                 continue;
             }
             Message::Close(_) => {
