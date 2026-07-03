@@ -58,7 +58,7 @@ To contribute to AISdb or develop it further, set up a build environment with th
 ```sh
 python -m venv AISdb  # Create a virtual environment
 source AISdb/bin/activate  # Activation command for Windows `AISdb\Scripts\activate`
-git clone https://github.com/AISViz/AISdb.git && cd AISdb  # Clone the repository
+git clone https://github.com/MAPS-Lab/AISdb.git && cd AISdb  # Clone the repository
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > install-rust.sh  # Install Rust
 /bin/bash install-rust.sh -q -y  # Run Rust installer
 pip install --upgrade maturin[patchelf]  # Install Maturin for building
@@ -84,7 +84,7 @@ Beyond the Python package, the repository contains the deployable pieces of a se
 
 ## Raster data
 
-Bathymetry, distance-to-shore, and distance-to-port rasters used by `aisdb.webdata` are downloaded on first use from the [data release](https://github.com/AISViz/AISdb/releases/tag/data-v1) of this repository.
+Bathymetry, distance-to-shore, and distance-to-port rasters used by `aisdb.webdata` are downloaded on first use from the [data release](https://github.com/MAPS-Lab/AISdb/releases/tag/data-v1) of this repository.
 
 ## Documentation
 
@@ -92,9 +92,9 @@ Bathymetry, distance-to-shore, and distance-to-port rasters used by `aisdb.webda
 
 ## Related projects
 
-- [AISdb-lite](https://github.com/AISViz/AISdb-lite) is the PostGIS and TimescaleDB first variant that ingests all AIS messages into two global hypertables
-- [NOAA-Integrator](https://github.com/AISViz/NOAA-Integrator) acquires AIS data from NOAA Marine Cadastre and loads it into AISdb-aligned databases
-- [Tutorials](https://github.com/AISViz/Tutorials) collects notebooks with worked examples for AISdb workflows
+- [AISdb-lite](https://github.com/MAPS-Lab/AISdb-lite) is the PostGIS and TimescaleDB first variant that ingests all AIS messages into two global hypertables
+- [NOAA-Integrator](https://github.com/MAPS-Lab/AISdb-NOAA-Integrator) acquires AIS data from NOAA Marine Cadastre and loads it into AISdb-aligned databases
+- [Tutorials](https://github.com/MAPS-Lab/AISdb-Tutorials) collects notebooks with worked examples for AISdb workflows
 
 ## License
 

@@ -46,11 +46,11 @@ dependencies = [
 
 [[project.authors]]
 name = "AISViz Maintainers"
-email = "aisviz@dal.ca"
+email = "mapslab@dal.ca"
 
 [project.urls]
 homepage = "https://aisviz.cs.dal.ca/"
-repository = "https://github.com/AISViz/AISdb"
+repository = "https://github.com/MAPS-Lab/AISdb"
 documentation = "https://aisviz.gitbook.io/documentation/"
 tutorials = "https://aisviz.gitbook.io/tutorials/"
 

@@ -17,7 +17,7 @@ from datetime import datetime
 # -- Project information -----------------------------------------------------
 
 project = "AISDB"
-copyright = f"{datetime.today().year}, AISViz"
+copyright = f"{datetime.today().year}, MAPS Lab"
 author = "AISViz"
 
 # -- General configuration ---------------------------------------------------
