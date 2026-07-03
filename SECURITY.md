@@ -16,7 +16,7 @@ The AISdb team takes security vulnerabilities seriously. If you discover a secur
 ### How to Report
 
 - **Private security advisory (preferred):** Go to the repository's Security tab on GitHub and select "Report a vulnerability". This opens a private advisory visible only to you and the maintainers.
-- **Email:** Send an email to aisviz@dal.ca. Please include a detailed description of the issue and the steps to reproduce the vulnerability. If possible, include patches, scripts, or other resources that could help evaluate the vulnerability.
+- **Email:** Send an email to mapslab@dal.ca. Please include a detailed description of the issue and the steps to reproduce the vulnerability. If possible, include patches, scripts, or other resources that could help evaluate the vulnerability.
 
 ### Response Expectations
 

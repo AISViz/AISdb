@@ -2,7 +2,7 @@
 name = "aisdb"
 edition = "2021"
 version = "1.8.0-alpha"
-authors = [ "AISViz Maintainers // aisviz@dal.ca",]
+authors = [ "AISViz Maintainers // mapslab@dal.ca",]
 
 [lib]
 crate-type = [ "cdylib", "rlib", ]

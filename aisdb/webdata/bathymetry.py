@@ -15,8 +15,8 @@ from aisdb.webdata.load_raster import RasterFile
 
 # GEBCO 2022 grid split into two archives to fit release asset limits
 urls = (
-    "https://github.com/AISViz/AISdb/releases/download/data-v1/raster-bathy-1.7z",
-    "https://github.com/AISViz/AISdb/releases/download/data-v1/raster-bathy-2.7z",
+    "https://github.com/MAPS-Lab/AISdb/releases/download/data-v1/raster-bathy-1.7z",
+    "https://github.com/MAPS-Lab/AISdb/releases/download/data-v1/raster-bathy-2.7z",
 )
 
 
