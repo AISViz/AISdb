@@ -93,7 +93,7 @@ Bathymetry, distance-to-shore, and distance-to-port rasters used by `aisdb.webda
 ## Related projects
 
 - [AISdb-lite](https://github.com/MAPS-Lab/AISdb-lite) is the PostGIS and TimescaleDB first variant that ingests all AIS messages into two global hypertables
-- [NOAA-Integrator](https://github.com/MAPS-Lab/AISdb-NOAA-Integrator) acquires AIS data from NOAA Marine Cadastre and loads it into AISdb-aligned databases
+- [NOAA-Integrator](https://github.com/MAPS-Lab/NOAA-Integrator) acquires AIS data from NOAA Marine Cadastre and loads it into AISdb-aligned databases
 - [Tutorials](https://github.com/MAPS-Lab/AISdb-Tutorials) collects notebooks with worked examples for AISdb workflows
 
 ## License
