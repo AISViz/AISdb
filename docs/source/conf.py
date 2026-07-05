@@ -18,7 +18,7 @@ from datetime import datetime
 
 project = "AISDB"
 copyright = f"{datetime.today().year}, MAPS Lab"
-author = "AISViz"
+author = "MAPS Lab"
 
 # -- General configuration ---------------------------------------------------
 
@@ -32,7 +32,7 @@ extensions = [
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
+templates_path = []
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -60,14 +60,3 @@ html_favicon = "../../aisdb_web/map/public/favicon.svg"
 html_css_files = [
     #'custom.css',
 ]
-"""
-def skip(app, what, name, obj, would_skip, options):
-    if "fromFunction" in name:
-        return True
-    else:
-        return would_skip
-
-
-def setup(app):
-    app.connect("autodoc-skip-member", skip)
-"""

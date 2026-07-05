@@ -2,6 +2,18 @@
 Changelog
 =========
 
+unreleased
+----------
+
+retarget all repository urls and package metadata from the AISViz org to
+MAPS-Lab, resolve the 40 outstanding Dependabot alerts across the Cargo
+and npm dependency trees, upgrade tungstenite to 0.29 and send websocket
+payloads as Bytes, rework the package, services, CI, and packaging for
+production, add a World Port Index lookup by bounding box, and add ERA5
+weather download through the Copernicus CDS with a per-variable weather
+store
+
+
 v1.8.0-alpha
 ------------
 
@@ -9,6 +21,20 @@ released 2025-03-15. migrate the database backend and CI pipelines to
 TimescaleDB on PostgreSQL 17, parse ETA fields from Spire CSV sources,
 reduce memory usage when processing NOAA CSV files, replace deprecated
 epoch handling with datetime, and publish API docs via GitHub Actions
+
+
+v1.7.3
+------
+
+released 2024-10-31. update the readme with the new API documentation
+link
+
+
+v1.7.2
+------
+
+released 2024-03-09. rework the aisdb package structure ahead of the
+server split
 
 
 v1.7.1

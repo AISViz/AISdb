@@ -6,8 +6,8 @@ AISdb is an open-source database system for storing, retrieving, analyzing, and 
 
 - Efficient data management on SQLite and PostgreSQL/TimescaleDB, scaling from local files to server deployments
 - A Python API usable across programming skill levels, with Rust handling decoding and other critical processing paths
-- Data enrichment that joins AIS records with environmental and bathymetric datasets for marine context
-- Analytical tools for complex queries, track processing, and statistical analysis directly against the database
+- Data enrichment that joins AIS records with environmental, bathymetric, and weather datasets for marine context
+- Analytical tools for complex queries, track processing, network graph generation, H3 spatial discretization, and statistical analysis directly against the database
 - Dynamic visualization and export options in multiple formats for further analysis or reporting
 - Modular design with optimized database schemas built for performance and scalability
 
@@ -16,8 +16,8 @@ AIS data comprises digital messages that ships and base stations transmit over V
 ## Installation
 
 ```sh
-python -m venv AISdb  # Create and activate a virtual environment
-source AISdb/bin/activate  # On Windows use `AISdb\Scripts\activate`
+python -m venv .venv  # Create and activate a virtual environment
+source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`
 pip install aisdb  # Install AISdb from PyPI
 ```
 
@@ -56,13 +56,13 @@ with aisdb.DBConn("ais.sqlite") as dbconn:
 To contribute to AISdb or develop it further, set up a build environment with these steps.
 
 ```sh
-python -m venv AISdb  # Create a virtual environment
-source AISdb/bin/activate  # Activation command for Windows `AISdb\Scripts\activate`
+python -m venv .venv  # Create a virtual environment
+source .venv/bin/activate  # Activation command for Windows `.venv\Scripts\activate`
 git clone https://github.com/MAPS-Lab/AISdb.git && cd AISdb  # Clone the repository
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > install-rust.sh  # Install Rust
 /bin/bash install-rust.sh -q -y  # Run Rust installer
 pip install --upgrade maturin[patchelf]  # Install Maturin for building
-maturin develop --release --extras=test,docs  # Build AISdb package
+maturin develop --release --extras=test  # Build AISdb package
 ```
 
 Run the test suite with pytest.
@@ -71,13 +71,13 @@ Run the test suite with pytest.
 pytest ./aisdb/tests/ --maxfail=10
 ```
 
-The Rust engine has its own gates, run from the `aisdb_lib` directory with `cargo fmt --check`, `cargo clippy --features sqlite,postgres`, and `cargo test --features sqlite,postgres`. Continuous integration builds wheels for Linux, macOS, and Windows, verifies they install cleanly with uv, and runs the full test suite, including the PostgreSQL and TimescaleDB paths, on every push and pull request.
+The Rust engine has its own gates, run from the `aisdb_lib` directory with `cargo fmt --check`, `cargo clippy --features sqlite,postgres`, and `cargo test --features sqlite,postgres`. Continuous integration builds wheels for Linux, macOS, and Windows, smoke-tests the Linux wheel installation with uv, and runs the test suite against PostgreSQL 17 (with TimescaleDB on Linux and macOS) for pushes to `master`, tags, and pull requests.
 
 ## Services
 
 Beyond the Python package, the repository contains the deployable pieces of a self-hosted AISdb stack, each in its own top-level folder.
 
-- `receiver/` decodes live NMEA streams from an antenna or aggregator feed, persists them locally, and rebroadcasts to downstream clients
+- `receiver/` decodes live NMEA streams from an antenna or aggregator feed, persists them to a local SQLite or PostgreSQL database, and rebroadcasts to downstream clients
 - `database_server/` serves vectorized vessel tracks from PostgreSQL over a WebSocket API
 - `aisdb_web/` is the JavaScript and WebAssembly map front end bundled into the Python wheel
 - `client_webassembly/` compiles the in-browser geometry processing used by the map

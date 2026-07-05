@@ -50,7 +50,7 @@ For code contributions:
 - Fork the repository and create a feature branch.
 - Write clear code and ensure it passes the quality gates below.
 - Make sure your changes do not break existing functionality.
-- Submit a pull request with a clear description of what you changed and why.
+- Submit a pull request against the `master` branch with a clear description of what you changed and why.
 
 ### Improving Documentation
 
@@ -61,16 +61,16 @@ Good documentation is crucial:
 
 ## Development Setup
 
-AISdb is a mixed Rust and Python project built with maturin. A working development environment needs:
+AISdb is a mixed Rust and Python project built with maturin. The maturin build also compiles the WebAssembly map client and bundles the web assets, so a working development environment needs the Rust, wasm, and Node toolchains in addition to Python.
 
-1. **Rust:** Install the stable toolchain via [rustup](https://rustup.rs/), then add the WebAssembly target:
+1. **Rust:** Install the stable toolchain via [rustup](https://rustup.rs/), then add the WebAssembly target and the wasm build tools:
 
    ```sh
    rustup target add wasm32-unknown-unknown
    cargo install --locked wasm-pack wasm-bindgen-cli wasm-opt
    ```
 
-2. **Node.js 20:** Required to bundle the web assets during the build.
+2. **Node.js 20:** Required to run `npm install` and the Vite builds that bundle the web assets during the maturin build.
 
 3. **Python 3.10 or newer:** Create a virtual environment and build the package in development mode:
 
@@ -81,9 +81,13 @@ AISdb is a mixed Rust and Python project built with maturin. A working developme
    maturin develop --release --extras=test
    ```
 
+   The `test` extra installs the pytest tooling (coverage, pytest, pytest-cov) used by the quality gates below. This is the same command the CI installation workflow uses.
+
 ## Quality Gates
 
-Continuous integration enforces the following checks on every pull request. Run them locally before submitting:
+### Automated checks (CI)
+
+Continuous integration runs the checks below on pull requests. Run them locally before submitting.
 
 - **Rust (aisdb_lib):** From the `aisdb_lib/` directory:
 
@@ -93,19 +97,25 @@ Continuous integration enforces the following checks on every pull request. Run 
   cargo test --features sqlite,postgres
   ```
 
+  The `sqlite` and `postgres` features are already the crate defaults; the flags are kept to mirror CI.
+
 - **Rust (database_server):** `cargo check` must pass in the `database_server/` directory.
 
-- **Python:** The test suite must pass. Pytest configuration lives in `pyproject.toml` under `[tool.pytest.ini_options]`:
+- **Python:** The test suite must pass. Pytest configuration lives in `pyproject.toml` under `[tool.pytest.ini_options]` (testpaths `aisdb/tests`):
 
   ```sh
   pytest ./aisdb/tests/
   ```
 
-  Some tests require a local PostgreSQL server with the TimescaleDB extension; the CI workflows in `.github/workflows/` document a working setup for Linux, macOS, and Windows.
+  Many tests require a local PostgreSQL 17 server; the TimescaleDB paths additionally need the TimescaleDB extension. CI installs PostgreSQL 17 on Linux, macOS, and Windows, and installs TimescaleDB on Linux and macOS (the Windows job runs against plain PostgreSQL 17). The workflows in `.github/workflows/` document a working setup for each OS.
+
+- **Wheels:** Release wheels are built by CI for Linux, Windows, and macOS. A representative Linux wheel is smoke-tested by installing and importing it under uv, and every artifact's distribution metadata is validated with `twine check`. You do not need to build wheels locally.
+
+### Coding standards
+
+These are enforced by reviewers rather than an automated CI linter, so keep them in mind before opening a pull request.
 
 - **SQL:** All SQL statements must be parameterized. Never build SQL from string interpolation or concatenation of user input.
-
-- **Wheels:** Release wheels are built by CI for Linux, Windows, and macOS, and must be installable with both pip and uv. You do not need to build wheels locally.
 
 ## Community and Support
 
