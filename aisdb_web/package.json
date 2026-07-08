@@ -10,14 +10,14 @@
     "build": "vite build"
   },
   "dependencies": {
-    "express": "4.22.2",
+    "express": "5.2.1",
     "flatpickr": "^4.6.13",
     "html2canvas": ">=1.4.1",
-    "ol": ">=7.3.9",
+    "ol": ">=10.9.0",
     "protocol-buffers-schema": "3.6.1",
-    "typescript": "^5.0.2"
+    "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "vite": "^6.4.3"
+    "vite": "^8.1.3"
   }
 }
