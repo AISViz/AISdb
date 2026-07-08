@@ -12,7 +12,6 @@ AISDB Docs: Index
 
    api/aisdb
    api/aisdb.*
-   api/modules
 
 Indices and tables
 ==================

@@ -88,7 +88,7 @@ Bathymetry, distance-to-shore, and distance-to-port rasters used by `aisdb.webda
 
 ## Documentation
 
-[docs](https://aisviz.gitbook.io/documentation/) · [tutorials](https://aisviz.gitbook.io/tutorials/) · [API reference](https://aisviz.cs.dal.ca/AISdb/) · [website](https://aisviz.cs.dal.ca/)
+[docs](https://aisviz.gitbook.io/documentation/) · [tutorials](https://aisviz.gitbook.io/tutorials/) · [API reference](https://maps-lab.github.io/AISdb/) · [website](https://aisviz.cs.dal.ca/)
 
 ## Related projects
 
@@ -105,7 +105,7 @@ If you use AISdb in your work, please cite it. Citation metadata lives in [CITAT
   author    = {Spadon, Gabriel},
   title     = {AISdb},
   year      = {2026},
-  version   = {1.8.0a0},
+  version   = {1.8.0-alpha},
   publisher = {MAPS Lab, Dalhousie University},
   url       = {https://github.com/MAPS-Lab/AISdb},
   license   = {AGPL-3.0}
