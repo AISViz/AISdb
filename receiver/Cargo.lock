@@ -34,7 +34,7 @@ dependencies = [
  "geo",
  "geo-types",
  "include_dir",
- "nmea-parser",
+ "nmea-parser 0.10.0",
  "postgres",
  "rusqlite",
 ]
@@ -48,7 +48,7 @@ dependencies = [
  "mproxy-forward",
  "mproxy-reverse",
  "mproxy-server",
- "nmea-parser",
+ "nmea-parser 0.11.0",
  "pico-args",
  "serde",
  "serde_json",
@@ -908,6 +908,20 @@ dependencies = [
  "hashbrown 0.12.3",
  "log",
  "num-traits",
+]
+
+[[package]]
+name = "nmea-parser"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b20e62c685b0fc1e178a5ddede4084a2ba17c5ec02035c16e8042dc954f9083"
+dependencies = [
+ "bitvec",
+ "chrono",
+ "hashbrown 0.14.5",
+ "log",
+ "num-traits",
+ "serde",
 ]
 
 [[package]]
