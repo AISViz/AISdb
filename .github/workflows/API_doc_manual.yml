@@ -1,6 +1,13 @@
 name: API Doc Generation
 
-on: workflow_dispatch
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'aisdb/**'
+      - 'docs/**'
+      - '.github/workflows/API_doc_manual.yml'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
