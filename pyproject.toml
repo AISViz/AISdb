@@ -1,5 +1,5 @@
 [build-system]
-requires = ["maturin>=1.7,<2", "numpy", "wheel", "patchelf"]
+requires = ["maturin>=1.14.1,<2", "numpy", "wheel", "patchelf"]
 build-backend = "maturin"
 
 [project]
