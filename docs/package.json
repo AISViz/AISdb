@@ -1,1 +1,1 @@
-{"name":"AISDB-Doc","version":"1.0.0","description":"AISDB Documentation","main":"docserver.js","type":"module","author":"MERIDIAN / Matt Smith","dependencies":{"express":"4.22.2"}}
+{"name":"AISDB-Doc","version":"1.0.0","description":"AISDB Documentation","main":"docserver.js","type":"module","author":"MERIDIAN / Matt Smith","dependencies":{"express":"5.2.1"}}
